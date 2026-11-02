@@ -1,0 +1,53 @@
+<footer class="site-footer">
+  <a class="to-top" href="#main">Back to top</a>
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a class="brand" href="/" aria-label="Nexthlon home">
+        <span class="brand-mark"><%- icon('bolt') %></span>
+        <span class="brand-word">NEXTHLON<small>Performance gear</small></span>
+      </a>
+      <p>Your Next Move Starts Here. Sports gear for runners, footballers, climbers and every athlete in between.</p>
+    </div>
+    <div>
+      <h2>Shop</h2>
+      <ul>
+        <li><a href="/products">All gear</a></li>
+        <% navCategories.slice(0, 5).forEach(function (name) { %>
+          <li><a href="/products?category=<%= encodeURIComponent(name) %>"><%= name %></a></li>
+        <% }) %>
+      </ul>
+    </div>
+    <div>
+      <h2>More sports</h2>
+      <ul>
+        <% navCategories.slice(5).forEach(function (name) { %>
+          <li><a href="/products?category=<%= encodeURIComponent(name) %>"><%= name %></a></li>
+        <% }) %>
+      </ul>
+    </div>
+    <div>
+      <h2>Your account</h2>
+      <ul>
+        <% if (currentUser && currentUser.role === 'admin') { %>
+          <li><a href="/admin">Admin dashboard</a></li>
+          <li><a href="/admin/users">Manage users</a></li>
+        <% } else if (currentUser) { %>
+          <li><a href="/profile">Your profile</a></li>
+          <li><a href="/profile#addresses">Saved addresses</a></li>
+          <li><a href="/profile#security">Login &amp; security</a></li>
+        <% } else { %>
+          <li><a href="/login">Sign in</a></li>
+          <li><a href="/signup">Create an account</a></li>
+          <li><a href="/admin/login">Admin sign in</a></li>
+        <% } %>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="container footer-bottom-inner">
+      <span>&copy; <%= new Date().getFullYear() %> Nexthlon. All rights reserved.</span>
+      <span>Built with Node.js, Express, EJS and MongoDB</span>
+    </div>
+  </div>
+</footer>
+<%- include('scripts') %>

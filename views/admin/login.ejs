@@ -1,0 +1,40 @@
+<%- include('../partials/head', { bodyClass: 'admin-login-body' }) %>
+
+<main id="main" class="admin-login">
+  <div class="admin-login-card">
+    <a class="brand brand-light" href="/" aria-label="Nexthlon home">
+      <span class="brand-mark"><%- icon('bolt') %></span>
+      <span class="brand-word">NEXTHLON<small>Admin console</small></span>
+    </a>
+    <div class="admin-login-badge"><%- icon('shield', 'i-sm') %> Restricted area</div>
+    <h1>Administrator sign in</h1>
+    <p>Only Nexthlon staff accounts can sign in here.</p>
+
+    <% if (reason === 'blocked') { %>
+      <div class="alert alert-danger" role="alert"><%- icon('alert') %> This account has been blocked.</div>
+    <% } else if (reason === 'expired') { %>
+      <div class="alert alert-info" role="status"><%- icon('alert') %> Your session has ended. Please sign in again.</div>
+    <% } %>
+
+    <form class="form" data-auth-form data-endpoint="/api/admin/login" novalidate>
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field">
+        <label for="email">Admin email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required maxlength="254">
+        <p class="field-error" data-error-for="email"></p>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="password-wrap">
+          <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="64">
+          <button type="button" class="reveal" data-reveal="password" aria-label="Show password"><%- icon('eye') %></button>
+        </div>
+        <p class="field-error" data-error-for="password"></p>
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Sign in securely</button>
+    </form>
+    <a class="admin-login-back" href="/">Back to the Nexthlon store</a>
+  </div>
+</main>
+
+<%- include('../partials/scripts', { scripts: ['auth'] }) %>

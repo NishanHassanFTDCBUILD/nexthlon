@@ -1,0 +1,51 @@
+<%- include('../partials/head', { bodyClass: 'auth-body' }) %>
+
+<main id="main" class="auth-shell">
+  <%- include('../partials/auth-side') %>
+
+  <div class="auth-main">
+    <a class="auth-back" href="/"><%- icon('chevron-right', 'i-sm flip') %> Back to store</a>
+    <div class="auth-card">
+      <h1>Create your account</h1>
+      <p class="muted">It takes less than a minute.</p>
+
+      <form class="form" data-auth-form data-endpoint="/api/signup" novalidate>
+        <input type="hidden" name="next" value="<%= next %>">
+        <div class="field">
+          <label for="name">Full name</label>
+          <input id="name" name="name" type="text" autocomplete="name" required minlength="2" maxlength="60">
+          <p class="field-error" data-error-for="name"></p>
+        </div>
+        <div class="field">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
+          <p class="field-error" data-error-for="email"></p>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="password-wrap">
+            <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="64" data-strength>
+            <button type="button" class="reveal" data-reveal="password" aria-label="Show password"><%- icon('eye') %></button>
+          </div>
+          <ul class="rules" data-rules>
+            <li data-rule="length">8 to 64 characters</li>
+            <li data-rule="letter">At least one letter</li>
+            <li data-rule="number">At least one number</li>
+          </ul>
+          <p class="field-error" data-error-for="password"></p>
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm password</label>
+          <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required maxlength="64">
+          <p class="field-error" data-error-for="confirmPassword"></p>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" type="submit">Create account</button>
+      </form>
+
+      <div class="auth-divider"><span>Already have an account?</span></div>
+      <a class="btn btn-ghost btn-block" href="/login<%= next !== '/' ? '?next=' + encodeURIComponent(next) : '' %>">Sign in</a>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/scripts', { scripts: ['auth'] }) %>

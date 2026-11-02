@@ -1,0 +1,185 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container page">
+  <div class="account-hero">
+    <span class="avatar avatar-lg"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+    <div>
+      <h1>Your account</h1>
+      <p class="muted"><%= currentUser.email %> · Member since <%= formatDate(currentUser.createdAt) %></p>
+    </div>
+  </div>
+
+  <div class="account-layout">
+    <nav class="account-nav" aria-label="Account sections">
+      <a href="#details"><%- icon('user') %> Account details</a>
+      <a href="#addresses"><%- icon('pin') %> Your addresses</a>
+      <a href="#security"><%- icon('lock') %> Login &amp; security</a>
+      <span class="account-nav-soon"><%- icon('box') %> Your orders <em>Coming soon</em></span>
+    </nav>
+
+    <div class="account-content">
+      <section class="panel" id="details" aria-labelledby="details-title">
+        <div class="panel-head">
+          <h2 id="details-title">Account details</h2>
+          <p class="muted">Your name appears on your account and future orders.</p>
+        </div>
+        <form class="form form-grid" data-profile-form novalidate>
+          <div class="field">
+            <label for="profile-name">Full name</label>
+            <input id="profile-name" name="name" type="text" autocomplete="name" value="<%= currentUser.name %>" required maxlength="60">
+            <p class="field-error" data-error-for="name"></p>
+          </div>
+          <div class="field">
+            <label for="profile-email">Email address</label>
+            <input id="profile-email" type="email" value="<%= currentUser.email %>" disabled>
+            <p class="hint">Your email is your sign-in ID and cannot be changed here.</p>
+          </div>
+          <div class="field">
+            <label for="profile-phone">Mobile number <span class="optional">optional</span></label>
+            <div class="input-prefix">
+              <span>+91</span>
+              <input id="profile-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="10" value="<%= currentUser.phone %>" placeholder="10-digit number">
+            </div>
+            <p class="field-error" data-error-for="phone"></p>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Save changes</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" id="addresses" aria-labelledby="addresses-title">
+        <div class="panel-head">
+          <h2 id="addresses-title">Your addresses</h2>
+          <p class="muted"><%= addresses.length %> of 10 saved. Your default address is used first at checkout.</p>
+        </div>
+        <div class="address-grid">
+          <% if (addresses.length < 10) { %>
+            <button type="button" class="address-add" data-address-add>
+              <%- icon('plus', 'i-lg') %>
+              <strong>Add address</strong>
+            </button>
+          <% } %>
+          <% addresses.forEach(function (a) { %>
+            <article class="address-card <%= a.isDefault ? 'is-default' : '' %>">
+              <% if (a.isDefault) { %><span class="pill pill-blue">Default</span><% } %>
+              <h3><%= a.fullName %></h3>
+              <p>
+                <%= a.line1 %><br>
+                <% if (a.line2) { %><%= a.line2 %><br><% } %>
+                <% if (a.landmark) { %>Near <%= a.landmark %><br><% } %>
+                <%= a.city %>, <%= a.state %> <%= a.pincode %><br>
+                Phone: <%= a.phone %>
+              </p>
+              <div class="address-actions">
+                <button type="button" class="link-btn" data-address-edit
+                        data-address="<%= JSON.stringify({ id: String(a._id), fullName: a.fullName, phone: a.phone, line1: a.line1, line2: a.line2, landmark: a.landmark, city: a.city, state: a.state, pincode: a.pincode, isDefault: a.isDefault }) %>">Edit</button>
+                <button type="button" class="link-btn" data-address-delete="<%= a._id %>" data-name="<%= a.fullName %>">Remove</button>
+                <% if (!a.isDefault) { %>
+                  <button type="button" class="link-btn" data-address-default="<%= a._id %>">Set as default</button>
+                <% } %>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="panel" id="security" aria-labelledby="security-title">
+        <div class="panel-head">
+          <h2 id="security-title">Login &amp; security</h2>
+          <p class="muted">Changing your password signs you out on every other device.</p>
+        </div>
+        <form class="form form-grid" data-password-form novalidate>
+          <div class="field">
+            <label for="currentPassword">Current password</label>
+            <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" required maxlength="64">
+            <p class="field-error" data-error-for="currentPassword"></p>
+          </div>
+          <div class="field">
+            <label for="newPassword">New password</label>
+            <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="64">
+            <p class="hint">8 to 64 characters, with at least one letter and one number.</p>
+            <p class="field-error" data-error-for="newPassword"></p>
+          </div>
+          <div class="field">
+            <label for="confirmNewPassword">Confirm new password</label>
+            <input id="confirmNewPassword" name="confirmPassword" type="password" autocomplete="new-password" required maxlength="64">
+            <p class="field-error" data-error-for="confirmPassword"></p>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Change password</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+</main>
+
+<dialog class="sheet-dialog" id="address-dialog" aria-labelledby="address-dialog-title">
+  <form class="form" data-address-form novalidate>
+    <div class="dialog-head">
+      <h2 id="address-dialog-title">Add a new address</h2>
+      <button type="button" class="icon-btn" data-dialog-close aria-label="Close"><%- icon('x') %></button>
+    </div>
+    <input type="hidden" name="id">
+    <div class="form-grid form-grid-2">
+      <div class="field">
+        <label for="a-fullName">Full name</label>
+        <input id="a-fullName" name="fullName" autocomplete="name" required maxlength="60">
+        <p class="field-error" data-error-for="fullName"></p>
+      </div>
+      <div class="field">
+        <label for="a-phone">Mobile number</label>
+        <div class="input-prefix">
+          <span>+91</span>
+          <input id="a-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" required maxlength="10">
+        </div>
+        <p class="field-error" data-error-for="phone"></p>
+      </div>
+      <div class="field field-wide">
+        <label for="a-line1">Flat, house no., building, street</label>
+        <input id="a-line1" name="line1" autocomplete="address-line1" required maxlength="120">
+        <p class="field-error" data-error-for="line1"></p>
+      </div>
+      <div class="field field-wide">
+        <label for="a-line2">Area, colony, village <span class="optional">optional</span></label>
+        <input id="a-line2" name="line2" autocomplete="address-line2" maxlength="120">
+        <p class="field-error" data-error-for="line2"></p>
+      </div>
+      <div class="field">
+        <label for="a-landmark">Landmark <span class="optional">optional</span></label>
+        <input id="a-landmark" name="landmark" maxlength="80" placeholder="e.g. near Apollo hospital">
+        <p class="field-error" data-error-for="landmark"></p>
+      </div>
+      <div class="field">
+        <label for="a-pincode">PIN code</label>
+        <input id="a-pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" required maxlength="6" placeholder="6 digits">
+        <p class="field-error" data-error-for="pincode"></p>
+      </div>
+      <div class="field">
+        <label for="a-city">Town or city</label>
+        <input id="a-city" name="city" autocomplete="address-level2" required maxlength="50">
+        <p class="field-error" data-error-for="city"></p>
+      </div>
+      <div class="field">
+        <label for="a-state">State</label>
+        <select id="a-state" name="state" autocomplete="address-level1" required>
+          <option value="">Choose a state</option>
+          <% states.forEach(function (state) { %><option value="<%= state %>"><%= state %></option><% }) %>
+        </select>
+        <p class="field-error" data-error-for="state"></p>
+      </div>
+      <label class="choice field-wide">
+        <input type="checkbox" name="isDefault" value="true">
+        <span>Make this my default address</span>
+      </label>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-ghost" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Save address</button>
+    </div>
+  </form>
+</dialog>
+
+<%- include('../partials/footer', { scripts: ['profile'] }) %>

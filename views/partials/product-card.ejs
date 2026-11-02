@@ -1,0 +1,15 @@
+<article class="product-card">
+  <a class="product-media" href="/products/<%= p.slug %>" tabindex="-1" aria-hidden="true">
+    <img src="<%= p.image %>" alt="" loading="lazy" width="400" height="400">
+    <% if (p.discountPercent > 0) { %><span class="tag tag-deal"><%= p.discountPercent %>% off</span><% } %>
+  </a>
+  <div class="product-body">
+    <span class="product-meta"><%= p.brand %> · <%= p.category %></span>
+    <h3 class="product-name"><a href="/products/<%= p.slug %>"><%= p.name %></a></h3>
+    <div class="price-row">
+      <span class="price"><%= formatPrice(p.price) %></span>
+      <% if (p.mrp > p.price) { %><span class="mrp">M.R.P. <s><%= formatPrice(p.mrp) %></s></span><% } %>
+    </div>
+    <%- include('stock', { stock: p.stock }) %>
+  </div>
+</article>

@@ -1,0 +1,77 @@
+<%- include('../partials/head', { bodyClass: 'admin-body' }) %>
+
+<div class="admin-shell">
+  <%- include('../partials/admin-sidebar') %>
+
+  <main id="main" class="admin-main">
+    <header class="admin-top">
+      <div>
+        <h1>Users</h1>
+        <p class="muted"><%= pagination.total %> <%= pagination.total === 1 ? 'customer' : 'customers' %> found. Blocked customers cannot sign in or use their account.</p>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <form class="toolbar-search" action="/admin/users" method="get" role="search">
+        <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
+        <label class="sr-only" for="user-search">Search customers</label>
+        <%- icon('search', 'i-sm') %>
+        <input id="user-search" type="search" name="q" value="<%= filters.q %>" placeholder="Search by name, email or phone" maxlength="80">
+        <button class="btn btn-secondary btn-sm" type="submit">Search</button>
+      </form>
+      <div class="segmented" role="group" aria-label="Filter by status">
+        <a href="<%= link({ status: '', page: '' }) %>" class="<%= filters.status === 'all' ? 'is-active' : '' %>">All</a>
+        <a href="<%= link({ status: 'active', page: '' }) %>" class="<%= filters.status === 'active' ? 'is-active' : '' %>">Active</a>
+        <a href="<%= link({ status: 'blocked', page: '' }) %>" class="<%= filters.status === 'blocked' ? 'is-active' : '' %>">Blocked</a>
+      </div>
+    </div>
+
+    <section class="panel panel-flush">
+      <% if (customers.length) { %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Customer</th><th>Phone</th><th>Joined</th><th>Last sign-in</th><th>Status</th><th><span class="sr-only">Action</span></th></tr>
+            </thead>
+            <tbody>
+              <% customers.forEach(function (c) { %>
+                <tr data-user-row="<%= c.id %>">
+                  <td><div class="person"><span class="avatar avatar-sm"><%= c.name.charAt(0).toUpperCase() %></span><div><strong><%= c.name %></strong><span><%= c.email %></span></div></div></td>
+                  <td><%= c.phone ? '+91 ' + c.phone : '—' %></td>
+                  <td><%= formatDate(c.createdAt) %></td>
+                  <td><%= formatDate(c.lastLoginAt) %></td>
+                  <td><span class="pill <%= c.isBlocked ? 'pill-red' : 'pill-green' %>" data-status><%= c.isBlocked ? 'Blocked' : 'Active' %></span></td>
+                  <td class="cell-action">
+                    <button type="button" class="btn btn-sm <%= c.isBlocked ? 'btn-secondary' : 'btn-danger-soft' %>"
+                            data-block-user="<%= c.id %>" data-blocked="<%= c.isBlocked %>" data-name="<%= c.name %>">
+                      <%= c.isBlocked ? 'Unblock' : 'Block' %>
+                    </button>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <%- icon('users', 'i-xl') %>
+          <h2>No customers found</h2>
+          <p><%= filters.q || filters.status !== 'all' ? 'Try a different search or filter.' : 'Customers appear here as soon as they sign up.' %></p>
+          <% if (filters.q || filters.status !== 'all') { %><a class="btn btn-secondary" href="/admin/users">Show all customers</a><% } %>
+        </div>
+      <% } %>
+    </section>
+
+    <% if (pagination.pages > 1) { %>
+      <nav class="pagination" aria-label="Pages">
+        <% if (pagination.page > 1) { %><a href="<%= link({ page: pagination.page - 1 }) %>" rel="prev">Previous</a><% } %>
+        <% for (let n = 1; n <= pagination.pages; n++) { %>
+          <a href="<%= link({ page: n === 1 ? '' : n }) %>" class="<%= n === pagination.page ? 'is-current' : '' %>" <%- n === pagination.page ? 'aria-current="page"' : '' %>><%= n %></a>
+        <% } %>
+        <% if (pagination.page < pagination.pages) { %><a href="<%= link({ page: pagination.page + 1 }) %>" rel="next">Next</a><% } %>
+      </nav>
+    <% } %>
+  </main>
+</div>
+
+<%- include('../partials/scripts', { scripts: ['admin'] }) %>

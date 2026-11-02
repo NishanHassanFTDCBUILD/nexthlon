@@ -1,0 +1,112 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<main id="main">
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <span class="eyebrow">The performance sports marketplace</span>
+        <h1>Your Next Move <span>Starts Here.</span></h1>
+        <p>Trail shoes, match balls, rackets, tents and training gear, picked for athletes who actually use them.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="/products">Shop all gear <%- icon('chevron-right', 'i-sm') %></a>
+          <% if (!currentUser) { %>
+            <a class="btn btn-outline-light btn-lg" href="/signup">Create free account</a>
+          <% } else if (currentUser.role === 'customer') { %>
+            <a class="btn btn-outline-light btn-lg" href="/profile">Your profile</a>
+          <% } else { %>
+            <a class="btn btn-outline-light btn-lg" href="/admin">Admin dashboard</a>
+          <% } %>
+        </div>
+      </div>
+      <% if (deals.length) { %>
+        <div class="hero-stack" aria-hidden="true">
+          <% deals.slice(0, 3).forEach(function (p, index) { %>
+            <a class="hero-card hero-card-<%= index + 1 %>" href="/products/<%= p.slug %>" tabindex="-1">
+              <img src="<%= p.image %>" alt="" width="320" height="320">
+              <span class="hero-card-info">
+                <strong><%= p.name %></strong>
+                <span><%= formatPrice(p.price) %> <em><%= p.discountPercent %>% off</em></span>
+              </span>
+            </a>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="perks container" aria-label="Why Nexthlon">
+    <div class="perk"><%- icon('award') %><div><strong>Genuine brands</strong><span>Every item listed with its maker</span></div></div>
+    <div class="perk"><%- icon('tag') %><div><strong>Clear pricing</strong><span>See the M.R.P. and your saving</span></div></div>
+    <div class="perk"><%- icon('shield') %><div><strong>Secure accounts</strong><span>Hashed passwords and JWT sign-in</span></div></div>
+    <div class="perk"><%- icon('pin') %><div><strong>Saved addresses</strong><span>Keep up to 10 delivery addresses</span></div></div>
+  </section>
+
+  <% if (categories.length) { %>
+    <section class="container section">
+      <div class="section-head">
+        <h2>Shop by sport</h2>
+        <a href="/products">See all gear <%- icon('chevron-right', 'i-sm') %></a>
+      </div>
+      <div class="category-grid">
+        <% categories.forEach(function (c) { %>
+          <a class="category-tile" href="/products?category=<%= encodeURIComponent(c.name) %>">
+            <img src="<%= c.image %>" alt="" loading="lazy" width="300" height="300">
+            <span class="category-info">
+              <strong><%= c.name %></strong>
+              <span><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>
+            </span>
+          </a>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (deals.length) { %>
+    <section class="container section">
+      <div class="section-head">
+        <h2>Today's biggest savings</h2>
+        <a href="/products?sort=discount">See all deals <%- icon('chevron-right', 'i-sm') %></a>
+      </div>
+      <div class="product-grid">
+        <% deals.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (!currentUser) { %>
+    <section class="container section">
+      <div class="join-banner">
+        <div>
+          <h2>Join Nexthlon in under a minute</h2>
+          <p>Save your delivery addresses now, so checkout is one tap away when ordering opens.</p>
+        </div>
+        <a class="btn btn-light btn-lg" href="/signup">Create your account</a>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (newest.length) { %>
+    <section class="container section">
+      <div class="section-head">
+        <h2>Fresh in the locker room</h2>
+        <a href="/products?sort=newest">See what's new <%- icon('chevron-right', 'i-sm') %></a>
+      </div>
+      <div class="product-grid">
+        <% newest.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (!deals.length && !newest.length) { %>
+    <section class="container section">
+      <div class="empty-state">
+        <%- icon('box', 'i-xl') %>
+        <h2>The shelves are empty</h2>
+        <p>Run <code>npm run seed:products</code> to add the starter catalogue.</p>
+      </div>
+    </section>
+  <% } %>
+</main>
+
+<%- include('../partials/footer') %>

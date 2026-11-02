@@ -1,0 +1,97 @@
+<%- include('../partials/head', { bodyClass: 'admin-body' }) %>
+
+<div class="admin-shell">
+  <%- include('../partials/admin-sidebar') %>
+
+  <main id="main" class="admin-main">
+    <header class="admin-top">
+      <div>
+        <h1>Dashboard</h1>
+        <p class="muted">Welcome back, <%= firstName(currentUser.name) %>. Here is how Nexthlon looks today.</p>
+      </div>
+      <span class="admin-who"><span class="avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span> <%= currentUser.email %></span>
+    </header>
+
+    <section class="stat-grid" aria-label="Store statistics">
+      <a class="stat" href="/admin/users">
+        <span class="stat-icon"><%- icon('users') %></span>
+        <span class="stat-label">Customers</span>
+        <strong><%= stats.customers %></strong>
+      </a>
+      <a class="stat" href="/admin/users">
+        <span class="stat-icon stat-icon-green"><%- icon('plus') %></span>
+        <span class="stat-label">New this week</span>
+        <strong><%= stats.newCustomers %></strong>
+      </a>
+      <a class="stat" href="/admin/users?status=blocked">
+        <span class="stat-icon stat-icon-red"><%- icon('lock') %></span>
+        <span class="stat-label">Blocked customers</span>
+        <strong><%= stats.blockedCustomers %></strong>
+      </a>
+      <div class="stat">
+        <span class="stat-icon"><%- icon('box') %></span>
+        <span class="stat-label">Active products</span>
+        <strong><%= stats.products %></strong>
+      </div>
+      <div class="stat">
+        <span class="stat-icon stat-icon-amber"><%- icon('alert') %></span>
+        <span class="stat-label">Low stock (5 or fewer)</span>
+        <strong><%= stats.lowStock %></strong>
+      </div>
+      <div class="stat">
+        <span class="stat-icon stat-icon-red"><%- icon('x') %></span>
+        <span class="stat-label">Out of stock</span>
+        <strong><%= stats.outOfStock %></strong>
+      </div>
+    </section>
+
+    <div class="admin-panels">
+      <section class="panel">
+        <div class="panel-head panel-head-row">
+          <h2>Newest customers</h2>
+          <a href="/admin/users">Manage users <%- icon('chevron-right', 'i-sm') %></a>
+        </div>
+        <% if (recentCustomers.length) { %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Customer</th><th>Joined</th><th>Status</th></tr></thead>
+              <tbody>
+                <% recentCustomers.forEach(function (c) { %>
+                  <tr>
+                    <td><div class="person"><span class="avatar avatar-sm"><%= c.name.charAt(0).toUpperCase() %></span><div><strong><%= c.name %></strong><span><%= c.email %></span></div></div></td>
+                    <td><%= formatDate(c.createdAt) %></td>
+                    <td><span class="pill <%= c.isBlocked ? 'pill-red' : 'pill-green' %>"><%= c.isBlocked ? 'Blocked' : 'Active' %></span></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p class="muted">No customers have signed up yet.</p>
+        <% } %>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head panel-head-row">
+          <h2>Low stock</h2>
+          <span class="muted">5 or fewer left</span>
+        </div>
+        <% if (lowStockProducts.length) { %>
+          <ul class="stock-list">
+            <% lowStockProducts.forEach(function (p) { %>
+              <li>
+                <img src="<%= p.image %>" alt="" width="44" height="44" loading="lazy">
+                <div><a href="/products/<%= p.slug %>"><%= p.name %></a><span><%= p.category %></span></div>
+                <span class="pill <%= p.stock === 0 ? 'pill-red' : 'pill-amber' %>"><%= p.stock === 0 ? 'Out' : p.stock + ' left' %></span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="muted">Every product is well stocked.</p>
+        <% } %>
+      </section>
+    </div>
+  </main>
+</div>
+
+<%- include('../partials/scripts') %>

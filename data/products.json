@@ -1,0 +1,429 @@
+[
+  {
+    "name": "Nexthlon TrailFlex 2 Trail Running Shoes",
+    "slug": "trailflex-2-trail-running-shoes",
+    "category": "Running",
+    "brand": "Nexthlon Trail Lab",
+    "price": 3899,
+    "mrp": 5999,
+    "stock": 5,
+    "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "The flagship trail-running weapon field-tested on the grueling 17 KM Hill Run. Built with 5mm Vibram Megagrip lugs, carbon-flex rock plate, and HydroShield waterproof protection. Delivers unmatched traction, downhill braking control, and foot fatigue protection across mountain altitudes.",
+    "highlights": [
+      "Vibram® Megagrip Outsole: 5mm claw lugs lock into slick mud, gravel, and wet granite",
+      "HydroShield™ Membrane: Keeps feet 100% dry through river crossings while venting moisture",
+      "Carbon-Flex Rock Shield: Guards underfoot against jagged stones and sharp trail debris",
+      "AeroFoam Pro Cushioning: 32mm/26mm stack height delivers cloud-soft impact absorption",
+      "Gaiter-Ready Collar: Prevents scree, pine needles, and dust from entering the shoe"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Trail Lab",
+      "Grip Profile": "5mm Multidirectional Vibram® Megagrip",
+      "Cushioning": "AeroFoam Pro Dual-Density Trail EVA",
+      "Waterproofing": "HydroShield™ 20,000mm Breathable Membrane",
+      "Shoe Weight": "245g (Size UK 8)",
+      "Drop": "6mm (32mm Heel / 26mm Forefoot)",
+      "Terrain Support": "Rocky Alpine Ridges, Mud, Steep Descents",
+      "Warranty": "1 Year Extreme Trail Guarantee"
+    }
+  },
+  {
+    "name": "Velocity Running Shoes",
+    "slug": "velocity-running-shoes",
+    "category": "Running",
+    "brand": "Nexthlon Athletics",
+    "price": 3499,
+    "mrp": 5499,
+    "stock": 4,
+    "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Built for explosive propulsion, the Velocity Running Shoes feature our proprietary AeroFoam™ responsive midsole and engineered carbon-infused plate. Delivers maximum energy return with every stride while keeping your feet cool across marathon distances.",
+    "highlights": [
+      "AeroFoam™ dual-density cushioning provides 85% energy return",
+      "Engineered breathable mesh upper with adaptive arch support lock",
+      "Abrasion-resistant Continental rubber outsole for wet & dry grip",
+      "Ultra-lightweight profile weighing just 215g (size UK 8)",
+      "Reflective accents for 360-degree night running visibility"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Athletics",
+      "Upper Material": "Breathable Engineered Micro-Mesh",
+      "Sole Material": "AeroFoam™ + Carbon Injected Rubber",
+      "Closure Type": "Lace-Up with Dynamic Flywire",
+      "Shoe Weight": "215g (Single Shoe UK 8)",
+      "Warranty": "6 Months Manufacturer Warranty",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Pro Match Football",
+    "slug": "pro-match-football",
+    "category": "Football",
+    "brand": "Nexthlon Arena",
+    "price": 1299,
+    "mrp": 1999,
+    "stock": 9,
+    "image": "https://images.unsplash.com/photo-1614632537190-23e4146777db?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1614632537190-23e4146777db?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Official FIFA-standard match ball crafted with thermally bonded 12-panel seamless construction. Minimizes water absorption and ensures pure trajectory aerodynamics in every weather condition.",
+    "highlights": [
+      "Thermally-bonded polyurethane skin prevents moisture uptake",
+      "Butyl bladder retains optimal air pressure for over 4 weeks",
+      "Micro-textured outer casing provides exceptional ball control & touch",
+      "FIFA Quality Pro tested for weight, circumference, rebound and water absorption"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Arena",
+      "Material": "Textured PU Compound",
+      "Construction": "Thermal Bonded Seamless Panels",
+      "Bladder": "Reinforced Butyl",
+      "Weight": "430g ± 10g",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Performance Training Gloves",
+    "slug": "performance-training-gloves",
+    "category": "Fitness",
+    "brand": "Nexthlon Iron",
+    "price": 799,
+    "mrp": 1299,
+    "stock": 15,
+    "image": "https://images.unsplash.com/photo-1583473848882-f9a5bc7fd2ee?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1583473848882-f9a5bc7fd2ee?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Designed for heavy gym lifting, pull-ups, and kettlebell training. Features high-density gel palms for maximum callus prevention and integrated 18-inch elastic wrist wraps for wrist stabilization.",
+    "highlights": [
+      "Hex-silicone grip pattern prevents barbell and dumbbell slippage",
+      "Heavy-duty padded palm absorbs vibration and pressure points",
+      "Breathable four-way stretch mesh back panel keeps hands dry",
+      "Quick-release pull tabs on fingers for easy removal post-workout"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Iron",
+      "Material": "Silicone, Neoprene & Breathable Lycra",
+      "Wrist Support": "18-inch Integrated Elastic Strap",
+      "Washable": "Hand Wash Safe",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Classic Cricket Bat",
+    "slug": "classic-cricket-bat",
+    "category": "Cricket",
+    "brand": "Nexthlon Cricket Lab",
+    "price": 2499,
+    "mrp": 3999,
+    "stock": 7,
+    "image": "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Handcrafted from seasoned Grade-1 English willow, the Classic features thick 38mm edges and a massive mid-to-low sweet spot designed for aggressive front-foot strokeplay and effortless boundary hitting.",
+    "highlights": [
+      "Carefully air-dried Grade 1 willow with 6-8 straight grains",
+      "Extended sweet spot engineered for powerful boundary clearance",
+      "Multi-piece Sarawak cane handle with chevron rubber grip for shock damping",
+      "Pre-knocked by hand with protective scuff sheet applied"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Cricket Lab",
+      "Wood Grade": "Grade 1 English Willow",
+      "Edge Profile": "38mm - 40mm",
+      "Handle Type": "Round 9-Piece Cane",
+      "Weight Range": "1160g - 1190g",
+      "Country of Origin": "India (Kashmir Workshop)"
+    }
+  },
+  {
+    "name": "Endurance Cycling Helmet",
+    "slug": "endurance-cycling-helmet",
+    "category": "Cycling",
+    "brand": "Nexthlon Velo",
+    "price": 1899,
+    "mrp": 2899,
+    "stock": 6,
+    "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Aerodynamic road and trail cycling helmet engineered with in-mold polycarbonate shell and high-density EPS liner. 21 wind-tunnel sculpted vents keep your head cool on grueling climbs.",
+    "highlights": [
+      "In-Mold fusion shell structure exceeding CE EN 1078 safety standards",
+      "360-degree Micro-Dial fit adjustment dial with ponytail clearance",
+      "21 high-flow vents with integrated bug netting in front channels",
+      "Moisture-wicking, antimicrobial washable inner pads"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Velo",
+      "Certification": "CE EN 1078 & CPSC Approved",
+      "Shell Material": "In-Mold Polycarbonate + EPS",
+      "Weight": "245g",
+      "Vents": "21 Channel Vents",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Adventure Hiking Backpack",
+    "slug": "adventure-hiking-backpack",
+    "category": "Outdoor",
+    "brand": "Nexthlon Summit",
+    "price": 2799,
+    "mrp": 4299,
+    "stock": 5,
+    "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Rugged 45L expedition rucksack engineered from ripstop Cordura waterproof fabric. Equipped with an ergonomic aluminum internal spine frame, hydration bladder compartment, and integrated rain cover.",
+    "highlights": [
+      "45-litre capacity with multi-access front, top, and sleeping-bag compartments",
+      "AirVent back-cooling suspension system keeps back dry on long treks",
+      "Trekking pole lashings and ice-axe attachment loops",
+      "Includes high-visibility fluorescent rain cover stowed in bottom pouch"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Summit",
+      "Fabric": "420D Waterproof Diamond Ripstop Nylon",
+      "Capacity": "45 Litres",
+      "Weight": "1.15 kg",
+      "Warranty": "1 Year Manufacturer Guarantee",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Aqua Training Goggles",
+    "slug": "aqua-training-goggles",
+    "category": "Swimming",
+    "brand": "Nexthlon Aquatics",
+    "price": 599,
+    "mrp": 999,
+    "stock": 18,
+    "image": "https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Hydrodynamic racing and lap swim goggles with UV400 mirrored lenses. Super-soft liquid silicone eye seals guarantee zero leakage and comfortable suction during flip turns.",
+    "highlights": [
+      "Long-lasting Anti-Fog coating ensures crystal clear 180° panoramic vision",
+      "Mirrored UV protection lenses reduce glare in open water and indoor pools",
+      "Includes 3 interchangeable nose bridges for customized spacing",
+      "Quick-adjust double silicone head strap stays locked"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Aquatics",
+      "Lens": "Polycarbonate with UV400 & Anti-Fog",
+      "Gasket": "Hypoallergenic Liquid Silicone",
+      "Strap": "Double Head Silicone Split Strap",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Precision Tennis Racket",
+    "slug": "precision-tennis-racket",
+    "category": "Tennis",
+    "brand": "Nexthlon Court",
+    "price": 2199,
+    "mrp": 3499,
+    "stock": 6,
+    "image": "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Engineered for intermediate and club players seeking pinpoint control, heavy spin, and plush comfort. Built with 100% High-Modulus Carbon Graphite with a 100 sq. inch sweet spot.",
+    "highlights": [
+      "100% High-Modulus Carbon frame dampens harsh frame vibrations",
+      "Open 16x19 string pattern maximizes topspin potential",
+      "Pre-strung with high-tension Nexthlon Spin Poly strings at 53 lbs",
+      "Includes full protective thermal racket cover with shoulder strap"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Court",
+      "Head Size": "100 sq. inches",
+      "Unstrung Weight": "295g",
+      "String Pattern": "16 Mains / 19 Crosses",
+      "Balance": "320mm Even Balance",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Lightweight Running Jacket",
+    "slug": "lightweight-running-jacket",
+    "category": "Running",
+    "brand": "Nexthlon Athletics",
+    "price": 1999,
+    "mrp": 3299,
+    "stock": 8,
+    "image": "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Featherlight windbreaker and drizzle-resistant running jacket that packs down into its own zip chest pocket. Features back ventilation flaps and high-luminescence reflective stripes for night runs.",
+    "highlights": [
+      "Ultra-packable design folds into zippered chest pocket",
+      "WindShield™ micro-weave stops cold headwind chill",
+      "Water-repellent DWR coating sheds light rain and morning mist",
+      "Vented back flap prevents heat build-up on endurance runs"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Athletics",
+      "Fabric": "100% Recycled Ripstop Polyester",
+      "Weight": "135 grams",
+      "Fit": "Athletic Regular Fit",
+      "Care": "Machine Wash Cold",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Strength Training Dumbbells",
+    "slug": "strength-training-dumbbells",
+    "category": "Fitness",
+    "brand": "Nexthlon Iron",
+    "price": 1599,
+    "mrp": 2499,
+    "stock": 10,
+    "image": "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Commercial-grade solid cast iron hex dumbbells encased in durable odorless rubber. Hexagonal anti-roll design prevents rolling across floor and allows safe dumbbell push-ups and renegade rows.",
+    "highlights": [
+      "Solid cast iron core with vulcanized virgin rubber coating",
+      "Hexagonal anti-roll shape protects flooring and stays in place",
+      "Ergonomic knurled chrome steel handle provides sure, non-slip grip",
+      "Permanent embossed weight markings in kilograms"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Iron",
+      "Core": "Solid High-Grade Cast Iron",
+      "Coating": "Odorless Virgin Rubber",
+      "Handle": "Ergonomic Hard Chrome Knurled",
+      "Package Contains": "Set of 2 Dumbbells",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Outdoor Performance Bottle",
+    "slug": "outdoor-performance-bottle",
+    "category": "Outdoor",
+    "brand": "Nexthlon Hydro",
+    "price": 499,
+    "mrp": 899,
+    "stock": 25,
+    "image": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Double-walled vacuum insulated stainless steel sports bottle. Keeps drinks icy cold for 24 hours or piping hot for 12 hours. Features leakproof sport-spout lid and durable powder-coat finish.",
+    "highlights": [
+      "18/8 food-grade pro stainless steel never retains or transfers flavors",
+      "TempLock™ double-wall vacuum insulation prevents condensation sweating",
+      "100% leakproof quick-flip sport straw cap with integrated carry loop",
+      "BPA-free, phthalate-free, and dishwasher safe"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Hydro",
+      "Capacity": "750ml / 1000ml",
+      "Material": "18/8 Pro-Grade Stainless Steel",
+      "Insulation": "24 hrs Cold / 12 hrs Hot",
+      "BPA Free": "100% Certified",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Football Training Jersey",
+    "slug": "football-training-jersey",
+    "category": "Football",
+    "brand": "Nexthlon Arena",
+    "price": 1199,
+    "mrp": 1899,
+    "stock": 12,
+    "image": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Pro matchday and training football jersey featuring Dri-Speed moisture evaporation technology. Laser-cut side ventilation zones allow maximum airflow through high-intensity 90-minute matches.",
+    "highlights": [
+      "Dri-Speed fabric pulls sweat away from skin for rapid evaporation",
+      "Ribbed crew neck collar and raglan sleeves for unrestricted arm swing",
+      "Sublimated fade-resistant graphics and woven high-definition badge",
+      "Anti-odor fabric treatment inhibits odor-causing bacteria"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Arena",
+      "Fabric": "100% Interlock Recycled Polyester",
+      "Technology": "Dri-Speed Active Moisture Wicking",
+      "Fit": "Athletic Pro Match Fit",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Nexthlon Alpine Ridge Waterproof Hiking Boots",
+    "slug": "alpine-ridge-hiking-boots",
+    "category": "Hiking",
+    "brand": "Nexthlon Outdoor Lab",
+    "price": 4499,
+    "mrp": 6999,
+    "stock": 8,
+    "image": "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Rugged mid-cut hiking boot built for extreme outdoor conditions. HydroShield waterproof membrane seals out rain and stream crossings, while the TPU torsion shank prevents foot fatigue across rocky passes.",
+    "highlights": [
+      "HydroShield 100% waterproof breathable membrane with seam-sealed construction",
+      "Reinforced rubber toe cap and heel counter protect against sharp boulders",
+      "Deep 4.5mm multi-angle lugged outsole for mud shedding and confident descents",
+      "Anatomical Ortholite memory-foam footbed for all-day expedition comfort"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Outdoor Lab",
+      "Upper": "Nubuck Leather & High-Tenacity Cordura Mesh",
+      "Midsole": "Dual-Density EVA + TPU Anti-Twist Shank",
+      "Waterproofing": "HydroShield 15,000mm Breathable Membrane",
+      "Weight": "410g (UK 8)",
+      "Country of Origin": "India"
+    }
+  },
+  {
+    "name": "Nexthlon All-Terrain 2-Person Expedition Tent",
+    "slug": "all-terrain-expedition-tent",
+    "category": "Camping",
+    "brand": "Nexthlon Expedition Series",
+    "price": 5499,
+    "mrp": 8999,
+    "stock": 6,
+    "image": "https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=800&q=80",
+    "gallery": [
+      "https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=800&q=80"
+    ],
+    "description": "Geodesic lightweight 3-season camping tent engineered for high-altitude winds and torrential rainstorms. Fast-pitch aluminum poles allow 3-minute setup in pitch darkness.",
+    "highlights": [
+      "3000mm PU coated ripstop polyester rainfly with welded waterproof seams",
+      "Aircraft-grade 7001-T6 aluminum alloy poles with shock-corded snap assembly",
+      "Dual vestibules and dual D-doors for gear storage and effortless entry",
+      "Ultralight pack weight under 2.1 kg with compact compression dry sack"
+    ],
+    "specs": {
+      "Brand": "Nexthlon Expedition Series",
+      "Capacity": "2 Adults + Gear",
+      "Packed Weight": "2.1 kg",
+      "Poles": "7001-T6 Anodized Aluminum Alloy",
+      "Rainfly Waterproof Rating": "3,000mm Hydrostatic Head",
+      "Country of Origin": "India"
+    }
+  }
+]

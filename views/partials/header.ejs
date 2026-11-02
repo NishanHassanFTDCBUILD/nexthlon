@@ -1,0 +1,78 @@
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="promo-bar">
+    <div class="container promo-inner">
+      <span><%- icon('bolt', 'i-sm') %> Gear tested on the 17 KM hill run</span>
+      <span class="hide-sm">Genuine brands · Clear MRP pricing · Secure accounts</span>
+    </div>
+  </div>
+
+  <div class="mainbar">
+    <div class="container mainbar-inner">
+      <a class="brand" href="/" aria-label="Nexthlon home">
+        <span class="brand-mark"><%- icon('bolt') %></span>
+        <span class="brand-word">NEXTHLON<small>Performance gear</small></span>
+      </a>
+
+      <form class="search" action="/products" method="get" role="search">
+        <label class="sr-only" for="search-category">Category</label>
+        <select id="search-category" name="category">
+          <option value="">All</option>
+          <% navCategories.forEach(function (name) { %>
+            <option value="<%= name %>" <%= query.category === name ? 'selected' : '' %>><%= name %></option>
+          <% }) %>
+        </select>
+        <label class="sr-only" for="search-q">Search Nexthlon</label>
+        <input id="search-q" type="search" name="q" maxlength="80" autocomplete="off"
+               value="<%= typeof query.q === 'string' ? query.q : '' %>"
+               placeholder="Search trail shoes, footballs, tents…">
+        <button type="submit" aria-label="Search"><%- icon('search') %></button>
+      </form>
+
+      <div class="account" data-menu>
+        <% if (currentUser) { %>
+          <button type="button" class="account-btn" data-menu-toggle aria-expanded="false" aria-haspopup="true">
+            <span class="avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+            <span class="account-text">
+              <small>Hello, <%= firstName(currentUser.name) %></small>
+              <strong>Account <%- icon('chevron-down', 'i-xs') %></strong>
+            </span>
+          </button>
+          <div class="menu" data-menu-panel hidden>
+            <div class="menu-head">
+              <strong><%= currentUser.name %></strong>
+              <span><%= currentUser.email %></span>
+            </div>
+            <% if (currentUser.role === 'admin') { %>
+              <a href="/admin"><%- icon('grid') %> Admin dashboard</a>
+              <a href="/admin/users"><%- icon('users') %> Manage users</a>
+            <% } else { %>
+              <a href="/profile"><%- icon('user') %> Your profile</a>
+              <a href="/profile#addresses"><%- icon('pin') %> Saved addresses</a>
+              <a href="/profile#security"><%- icon('lock') %> Login &amp; security</a>
+            <% } %>
+            <button type="button" class="menu-logout"
+                    data-logout="<%= currentUser.role === 'admin' ? '/api/admin/logout' : '/api/logout' %>">
+              <%- icon('logout') %> Sign out
+            </button>
+          </div>
+        <% } else { %>
+          <a class="account-btn" href="/login">
+            <span class="avatar is-guest"><%- icon('user') %></span>
+            <span class="account-text"><small>Hello, sign in</small><strong>Account</strong></span>
+          </a>
+          <a class="btn btn-primary btn-sm hide-sm" href="/signup">Join free</a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <nav class="catnav" aria-label="Shop by category">
+    <div class="container catnav-inner">
+      <a href="/products" class="<%= path === '/products' && !query.category ? 'is-active' : '' %>"><%- icon('grid', 'i-sm') %> All gear</a>
+      <% navCategories.forEach(function (name) { %>
+        <a href="/products?category=<%= encodeURIComponent(name) %>" class="<%= query.category === name ? 'is-active' : '' %>"><%= name %></a>
+      <% }) %>
+    </div>
+  </nav>
+</header>

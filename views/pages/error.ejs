@@ -1,0 +1,16 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container page">
+  <div class="error-page">
+    <span class="error-code"><%= status %></span>
+    <h1><%= status === 403 ? 'You do not have access to this page' : 'Something went wrong' %></h1>
+    <p class="muted"><%= message %></p>
+    <div class="error-actions">
+      <a class="btn btn-primary" href="/">Back to home</a>
+      <% if (status === 403 && !currentUser) { %><a class="btn btn-ghost" href="/login">Sign in</a><% } %>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
