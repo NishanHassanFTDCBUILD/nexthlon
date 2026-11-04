@@ -174,7 +174,7 @@
         </div>
       <% } else { %>
         <div class="empty-state">
-          <span class="empty-icon"><%- icon('search', 'i-xl') %></span>
+          <%- include('../partials/empty-art', { art: 'search' }) %>
           <h2>No gear matches <%= filters.q ? '"' + filters.q + '"' : 'those filters' %></h2>
           <p>Check the spelling, try a more general word, or remove a filter.</p>
           <a class="btn btn-primary" href="/products">Browse all gear</a>

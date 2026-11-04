@@ -161,3 +161,15 @@
   @keyframes nx-step-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
   @keyframes nx-line-draw { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
 }
+
+/* ---------- Design system: empty-state illustrations float, and tooltips ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .empty-art .ea-object { animation: nx-float 4.5s var(--ease-in-out) infinite; }
+  .empty-art .ea-shadow { transform-box: fill-box; transform-origin: center; animation: nx-float-shadow 4.5s var(--ease-in-out) infinite; }
+  .empty-art .ea-spark, .empty-art .ea-spark-line { animation: nx-twinkle 2.6s ease-in-out infinite; }
+  .empty-art .ea-spark:nth-of-type(2) { animation-delay: 0.8s; }
+  .empty-art .ea-spark-line { animation-delay: 1.5s; }
+  @keyframes nx-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes nx-float-shadow { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.82); opacity: 0.6; } }
+  @keyframes nx-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+}

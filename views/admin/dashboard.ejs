@@ -123,7 +123,7 @@
             </table>
           </div>
         <% } else { %>
-          <div class="panel-empty"><%- icon('users', 'i-lg') %><p>No customers have signed up yet.</p></div>
+          <div class="panel-empty"><%- include('../partials/empty-art', { art: 'users' }) %><p>No customers have signed up yet.</p></div>
         <% } %>
       </section>
 
@@ -147,7 +147,7 @@
             <% }) %>
           </ul>
         <% } else { %>
-          <div class="panel-empty"><%- icon('check', 'i-lg') %><p>Every product is well stocked.</p></div>
+          <div class="panel-empty"><%- include('../partials/empty-art', { art: 'check' }) %><p>Every product is well stocked.</p></div>
         <% } %>
       </section>
     </div>

@@ -68,7 +68,7 @@
         </div>
       <% } else { %>
         <div class="empty-state empty-state-flat">
-          <span class="empty-icon"><%- icon('users', 'i-xl') %></span>
+          <%- include('../partials/empty-art', { art: 'users' }) %>
           <h2>No customers found</h2>
           <p><%= filters.q || filters.status !== 'all' ? 'Try a different search or filter.' : 'Customers appear here as soon as they sign up.' %></p>
           <% if (filters.q || filters.status !== 'all') { %><a class="btn btn-secondary" href="/admin/users">Show all customers</a><% } %>

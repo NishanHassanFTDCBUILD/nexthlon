@@ -9,6 +9,7 @@
     <a href="/admin/users" class="<%= path === '/admin/users' ? 'is-active' : '' %>" <%- path === '/admin/users' ? 'aria-current="page"' : '' %>><%- icon('users') %> Users</a>
     <% const onProducts = path.startsWith('/admin/products'); %>
     <a href="/admin/products" class="<%= onProducts ? 'is-active' : '' %>" <%- onProducts ? 'aria-current="page"' : '' %>><%- icon('box') %> Products</a>
+    <a href="/admin/design-system" class="<%= path === '/admin/design-system' ? 'is-active' : '' %>" <%- path === '/admin/design-system' ? 'aria-current="page"' : '' %>><%- icon('sparkles') %> Design system</a>
     <span class="admin-nav-label">Next modules</span>
     <span class="admin-nav-soon"><%- icon('truck') %> Orders <em>Soon</em></span>
   </nav>

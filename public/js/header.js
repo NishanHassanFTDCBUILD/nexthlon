@@ -3,34 +3,24 @@
 (function () {
   "use strict";
 
-  const root = document.documentElement;
-
-  // ---------- Theme switch ----------
-  // The choice is saved in localStorage; theme.js applies it before the next page paints.
-  const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
-  const currentTheme = () => root.getAttribute("data-theme") || (systemDark.matches ? "dark" : "light");
-
+  // ---------- Theme switch: System → Light → Dark ----------
+  // theme.js (in <head>) applies and saves the choice; the icon follows html[data-theme-mode].
+  const NAMES = { system: "System", light: "Light", dark: "Dark" };
   function showTheme() {
-    const dark = currentTheme() === "dark";
+    if (!window.NxTheme) return;
+    const mode = window.NxTheme.get();
+    const next = window.NxTheme.MODES[(window.NxTheme.MODES.indexOf(mode) + 1) % 3];
     document.querySelectorAll("[data-theme-toggle]").forEach(button => {
-      button.setAttribute("aria-pressed", String(dark));
-      button.title = dark ? "Switch to light theme" : "Switch to dark theme";
+      button.title = `Theme: ${NAMES[mode]}. Switch to ${NAMES[next].toLowerCase()}.`;
+      button.setAttribute("aria-label", `Theme: ${NAMES[mode]}. Switch to ${NAMES[next].toLowerCase()}`);
+      const label = button.querySelector("[data-theme-label]");
+      if (label) label.textContent = `Theme: ${NAMES[mode]}`;
     });
   }
-
   document.querySelectorAll("[data-theme-toggle]").forEach(button => {
-    button.addEventListener("click", () => {
-      const next = currentTheme() === "dark" ? "light" : "dark";
-      root.setAttribute("data-theme", next);
-      try {
-        localStorage.setItem("nx-theme", next);
-      } catch {
-        /* storage blocked: the theme still changes for this page */
-      }
-      showTheme();
-    });
+    button.addEventListener("click", () => window.NxTheme && window.NxTheme.next());
   });
-  systemDark.addEventListener("change", showTheme);
+  document.addEventListener("nx:theme", showTheme);
   showTheme();
 
   // ---------- Phone menu drawer (a <dialog>: the browser keeps focus inside and handles Escape) ----------

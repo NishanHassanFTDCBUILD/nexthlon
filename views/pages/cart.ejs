@@ -57,7 +57,7 @@
       </div>
 
       <div class="empty-state" data-cart-empty <%= items.length ? 'hidden' : '' %>>
-        <span class="empty-icon"><%- icon('cart', 'i-xl') %></span>
+        <%- include('../partials/empty-art', { art: 'cart' }) %>
         <h2>Your cart is empty</h2>
         <p>Find trail shoes, match balls, tents and more. Everything you add shows up here.</p>
         <div class="empty-actions">

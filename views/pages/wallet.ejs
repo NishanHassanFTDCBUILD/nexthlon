@@ -90,7 +90,7 @@
       <%- include('../partials/pagination', { pagination, link }) %>
     <% } else { %>
       <div class="empty-state">
-        <span class="empty-icon"><%- icon('wallet', 'i-xl') %></span>
+        <%- include('../partials/empty-art', { art: 'wallet' }) %>
         <h2><%= filters.type === 'all' ? 'No wallet activity yet' : 'Nothing here yet' %></h2>
         <p><%= filters.type === 'all' ? 'Refunds and referral rewards will show up here. Invite a friend to get started.' : 'Try showing all activity.' %></p>
         <% if (filters.type === 'all') { %>

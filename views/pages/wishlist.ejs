@@ -45,7 +45,7 @@
       <% }) %>
     </ul>
     <div class="empty-state" data-wishlist-empty <%= items.length ? 'hidden' : '' %>>
-      <span class="empty-icon"><%- icon('heart', 'i-xl') %></span>
+      <%- include('../partials/empty-art', { art: 'heart' }) %>
       <h2>Your wishlist is empty</h2>
       <p>Tap the heart on any product to save it here for later.</p>
       <a class="btn btn-primary" href="/products">Browse all gear</a>

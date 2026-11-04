@@ -1,0 +1,51 @@
+<%# Empty-state illustrations, drawn with inline SVG and coloured by the design tokens, so they
+    follow light and dark mode. Pass { art: 'cart' | 'heart' | 'box' | 'package-check' | 'search' |
+    'wallet' | 'users' | 'check' }. The drawing gently floats (motion.css). %>
+<% const kind = typeof art !== 'undefined' ? art : 'box'; %>
+<span class="empty-art" aria-hidden="true">
+  <svg viewBox="0 0 160 120" focusable="false">
+    <ellipse class="ea-bg" cx="80" cy="58" rx="58" ry="50"/>
+    <ellipse class="ea-shadow" cx="80" cy="108" rx="34" ry="5"/>
+    <circle class="ea-spark" cx="26" cy="30" r="3"/>
+    <circle class="ea-spark" cx="138" cy="42" r="2.5"/>
+    <path class="ea-spark-line" d="M128 18v8M124 22h8"/>
+    <g class="ea-object">
+    <% if (kind === 'cart') { %>
+      <path class="ea-line" d="M38 34h12l10 42h48l9-30H55"/>
+      <path class="ea-fill ea-line" d="M57 46h60l-8 28H63z"/>
+      <circle class="ea-accent" cx="66" cy="88" r="6"/><circle class="ea-accent" cx="104" cy="88" r="6"/>
+      <path class="ea-line ea-soft" d="M72 58h30M76 66h22"/>
+    <% } else if (kind === 'heart') { %>
+      <path class="ea-fill ea-line" d="M80 92S46 72 46 50a16 16 0 0 1 34-6 16 16 0 0 1 34 6c0 22-34 42-34 42z"/>
+      <path class="ea-accent-line" d="M62 50a8 8 0 0 1 8-8"/>
+    <% } else if (kind === 'search') { %>
+      <rect class="ea-fill ea-line" x="44" y="26" width="52" height="66" rx="8"/>
+      <path class="ea-line ea-soft" d="M54 42h32M54 52h26M54 62h30"/>
+      <circle class="ea-fill ea-line" cx="100" cy="70" r="16"/>
+      <path class="ea-accent-line" d="M112 82l14 14"/>
+    <% } else if (kind === 'wallet') { %>
+      <rect class="ea-fill ea-line" x="40" y="36" width="80" height="56" rx="10"/>
+      <path class="ea-line" d="M40 50h80"/>
+      <rect class="ea-accent" x="92" y="60" width="28" height="18" rx="6"/>
+      <circle class="ea-fill" cx="102" cy="69" r="3"/>
+    <% } else if (kind === 'users') { %>
+      <circle class="ea-fill ea-line" cx="68" cy="48" r="13"/>
+      <path class="ea-fill ea-line" d="M44 92a24 24 0 0 1 48 0z"/>
+      <circle class="ea-accent" cx="104" cy="54" r="10"/>
+      <path class="ea-accent-line" d="M90 92a16 16 0 0 1 30 0"/>
+    <% } else if (kind === 'check') { %>
+      <circle class="ea-fill ea-line" cx="80" cy="60" r="32"/>
+      <path class="ea-accent-line ea-thick" d="M66 61l10 10 20-22"/>
+    <% } else if (kind === 'package-check') { %>
+      <path class="ea-fill ea-line" d="M48 44l32-14 32 14v36L80 94 48 80z"/>
+      <path class="ea-line" d="M48 44l32 14 32-14M80 58v36"/>
+      <circle class="ea-accent" cx="108" cy="82" r="13"/>
+      <path class="ea-check" d="M102 82l4 4 8-8"/>
+    <% } else { %>
+      <path class="ea-fill ea-line" d="M48 44l32-14 32 14v36L80 94 48 80z"/>
+      <path class="ea-line" d="M48 44l32 14 32-14M80 58v36"/>
+      <path class="ea-accent-line" d="M64 37l32 14"/>
+    <% } %>
+    </g>
+  </svg>
+</span>

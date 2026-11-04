@@ -245,6 +245,28 @@
     });
   };
 
+  // ---------- Dialogs: modals, side drawers and bottom sheets ----------
+  // [data-dialog-open="id"] opens <dialog id="id">; [data-dialog-close] inside one closes it.
+  // Clicking the dimmed backdrop also closes it. The browser keeps focus inside and handles Escape.
+  document.addEventListener("click", event => {
+    const opener = event.target.closest("[data-dialog-open]");
+    if (opener) {
+      const dialog = document.getElementById(opener.dataset.dialogOpen);
+      if (dialog && typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+      return;
+    }
+    const closer = event.target.closest("dialog [data-dialog-close]");
+    if (closer) {
+      closer.closest("dialog").close();
+      return;
+    }
+    if (event.target instanceof HTMLDialogElement && event.target.open && !event.target.classList.contains("confirm-dialog")) {
+      const box = event.target.getBoundingClientRect();
+      const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+      if (outside) event.target.close();
+    }
+  });
+
   // ---------- Account menu ----------
   function setupMenus() {
     document.querySelectorAll("[data-menu]").forEach(menu => {

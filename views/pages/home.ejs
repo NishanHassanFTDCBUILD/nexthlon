@@ -196,7 +196,7 @@
   <% if (!deals.length && !newest.length) { %>
     <section class="container section">
       <div class="empty-state">
-        <span class="empty-icon"><%- icon('box', 'i-xl') %></span>
+        <%- include('../partials/empty-art', { art: 'box' }) %>
         <h2>The shelves are empty</h2>
         <p>Run <code>npm run seed:products</code> to add the starter catalogue.</p>
       </div>

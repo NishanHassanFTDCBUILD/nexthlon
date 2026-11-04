@@ -106,7 +106,7 @@
         </div>
       <% } else { %>
         <div class="empty-state empty-state-flat">
-          <span class="empty-icon"><%- icon('box', 'i-xl') %></span>
+          <%- include('../partials/empty-art', { art: 'box' }) %>
           <h2>No products found</h2>
           <p><%= filtered ? 'Try a different search or filter.' : 'Add your first product to start selling.' %></p>
           <% if (filtered) { %>

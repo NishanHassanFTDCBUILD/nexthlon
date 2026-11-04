@@ -94,11 +94,13 @@
   --text-base: 15px;
   --text-md: 17px;
   --text-lg: 20px;
-  --text-xl: 24px;
-  --text-2xl: 30px;
-  --text-3xl: 38px;
-  --text-4xl: 48px;
+  /* Headings scale smoothly between a 360px phone and a 1440px screen. */
+  --text-xl: clamp(20px, 0.37vw + 18.7px, 24px);
+  --text-2xl: clamp(24px, 0.56vw + 22px, 30px);
+  --text-3xl: clamp(28px, 0.93vw + 24.7px, 38px);
+  --text-4xl: clamp(34px, 1.3vw + 29.3px, 48px);
   --text-hero: clamp(36px, 5.2vw, 68px);
+  --text-display: clamp(42px, 6.4vw, 92px);
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
@@ -120,7 +122,17 @@
   --shadow-sm: 0 1px 2px rgba(var(--navy-rgb), 0.05), 0 2px 8px rgba(var(--navy-rgb), 0.06);
   --shadow-md: 0 2px 4px rgba(var(--navy-rgb), 0.05), 0 10px 28px rgba(var(--navy-rgb), 0.1);
   --shadow-lg: 0 24px 60px rgba(var(--navy-rgb), 0.22);
+  --shadow-xl: 0 2px 6px rgba(var(--navy-rgb), 0.06), 0 32px 80px rgba(var(--navy-rgb), 0.28);
   --shadow-brand: 0 8px 22px rgba(var(--brand-rgb), 0.35);
+  --shadow-brand-lg: 0 14px 40px rgba(var(--brand-rgb), 0.4);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(var(--navy-rgb), 0.04);
+
+  /* ---------- Surfaces and gradients ---------- */
+  --surface-raised: #ffffff;
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --gradient-brand: linear-gradient(135deg, #ff9a3d 0%, var(--brand) 45%, #f25c05 100%);
+  --gradient-navy: radial-gradient(120% 140% at 100% 0%, var(--navy-600), var(--navy-900) 60%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0));
 
   /* ---------- Layers ---------- */
   --z-base: 1;
@@ -134,8 +146,13 @@
 
   /* ---------- Motion ---------- */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration-fast: 0.15s;
   --duration: 0.25s;
+  --duration-slow: 0.4s;
+  --duration-slower: 0.7s;
 
   --header-h: 112px;
 
@@ -229,6 +246,11 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
     --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+    --shadow-xl: 0 2px 6px rgba(0, 0, 0, 0.35), 0 32px 80px rgba(0, 0, 0, 0.65);
+    --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --surface-raised: #1a2334;
+    --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+    --glass-border: rgba(255, 255, 255, 0.08);
   }
 }
 :root[data-theme="dark"] {
@@ -276,4 +298,17 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 2px 6px rgba(0, 0, 0, 0.35), 0 32px 80px rgba(0, 0, 0, 0.65);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --surface-raised: #1a2334;
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Switching theme fades the colours over 0.35s (theme.js adds the class for a moment).
+   Only colours change; nothing moves. Off when the visitor prefers reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-switching, html.theme-switching *, html.theme-switching *::before, html.theme-switching *::after {
+    transition: background-color 0.35s var(--ease), color 0.35s var(--ease), border-color 0.35s var(--ease), fill 0.35s var(--ease), stroke 0.35s var(--ease), box-shadow 0.35s var(--ease) !important;
+  }
 }

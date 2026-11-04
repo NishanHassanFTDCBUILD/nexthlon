@@ -77,7 +77,7 @@
     <%- include('../partials/pagination') %>
   <% } else { %>
     <div class="empty-state">
-      <span class="empty-icon"><%- icon('package-check', 'i-xl') %></span>
+      <%- include('../partials/empty-art', { art: 'package-check' }) %>
       <% if (filtered) { %>
         <h2>No orders match those filters</h2>
         <p>Try a different time range or search.</p>

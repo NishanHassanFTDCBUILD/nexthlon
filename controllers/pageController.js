@@ -217,6 +217,11 @@ const adminDashboard = asyncHandler(async (req, res) => {
   res.render("admin/dashboard", { title: "Dashboard | Nexthlon Admin", ...data, settings });
 });
 
+// The UI kit: every design token and component in one place.
+function adminDesignSystem(req, res) {
+  res.render("admin/design-system", { title: "Design system | Nexthlon Admin" });
+}
+
 const adminUsers = asyncHandler(async (req, res) => {
   const data = await adminService.listCustomers(req.query);
   const link = linkBuilder("/admin/users", {
@@ -270,6 +275,7 @@ module.exports = {
   orderInvoice,
   adminLogin,
   adminDashboard,
+  adminDesignSystem,
   adminUsers,
   adminProducts,
   adminProductNew,
