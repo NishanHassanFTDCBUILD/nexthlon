@@ -9,5 +9,6 @@ router.post("/razorpay/order", payments.createOrder);
 router.post("/razorpay/retry/:orderId", payments.retry);
 router.post("/razorpay/verify", payments.verify);
 router.post("/razorpay/failed", payments.failed);
+router.get("/razorpay/status/:razorpayOrderId", payments.status);
 
 module.exports = router;

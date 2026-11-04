@@ -14,6 +14,7 @@ const checkoutService = require("./checkoutService");
 const stockService = require("./stockService");
 const orderService = require("./orderService");
 const couponService = require("./couponService");
+const refundService = require("./refundService");
 const walletService = require("./walletService");
 const razorpay = require("./razorpayService");
 const { HttpError } = require("../utils/http");
@@ -106,6 +107,14 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
   if (!paid) return Order.findOne({ "razorpay.orderId": razorpayOrderId });
   razorpay.logEvent("payment.paid", { order: paid.orderId, payment: razorpayPaymentId, amount: paid.total, source });
 
+  // The shopper gave up and cancelled the order, but the money still arrived (a slow bank, or the
+  // webhook): nothing will be shipped, so the online payment goes straight back.
+  if (paid.orderStatus === "cancelled") {
+    await refundService.issueRefund(paid, paid.total, { method: "original", reason: "Paid after the order was cancelled" });
+    razorpay.logEvent("payment.after_cancel", { order: paid.orderId });
+    return Order.findById(paid._id);
+  }
+
   // Claim the stock step once; only the call that flips stockReserved takes the stock.
   const claimed = await Order.findOneAndUpdate({ _id: paid._id, stockReserved: false }, { $set: { stockReserved: true } }, { new: true });
   if (!claimed) return paid;
@@ -125,6 +134,16 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
   if (claimed.couponCode) cartChange.$set = { couponCode: "" };
   await Cart.updateOne({ user: claimed.user }, cartChange);
   return Order.findById(claimed._id);
+}
+
+// Where a payment stands, for the checkout page to poll when the verify call could not get through.
+// Only the owner can ask.
+async function getStatus(userId, razorpayOrderId) {
+  const order = await Order.findOne({ "razorpay.orderId": razorpayOrderId, user: userId })
+    .select("orderId paymentStatus orderStatus total walletUsed")
+    .lean();
+  if (!order) throw new HttpError(404, "Order not found.");
+  return order;
 }
 
 // Step 3. The browser's proof of payment, checked against the signature before anything changes.
@@ -187,4 +206,4 @@ async function handleWebhook(rawBody, signature) {
   return { handled: false };
 }
 
-module.exports = { createPaymentOrder, retryPayment, markPaid, verifyPayment, markFailed, handleWebhook, isEnabled: razorpay.isEnabled };
+module.exports = { createPaymentOrder, retryPayment, markPaid, getStatus, verifyPayment, markFailed, handleWebhook, isEnabled: razorpay.isEnabled };

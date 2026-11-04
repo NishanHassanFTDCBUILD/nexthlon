@@ -1,5 +1,5 @@
 <%# Payment method badges, drawn with inline SVG (no image files, nothing loaded from outside). %>
-<ul class="pay-list" aria-label="Payment methods we accept">
+<ul class="pay-list<%= typeof compact !== "undefined" && compact ? " pay-list-compact" : "" %>" aria-label="Payment methods we accept">
   <li>
     <svg class="pay-badge" viewBox="0 0 64 40" role="img" aria-label="UPI"><title>UPI</title>
       <rect width="64" height="40" rx="6" fill="#fff"/>
@@ -27,6 +27,7 @@
       <path d="M48 13l6 7-6 7z" fill="#f47b20"/><path d="M45 13l6 7-6 7z" fill="#108b48" opacity="0.85"/>
     </svg>
   </li>
+  <% if (typeof compact === "undefined" || !compact) { %>
   <li>
     <svg class="pay-badge" viewBox="0 0 64 40" role="img" aria-label="Net banking"><title>Net banking</title>
       <rect width="64" height="40" rx="6" fill="#fff"/>
@@ -42,4 +43,5 @@
       <text x="45" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="8.5" font-weight="700" fill="#24406e">WALLETS</text>
     </svg>
   </li>
+  <% } %>
 </ul>

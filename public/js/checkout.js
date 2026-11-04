@@ -26,6 +26,10 @@
       }
       if (edit) edit.hidden = n >= number;
     });
+    // The bar under the steps fills up; on phones the Pay button sticks to the bottom on step 3.
+    const bar = page.querySelector(".stepper");
+    if (bar) bar.style.setProperty("--progress", String((number - 1) / (steps.length - 1)));
+    page.classList.toggle("is-paying", number === steps.length);
     stepper.forEach(item => {
       if (Number(item.dataset.stepper) === number) item.setAttribute("aria-current", "step");
       else item.removeAttribute("aria-current");
@@ -83,40 +87,95 @@
   const form = page.querySelector("[data-place-order]");
   const placeButton = form.querySelector('[type="submit"]');
   const summary = page.querySelector("[data-summary]");
-  const walletBox = form.querySelector("[data-use-wallet]");
+  const cards = [...form.querySelectorAll("[data-pay-card]")];
+  const methodInput = name => form.querySelector(`[data-pay-card="${name}"] input[name="paymentMethod"]`);
+  const restBox = form.querySelector("[data-pay-rest]");
   const walletNote = form.querySelector("[data-wallet-note]");
-  const payWallet = form.querySelector("[data-pay-wallet]");
-  const payCod = form.querySelector("[data-pay-cod]");
-  const payOnline = form.querySelector("[data-pay-online]");
-  const codInput = payCod.querySelector("input");
-  const onlineInput = payOnline.querySelector("input");
-  const onlineReady = onlineInput.dataset.onlineReady === "true";
-  const codNote = payCod.querySelector("[data-cod-note]");
-  let blocked = placeButton.disabled;
+  const codNote = form.querySelector("[data-cod-note]");
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let current = null; // the latest quote from the server
+  let processing = false;
+
+  // Money counts to its new value. Only the text changes, so nothing on the page moves.
+  function countTo(el, paise, prefix) {
+    const from = Number(el.dataset.value);
+    el.dataset.value = String(paise);
+    if (!Number.isFinite(from) || from === paise || reducedMotion.matches) {
+      el.textContent = prefix + Nx.formatPrice(paise);
+      return;
+    }
+    const started = performance.now();
+    const step = now => {
+      if (el.dataset.value !== String(paise)) return; // a newer total took over
+      const progress = Math.min(1, (now - started) / 500);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = progress < 1 ? Math.round((from + (paise - from) * eased) / 100) * 100 : paise;
+      el.textContent = prefix + Nx.formatPrice(value);
+      el.classList.toggle("is-counting", progress < 1);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
 
   function setMoney(name, paise) {
     page.querySelectorAll(`[data-sum="${name}"]`).forEach(el => {
       if (el.hasAttribute("data-free") && !paise) {
+        el.dataset.value = "0";
         el.innerHTML = '<span class="text-success">Free</span>';
       } else {
-        el.textContent = (el.hasAttribute("data-minus") ? "−" : "") + Nx.formatPrice(paise);
+        countTo(el, paise, el.hasAttribute("data-minus") ? "−" : "");
       }
     });
   }
 
-  function chosenMethod() {
-    const checked = form.querySelector('input[name="paymentMethod"]:checked');
-    return checked ? checked.value : "";
+  const chosenMethod = () => (form.querySelector('input[name="paymentMethod"]:checked') || {}).value || "";
+  const restMethod = () => (form.querySelector('input[name="restMethod"]:checked') || {}).value || "";
+  const usingWallet = () => chosenMethod() === "wallet";
+
+  // The selected card opens to show its details; the others close.
+  function syncCards(animate = true) {
+    cards.forEach(card => {
+      const on = card.querySelector('input[name="paymentMethod"]').checked;
+      card.classList.toggle("is-selected", on);
+      const details = card.querySelector("[data-pay-details]");
+      if (details.hidden !== on) return;
+      details.hidden = !on;
+      if (on && animate) {
+        details.classList.remove("is-entering");
+        void details.offsetWidth;
+        details.classList.add("is-entering");
+      }
+    });
+  }
+
+  // What pressing the button will do, from the chosen card (and how to pay the rest).
+  function plan() {
+    const method = chosenMethod();
+    if (method !== "wallet") return { kind: method, useWallet: false };
+    if (current && current.coveredByWallet) return { kind: "wallet", useWallet: true };
+    return { kind: restMethod(), useWallet: true };
   }
 
   function updatePlaceText() {
-    const method = chosenMethod();
     // Looked up each time: the busy spinner swaps the button's contents and puts them back.
     const placeText = form.querySelector("[data-place-text]");
-    placeText.textContent = method === "razorpay" ? "Pay securely" : method === "wallet" ? "Pay with wallet" : "Place order";
+    const p = plan();
+    const t = current && current.totals;
+    const amount = t ? Nx.formatPrice(p.kind === "wallet" ? t.walletUsed : t.total) : "";
+    placeText.textContent = p.kind === "razorpay" ? `Pay ${amount} securely`
+      : p.kind === "wallet" ? `Pay ${amount} from wallet`
+      : p.kind === "cod" ? `Place order · ${amount} on delivery`
+      : "Choose how to pay";
+  }
+
+  function updateButton() {
+    const p = plan();
+    placeButton.disabled = processing || !current || current.problems.length > 0 || !p.kind;
+    updatePlaceText();
   }
 
   function render(quote) {
+    current = quote;
     const t = quote.totals;
     ["mrpTotal", "discount", "couponDiscount", "deliveryFee", "walletUsed", "total"].forEach(name => setMoney(name, t[name]));
     setMoney("savings", t.discount + t.couponDiscount);
@@ -125,26 +184,32 @@
     page.querySelector('[data-sum-row="walletUsed"]').hidden = !t.walletUsed;
     page.querySelector("[data-saving]").hidden = !(t.discount + t.couponDiscount > 0);
 
-    // Payment choices follow the new total.
-    const covered = quote.coveredByWallet;
-    payWallet.hidden = !covered;
-    payWallet.querySelector("input").disabled = !covered;
-    payCod.hidden = covered;
-    payOnline.hidden = covered;
-    codInput.disabled = covered || !quote.codAllowed;
-    onlineInput.disabled = covered || !onlineReady;
-    codNote.textContent = quote.codAllowed ? codNote.dataset.ok : codNote.dataset.off;
-    if (covered) payWallet.querySelector("input").checked = true;
-    else if (!chosenMethod() || form.querySelector('input[name="paymentMethod"]:checked').disabled) {
-      const next = !codInput.disabled ? codInput : !onlineInput.disabled ? onlineInput : null;
-      form.querySelectorAll('input[name="paymentMethod"]').forEach(input => { input.checked = input === next; });
+    // Cash on Delivery depends on the amount left to pay.
+    if (!usingWallet()) {
+      const cod = methodInput("cod");
+      cod.disabled = !quote.codAllowed;
+      cod.closest("[data-pay-card]").classList.toggle("is-disabled", !quote.codAllowed);
+      codNote.textContent = quote.codAllowed ? codNote.dataset.ok : codNote.dataset.off;
+      if (cod.checked && cod.disabled) {
+        cod.checked = false;
+        const online = methodInput("razorpay");
+        if (!online.disabled) online.checked = true;
+      }
+    } else if (restBox) {
+      restBox.hidden = quote.coveredByWallet;
+      const restCod = restBox.querySelector('input[value="cod"]');
+      const restOnline = restBox.querySelector('input[value="razorpay"]');
+      restCod.disabled = !quote.codAllowed;
+      if (restCod.checked && restCod.disabled) {
+        restCod.checked = false;
+        if (!restOnline.disabled) restOnline.checked = true;
+      }
+      walletNote.textContent = quote.coveredByWallet
+        ? `Your wallet covers this whole order. ${Nx.formatPrice(quote.walletBalance - t.walletUsed)} stays in your wallet.`
+        : `${Nx.formatPrice(t.walletUsed)} comes from your wallet.`;
     }
-    if (walletNote) {
-      walletNote.textContent = t.walletUsed ? (covered ? "It covers this whole order." : `${Nx.formatPrice(t.walletUsed)} will be used, pay the rest below.`) : "";
-    }
-    blocked = Boolean(quote.problems.length) || !chosenMethod();
-    placeButton.disabled = blocked;
-    updatePlaceText();
+    syncCards();
+    updateButton();
     renderCoupon(quote);
   }
 
@@ -154,20 +219,26 @@
     summary.classList.add("is-updating");
     placeButton.disabled = true;
     try {
-      const { quote } = await Nx.api("/api/checkout/quote", { method: "POST", body: { useWallet: Boolean(walletBox && walletBox.checked) } });
+      const { quote } = await Nx.api("/api/checkout/quote", { method: "POST", body: { useWallet: usingWallet() } });
       if (ticket === refreshing) render(quote);
     } catch (error) {
       Nx.toast(error.message, "error");
-      placeButton.disabled = blocked;
+      updateButton();
     } finally {
       if (ticket === refreshing) summary.classList.remove("is-updating");
     }
   }
 
   form.addEventListener("change", event => {
-    if (event.target.name === "paymentMethod") updatePlaceText();
-    if (event.target === walletBox) refresh();
+    if (event.target.name === "paymentMethod") {
+      Nx.clearErrors(form);
+      syncCards();
+      refresh();
+    }
+    if (event.target.name === "restMethod") updateButton();
   });
+  syncCards(false);
+  refresh();
 
   // ---------- Coupons ----------
   const couponBox = page.querySelector("[data-coupon]");
@@ -305,37 +376,66 @@
   });
 
   // ---------- Place the order ----------
+  // After a failed or cancelled online payment: cancel that unpaid order (any wallet amount and
+  // coupon use come straight back), then let the shopper pick again. The cart was never touched.
+  async function chooseOther(orderId) {
+    processing = false;
+    if (orderId) {
+      try {
+        await Nx.api(`/api/orders/${encodeURIComponent(orderId)}/cancel`, { method: "POST", body: { reason: "" } });
+      } catch {
+        // It stays in Your orders with a Retry button; nothing is lost.
+      }
+    }
+    await refresh();
+    Nx.toast("Choose another way to pay. Your cart is just as you left it.");
+  }
+
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    if (processing || placeButton.disabled) return;
     const address = chosenAddress();
-    const method = chosenMethod();
-    const useWallet = Boolean(walletBox && walletBox.checked);
     if (!address) {
       open(1);
       return;
     }
-    // Online payment: the server saves the order unpaid and creates a Razorpay order,
-    // then Razorpay Checkout takes the payment.
-    if (method === "razorpay") {
+    const p = plan();
+    if (!p.kind) {
+      Nx.showErrors(form, { paymentMethod: "Choose how to pay." });
+      return;
+    }
+    processing = true;
+    // Online payment: the server saves the order unpaid and creates a Razorpay order for the
+    // amount it worked out; then Razorpay's secure window takes the payment.
+    if (p.kind === "razorpay") {
       const checkout = await Nx.submitForm(form, {
         url: "/api/payments/razorpay/order",
-        body: { addressId: address.value, useWallet },
-        busyLabel: "Opening payment…"
+        body: { addressId: address.value, useWallet: p.useWallet },
+        busyLabel: "Preparing secure payment…"
       });
-      if (checkout && Nx.payOnline) Nx.payOnline(checkout, Nx.prefillFrom(page));
+      if (checkout && Nx.payOnline) {
+        placeButton.disabled = true;
+        Nx.payOnline(checkout, Nx.prefillFrom(page), { onChooseOther: chooseOther });
+      } else {
+        processing = false;
+        refresh();
+      }
       return;
     }
     const reply = await Nx.submitForm(form, {
       url: "/api/orders",
-      body: { addressId: address.value, paymentMethod: method, useWallet },
+      body: { addressId: address.value, paymentMethod: p.kind, useWallet: p.useWallet },
       busyLabel: "Placing your order…"
     });
     if (!reply) {
       // Prices, stock or the wallet may have changed: show the latest totals.
+      processing = false;
       refresh();
       return;
     }
+    placeButton.disabled = true;
     Nx.setCartCount(0);
-    window.location.assign(reply.redirect);
+    // replace, not assign: Back must never come back here and place the order again.
+    window.location.replace(reply.redirect);
   });
 })();

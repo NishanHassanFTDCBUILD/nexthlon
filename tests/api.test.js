@@ -1446,3 +1446,54 @@ test("wallet with Razorpay: a gateway error puts the wallet amount and the coupo
   // The coupon stays chosen on the cart for the next try.
   assert.equal((await Cart.findOne({ user: mixer.user._id })).couponCode, "GATEWAY");
 });
+
+
+// ---------- Embedded payment experience: status polling, late payments ----------
+test("payment status: only the owner can poll it, and it follows the order", async () => {
+  razorpayService.setClient({
+    orders: { create: async params => ({ id: `order_POLL${String(Date.now()).slice(-8)}`, amount: params.amount, currency: "INR" }) },
+    payments: { refund: async (paymentId, params) => ({ id: `rfnd_POLL${params.amount}`, status: "processed", amount: params.amount }) }
+  });
+  const poller = await newCustomer("Status Poller", "poller@nexthlon.test");
+  const kit = await makeProduct({ name: "Goal Keeper Gloves", slug: "goal-keeper-gloves", category: "Football", price: 900, mrp: 1200, stock: 5, image: "/img/favicon.svg" });
+  await call("POST", "/api/cart/items", { body: { productId: String(kit._id), quantity: 1 }, cookie: poller.cookie });
+  const created = await call("POST", "/api/payments/razorpay/order", { body: { addressId: poller.addressId }, cookie: poller.cookie });
+  const rzpId = created.data.razorpay_order_id;
+
+  const pending = await call("GET", `/api/payments/razorpay/status/${rzpId}`, { cookie: poller.cookie });
+  assert.equal(pending.status, 200);
+  assert.equal(pending.data.paymentStatus, "pending");
+  assert.equal(pending.data.paid, false);
+  assert.match(pending.data.orderId, /^NX-\d{4}-\d{6}$/);
+  assert.equal((await call("GET", `/api/payments/razorpay/status/${rzpId}`, { cookie: shopper.cookie })).status, 404);
+  assert.equal((await call("GET", "/api/payments/razorpay/status/not-an-id", { cookie: poller.cookie })).status, 404);
+  assert.equal((await call("GET", `/api/payments/razorpay/status/${rzpId}`)).status, 401);
+
+  const ids = { razorpay_order_id: rzpId, razorpay_payment_id: "pay_POLLPAID01" };
+  await call("POST", "/api/payments/razorpay/verify", { body: { ...ids, razorpay_signature: checkoutSignature(rzpId, ids.razorpay_payment_id) }, cookie: poller.cookie });
+  const paid = await call("GET", `/api/payments/razorpay/status/${rzpId}`, { cookie: poller.cookie });
+  assert.equal(paid.data.paid, true);
+  assert.equal(paid.data.redirect, `/orders/${paid.data.orderId}/success`);
+});
+
+test("a payment that lands after the shopper cancelled the order is refunded at once", async () => {
+  const late = await newCustomer("Late Payer", "late@nexthlon.test");
+  const kit = await Product.findOne({ slug: "goal-keeper-gloves" });
+  await call("POST", "/api/cart/items", { body: { productId: String(kit._id), quantity: 1 }, cookie: late.cookie });
+  const created = await call("POST", "/api/payments/razorpay/order", { body: { addressId: late.addressId }, cookie: late.cookie });
+  const rzpId = created.data.razorpay_order_id;
+  const failed = await call("POST", "/api/payments/razorpay/failed", { body: { razorpay_order_id: rzpId, reason: "Closed the payment window" }, cookie: late.cookie });
+  // "Choose another method" cancels the unpaid order.
+  assert.equal((await call("POST", `/api/orders/${failed.data.orderId}/cancel`, { body: {}, cookie: late.cookie })).status, 200);
+  const stockBefore = (await Product.findById(kit._id)).stock;
+
+  // The bank was slow: the capture arrives afterwards through the webhook.
+  assert.equal(await sendWebhook({ event: "payment.captured", payload: { payment: { entity: { id: "pay_LATE00001", order_id: rzpId, amount: created.data.amount } } } }), 200);
+  const order = await Order.findOne({ orderId: failed.data.orderId }).lean();
+  assert.equal(order.orderStatus, "cancelled");
+  assert.equal(order.paymentStatus, "refunded");
+  assert.deepEqual(order.refunds.map(refund => [refund.method, refund.amount]), [["original", created.data.amount]]);
+  assert.equal((await Product.findById(kit._id)).stock, stockBefore);
+  // The cart was never emptied.
+  assert.equal((await call("GET", "/api/cart", { cookie: late.cookie })).data.cart.items.length, 1);
+});

@@ -108,3 +108,56 @@
   .js-motion .coupon-applied.is-popped { animation: nx-coupon-pop 0.5s var(--motion-spring); }
   @keyframes nx-coupon-pop { 0% { transform: scale(0.94); opacity: 0.4; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: none; } }
 }
+
+/* ---------- Payment experience ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* The active checkout step glows. */
+  .stepper li[aria-current="step"] > span::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--brand); animation: nx-glow 1.8s ease-out infinite; }
+  @keyframes nx-glow { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(1.6); } }
+
+  /* Payment cards: the chosen card's details slide open, the Pay button shines and presses. */
+  .js-motion .pay-card-details.is-entering { animation: nx-details-in 0.35s var(--motion-ease) both; }
+  @keyframes nx-details-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  .pay-card.is-selected .pay-tick { animation: nx-tick-pop 0.4s var(--motion-spring); }
+  @keyframes nx-tick-pop { 0% { transform: scale(0.6); } 100% { transform: scale(1); } }
+  .pay-btn { transition: transform 0.15s var(--motion-ease), box-shadow 0.2s var(--motion-ease); }
+  .pay-btn:hover:not(:disabled) { transform: translateY(-2px); }
+  .pay-btn:hover:not(:disabled)::after { transform: translateX(260%) skewX(-18deg); transition: transform 0.85s var(--motion-ease); }
+  .pay-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+  .summary-list .is-counting { opacity: 0.85; }
+
+  /* The overlay card pops in; each state animates its own icon. */
+  .pay-overlay.is-open .pay-overlay-card { animation: nx-pay-in 0.35s var(--motion-ease) both; }
+  @keyframes nx-pay-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+  .pay-icon-lock .pay-pulse { animation: nx-pay-pulse 1.6s ease-out infinite; }
+  @keyframes nx-pay-pulse { from { opacity: 1; transform: scale(0.7); } to { opacity: 0; transform: scale(1.1); } }
+  .pay-icon-lock .pay-lock-shackle { animation: nx-shackle 1.6s var(--motion-ease) infinite; }
+  @keyframes nx-shackle { 0%, 20% { transform: translateY(-4px); } 45%, 100% { transform: none; } }
+  .pay-ring-arc { animation: nx-spin 0.9s linear infinite; }
+  @keyframes nx-spin { to { transform: rotate(360deg); } }
+  .pay-overlay[data-state="success"] .is-entering .pay-draw-circle,
+  .pay-overlay[data-state="failed"] .is-entering .pay-draw-circle { animation: nx-draw-circle 0.6s ease-out both; }
+  .pay-overlay[data-state="success"] .is-entering .pay-draw-mark,
+  .pay-overlay[data-state="failed"] .is-entering .pay-draw-mark { animation: nx-draw-mark 0.4s ease-out 0.45s both; }
+  .pay-overlay[data-state="failed"] .is-entering .pay-draw-mark-2 { animation-delay: 0.6s; }
+  @keyframes nx-draw-circle { from { stroke-dashoffset: 176; } to { stroke-dashoffset: 0; } }
+  @keyframes nx-draw-mark { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+  .pay-overlay[data-state="failed"] .pay-overlay-card.is-entering { animation: nx-shake 0.5s ease-in-out 0.75s; }
+  @keyframes nx-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+  .pay-overlay[data-state="success"] .pay-result, .pay-overlay[data-state="success"] .pay-actions,
+  .pay-overlay[data-state="failed"] .pay-actions { animation: nx-details-in 0.4s var(--motion-ease) 0.7s both; }
+
+  /* Payment status badges: Paid pulses, Pending breathes. */
+  .pay-status-paid .pay-status-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: nx-dot-pulse 1.8s ease-out infinite; }
+  @keyframes nx-dot-pulse { from { opacity: 0.6; transform: scale(1); } to { opacity: 0; transform: scale(2.8); } }
+  .pay-status-pending .pay-status-dot { animation: nx-dot-breathe 1.4s ease-in-out infinite; }
+  @keyframes nx-dot-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* The tracking timeline draws in, one step after another. */
+  .js-motion .timeline.will-draw:not(.is-drawn) .timeline-step { opacity: 0; }
+  .js-motion .timeline.will-draw:not(.is-drawn) .timeline-step::before { opacity: 0; }
+  .js-motion .timeline.is-drawn .timeline-step { animation: nx-step-rise 0.45s var(--motion-ease) calc(var(--step, 0) * 170ms) both; }
+  .js-motion .timeline.is-drawn .timeline-step::before { transform-origin: left center; animation: nx-line-draw 0.4s var(--motion-ease) calc(var(--step, 0) * 170ms) both; }
+  @keyframes nx-step-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes nx-line-draw { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
+}

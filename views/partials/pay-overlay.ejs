@@ -1,0 +1,46 @@
+<%# The full-screen payment overlay: opening Razorpay, verifying, success and failure.
+    public/js/payment.js drives it by setting data-state. No card details are ever entered here:
+    the payment itself happens inside Razorpay's own secure window. %>
+<div class="pay-overlay" data-pay-overlay data-state="opening" hidden>
+  <div class="pay-overlay-card" role="dialog" aria-modal="true" aria-labelledby="pay-overlay-title" aria-describedby="pay-overlay-text" tabindex="-1" data-pay-dialog>
+    <div class="pay-visual" aria-hidden="true">
+      <svg class="pay-icon pay-icon-lock" viewBox="0 0 64 64">
+        <circle class="pay-pulse" cx="32" cy="32" r="30"/>
+        <path class="pay-lock-shackle" d="M22 29v-6a10 10 0 0 1 20 0v6"/>
+        <rect class="pay-lock-body" x="17" y="29" width="30" height="22" rx="5"/>
+        <circle class="pay-lock-hole" cx="32" cy="39" r="3"/>
+      </svg>
+      <svg class="pay-icon pay-icon-ring" viewBox="0 0 64 64">
+        <circle class="pay-ring-track" cx="32" cy="32" r="26"/>
+        <circle class="pay-ring-arc" cx="32" cy="32" r="26"/>
+      </svg>
+      <svg class="pay-icon pay-icon-check" viewBox="0 0 64 64">
+        <circle class="pay-draw-circle" cx="32" cy="32" r="28"/>
+        <path class="pay-draw-mark" d="M19 33l9 9 17-19"/>
+      </svg>
+      <svg class="pay-icon pay-icon-cross" viewBox="0 0 64 64">
+        <circle class="pay-draw-circle" cx="32" cy="32" r="28"/>
+        <path class="pay-draw-mark" d="M23 23l18 18"/>
+        <path class="pay-draw-mark pay-draw-mark-2" d="M41 23L23 41"/>
+      </svg>
+    </div>
+    <h2 id="pay-overlay-title" class="pay-title" data-pay-title>Opening secure payment…</h2>
+    <p id="pay-overlay-text" class="pay-text" data-pay-text></p>
+    <p class="sr-only" role="status" aria-live="polite" data-pay-live></p>
+
+    <dl class="pay-result" data-pay-result hidden>
+      <div>
+        <dt>Order ID</dt>
+        <dd><strong data-pay-order></strong> <button type="button" class="btn btn-ghost btn-xs" data-pay-copy><%- icon('copy', 'i-xs') %> Copy</button></dd>
+      </div>
+      <div>
+        <dt>Amount paid</dt>
+        <dd><strong data-pay-amount></strong></dd>
+      </div>
+    </dl>
+
+    <div class="pay-actions" data-pay-actions></div>
+    <p class="pay-secure-note"><%- icon('lock', 'i-xs') %> Secured by Razorpay. Nexthlon never sees or stores your card details.</p>
+  </div>
+  <canvas class="pay-confetti" data-pay-confetti aria-hidden="true"></canvas>
+</div>

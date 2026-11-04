@@ -56,8 +56,8 @@
             <div><span class="muted">Placed</span><strong><%= formatDate(order.createdAt) %></strong></div>
             <div><span class="muted">Total</span><strong><%= formatPrice(order.total) %></strong></div>
             <span class="order-card-pills">
-              <% if (order.paymentMethod === 'razorpay' && ['pending', 'failed'].includes(order.paymentStatus) && order.orderStatus !== 'cancelled') { %>
-                <span class="pill <%= order.paymentStatus === 'failed' ? 'pill-red' : 'pill-amber' %>"><%= order.paymentStatus === 'failed' ? 'Payment failed' : 'Awaiting payment' %></span>
+              <% if (order.orderStatus !== 'cancelled' || ['paid', 'refunded', 'partially_refunded'].includes(order.paymentStatus)) { %>
+                <%- include('../partials/pay-status', { status: order.paymentStatus, method: order.paymentMethod }) %>
               <% } %>
               <span class="pill <%= pillFor(order.orderStatus) %>"><%= labels[order.orderStatus] %></span>
             </span>

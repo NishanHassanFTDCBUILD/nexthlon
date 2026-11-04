@@ -11,7 +11,6 @@
     return 'pill-blue';
   };
   const methodLabel = order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod === 'wallet' ? 'Nexthlon wallet' : 'UPI, card or net banking';
-  const paymentLabels = { pending: order.paymentMethod === 'cod' ? 'Pay on delivery' : 'Awaiting payment', paid: 'Paid', failed: 'Payment failed', refunded: 'Refunded', partially_refunded: 'Partly refunded' };
   const timeText = function (value) { return value ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).format(new Date(value)) : ''; };
 %>
 <main id="main" class="container page" data-order data-order-id="<%= order.orderId %>" data-paid="<%= ['paid', 'partially_refunded'].includes(order.paymentStatus) || order.walletUsed > 0 ? 'true' : 'false' %>" data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || order.address.phone %>">
@@ -22,7 +21,7 @@
   <div class="page-head">
     <div>
       <h1>Order <%= order.orderId %></h1>
-      <p class="muted">Placed on <%= formatDate(order.createdAt) %> · <span class="pill <%= pillFor(order.orderStatus) %>"><%= labels[order.orderStatus] %></span></p>
+      <p class="muted order-head-meta">Placed on <%= formatDate(order.createdAt) %> · <span class="pill <%= pillFor(order.orderStatus) %>"><%= labels[order.orderStatus] %></span> <%- include('../partials/pay-status', { status: order.paymentStatus, method: order.paymentMethod }) %></p>
     </div>
     <div class="order-actions">
       <% if (canRetryPayment) { %><button type="button" class="btn btn-primary btn-sm" data-retry-payment><%- icon('credit-card', 'i-sm') %> Retry payment · <%= formatPrice(order.total) %></button><% } %>
@@ -42,7 +41,7 @@
     <div class="order-main">
       <section class="section-box" aria-labelledby="track-title">
         <h2 id="track-title" class="panel-title">Tracking</h2>
-        <ol class="timeline">
+        <ol class="timeline" data-timeline>
           <% timeline.forEach(function (step) { %>
             <li class="timeline-step <%= step.done ? 'is-done' : '' %> <%= ['cancelled', 'return_requested', 'returned'].includes(step.status) ? 'is-alert' : '' %>" <%- step.status === order.orderStatus ? 'aria-current="step"' : '' %>>
               <span class="timeline-dot" aria-hidden="true"><% if (step.done) { %><%- icon(step.status === 'cancelled' ? 'x' : 'check', 'i-xs') %><% } %></span>
@@ -84,7 +83,7 @@
       </section>
       <section class="section-box" aria-labelledby="pay-title">
         <h2 id="pay-title" class="panel-title">Payment</h2>
-        <p><%= methodLabel %> · <strong><%= paymentLabels[order.paymentStatus] || order.paymentStatus %></strong></p>
+        <p class="pay-line"><%= methodLabel %> <%- include('../partials/pay-status', { status: order.paymentStatus, method: order.paymentMethod }) %></p>
         <dl class="summary-list">
           <div><dt>M.R.P. total</dt><dd><%= formatPrice(order.mrpTotal) %></dd></div>
           <div class="summary-savings"><dt>Discount</dt><dd>−<%= formatPrice(order.discount) %></dd></div>
@@ -164,4 +163,5 @@
   </dialog>
 <% } %>
 
-<%- include('../partials/footer', { scripts: ['payment', 'orders'], razorpay: canRetryPayment }) %>
+<% if (canRetryPayment) { %><%- include('../partials/pay-overlay') %><% } %>
+<%- include('../partials/footer', { scripts: canRetryPayment ? ['confetti', 'payment', 'orders'] : ['orders'], razorpay: canRetryPayment }) %>

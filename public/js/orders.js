@@ -7,6 +7,25 @@
   if (!page) return;
   const orderId = encodeURIComponent(page.dataset.orderId);
 
+  // The tracking timeline draws in one step at a time when it scrolls into view (motion.css).
+  const timeline = page.querySelector("[data-timeline]");
+  if (timeline) {
+    [...timeline.children].forEach((step, index) => step.style.setProperty("--step", String(index)));
+    timeline.classList.add("will-draw");
+    const draw = () => timeline.classList.add("is-drawn");
+    if ("IntersectionObserver" in window) {
+      const watcher = new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          draw();
+          watcher.disconnect();
+        }
+      }, { threshold: 0.3 });
+      watcher.observe(timeline);
+    } else {
+      draw();
+    }
+  }
+
   function reloadWith(message) {
     Nx.flash(message);
     window.location.reload();

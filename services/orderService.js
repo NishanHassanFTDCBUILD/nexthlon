@@ -69,7 +69,9 @@ function settleStatus(order, by, note) {
 // (online or from the wallet) is refunded. A fully cancelled order gives its coupon use back.
 async function cancelItems(order, items, { reason = "", by = "customer", refundMethod = "wallet" } = {}) {
   const { refund, dueReduction } = rules.settlementFor(order, items.map(item => item._id));
-  if (dueReduction > 0) order.total -= dueReduction;
+  // Cash on delivery collects less. An unpaid online order keeps its amount, so a payment that
+  // still arrives later is recognised and refunded in full.
+  if (dueReduction > 0 && order.paymentMethod === "cod") order.total -= dueReduction;
   for (const item of items) {
     item.status = "cancelled";
     item.cancelReason = reason;

@@ -96,43 +96,82 @@
           <div><h2 id="step3-title">Payment method</h2></div>
         </header>
         <div class="step-body" hidden>
-          <form class="form" data-place-order novalidate>
+          <form class="form pay-form" data-place-order novalidate>
             <div class="form-alert" data-form-alert aria-live="assertive"></div>
-            <% if (quote.walletBalance > 0) { %>
-              <label class="wallet-use">
-                <input type="checkbox" name="useWallet" data-use-wallet>
-                <span class="wallet-use-body">
-                  <strong><%- icon('wallet', 'i-sm') %> Use my wallet balance</strong>
-                  <span class="muted">You have <b><%= formatPrice(quote.walletBalance) %></b> in your Nexthlon wallet. <span data-wallet-note></span></span>
-                </span>
-              </label>
-            <% } %>
-            <fieldset class="pay-options">
+            <%
+              const walletReady = quote.walletBalance > 0;
+              const firstChoice = razorpayEnabled ? 'razorpay' : quote.codAllowed ? 'cod' : walletReady ? 'wallet' : '';
+            %>
+            <fieldset class="pay-methods">
               <legend class="sr-only">Choose how to pay</legend>
-              <label class="pay-option" data-pay-wallet hidden>
-                <input type="radio" name="paymentMethod" value="wallet" disabled>
-                <span class="pay-option-body">
-                  <strong><%- icon('wallet', 'i-sm') %> Pay with wallet</strong>
-                  <span class="muted">Your wallet covers the full amount. Nothing more to pay.</span>
-                </span>
-              </label>
-              <label class="pay-option" data-pay-cod>
-                <input type="radio" name="paymentMethod" value="cod" <%= quote.codAllowed ? 'checked' : 'disabled' %>>
-                <span class="pay-option-body">
-                  <strong><%- icon('truck', 'i-sm') %> Cash on Delivery</strong>
-                  <span class="muted" data-cod-note data-ok="Pay in cash or UPI when your order arrives." data-off="Available for orders up to <%= formatPrice(quote.codLimit) %>."><%= quote.codAllowed ? 'Pay in cash or UPI when your order arrives.' : 'Available for orders up to ' + formatPrice(quote.codLimit) + '.' %></span>
-                </span>
-              </label>
-              <label class="pay-option <%= razorpayEnabled ? '' : 'is-soon' %>" data-pay-online>
-                <input type="radio" name="paymentMethod" value="razorpay" <%= razorpayEnabled ? (quote.codAllowed ? '' : 'checked') : 'disabled' %> data-online-ready="<%= razorpayEnabled ? 'true' : 'false' %>">
-                <span class="pay-option-body">
-                  <strong><%- icon('credit-card', 'i-sm') %> UPI, cards and net banking</strong>
-                  <span class="muted"><%= razorpayEnabled ? 'Pay securely with Razorpay. Test mode: no real money moves.' : 'Online payment is not set up yet.' %></span>
-                </span>
-              </label>
+
+              <div class="pay-card <%= razorpayEnabled ? '' : 'is-disabled' %>" data-pay-card="razorpay" data-tilt data-tilt-max="4">
+                <label class="pay-card-head">
+                  <input type="radio" name="paymentMethod" value="razorpay" <%= razorpayEnabled ? '' : 'disabled' %> <%= firstChoice === 'razorpay' ? 'checked' : '' %> aria-describedby="pay-razorpay-note">
+                  <span class="pay-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></span>
+                  <span class="pay-card-icon"><%- icon('credit-card') %></span>
+                  <span class="pay-card-title">
+                    <strong>UPI / Cards / Netbanking</strong>
+                    <span class="muted" id="pay-razorpay-note"><%= razorpayEnabled ? 'Powered by Razorpay' : 'Online payment is not set up yet' %></span>
+                  </span>
+                  <span class="pill pill-green pay-card-tag">Instant</span>
+                </label>
+                <div class="pay-card-details" data-pay-details>
+                  <p>You pay in Razorpay's secure window: UPI apps, debit and credit cards, netbanking and wallets. Nexthlon never sees or stores your card details.</p>
+                  <% if (razorpayEnabled) { %><p class="muted">Test mode: no real money moves.</p><% } %>
+                </div>
+              </div>
+
+              <div class="pay-card <%= walletReady ? '' : 'is-disabled' %>" data-pay-card="wallet" data-tilt data-tilt-max="4">
+                <label class="pay-card-head">
+                  <input type="radio" name="paymentMethod" value="wallet" <%= walletReady ? '' : 'disabled' %> <%= firstChoice === 'wallet' ? 'checked' : '' %> aria-describedby="pay-wallet-note">
+                  <span class="pay-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></span>
+                  <span class="pay-card-icon"><%- icon('wallet') %></span>
+                  <span class="pay-card-title">
+                    <strong>Nexthlon wallet</strong>
+                    <span class="muted" id="pay-wallet-note">Balance <%= formatPrice(quote.walletBalance) %></span>
+                  </span>
+                </label>
+                <div class="pay-card-details" data-pay-details>
+                  <% if (walletReady) { %>
+                    <p data-wallet-note>Your wallet balance is used first.</p>
+                    <fieldset class="pay-rest" data-pay-rest hidden>
+                      <legend>Pay the remaining <strong data-sum="total" data-value="<%= t.total %>"><%= formatPrice(t.total) %></strong> with</legend>
+                      <label class="choice"><input type="radio" name="restMethod" value="razorpay" <%= razorpayEnabled ? 'checked' : 'disabled' %>><span>UPI / Cards / Netbanking</span></label>
+                      <label class="choice"><input type="radio" name="restMethod" value="cod" <%= razorpayEnabled ? '' : 'checked' %>><span>Cash on Delivery</span></label>
+                    </fieldset>
+                  <% } else { %>
+                    <p>Your wallet is empty. Refunds and referral rewards land here. <a href="/wallet">Invite friends to earn</a>.</p>
+                  <% } %>
+                </div>
+              </div>
+
+              <div class="pay-card <%= quote.codAllowed ? '' : 'is-disabled' %>" data-pay-card="cod" data-tilt data-tilt-max="4">
+                <label class="pay-card-head">
+                  <input type="radio" name="paymentMethod" value="cod" <%= quote.codAllowed ? '' : 'disabled' %> <%= firstChoice === 'cod' ? 'checked' : '' %> aria-describedby="pay-cod-note">
+                  <span class="pay-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></span>
+                  <span class="pay-card-icon"><%- icon('truck') %></span>
+                  <span class="pay-card-title">
+                    <strong>Cash on Delivery</strong>
+                    <span class="muted" id="pay-cod-note" data-cod-note data-ok="Pay in cash or UPI at your door" data-off="Only for orders up to <%= formatPrice(quote.codLimit) %>"><%= quote.codAllowed ? 'Pay in cash or UPI at your door' : 'Only for orders up to ' + formatPrice(quote.codLimit) %></span>
+                  </span>
+                </label>
+                <div class="pay-card-details" data-pay-details>
+                  <p>Pay the delivery partner in cash or by UPI when your order arrives. Available for orders up to <%= formatPrice(quote.codLimit) %>.</p>
+                </div>
+              </div>
             </fieldset>
             <p class="field-error" data-error-for="paymentMethod"></p>
-            <button class="btn btn-primary btn-lg btn-block" type="submit" data-place-label <%= (quote.codAllowed || razorpayEnabled) && !quote.problems.length ? '' : 'disabled' %>><%- icon('lock', 'i-sm') %> <span data-place-text><%= quote.codAllowed ? 'Place order' : 'Pay securely' %></span> · <span data-sum="total"><%= formatPrice(t.total) %></span></button>
+
+            <div class="pay-submit" data-pay-submit>
+              <button class="btn btn-primary btn-lg btn-block pay-btn" type="submit" <%= firstChoice && !quote.problems.length ? '' : 'disabled' %>>
+                <%- icon('lock', 'i-sm') %> <span data-place-text>Pay <%= formatPrice(t.total) %> securely</span>
+              </button>
+            </div>
+            <div class="trust-row">
+              <span class="trust-row-label"><%- icon('lock', 'i-sm') %> 100% secure payments</span>
+              <%- include('../partials/payment-icons', { compact: true }) %>
+            </div>
             <p class="hint"><%- icon('shield', 'i-xs') %> By placing your order you agree to our <a href="/terms">terms</a> and <a href="/refund-policy">refund policy</a>.</p>
           </form>
         </div>
@@ -143,14 +182,14 @@
       <aside class="cart-summary panel checkout-summary" aria-labelledby="price-title" data-summary>
         <h2 id="price-title" class="panel-title">Price details</h2>
         <dl class="summary-list" aria-live="polite">
-          <div><dt>M.R.P. total (<%= t.itemCount %> <%= t.itemCount === 1 ? 'item' : 'items' %>)</dt><dd data-sum="mrpTotal"><%= formatPrice(t.mrpTotal) %></dd></div>
-          <div class="summary-savings"><dt>Discount on M.R.P.</dt><dd data-sum="discount" data-minus>−<%= formatPrice(t.discount) %></dd></div>
-          <div class="summary-savings" data-sum-row="couponDiscount" <%= t.couponDiscount ? '' : 'hidden' %>><dt>Coupon <span data-sum-text="couponCode"><%= t.couponCode %></span></dt><dd data-sum="couponDiscount" data-minus>−<%= formatPrice(t.couponDiscount) %></dd></div>
-          <div><dt>Delivery fee</dt><dd data-sum="deliveryFee" data-free><%- t.deliveryFee ? formatPrice(t.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
-          <div data-sum-row="walletUsed" <%= t.walletUsed ? '' : 'hidden' %>><dt>Paid from wallet</dt><dd data-sum="walletUsed" data-minus>−<%= formatPrice(t.walletUsed) %></dd></div>
-          <div class="summary-total"><dt>Amount to pay</dt><dd data-sum="total"><%= formatPrice(t.total) %></dd></div>
+          <div><dt>M.R.P. total (<%= t.itemCount %> <%= t.itemCount === 1 ? 'item' : 'items' %>)</dt><dd data-sum="mrpTotal" data-value="<%= t.mrpTotal %>"><%= formatPrice(t.mrpTotal) %></dd></div>
+          <div class="summary-savings"><dt>Discount on M.R.P.</dt><dd data-sum="discount" data-value="<%= t.discount %>" data-minus>−<%= formatPrice(t.discount) %></dd></div>
+          <div class="summary-savings" data-sum-row="couponDiscount" <%= t.couponDiscount ? '' : 'hidden' %>><dt>Coupon <span data-sum-text="couponCode"><%= t.couponCode %></span></dt><dd data-sum="couponDiscount" data-value="<%= t.couponDiscount %>" data-minus>−<%= formatPrice(t.couponDiscount) %></dd></div>
+          <div><dt>Delivery fee</dt><dd data-sum="deliveryFee" data-value="<%= t.deliveryFee %>" data-free><%- t.deliveryFee ? formatPrice(t.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
+          <div data-sum-row="walletUsed" <%= t.walletUsed ? '' : 'hidden' %>><dt>Paid from wallet</dt><dd data-sum="walletUsed" data-value="<%= t.walletUsed %>" data-minus>−<%= formatPrice(t.walletUsed) %></dd></div>
+          <div class="summary-total"><dt>Amount to pay</dt><dd data-sum="total" data-value="<%= t.total %>"><%= formatPrice(t.total) %></dd></div>
         </dl>
-        <p class="saving summary-saving-note" data-saving <%= t.discount + t.couponDiscount > 0 ? '' : 'hidden' %>>You save <span data-sum="savings"><%= formatPrice(t.discount + t.couponDiscount) %></span> on this order.</p>
+        <p class="saving summary-saving-note" data-saving <%= t.discount + t.couponDiscount > 0 ? '' : 'hidden' %>>You save <span data-sum="savings" data-value="<%= t.discount + t.couponDiscount %>"><%= formatPrice(t.discount + t.couponDiscount) %></span> on this order.</p>
         <p class="hint"><%- icon('shield', 'i-xs') %> Prices are checked again when you place the order.</p>
       </aside>
 
@@ -176,4 +215,5 @@
 </main>
 
 <%- include('../partials/address-dialog') %>
-<%- include('../partials/footer', { scripts: ['profile', 'payment', 'checkout'], razorpay: razorpayEnabled }) %>
+<%- include('../partials/pay-overlay') %>
+<%- include('../partials/footer', { scripts: ['profile', 'confetti', 'payment', 'checkout'], razorpay: razorpayEnabled }) %>

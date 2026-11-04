@@ -66,6 +66,8 @@
   const MAX_TILT = 8;
   function setupTilt() {
     document.querySelectorAll("[data-tilt]").forEach(card => {
+      // data-tilt-max="4" gives a gentler tilt (for form cards such as the payment methods).
+      const max = Number(card.dataset.tiltMax) || MAX_TILT;
       let frame = 0;
       let glare = null;
       const ensureGlare = () => {
@@ -86,8 +88,8 @@
           const box = card.getBoundingClientRect();
           const x = (clientX - box.left) / box.width - 0.5;
           const y = (clientY - box.top) / box.height - 0.5;
-          card.style.setProperty("--tilt-x", `${(-y * MAX_TILT * 2).toFixed(2)}deg`);
-          card.style.setProperty("--tilt-y", `${(x * MAX_TILT * 2).toFixed(2)}deg`);
+          card.style.setProperty("--tilt-x", `${(-y * max * 2).toFixed(2)}deg`);
+          card.style.setProperty("--tilt-y", `${(x * max * 2).toFixed(2)}deg`);
           // The glare is twice the card's size, centred on it; moving it puts its bright centre under the cursor.
           card.style.setProperty("--glare-x", `${(x * box.width).toFixed(1)}px`);
           card.style.setProperty("--glare-y", `${(y * box.height).toFixed(1)}px`);

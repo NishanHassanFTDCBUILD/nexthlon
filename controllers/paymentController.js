@@ -54,6 +54,21 @@ const failed = asyncHandler(async (req, res) => {
   res.json({ message: "The payment did not go through. Your cart is saved, and you can retry from the order page.", orderId: order.orderId, redirect: `/orders/${order.orderId}` });
 });
 
+// GET /api/payments/razorpay/status/:razorpayOrderId   For polling after a dropped connection.
+const status = asyncHandler(async (req, res) => {
+  const razorpayOrderId = String(req.params.razorpayOrderId || "");
+  if (!RAZORPAY_ORDER.test(razorpayOrderId)) throw new HttpError(404, "Order not found.");
+  const order = await paymentService.getStatus(req.user._id, razorpayOrderId);
+  res.json({
+    orderId: order.orderId,
+    paymentStatus: order.paymentStatus,
+    orderStatus: order.orderStatus,
+    amount: order.total,
+    paid: ["paid", "refunded", "partially_refunded"].includes(order.paymentStatus),
+    redirect: `/orders/${order.orderId}/success`
+  });
+});
+
 // POST /api/payments/razorpay/webhook   (raw JSON body, signed by Razorpay)
 const webhook = async (req, res) => {
   try {
@@ -66,4 +81,4 @@ const webhook = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, retry, verify, failed, webhook };
+module.exports = { createOrder, retry, verify, failed, status, webhook };
