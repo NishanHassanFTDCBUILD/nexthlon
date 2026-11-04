@@ -8,14 +8,16 @@
 <main id="main" class="container page">
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
+    <a href="/products">All gear</a> <%- icon('chevron-right', 'i-xs') %>
     <a href="/products?category=<%= encodeURIComponent(product.category) %>"><%= product.category %></a> <%- icon('chevron-right', 'i-xs') %>
     <span aria-current="page"><%= product.name %></span>
   </nav>
 
   <div class="pdp">
     <div class="gallery <%= photos.length > 1 ? 'has-thumbs' : '' %>" data-gallery>
-      <div class="gallery-main">
+      <div class="gallery-main" data-zoom>
         <img src="<%= photos[0] %>" alt="<%= product.name %>" width="640" height="640" fetchpriority="high" data-gallery-main>
+        <span class="zoom-hint" aria-hidden="true"><%- icon('search', 'i-xs') %> Hover to zoom</span>
         <% if (product.discountPercent > 0) { %><span class="tag tag-deal"><%= product.discountPercent %>% off</span><% } %>
         <% if (photos.length > 1) { %>
           <button type="button" class="gallery-nav gallery-prev" data-gallery-step="-1" aria-label="Previous photo"><%- icon('chevron-left') %></button>

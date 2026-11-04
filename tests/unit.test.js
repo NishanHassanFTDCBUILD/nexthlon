@@ -85,3 +85,16 @@ test("product filters ignore bad values", () => {
   assert.deepEqual(filters, { q: "", category: "", min: null, max: null, inStock: false, sort: "featured", page: 1 });
   assert.deepEqual(readFilters({ min: "5000", max: "100" }).min, 100);
 });
+
+test("product list supports every shopper sort, including A to Z", () => {
+  for (const sort of ["price_asc", "price_desc", "newest", "name_asc", "discount"]) {
+    assert.equal(readFilters({ sort }).sort, sort);
+  }
+});
+
+test("filter links keep the current filters in the URL and drop empty ones", () => {
+  const { linkBuilder } = require("../utils/queryString");
+  const link = linkBuilder("/products", { q: "trail shoe", category: "Running", min: null, sort: "" });
+  assert.equal(link({ page: 2 }), "/products?q=trail+shoe&category=Running&page=2");
+  assert.equal(link({ category: "" }), "/products?q=trail+shoe");
+});

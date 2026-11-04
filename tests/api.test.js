@@ -383,3 +383,31 @@ test("admin product pages are guarded and render", async () => {
   assert.equal((await call("GET", "/admin/products/not-an-id/edit", { cookie: adminCookieForProducts })).status, 404);
   await deleteImages(createdProduct.images);
 });
+
+// ---------- Store pages ----------
+test("store: A to Z sort, price range and only listed products", async () => {
+  const sorted = await call("GET", "/api/products?sort=name_asc");
+  const names = sorted.data.products.map(p => p.name);
+  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)));
+
+  const range = await call("GET", "/api/products?min=1000&max=2000");
+  assert.ok(range.data.products.every(p => p.price >= 1000 && p.price <= 2000));
+
+  const page = await call("GET", "/products?category=Running&sort=name_asc&min=100");
+  assert.equal(page.status, 200);
+  assert.match(page.data, /Name: A to Z/);
+  assert.match(page.data, /From ₹100/);
+});
+
+test("store: product page shows breadcrumbs, prices, stock and the zoomable gallery", async () => {
+  const res = await call("GET", "/products/nexthlon-trail-shoe");
+  assert.equal(res.status, 200);
+  assert.match(res.data, /aria-label="Breadcrumb"[\s\S]*All gear[\s\S]*Running/);
+  assert.match(res.data, /<s>₹3,999<\/s>/);
+  assert.match(res.data, /25% off/);
+  assert.match(res.data, /Only 4 left/);
+  assert.match(res.data, /data-zoom/);
+  const missing = await call("GET", "/products/no-such-thing");
+  assert.equal(missing.status, 404);
+  assert.match(missing.data, /This trail ends here/);
+});

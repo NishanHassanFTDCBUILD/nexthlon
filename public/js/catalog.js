@@ -92,6 +92,23 @@
     });
   }
 
+  // ---------- Zoom on hover ----------
+  // Only for a real mouse: on touch screens there is no hover, so the photo stays as it is.
+  const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
+  document.querySelectorAll("[data-zoom]").forEach(frame => {
+    const img = frame.querySelector("img");
+    if (!img) return;
+    frame.addEventListener("pointermove", event => {
+      if (!canHover.matches || event.pointerType !== "mouse") return;
+      const box = frame.getBoundingClientRect();
+      const x = ((event.clientX - box.left) / box.width) * 100;
+      const y = ((event.clientY - box.top) / box.height) * 100;
+      img.style.transformOrigin = `${x}% ${y}%`;
+      frame.classList.add("is-zooming");
+    });
+    frame.addEventListener("pointerleave", () => frame.classList.remove("is-zooming"));
+  });
+
   // ---------- Product gallery ----------
   document.querySelectorAll("[data-gallery]").forEach(gallery => {
     const main = gallery.querySelector("[data-gallery-main]");

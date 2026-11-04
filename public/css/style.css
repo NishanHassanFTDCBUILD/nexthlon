@@ -1124,3 +1124,16 @@ a.stat:hover .stat-link .i { transform: translateX(3px); }
   .image-manager { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .product-form-actions .btn { flex: 1; }
 }
+
+/* ==========================================================================
+   Week 7: store pages
+   ========================================================================== */
+/* Zoom on hover: the photo grows 2x around the cursor. Only for a real mouse. */
+.gallery-main img { transition: transform 0.25s var(--ease); }
+.gallery-main.is-zooming img { transform: scale(2); cursor: zoom-in; }
+.gallery-main.is-zooming .gallery-nav, .gallery-main.is-zooming .tag, .gallery-main.is-zooming .gallery-count { opacity: 0; }
+.zoom-hint { position: absolute; z-index: 2; left: var(--sp-3); bottom: var(--sp-3); display: none; align-items: center; gap: 4px; padding: 4px 10px; border-radius: var(--r-pill); background: rgba(255, 255, 255, 0.92); color: var(--ink-2); font-size: var(--fs-xs); font-weight: 600; box-shadow: var(--sh-sm); pointer-events: none; }
+@media (hover: hover) and (pointer: fine) {
+  .zoom-hint { display: inline-flex; }
+  .gallery-main.is-zooming .zoom-hint { opacity: 0; }
+}

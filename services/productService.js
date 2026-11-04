@@ -8,6 +8,7 @@ const SORTS = {
   newest: { label: "Newest first", order: { createdAt: -1, _id: -1 } },
   price_asc: { label: "Price: low to high", order: { price: 1, _id: 1 } },
   price_desc: { label: "Price: high to low", order: { price: -1, _id: 1 } },
+  name_asc: { label: "Name: A to Z", order: { name: 1, _id: 1 } },
   discount: { label: "Biggest discount", order: { discountPercent: -1, price: 1 } }
 };
 
