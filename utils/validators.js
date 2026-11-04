@@ -1,4 +1,5 @@
 const { INDIAN_STATES, CATEGORIES } = require("../config/catalog");
+const { CONTACT_TOPICS } = require("../config/store");
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^[6-9]\d{9}$/;
@@ -170,8 +171,50 @@ function validateCartItem(body = {}) {
   return { errors, value: { productId, quantity } };
 }
 
+// Contact form. "website" is a hidden trap field: people never see it, so only bots fill it in.
+function validateContact(body = {}) {
+  const errors = {};
+  const value = {
+    name: text(body.name),
+    email: text(body.email).toLowerCase(),
+    phone: cleanPhone(body.phone),
+    topic: text(body.topic),
+    message: longText(body.message),
+    isBot: text(body.website) !== ""
+  };
+  const nameProblem = checkName(value.name);
+  if (nameProblem) errors.name = nameProblem;
+  if (!EMAIL.test(value.email) || value.email.length > 254) errors.email = "Enter a valid email address.";
+  if (value.phone && !PHONE.test(value.phone)) errors.phone = "Enter a 10-digit Indian mobile number, or leave it empty.";
+  if (!CONTACT_TOPICS.includes(value.topic)) errors.topic = "Choose what your message is about.";
+  if (value.message.length < 10 || value.message.length > 2000) errors.message = "Write a message of 10 to 2000 characters.";
+  return { errors, value };
+}
+
+function validateNewsletter(body = {}) {
+  const errors = {};
+  const email = text(body.email).toLowerCase();
+  if (!EMAIL.test(email) || email.length > 254) errors.email = "Enter a valid email address.";
+  return { errors, value: { email } };
+}
+
+// "id1,id2,..." from a query string: only real 24-character ids, no repeats, at most `max`.
+function readIdList(raw, max = 50) {
+  const parts = typeof raw === "string" ? raw.split(",") : [];
+  const ids = [];
+  for (const part of parts) {
+    const id = part.trim().toLowerCase();
+    if (/^[a-f0-9]{24}$/.test(id) && !ids.includes(id)) ids.push(id);
+    if (ids.length === max) break;
+  }
+  return ids;
+}
+
 module.exports = {
   hasErrors,
+  validateContact,
+  validateNewsletter,
+  readIdList,
   validateSignup,
   validateLogin,
   validateProfile,

@@ -1,0 +1,32 @@
+<%# Template text. Replace every [bracketed] value, and check the terms with a legal adviser. %>
+<%- include('../partials/info-start', { heading: 'Terms and conditions', lead: 'The rules for using this website and buying from us.', updated: true }) %>
+<article class="doc section-box">
+  <p>This website is run by <%= store.legalName %>, <%= store.address %> (GSTIN: <%= store.gstin %>). By using the website or placing an order you accept these terms.</p>
+
+  <h2>1. Your account</h2>
+  <p>You must be at least 18 years old, or use the website with a parent or guardian. Keep your password private: you are responsible for activity on your account. We may suspend accounts that break these terms.</p>
+
+  <h2>2. Products and prices</h2>
+  <ul>
+    <li>All prices are in Indian Rupees (₹) and include GST unless stated otherwise.</li>
+    <li>The M.R.P. is the maximum retail price set by the maker. The discount shown is worked out from it.</li>
+    <li>Photos are for illustration. Colours may look slightly different on your screen.</li>
+    <li>If a price is clearly wrong because of a mistake, we may cancel the order and refund you in full.</li>
+  </ul>
+
+  <h2>3. Orders and payment</h2>
+  <p>An order is confirmed only when payment succeeds and you receive a confirmation. Payments are processed securely by [Razorpay]. We may cancel an order if an item is out of stock or the payment looks fraudulent. Any amount paid is then refunded.</p>
+
+  <h2>4. Delivery, returns and refunds</h2>
+  <p>See our <a href="/shipping-policy">shipping and delivery policy</a> and our <a href="/refund-policy">cancellation and refund policy</a>.</p>
+
+  <h2>5. Acceptable use</h2>
+  <p>Do not misuse the website. That includes trying to break its security, copying it in bulk, or sending unlawful content through our forms.</p>
+
+  <h2>6. Liability</h2>
+  <p>To the extent the law allows, our liability for any order is limited to the amount you paid for it. Nothing here limits your rights under the Consumer Protection Act, 2019.</p>
+
+  <h2>7. Law and disputes</h2>
+  <p>These terms are governed by the laws of India, and the courts in [your city] have jurisdiction. Please contact us first at <%= store.supportEmail %>, as most problems can be solved quickly.</p>
+</article>
+<%- include('../partials/info-end') %>

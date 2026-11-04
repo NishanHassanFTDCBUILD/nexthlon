@@ -1,0 +1,30 @@
+<%# Template text. Replace every [bracketed] value and check the time limits match how you really work. %>
+<%- include('../partials/info-start', { heading: 'Cancellation and refund policy', lead: 'How to cancel an order, return an item and get your money back.', updated: true }) %>
+<article class="doc section-box">
+  <div class="doc-summary">
+    <div><strong><%= store.returnDays %> days</strong><span>to ask for a return after delivery</span></div>
+    <div><strong><%= store.refundDays %></strong><span>for the refund to reach you</span></div>
+    <div><strong>Original method</strong><span>refunds go back the way you paid</span></div>
+  </div>
+
+  <h2>1. Cancelling an order</h2>
+  <p>You can cancel any time before the order is shipped, from your account or by contacting us. Once it has shipped it cannot be cancelled, but you can return it after delivery.</p>
+
+  <h2>2. Returns</h2>
+  <ul>
+    <li>Ask for a return within <%= store.returnDays %> days of delivery.</li>
+    <li>Items must be unused, with tags, in their original packaging, with all accessories.</li>
+    <li>For hygiene reasons we cannot accept returns of [swimwear, mouthguards and opened nutrition products] unless they arrive damaged.</li>
+    <li>We arrange a pickup where available. Otherwise we tell you where to send the item.</li>
+  </ul>
+
+  <h2>3. Damaged, faulty or wrong items</h2>
+  <p>If an item arrives damaged or is not what you ordered, tell us within 48 hours of delivery and send photos. We will replace it or refund you in full, including any delivery charge.</p>
+
+  <h2>4. Refunds</h2>
+  <p>Once we receive and check the returned item, we start the refund within 2 working days. It reaches your original payment method in <%= store.refundDays %>, depending on your bank. [If you offer cash on delivery: those orders are refunded to a bank account or UPI ID you give us.]</p>
+
+  <h2>5. Need help?</h2>
+  <p>Email <%= store.supportEmail %>, call <%= store.supportPhone %> (<%= store.supportHours %>) or use our <a href="/contact">contact form</a>.</p>
+</article>
+<%- include('../partials/info-end') %>

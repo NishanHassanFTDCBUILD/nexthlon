@@ -1,24 +1,26 @@
-<article class="product-card">
+<article class="product-card" data-reveal data-tilt>
   <div class="product-media">
     <img src="<%= p.image %>" alt="" loading="lazy" decoding="async" width="400" height="400">
     <% if (p.discountPercent > 0) { %><span class="tag tag-deal"><%= p.discountPercent %>% off</span><% } %>
   </div>
+  <button type="button" class="wish-btn" data-wish-id="<%= p._id %>" aria-pressed="false" hidden>
+    <%- icon('heart') %><span class="sr-only">Save <%= p.name %> to your wishlist</span>
+  </button>
   <div class="product-body">
     <span class="product-meta"><%= p.brand %></span>
     <h3 class="product-name"><a href="/products/<%= p.slug %>"><%= p.name %></a></h3>
     <div class="price-block">
       <div class="price-row">
-        <% if (p.discountPercent > 0) { %><span class="price-off">-<%= p.discountPercent %>%</span><% } %>
         <span class="price"><%= formatPrice(p.price) %></span>
+        <% if (p.mrp > p.price) { %>
+          <span class="mrp"><span class="sr-only">M.R.P. </span><s><%= formatPrice(p.mrp) %></s></span>
+          <% if (p.discountPercent > 0) { %><span class="off"><%= p.discountPercent %>% off</span><% } %>
+        <% } %>
       </div>
-      <% if (p.mrp > p.price) { %>
-        <span class="mrp">M.R.P. <s><%= formatPrice(p.mrp) %></s></span>
-        <span class="saving">You save <%= formatPrice(p.mrp - p.price) %></span>
-      <% } %>
     </div>
     <div class="product-foot">
       <%- include('stock', { stock: p.stock }) %>
-      <span class="product-cat"><%= p.category %></span>
+      <% if (p.price >= store.freeDeliveryMin && p.stock > 0) { %><span class="product-delivery">Free delivery</span><% } %>
     </div>
   </div>
 </article>

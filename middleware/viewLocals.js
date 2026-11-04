@@ -1,4 +1,5 @@
 const { CATEGORIES } = require("../config/catalog");
+const { STORE, PRICE_BANDS } = require("../config/store");
 
 const rupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 const shortDate = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -13,6 +14,9 @@ function viewLocals(req, res, next) {
   res.locals.query = req.query;
   //Makes categories available to navigation.
   res.locals.navCategories = CATEGORIES;
+  // Store details for the footer and policy pages, and price bands for the category menu.
+  res.locals.store = STORE;
+  res.locals.priceBands = PRICE_BANDS;
   //Converts numbers into Indian currency.
   res.locals.formatPrice = value => rupees.format(value || 0);
   //Converts dates into readable format.

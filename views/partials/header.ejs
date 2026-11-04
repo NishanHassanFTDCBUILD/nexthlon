@@ -1,19 +1,33 @@
+<%
+  const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
+  const shops = !isAdmin;
+  const count = typeof cartCount === 'number' ? cartCount : 0;
+  const searchText = typeof query.q === 'string' ? query.q : '';
+%>
 <a class="skip-link" href="#main">Skip to content</a>
 <div class="promo-bar">
   <div class="container promo-inner">
-    <span><%- icon('bolt', 'i-sm') %> Gear tested on the 17 KM hill run</span>
-    <span class="hide-sm">Genuine brands <i aria-hidden="true">·</i> Clear M.R.P. pricing <i aria-hidden="true">·</i> Secure accounts</span>
+    <span><%- icon('truck', 'i-sm') %> Free delivery on orders over <%= formatPrice(store.freeDeliveryMin) %></span>
+    <span class="hide-sm">
+      <a href="/refund-policy"><%= store.returnDays %>-day easy returns</a> <i aria-hidden="true">·</i>
+      <a href="/shipping-policy">Shipping</a> <i aria-hidden="true">·</i>
+      <a href="/contact">Help &amp; contact</a>
+    </span>
   </div>
 </div>
-<header class="site-header" data-site-header>
+<header class="site-header" data-site-header data-free-delivery="<%= store.freeDeliveryMin %>">
   <div class="mainbar">
     <div class="container mainbar-inner">
+      <button type="button" class="header-btn nav-toggle" data-drawer-open="site-drawer" aria-controls="site-drawer" aria-expanded="false">
+        <%- icon('menu') %><span class="sr-only">Open menu</span>
+      </button>
+
       <a class="brand" href="/" aria-label="Nexthlon home">
         <span class="brand-mark"><%- icon('bolt') %></span>
         <span class="brand-word">NEXTHLON<small>Performance gear</small></span>
       </a>
 
-      <form class="search" action="/products" method="get" role="search">
+      <form class="search" action="/products" method="get" role="search" data-search>
         <label class="sr-only" for="search-category">Category</label>
         <span class="search-cat">
           <select id="search-category" name="category">
@@ -24,81 +38,185 @@
           </select>
           <%- icon('chevron-down', 'i-xs') %>
         </span>
-        <label class="sr-only" for="search-q">Search Nexthlon</label>
-        <input id="search-q" type="search" name="q" maxlength="80" autocomplete="off" enterkeyhint="search"
-               value="<%= typeof query.q === 'string' ? query.q : '' %>"
-               placeholder="Search trail shoes, footballs, tents…">
-        <button type="submit" aria-label="Search"><%- icon('search') %></button>
+        <div class="search-field">
+          <label class="sr-only" for="search-q">Search Nexthlon</label>
+          <input id="search-q" type="search" name="q" maxlength="80" autocomplete="off" enterkeyhint="search"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-suggest-list"
+                 value="<%= searchText %>" placeholder="Search for shoes, footballs, tents and more">
+          <div class="suggest" data-suggest hidden>
+            <p class="suggest-status" data-suggest-status aria-live="polite"></p>
+            <ul class="suggest-list" id="search-suggest-list" role="listbox" aria-label="Search suggestions" data-suggest-list></ul>
+          </div>
+        </div>
+        <button type="submit" class="search-go"><%- icon('search') %><span class="sr-only">Search</span></button>
       </form>
 
-      <% if (!currentUser || currentUser.role === 'customer') { %>
-        <% const count = typeof cartCount === 'number' ? cartCount : 0; %>
-        <a class="cart-link <%= path === '/cart' ? 'is-active' : '' %>" href="/cart" data-cart-link
-           aria-label="Cart, <%= count %> <%= count === 1 ? 'item' : 'items' %>">
-          <span class="cart-icon">
-            <%- icon('cart') %>
-            <span class="cart-badge" data-cart-count <%= count ? '' : 'hidden' %>><%= count %></span>
-          </span>
-          <span class="cart-text">Cart</span>
-        </a>
-      <% } %>
+      <div class="header-actions">
+        <button type="button" class="header-btn theme-toggle" data-theme-toggle aria-pressed="false">
+          <span class="theme-icon theme-icon-moon"><%- icon('moon') %></span>
+          <span class="theme-icon theme-icon-sun"><%- icon('sun') %></span>
+          <span class="sr-only">Dark theme</span>
+        </button>
 
-      <div class="account" data-menu>
-        <% if (currentUser) { %>
-          <button type="button" class="account-btn" data-menu-toggle aria-expanded="false" aria-controls="account-menu">
-            <span class="avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span>
-            <span class="account-text">
-              <small>Hello, <%= firstName(currentUser.name) %></small>
-              <strong>Account <%- icon('chevron-down', 'i-xs account-caret') %></strong>
-            </span>
-            <span class="sr-only">Open account menu</span>
-          </button>
-          <div class="menu" id="account-menu" data-menu-panel tabindex="-1" hidden>
-            <div class="menu-head">
-              <span class="avatar avatar-md"><%= currentUser.name.charAt(0).toUpperCase() %></span>
-              <span class="menu-who">
-                <strong><%= currentUser.name %></strong>
-                <span><%= currentUser.email %></span>
+        <div class="account" data-menu>
+          <% if (currentUser) { %>
+            <button type="button" class="account-btn" data-menu-toggle aria-expanded="false" aria-controls="account-menu">
+              <span class="avatar avatar-sm account-avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+              <span class="account-text">
+                <small>Hello, <%= firstName(currentUser.name) %></small>
+                <strong><%= isAdmin ? 'Admin' : 'Account & Orders' %> <%- icon('chevron-down', 'i-xs account-caret') %></strong>
               </span>
-              <% if (currentUser.role === 'admin') { %><span class="pill pill-blue menu-role">Admin</span><% } %>
+              <span class="sr-only">Open account menu</span>
+            </button>
+            <div class="menu" id="account-menu" data-menu-panel tabindex="-1" hidden>
+              <div class="menu-head">
+                <span class="avatar avatar-md"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+                <span class="menu-who">
+                  <strong><%= currentUser.name %></strong>
+                  <span><%= currentUser.email %></span>
+                </span>
+                <% if (isAdmin) { %><span class="pill pill-blue menu-role">Admin</span><% } %>
+              </div>
+              <div class="menu-group">
+                <% if (isAdmin) { %>
+                  <a href="/admin"><%- icon('grid') %> Admin dashboard</a>
+                  <a href="/admin/products"><%- icon('box') %> Manage products</a>
+                  <a href="/admin/users"><%- icon('users') %> Manage users</a>
+                <% } else { %>
+                  <a href="/profile"><%- icon('user') %> Your account</a>
+                  <span class="menu-soon"><%- icon('package-check') %> Your orders <em>Soon</em></span>
+                  <a href="/wishlist"><%- icon('heart') %> Your wishlist</a>
+                  <a href="/cart"><%- icon('cart') %> Your cart</a>
+                  <a href="/profile#addresses"><%- icon('pin') %> Saved addresses</a>
+                  <a href="/profile#security"><%- icon('lock') %> Login &amp; security</a>
+                <% } %>
+              </div>
+              <div class="menu-group">
+                <button type="button" class="menu-logout"
+                        data-logout="<%= isAdmin ? '/api/admin/logout' : '/api/logout' %>">
+                  <%- icon('logout') %> Sign out
+                </button>
+              </div>
             </div>
-            <div class="menu-group">
-              <% if (currentUser.role === 'admin') { %>
-                <a href="/admin"><%- icon('grid') %> Admin dashboard</a>
-                <a href="/admin/products"><%- icon('box') %> Manage products</a>
-                <a href="/admin/users"><%- icon('users') %> Manage users</a>
-              <% } else { %>
-                <a href="/profile"><%- icon('user') %> Your profile</a>
-                <a href="/cart"><%- icon('cart') %> Your cart</a>
-                <a href="/profile#addresses"><%- icon('pin') %> Saved addresses</a>
-                <a href="/profile#security"><%- icon('lock') %> Login &amp; security</a>
-              <% } %>
-            </div>
-            <div class="menu-group">
-              <button type="button" class="menu-logout"
-                      data-logout="<%= currentUser.role === 'admin' ? '/api/admin/logout' : '/api/logout' %>">
-                <%- icon('logout') %> Sign out
-              </button>
-            </div>
-          </div>
-        <% } else { %>
-          <a class="account-btn" href="/login">
-            <span class="avatar is-guest"><%- icon('user') %></span>
-            <span class="account-text"><small>Hello, sign in</small><strong>Account</strong></span>
-            <span class="sr-only">Sign in</span>
+          <% } else { %>
+            <a class="account-btn" href="/login">
+              <span class="avatar avatar-sm is-guest"><%- icon('user', 'i-sm') %></span>
+              <span class="account-text"><small>Hello, sign in</small><strong>Account &amp; Orders</strong></span>
+              <span class="sr-only">Sign in</span>
+            </a>
+          <% } %>
+        </div>
+
+        <% if (shops) { %>
+          <a class="header-link <%= path === '/wishlist' ? 'is-active' : '' %>" href="/wishlist" data-wish-link aria-label="Wishlist, 0 items">
+            <span class="header-link-icon">
+              <%- icon('heart') %>
+              <span class="count-dot" data-wish-count hidden>0</span>
+            </span>
+            <span class="header-link-text">Wishlist</span>
           </a>
-          <a class="btn btn-primary btn-sm hide-sm" href="/signup">Join free</a>
+          <a class="header-link cart-link <%= path === '/cart' ? 'is-active' : '' %>" href="/cart" data-cart-link
+             aria-label="Cart, <%= count %> <%= count === 1 ? 'item' : 'items' %>">
+            <span class="header-link-icon cart-icon">
+              <%- icon('cart') %>
+              <span class="count-dot cart-badge" data-cart-count <%= count ? '' : 'hidden' %>><%= count %></span>
+            </span>
+            <span class="header-link-text">Cart</span>
+          </a>
         <% } %>
       </div>
     </div>
   </div>
 
   <nav class="catnav" aria-label="Shop by category">
-    <div class="container catnav-inner" data-catnav>
-      <a href="/products" class="<%= path === '/products' && !query.category ? 'is-active' : '' %>" <%- path === '/products' && !query.category ? 'aria-current="page"' : '' %>><%- icon('grid', 'i-sm') %> All gear</a>
-      <% navCategories.forEach(function (name) { %>
-        <a href="/products?category=<%= encodeURIComponent(name) %>" class="<%= query.category === name ? 'is-active' : '' %>" <%- query.category === name ? 'aria-current="page"' : '' %>><%= name %></a>
-      <% }) %>
+    <div class="container catnav-inner">
+      <div class="mega" data-menu>
+        <button type="button" class="mega-toggle" data-menu-toggle aria-expanded="false" aria-controls="mega-menu">
+          <%- icon('menu', 'i-sm') %> All categories <%- icon('chevron-down', 'i-xs account-caret') %>
+        </button>
+        <div class="mega-panel" id="mega-menu" data-menu-panel tabindex="-1" hidden>
+          <div class="mega-col mega-col-wide">
+            <h2 class="mega-title">Shop by sport</h2>
+            <ul class="mega-sports">
+              <% navCategories.forEach(function (name) { %>
+                <li><a href="/products?category=<%= encodeURIComponent(name) %>"><span class="mega-initial" aria-hidden="true"><%= name.charAt(0) %></span><%= name %></a></li>
+              <% }) %>
+            </ul>
+          </div>
+          <div class="mega-col">
+            <h2 class="mega-title">Shop by price</h2>
+            <ul class="mega-links">
+              <% priceBands.forEach(function (band) { %>
+                <li><a href="/products?<%= [band.min ? 'min=' + band.min : '', band.max ? 'max=' + band.max : ''].filter(Boolean).join('&') %>"><%= band.label %></a></li>
+              <% }) %>
+            </ul>
+          </div>
+          <div class="mega-col">
+            <h2 class="mega-title">Featured</h2>
+            <ul class="mega-links">
+              <li><a href="/products?sort=discount"><%- icon('tag', 'i-sm') %> Deals of the day</a></li>
+              <li><a href="/products?sort=newest"><%- icon('sparkles', 'i-sm') %> New arrivals</a></li>
+              <li><a href="/products?inStock=1"><%- icon('package-check', 'i-sm') %> In stock now</a></li>
+              <li><a href="/products"><%- icon('grid', 'i-sm') %> All gear</a></li>
+            </ul>
+          </div>
+          <a class="mega-promo" href="/products?sort=discount">
+            <span class="section-kicker">Today only</span>
+            <strong>Fresh deals every day</strong>
+            <span>Prices reset at midnight. <%- icon('arrow-right', 'i-xs') %></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="catnav-links" data-catnav>
+        <a href="/products?sort=discount" class="catnav-deal <%= path === '/products' && query.sort === 'discount' ? 'is-active' : '' %>"><%- icon('tag', 'i-sm') %> Deals</a>
+        <a href="/products?sort=newest" class="<%= path === '/products' && query.sort === 'newest' ? 'is-active' : '' %>">New arrivals</a>
+        <% navCategories.forEach(function (name) { %>
+          <a href="/products?category=<%= encodeURIComponent(name) %>" class="<%= query.category === name ? 'is-active' : '' %>" <%- query.category === name ? 'aria-current="page"' : '' %>><%= name %></a>
+        <% }) %>
+      </div>
     </div>
   </nav>
 </header>
+
+<dialog class="drawer site-drawer" id="site-drawer" aria-labelledby="site-drawer-title" data-drawer>
+  <div class="drawer-head">
+    <span class="avatar avatar-md <%= currentUser ? '' : 'is-guest' %>"><% if (currentUser) { %><%= currentUser.name.charAt(0).toUpperCase() %><% } else { %><%- icon('user', 'i-sm') %><% } %></span>
+    <h2 id="site-drawer-title" class="drawer-title">Hello, <%= currentUser ? firstName(currentUser.name) : 'sign in' %></h2>
+    <button type="button" class="icon-btn" data-drawer-close><%- icon('x') %><span class="sr-only">Close menu</span></button>
+  </div>
+  <div class="drawer-body">
+    <nav class="drawer-nav" aria-label="Menu">
+      <h3>Shop</h3>
+      <a href="/products"><%- icon('grid', 'i-sm') %> All gear</a>
+      <a href="/products?sort=discount"><%- icon('tag', 'i-sm') %> Deals of the day</a>
+      <a href="/products?sort=newest"><%- icon('sparkles', 'i-sm') %> New arrivals</a>
+      <h3>Shop by sport</h3>
+      <% navCategories.forEach(function (name) { %>
+        <a href="/products?category=<%= encodeURIComponent(name) %>"><span class="mega-initial" aria-hidden="true"><%= name.charAt(0) %></span> <%= name %></a>
+      <% }) %>
+      <h3>Your account</h3>
+      <% if (isAdmin) { %>
+        <a href="/admin"><%- icon('grid', 'i-sm') %> Admin dashboard</a>
+        <a href="/admin/products"><%- icon('box', 'i-sm') %> Manage products</a>
+      <% } else if (currentUser) { %>
+        <a href="/profile"><%- icon('user', 'i-sm') %> Your account</a>
+        <a href="/wishlist"><%- icon('heart', 'i-sm') %> Your wishlist</a>
+        <a href="/cart"><%- icon('cart', 'i-sm') %> Your cart</a>
+      <% } else { %>
+        <a href="/login"><%- icon('user', 'i-sm') %> Sign in</a>
+        <a href="/signup"><%- icon('plus', 'i-sm') %> Create an account</a>
+        <a href="/wishlist"><%- icon('heart', 'i-sm') %> Your wishlist</a>
+      <% } %>
+      <h3>Help</h3>
+      <a href="/contact"><%- icon('headset', 'i-sm') %> Contact us</a>
+      <a href="/shipping-policy"><%- icon('truck', 'i-sm') %> Shipping</a>
+      <a href="/refund-policy"><%- icon('rotate-ccw', 'i-sm') %> Returns and refunds</a>
+      <h3>Display</h3>
+      <button type="button" class="drawer-theme" data-theme-toggle aria-pressed="false"><%- icon('moon', 'i-sm') %> Dark theme</button>
+      <% if (currentUser) { %>
+        <button type="button" class="drawer-logout" data-logout="<%= isAdmin ? '/api/admin/logout' : '/api/logout' %>"><%- icon('logout', 'i-sm') %> Sign out</button>
+      <% } %>
+    </nav>
+  </div>
+</dialog>

@@ -2,79 +2,88 @@
 <%- include('../partials/header') %>
 
 <%
-  const totalProducts = categories.reduce(function (sum, c) { return sum + c.count; }, 0);
-  const bestSaving = deals.length ? deals[0].discountPercent : 0;
+  const left = Math.max(0, new Date(dealEndsAt).getTime() - Date.now());
+  const pad = function (n) { return String(n).padStart(2, '0'); };
+  const hh = pad(Math.floor(left / 3600000));
+  const mm = pad(Math.floor(left / 60000) % 60);
+  const ss = pad(Math.floor(left / 1000) % 60);
+  const shopper = !currentUser || currentUser.role === 'customer';
 %>
-<main id="main">
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="container hero-inner">
-      <div class="hero-copy">
-        <span class="eyebrow"><%- icon('bolt', 'i-xs') %> The performance sports marketplace</span>
-        <h1 id="hero-title">Your Next Move <span>Starts Here.</span></h1>
-        <p class="hero-lead">Trail shoes, match balls, rackets, tents and training gear, picked for athletes who actually use them.</p>
-        <div class="hero-actions">
-          <a class="btn btn-primary btn-lg" href="/products">Shop all gear <%- icon('arrow-right', 'i-sm') %></a>
-          <% if (!currentUser) { %>
-            <a class="btn btn-outline-light btn-lg" href="/signup">Create free account</a>
-          <% } else if (currentUser.role === 'customer') { %>
-            <a class="btn btn-outline-light btn-lg" href="/profile">Your profile</a>
-          <% } else { %>
-            <a class="btn btn-outline-light btn-lg" href="/admin">Admin dashboard</a>
-          <% } %>
-        </div>
-        <% if (totalProducts) { %>
-          <dl class="hero-stats">
-            <div><dt>Products</dt><dd><%= totalProducts %></dd></div>
-            <div><dt>Sports</dt><dd><%= categories.length %></dd></div>
-            <% if (bestSaving) { %><div><dt>Top saving</dt><dd><%= bestSaving %>%</dd></div><% } %>
-          </dl>
-        <% } %>
-      </div>
+<main id="main" class="home">
+  <h1 class="sr-only">Nexthlon: performance sports gear</h1>
 
-      <% if (deals.length) { %>
-        <div class="hero-showcase" aria-hidden="true">
-          <% deals.slice(0, 3).forEach(function (p, index) { %>
-            <a class="hero-card hero-card-<%= index + 1 %>" href="/products/<%= p.slug %>" tabindex="-1">
-              <span class="hero-card-media">
-                <img src="<%= p.image %>" alt="" width="360" height="360" <%- index === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %>>
-                <span class="tag tag-deal"><%= p.discountPercent %>% off</span>
-              </span>
-              <span class="hero-card-info">
-                <strong><%= p.name %></strong>
-                <span class="hero-card-price"><%= formatPrice(p.price) %> <s><%= formatPrice(p.mrp) %></s></span>
-              </span>
-            </a>
-          <% }) %>
+  <section class="carousel" data-carousel aria-roledescription="carousel" aria-label="Featured offers">
+    <div class="carousel-track" data-carousel-track>
+      <% slides.forEach(function (s, index) { %>
+        <div class="slide <%= s.image ? '' : 'slide-plain' %>" role="group" aria-roledescription="slide" aria-label="<%= index + 1 %> of <%= slides.length %>" data-slide>
+          <% if (s.image) { %>
+            <img class="slide-img" src="<%= s.image %>" alt="" width="1600" height="640" <%- index === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %> decoding="async">
+          <% } %>
+          <div class="container slide-inner">
+            <div class="slide-copy">
+              <span class="eyebrow"><%- icon('bolt', 'i-xs') %> <%= s.kicker %></span>
+              <h2 class="slide-title"><%= s.title %></h2>
+              <p class="slide-text"><%= s.text %></p>
+              <a class="btn btn-primary btn-lg" href="<%= s.href %>"><%= s.cta %> <%- icon('arrow-right', 'i-sm') %></a>
+            </div>
+          </div>
         </div>
-      <% } %>
+      <% }) %>
     </div>
+    <% if (slides.length > 1) { %>
+      <div class="carousel-controls" data-carousel-controls hidden>
+        <button type="button" class="carousel-arrow carousel-prev" data-carousel-step="-1" aria-label="Previous slide"><%- icon('chevron-left') %></button>
+        <button type="button" class="carousel-arrow carousel-next" data-carousel-step="1" aria-label="Next slide"><%- icon('chevron-right') %></button>
+        <div class="carousel-bar container">
+          <div class="carousel-dots" role="group" aria-label="Choose a slide">
+            <% slides.forEach(function (s, index) { %>
+              <button type="button" class="carousel-dot" data-carousel-dot="<%= index %>" aria-label="Slide <%= index + 1 %>: <%= s.title %>" <%- index === 0 ? 'aria-current="true"' : '' %>></button>
+            <% }) %>
+          </div>
+          <button type="button" class="carousel-pause" data-carousel-pause aria-pressed="false">
+            <span class="carousel-pause-icon"><%- icon('pause', 'i-sm') %></span>
+            <span class="carousel-play-icon"><%- icon('play', 'i-sm') %></span>
+            <span class="sr-only">Pause slideshow</span>
+          </button>
+        </div>
+      </div>
+    <% } %>
   </section>
 
-  <section class="perks container" aria-label="Why Nexthlon">
-    <div class="perk"><span class="perk-icon"><%- icon('award') %></span><div><strong>Genuine brands</strong><span>Every item listed with its maker</span></div></div>
-    <div class="perk"><span class="perk-icon"><%- icon('tag') %></span><div><strong>Clear pricing</strong><span>See the M.R.P. and your saving</span></div></div>
-    <div class="perk"><span class="perk-icon"><%- icon('shield') %></span><div><strong>Secure accounts</strong><span>Hashed passwords and JWT sign-in</span></div></div>
-    <div class="perk"><span class="perk-icon"><%- icon('pin') %></span><div><strong>Saved addresses</strong><span>Keep up to 10 delivery addresses</span></div></div>
+  <section class="container trust-strip" aria-label="Why shop with Nexthlon">
+    <a class="trust-item" href="/shipping-policy">
+      <span class="trust-icon"><%- icon('truck') %></span>
+      <span><strong>Free delivery</strong><small>On orders over <%= formatPrice(store.freeDeliveryMin) %></small></span>
+    </a>
+    <a class="trust-item" href="/refund-policy">
+      <span class="trust-icon"><%- icon('rotate-ccw') %></span>
+      <span><strong>Easy returns</strong><small><%= store.returnDays %>-day return window</small></span>
+    </a>
+    <a class="trust-item" href="/privacy">
+      <span class="trust-icon"><%- icon('shield') %></span>
+      <span><strong>Secure payment</strong><small>UPI, cards and net banking</small></span>
+    </a>
+    <a class="trust-item" href="/about">
+      <span class="trust-icon"><%- icon('award') %></span>
+      <span><strong>Genuine brands</strong><small>Every item from its maker</small></span>
+    </a>
   </section>
 
   <% if (categories.length) { %>
     <section class="container section" aria-labelledby="sports-title">
-      <div class="section-head">
+      <div class="section-head" data-reveal>
         <div>
           <span class="section-kicker">Browse</span>
           <h2 id="sports-title">Shop by sport</h2>
         </div>
         <a class="section-link" href="/products">See all gear <%- icon('chevron-right', 'i-sm') %></a>
       </div>
-      <div class="category-grid">
+      <div class="category-row">
         <% categories.forEach(function (c) { %>
-          <a class="category-tile" href="/products?category=<%= encodeURIComponent(c.name) %>">
-            <img src="<%= c.image %>" alt="" loading="lazy" decoding="async" width="300" height="375">
-            <span class="category-info">
-              <strong><%= c.name %></strong>
-              <span><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>
-            </span>
-            <span class="category-go" aria-hidden="true"><%- icon('arrow-right', 'i-sm') %></span>
+          <a class="category-tile" data-reveal href="/products?category=<%= encodeURIComponent(c.name) %>">
+            <span class="category-media"><img src="<%= c.image %>" alt="" loading="lazy" decoding="async" width="240" height="240"></span>
+            <strong><%= c.name %></strong>
+            <span><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>
           </a>
         <% }) %>
       </div>
@@ -83,29 +92,49 @@
 
   <% if (deals.length) { %>
     <section class="container section" aria-labelledby="deals-title">
-      <div class="section-head">
-        <div>
-          <span class="section-kicker">Deals</span>
-          <h2 id="deals-title">Today's biggest savings</h2>
+      <div class="section-box deal-box">
+        <div class="section-head deal-head">
+          <div>
+            <span class="section-kicker">Ends at midnight</span>
+            <h2 id="deals-title">Deals of the day</h2>
+          </div>
+          <div class="countdown" data-countdown data-left="<%= left %>" data-ends="<%= new Date(dealEndsAt).toISOString() %>" role="timer" aria-label="Time left on today's deals">
+            <%- icon('clock', 'i-sm') %>
+            <span class="countdown-label">Ends in</span>
+            <span class="countdown-box" data-countdown-h><%= hh %></span><span class="countdown-sep" aria-hidden="true">:</span>
+            <span class="countdown-box" data-countdown-m><%= mm %></span><span class="countdown-sep" aria-hidden="true">:</span>
+            <span class="countdown-box" data-countdown-s><%= ss %></span>
+          </div>
+          <a class="section-link" href="/products?sort=discount">See all deals <%- icon('chevron-right', 'i-sm') %></a>
         </div>
-        <a class="section-link" href="/products?sort=discount">See all deals <%- icon('chevron-right', 'i-sm') %></a>
+        <%- include('../partials/rail', { products: deals, label: 'Deals of the day' }) %>
       </div>
-      <div class="product-grid">
-        <% deals.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
+    </section>
+  <% } %>
+
+  <% if (bestSellers.length) { %>
+    <section class="container section" aria-labelledby="best-title">
+      <div class="section-head" data-reveal>
+        <div>
+          <span class="section-kicker">Popular picks</span>
+          <h2 id="best-title">Best sellers</h2>
+        </div>
+        <a class="section-link" href="/products?inStock=1">Shop in-stock gear <%- icon('chevron-right', 'i-sm') %></a>
       </div>
+      <%- include('../partials/rail', { products: bestSellers, label: 'Best sellers' }) %>
     </section>
   <% } %>
 
   <% if (!currentUser) { %>
     <section class="container section">
-      <div class="join-banner">
+      <div class="join-banner" data-reveal="scale">
         <div class="join-copy">
           <span class="section-kicker">Free account</span>
           <h2>Join Nexthlon in under a minute</h2>
-          <p>Save your delivery addresses now, so checkout is one tap away when ordering opens.</p>
+          <p>Save your wishlist and delivery addresses, and check out faster every time.</p>
         </div>
         <div class="join-actions">
-          <a class="btn btn-light btn-lg" href="/signup">Create your account</a>
+          <a class="btn btn-primary btn-lg" href="/signup">Create your account</a>
           <a class="join-signin" href="/login">Already a member? Sign in</a>
         </div>
       </div>
@@ -114,16 +143,53 @@
 
   <% if (newest.length) { %>
     <section class="container section" aria-labelledby="new-title">
-      <div class="section-head">
+      <div class="section-head" data-reveal>
         <div>
           <span class="section-kicker">Just landed</span>
-          <h2 id="new-title">Fresh in the locker room</h2>
+          <h2 id="new-title">New arrivals</h2>
         </div>
         <a class="section-link" href="/products?sort=newest">See what's new <%- icon('chevron-right', 'i-sm') %></a>
       </div>
-      <div class="product-grid">
-        <% newest.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
+      <%- include('../partials/rail', { products: newest, label: 'New arrivals' }) %>
+    </section>
+  <% } %>
+
+  <% if (shopper) { %>
+    <%# Filled from this browser's history by store.js. Hidden until there is something to show. %>
+    <section class="container section" aria-labelledby="recent-title" data-recent hidden>
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">Pick up where you left off</span>
+          <h2 id="recent-title">Recently viewed</h2>
+        </div>
+        <button type="button" class="link-btn" data-recent-clear><%- icon('x', 'i-xs') %> Clear history</button>
       </div>
+      <div class="rail" data-rail>
+        <button type="button" class="rail-btn rail-prev" data-rail-step="-1" aria-label="Scroll recently viewed left" disabled><%- icon('chevron-left') %></button>
+        <div class="rail-track" data-rail-track data-recent-track tabindex="0" role="region" aria-label="Recently viewed" aria-busy="true">
+          <% for (let n = 0; n < 5; n++) { %>
+            <div class="skeleton-card" aria-hidden="true"><div class="skeleton skeleton-media"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line is-short"></div></div>
+          <% } %>
+        </div>
+        <button type="button" class="rail-btn rail-next" data-rail-step="1" aria-label="Scroll recently viewed right"><%- icon('chevron-right') %></button>
+      </div>
+      <p class="state-box is-error" data-recent-error hidden>We couldn't load your recently viewed items. <button type="button" class="link-btn" data-recent-retry>Try again</button></p>
+    </section>
+  <% } %>
+
+  <% if (brands.length) { %>
+    <section class="container section" aria-labelledby="brands-title">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">Genuine gear</span>
+          <h2 id="brands-title">Brands we stock</h2>
+        </div>
+      </div>
+      <ul class="brand-strip">
+        <% brands.forEach(function (name) { %>
+          <li><a class="brand-chip" href="/products?q=<%= encodeURIComponent(name) %>"><%= name %></a></li>
+        <% }) %>
+      </ul>
     </section>
   <% } %>
 
@@ -138,4 +204,4 @@
   <% } %>
 </main>
 
-<%- include('../partials/footer') %>
+<%- include('../partials/footer', { scripts: ['home'] }) %>

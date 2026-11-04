@@ -1,0 +1,102 @@
+/* ==========================================================================
+   Nexthlon motion layer: scroll reveals, 3D tilt, glass header, progress bar.
+   Rules:
+   - Only transform, translate and opacity are animated (no layout shifts).
+   - Things are hidden only when <html> has "js-motion" (added by motion.js),
+     so the page is fully visible if JavaScript fails.
+   - Every bit of motion sits inside prefers-reduced-motion: no-preference.
+     With reduced motion everything simply shows at once.
+   ========================================================================== */
+
+/* Section heading underline. Static (always drawn) unless motion is allowed. */
+.section-head h2, .admin-section-title { position: relative; padding-bottom: 8px; }
+.section-head h2::after, .admin-section-title::after {
+  content: ""; position: absolute; left: 0; bottom: 0; width: 56px; height: 3px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--brand), var(--accent)); transform-origin: left;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --motion-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+  /* ---------- Scroll reveal ---------- */
+  .js-motion [data-reveal]:not(button):not(.is-revealed) { opacity: 0; }
+  .js-motion [data-reveal]:not(button).is-revealed:not([data-reveal-done]) {
+    animation: nx-reveal-up 0.7s var(--motion-ease) var(--reveal-delay, 0ms) backwards;
+  }
+  .js-motion [data-reveal="fade"].is-revealed:not([data-reveal-done]) { animation-name: nx-reveal-fade; }
+  .js-motion [data-reveal="scale"].is-revealed:not([data-reveal-done]) { animation-name: nx-reveal-scale; }
+  @keyframes nx-reveal-up { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+  @keyframes nx-reveal-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes nx-reveal-scale { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+
+  /* Heading underline draws in when its section is revealed. */
+  .js-motion [data-reveal]:not(.is-revealed) h2::after,
+  .js-motion .admin-section-title[data-reveal]:not(.is-revealed)::after { transform: scaleX(0); }
+  .js-motion [data-reveal].is-revealed h2::after,
+  .js-motion .admin-section-title[data-reveal].is-revealed::after {
+    transform: scaleX(1);
+    transition: transform 0.8s var(--motion-ease) calc(var(--reveal-delay, 0ms) + 250ms);
+  }
+
+  /* ---------- 3D tilt with a light glare (mouse only; motion.js never tilts on touch) ---------- */
+  .js-motion [data-tilt] {
+    --tilt-x: 0deg; --tilt-y: 0deg;
+    transition: transform 0.6s var(--motion-ease);
+  }
+  .js-motion [data-tilt].is-tilting {
+    transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-4px);
+    transition: transform 0.12s linear;
+  }
+  .js-motion .product-card[data-tilt].is-tilting { box-shadow: var(--sh-md); }
+  .tilt-glare {
+    position: absolute; z-index: 2; left: -50%; top: -50%; width: 200%; height: 200%;
+    pointer-events: none; opacity: 0; border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 38%);
+    transform: translate(var(--glare-x, 0), var(--glare-y, 0));
+    transition: opacity 0.4s var(--motion-ease);
+    mix-blend-mode: soft-light;
+  }
+  .is-tilting > .tilt-glare { opacity: 1; }
+
+  /* ---------- Buttons: lift, shadow and press ---------- */
+  .js-motion .btn { isolation: isolate; transition: transform 0.2s var(--motion-spring); }
+  .js-motion .btn::after {
+    content: ""; position: absolute; z-index: -1; inset: 0; border-radius: inherit; pointer-events: none;
+    box-shadow: 0 10px 24px rgba(var(--navy-rgb), 0.22); opacity: 0; transition: opacity 0.2s var(--motion-ease);
+  }
+  .js-motion .btn-primary::after { box-shadow: 0 12px 28px rgba(var(--brand-rgb), 0.42); }
+  .js-motion .btn:hover:not(:disabled) { transform: translateY(-2px); }
+  .js-motion .btn:hover:not(:disabled)::after { opacity: 1; }
+  .js-motion .btn:active:not(:disabled) { transform: translateY(0) scale(0.96); transition-duration: 0.08s; }
+  .js-motion .btn:active:not(:disabled)::after { opacity: 0.4; }
+
+  /* ---------- Glass header after scrolling 20px ---------- */
+  /* Two layers swap by opacity: solid at the top of the page, frosted glass once scrolled. */
+  .js-motion .site-header { background: transparent; }
+  .js-motion .site-header::before,
+  .js-motion .site-header::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; transition: opacity 0.35s var(--motion-ease); }
+  .js-motion .site-header::before { background: var(--navy-900); }
+  .js-motion .site-header::after {
+    background: rgba(var(--navy-rgb), 0.8);
+    -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 10px 30px rgba(4, 12, 24, 0.35); opacity: 0;
+  }
+  .js-motion .site-header.is-scrolled::before { opacity: 0; }
+  .js-motion .site-header.is-scrolled::after { opacity: 1; }
+  /* A see-through tint that looks like the usual navy-800 over the solid layer. */
+  .js-motion .site-header .catnav { background: rgba(16, 34, 64, 0.5); }
+
+  /* ---------- Scroll progress bar ---------- */
+  .scroll-progress { position: fixed; z-index: 1200; top: 0; left: 0; right: 0; height: 3px; pointer-events: none; }
+  .scroll-progress span {
+    display: block; height: 100%; transform: scaleX(var(--progress, 0)); transform-origin: left;
+    background: linear-gradient(90deg, var(--brand), var(--accent)); box-shadow: 0 0 10px rgba(var(--brand-rgb), 0.6);
+  }
+
+  /* ---------- Images fade in once loaded ---------- */
+  .js-motion img.is-loading { opacity: 0; }
+  .js-motion img.is-loaded { transition: opacity 0.6s var(--motion-ease), transform 0.5s var(--ease); }
+}

@@ -1,0 +1,28 @@
+<%# Template text. Replace every [bracketed] value and check the times match your courier partners. %>
+<%- include('../partials/info-start', { heading: 'Shipping and delivery policy', lead: 'Where we deliver, how long it takes and what it costs.', updated: true }) %>
+<article class="doc section-box">
+  <div class="doc-summary">
+    <div><strong><%= store.dispatchDays %></strong><span>to pack and dispatch</span></div>
+    <div><strong><%= store.deliveryDays %></strong><span>to deliver to most PIN codes</span></div>
+    <div><strong>Free over <%= formatPrice(store.freeDeliveryMin) %></strong><span>otherwise <%= formatPrice(store.deliveryFee) %> per order</span></div>
+  </div>
+
+  <h2>1. Where we deliver</h2>
+  <p>We deliver across India through [courier partner names]. Some remote PIN codes may take longer or may not be served. We will tell you before you pay.</p>
+
+  <h2>2. Delivery times</h2>
+  <p>Orders are packed and handed to the courier within <%= store.dispatchDays %> after payment is confirmed, not counting Sundays and public holidays. Delivery usually takes <%= store.deliveryDays %> after dispatch, depending on your location.</p>
+
+  <h2>3. Delivery charges</h2>
+  <p>Delivery is free on orders of <%= formatPrice(store.freeDeliveryMin) %> or more. Smaller orders pay a flat <%= formatPrice(store.deliveryFee) %>. The exact charge is always shown before you pay.</p>
+
+  <h2>4. Tracking</h2>
+  <p>When your order ships we email you the courier name and tracking number.</p>
+
+  <h2>5. Failed delivery</h2>
+  <p>If the courier cannot deliver after [2] attempts, the parcel comes back to us and we refund the item price.</p>
+
+  <h2>6. Questions</h2>
+  <p>Write to <%= store.supportEmail %> or use our <a href="/contact">contact form</a>.</p>
+</article>
+<%- include('../partials/info-end') %>

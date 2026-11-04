@@ -13,7 +13,7 @@
     <span aria-current="page"><%= product.name %></span>
   </nav>
 
-  <div class="pdp">
+  <div class="pdp" data-recent-id="<%= product._id %>">
     <div class="gallery <%= photos.length > 1 ? 'has-thumbs' : '' %>" data-gallery>
       <div class="gallery-main" data-zoom>
         <img src="<%= photos[0] %>" alt="<%= product.name %>" width="640" height="640" fetchpriority="high" data-gallery-main>
@@ -80,6 +80,7 @@
         <%# Guests are sent to sign in, then straight back to this product. %>
         <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent('/products/' + product.slug) %>"><%- icon('cart', 'i-sm') %> Add to cart</a>
         <p class="muted">Sign in to add items to your cart. New here? <a href="/signup?next=<%= encodeURIComponent('/products/' + product.slug) %>">Create an account</a>.</p>
+        <button type="button" class="wish-btn wish-btn-inline" data-wish-id="<%= product._id %>" aria-pressed="false" hidden><%- icon('heart', 'i-sm') %> <span data-wish-label>Add to wishlist</span></button>
       <% } else if (currentUser.role === 'customer') { %>
         <form class="add-to-cart" data-add-to-cart data-product-id="<%= product._id %>" novalidate>
           <div class="qty-row">
@@ -94,47 +95,61 @@
           <button class="btn btn-primary btn-block btn-lg" type="submit"><%- icon('cart', 'i-sm') %> Add to cart</button>
         </form>
         <a class="btn btn-ghost btn-block" href="/cart">View cart</a>
+        <button type="button" class="wish-btn wish-btn-inline" data-wish-id="<%= product._id %>" aria-pressed="false" hidden><%- icon('heart', 'i-sm') %> <span data-wish-label>Add to wishlist</span></button>
       <% } else { %>
         <p class="muted">You are signed in as an administrator.</p>
         <a class="btn btn-primary btn-block" href="/admin">Go to dashboard</a>
       <% } %>
       <ul class="buy-facts">
+        <li><%- icon('truck', 'i-sm') %> <% if (product.price >= store.freeDeliveryMin) { %>Free delivery<% } else { %>Delivery <%= formatPrice(store.deliveryFee) %>, free over <%= formatPrice(store.freeDeliveryMin) %><% } %></li>
+        <li><%- icon('rotate-ccw', 'i-sm') %> <a href="/refund-policy"><%= store.returnDays %>-day easy returns</a></li>
+        <li><%- icon('shield', 'i-sm') %> Secure payment</li>
         <li><%- icon('award', 'i-sm') %> Sold by Nexthlon</li>
-        <li><%- icon('shield', 'i-sm') %> Secure account sign-in</li>
       </ul>
     </aside>
   </div>
 
   <% const specEntries = Object.entries(product.specs || {}); %>
-  <% if (product.description || specEntries.length) { %>
-    <div class="pdp-details">
-      <% if (product.description) { %>
-        <section class="panel" aria-labelledby="desc-title">
-          <h2 id="desc-title" class="panel-title">Product description</h2>
-          <p class="prose"><%= product.description %></p>
-        </section>
-      <% } %>
-      <% if (specEntries.length) { %>
-        <section class="panel" aria-labelledby="spec-title">
-          <h2 id="spec-title" class="panel-title">Technical details</h2>
-          <div class="spec-wrap">
-            <table class="spec-table">
-              <caption class="sr-only">Technical details for <%= product.name %></caption>
-              <tbody>
-                <% specEntries.forEach(function ([key, value]) { %>
-                  <tr><th scope="row"><%= key %></th><td><%= value %></td></tr>
-                <% }) %>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      <% } %>
+  <section class="pdp-details section-box" data-tabs data-reveal aria-label="Product details">
+    <div class="tabs-list" role="tablist" aria-label="Product details">
+      <% if (product.description) { %><button type="button" class="tab" role="tab" id="tab-desc" aria-controls="panel-desc">Description</button><% } %>
+      <% if (specEntries.length) { %><button type="button" class="tab" role="tab" id="tab-spec" aria-controls="panel-spec">Technical details</button><% } %>
+      <button type="button" class="tab" role="tab" id="tab-ship" aria-controls="panel-ship">Delivery and returns</button>
     </div>
-  <% } %>
+    <% if (product.description) { %>
+      <div class="tab-panel" role="tabpanel" id="panel-desc" aria-labelledby="tab-desc" tabindex="0">
+        <h2 class="panel-title">Product description</h2>
+        <p class="prose"><%= product.description %></p>
+      </div>
+    <% } %>
+    <% if (specEntries.length) { %>
+      <div class="tab-panel" role="tabpanel" id="panel-spec" aria-labelledby="tab-spec" tabindex="0">
+        <h2 class="panel-title">Technical details</h2>
+        <div class="spec-wrap">
+          <table class="spec-table">
+            <caption class="sr-only">Technical details for <%= product.name %></caption>
+            <tbody>
+              <% specEntries.forEach(function ([key, value]) { %>
+                <tr><th scope="row"><%= key %></th><td><%= value %></td></tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+    <div class="tab-panel" role="tabpanel" id="panel-ship" aria-labelledby="tab-ship" tabindex="0">
+      <h2 class="panel-title">Delivery and returns</h2>
+      <ul class="ship-facts">
+        <li><%- icon('package-check') %><span><strong>Dispatched in <%= store.dispatchDays %></strong> Delivered in <%= store.deliveryDays %> to most PIN codes.</span></li>
+        <li><%- icon('truck') %><span><strong>Free delivery over <%= formatPrice(store.freeDeliveryMin) %></strong> Smaller orders pay <%= formatPrice(store.deliveryFee) %>. <a href="/shipping-policy">Shipping policy</a></span></li>
+        <li><%- icon('rotate-ccw') %><span><strong><%= store.returnDays %>-day returns</strong> Unused items in their original packaging. <a href="/refund-policy">Refund policy</a></span></li>
+      </ul>
+    </div>
+  </section>
 
   <% if (related.length) { %>
     <section class="section" aria-labelledby="related-title">
-      <div class="section-head">
+      <div class="section-head" data-reveal>
         <div>
           <span class="section-kicker">You may also like</span>
           <h2 id="related-title">More <%= product.category %> gear</h2>

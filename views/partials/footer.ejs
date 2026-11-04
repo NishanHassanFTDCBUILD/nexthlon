@@ -1,5 +1,29 @@
+<% const footerAdmin = Boolean(currentUser && currentUser.role === 'admin'); %>
 <footer class="site-footer">
-  <a class="to-top" href="#main"><%- icon('chevron-down', 'i-sm flip') %> Back to top</a>
+  <a class="to-top" href="#main"><%- icon('chevron-up', 'i-sm') %> Back to top</a>
+
+  <section class="footer-news" aria-labelledby="news-title">
+    <div class="container footer-news-inner">
+      <div class="footer-news-copy">
+        <span class="news-icon" aria-hidden="true"><%- icon('mail') %></span>
+        <div>
+          <h2 id="news-title">Get the best deals first</h2>
+          <p>One email a week with new arrivals and price drops. Unsubscribe any time.</p>
+        </div>
+      </div>
+      <form class="news-form" data-newsletter novalidate>
+        <div class="news-row">
+          <label class="sr-only" for="news-email">Email address</label>
+          <input id="news-email" name="email" type="email" autocomplete="email" required maxlength="254"
+                 placeholder="Your email address" aria-describedby="news-email-error">
+          <button class="btn btn-primary" type="submit"><%- icon('send', 'i-sm') %> Subscribe</button>
+        </div>
+        <p class="field-error" id="news-email-error" data-error-for="email"></p>
+        <div class="form-alert" data-form-alert aria-live="polite"></div>
+      </form>
+    </div>
+  </section>
+
   <div class="container footer-grid">
     <div class="footer-brand">
       <a class="brand" href="/" aria-label="Nexthlon home">
@@ -8,54 +32,84 @@
       </a>
       <p class="footer-tagline">Your Next Move Starts Here.</p>
       <p>Sports gear for runners, footballers, climbers and every athlete in between.</p>
-      <ul class="footer-badges" aria-label="Why shop with us">
-        <li><%- icon('award', 'i-sm') %> Genuine brands</li>
-        <li><%- icon('tag', 'i-sm') %> Clear M.R.P. pricing</li>
-        <li><%- icon('shield', 'i-sm') %> Secure accounts</li>
+      <ul class="footer-contact">
+        <li><%- icon('mail', 'i-sm') %> <span><%= store.supportEmail %></span></li>
+        <li><%- icon('phone', 'i-sm') %> <span><%= store.supportPhone %></span></li>
+        <li><%- icon('clock', 'i-sm') %> <span><%= store.supportHours %></span></li>
       </ul>
     </div>
     <nav aria-labelledby="footer-shop">
       <h2 id="footer-shop">Shop</h2>
       <ul>
         <li><a href="/products">All gear</a></li>
-        <li><a href="/products?sort=discount">Biggest savings</a></li>
+        <li><a href="/products?sort=discount">Deals of the day</a></li>
         <li><a href="/products?sort=newest">New arrivals</a></li>
-        <% navCategories.slice(0, 3).forEach(function (name) { %>
+        <% navCategories.slice(0, 5).forEach(function (name) { %>
           <li><a href="/products?category=<%= encodeURIComponent(name) %>"><%= name %></a></li>
         <% }) %>
       </ul>
     </nav>
-    <nav aria-labelledby="footer-sports">
-      <h2 id="footer-sports">More sports</h2>
+    <nav aria-labelledby="footer-help">
+      <h2 id="footer-help">Help</h2>
       <ul>
-        <% navCategories.slice(3).forEach(function (name) { %>
-          <li><a href="/products?category=<%= encodeURIComponent(name) %>"><%= name %></a></li>
-        <% }) %>
+        <li><a href="/contact">Contact us</a></li>
+        <li><a href="/shipping-policy">Shipping and delivery</a></li>
+        <li><a href="/refund-policy">Cancellation and refunds</a></li>
+        <li><a href="/contact#faq">FAQs</a></li>
+      </ul>
+    </nav>
+    <nav aria-labelledby="footer-company">
+      <h2 id="footer-company">Company</h2>
+      <ul>
+        <li><a href="/about">About Nexthlon</a></li>
+        <li><a href="/privacy">Privacy policy</a></li>
+        <li><a href="/terms">Terms and conditions</a></li>
       </ul>
     </nav>
     <nav aria-labelledby="footer-account">
       <h2 id="footer-account">Your account</h2>
       <ul>
-        <% if (currentUser && currentUser.role === 'admin') { %>
+        <% if (footerAdmin) { %>
           <li><a href="/admin">Admin dashboard</a></li>
+          <li><a href="/admin/products">Manage products</a></li>
           <li><a href="/admin/users">Manage users</a></li>
         <% } else if (currentUser) { %>
-          <li><a href="/profile">Your profile</a></li>
+          <li><a href="/profile">Your account</a></li>
+          <li><a href="/wishlist">Your wishlist</a></li>
           <li><a href="/cart">Your cart</a></li>
           <li><a href="/profile#addresses">Saved addresses</a></li>
-          <li><a href="/profile#security">Login &amp; security</a></li>
         <% } else { %>
           <li><a href="/login">Sign in</a></li>
           <li><a href="/signup">Create an account</a></li>
+          <li><a href="/wishlist">Your wishlist</a></li>
           <li><a href="/admin/login">Admin sign in</a></li>
         <% } %>
       </ul>
     </nav>
   </div>
+
+  <div class="container footer-trust">
+    <div class="footer-pay">
+      <span class="footer-pay-label"><%- icon('shield', 'i-sm') %> 100% secure payments</span>
+      <%- include('payment-icons') %>
+    </div>
+    <ul class="footer-badges" aria-label="Why shop with us">
+      <li><%- icon('award', 'i-sm') %> Genuine brands</li>
+      <li><%- icon('rotate-ccw', 'i-sm') %> <%= store.returnDays %>-day returns</li>
+      <li><%- icon('truck', 'i-sm') %> Free delivery over <%= formatPrice(store.freeDeliveryMin) %></li>
+    </ul>
+  </div>
+
   <div class="footer-bottom">
     <div class="container footer-bottom-inner">
-      <span>&copy; <%= new Date().getFullYear() %> Nexthlon. All rights reserved.</span>
-      <span>Built with Node.js, Express, EJS and MongoDB</span>
+      <span>&copy; <%= new Date().getFullYear() %> <%= store.brandName %>. All rights reserved.</span>
+      <nav class="footer-legal" aria-label="Policies">
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/refund-policy">Refunds</a>
+        <a href="/shipping-policy">Shipping</a>
+        <a href="/contact">Contact</a>
+      </nav>
     </div>
   </div>
 </footer>

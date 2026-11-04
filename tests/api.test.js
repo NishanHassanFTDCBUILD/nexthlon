@@ -503,3 +503,85 @@ test("cart: blocked customers are signed out of the cart too", async () => {
   assert.equal(cleared.data.cart.items.length, 0);
   assert.equal((await Cart.findOne({ user: meera._id })).items.length, 0);
 });
+
+// ---------- Storefront redesign: lookup, home, policy pages, contact and newsletter ----------
+const ContactMessage = require("../models/ContactMessage");
+const NewsletterSubscriber = require("../models/NewsletterSubscriber");
+
+test("product lookup returns listed products in the order asked, and skips the rest", async () => {
+  const shoe = await Product.findOne({ slug: "nexthlon-trail-shoe" });
+  const ball = await Product.create({ name: "Match Ball Pro", slug: "match-ball-pro", category: "Football", brand: "Strike", price: 1299, mrp: 1599, stock: 9, image: "/img/favicon.svg" });
+  const gone = await Product.create({ name: "Retired Bat", slug: "retired-bat", category: "Cricket", price: 999, mrp: 999, stock: 3, image: "/img/favicon.svg", isListed: false });
+  const res = await call("GET", `/api/products/lookup?ids=${ball._id},${gone._id},junk,${shoe._id},${ball._id}`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.data.products.map(p => p.slug), ["match-ball-pro", "nexthlon-trail-shoe"]);
+  // Prices always come from the database.
+  assert.equal(res.data.products[0].price, 1299);
+  assert.deepEqual((await call("GET", "/api/products/lookup")).data.products, []);
+  assert.deepEqual((await call("GET", "/api/products/lookup?ids[$ne]=x")).data.products, []);
+});
+
+test("home page: carousel, trust badges, deals countdown, rails and brands", async () => {
+  // Best sellers are the in-stock items that are not already in the deals row.
+  await Product.create({ name: "Plain Training Tee", slug: "plain-training-tee", category: "Fitness", price: 499, mrp: 499, stock: 8, image: "/img/favicon.svg" });
+  const res = await call("GET", "/");
+  assert.equal(res.status, 200);
+  assert.match(res.data, /data-carousel/);
+  assert.match(res.data, /aria-roledescription="slide"/);
+  assert.match(res.data, /Free delivery/);
+  assert.match(res.data, /Deals of the day/);
+  assert.match(res.data, /data-countdown data-left="\d+"/);
+  assert.match(res.data, /Best sellers/);
+  assert.match(res.data, /New arrivals/);
+  assert.match(res.data, /data-recent hidden/);
+  assert.match(res.data, /class="brand-chip"[^>]*>Strike</);
+  assert.match(res.data, /data-wish-id="[a-f0-9]{24}"/);
+  assert.doesNotMatch(res.data, /Retired Bat/);
+});
+
+test("policy pages, about, contact and wishlist pages render for everyone", async () => {
+  const pages = {
+    "/privacy": /Privacy policy/, "/terms": /Terms and conditions/, "/refund-policy": /Cancellation and refund policy/,
+    "/shipping-policy": /Shipping and delivery policy/, "/about": /About Nexthlon/, "/contact": /data-contact-form/,
+    "/wishlist": /data-wishlist-page/
+  };
+  for (const [path, pattern] of Object.entries(pages)) {
+    const res = await call("GET", path);
+    assert.equal(res.status, 200, path);
+    assert.match(res.data, pattern, path);
+    assert.match(res.data, /href="\/refund-policy"/, path);
+  }
+  const contact = await call("GET", "/contact");
+  assert.match(contact.data, /aria-current="page"[^>]*>[\s\S]*?Contact us/);
+  assert.doesNotMatch(contact.data, /<script>/);
+});
+
+test("contact form saves valid messages, checks every field, drops bots and blocks other sites", async () => {
+  const bad = await call("POST", "/api/contact", { body: { name: "", email: "x", topic: "nope", message: "short" } });
+  assert.equal(bad.status, 400);
+  assert.deepEqual(Object.keys(bad.data.errors).sort(), ["email", "message", "name", "topic"]);
+
+  const good = await call("POST", "/api/contact", { body: { name: "Asha Nair", email: "Asha@Example.com", topic: "Payments", message: "Can I pay with UPI on delivery?", status: "closed", user: "64b000000000000000000001" } });
+  assert.equal(good.status, 201);
+  const saved = await ContactMessage.findOne({ email: "asha@example.com" }).lean();
+  assert.equal(saved.topic, "Payments");
+  assert.equal(saved.status, "new");
+  assert.equal(saved.user, null);
+
+  const bot = await call("POST", "/api/contact", { body: { name: "Spam Bot", email: "bot@spam.io", topic: "Payments", message: "Cheap watches here!!!", website: "spam.io" } });
+  assert.equal(bot.status, 201);
+  assert.equal(await ContactMessage.countDocuments({ email: "bot@spam.io" }), 0);
+
+  const foreign = await call("POST", "/api/contact", { origin: "https://evil.example", body: { name: "Asha Nair", email: "a@b.in", topic: "Payments", message: "Hello there team" } });
+  assert.equal(foreign.status, 403);
+});
+
+test("newsletter: subscribing twice keeps one row and gives the same answer", async () => {
+  const first = await call("POST", "/api/newsletter", { body: { email: "Fan@Example.com" } });
+  const again = await call("POST", "/api/newsletter", { body: { email: "fan@example.com" } });
+  assert.equal(first.status, 201);
+  assert.equal(again.status, 201);
+  assert.equal(first.data.message, again.data.message);
+  assert.equal(await NewsletterSubscriber.countDocuments({ email: "fan@example.com" }), 1);
+  assert.equal((await call("POST", "/api/newsletter", { body: { email: "not-an-email" } })).status, 400);
+});

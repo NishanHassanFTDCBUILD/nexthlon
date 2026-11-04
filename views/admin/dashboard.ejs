@@ -22,50 +22,50 @@
     </header>
 
     <section aria-labelledby="customers-stats">
-      <h2 class="admin-section-title" id="customers-stats">Customers</h2>
+      <h2 class="admin-section-title" data-reveal id="customers-stats">Customers</h2>
       <div class="stat-grid">
-        <a class="stat" href="/admin/users">
+        <a class="stat" data-reveal href="/admin/users">
           <span class="stat-icon"><%- icon('users') %></span>
           <span class="stat-label">Customers</span>
-          <strong class="stat-value"><%= stats.customers %></strong>
+          <strong class="stat-value" data-count-to="<%= stats.customers %>"><%= stats.customers %></strong>
           <span class="stat-link">View all <%- icon('arrow-right', 'i-xs') %></span>
         </a>
-        <a class="stat" href="/admin/users">
+        <a class="stat" data-reveal href="/admin/users">
           <span class="stat-icon stat-icon-green"><%- icon('plus') %></span>
           <span class="stat-label">New this week</span>
-          <strong class="stat-value"><%= stats.newCustomers %></strong>
+          <strong class="stat-value" data-count-to="<%= stats.newCustomers %>"><%= stats.newCustomers %></strong>
           <span class="stat-link">In the last 7 days</span>
         </a>
-        <a class="stat" href="/admin/users?status=blocked">
+        <a class="stat" data-reveal href="/admin/users?status=blocked">
           <span class="stat-icon stat-icon-red"><%- icon('lock') %></span>
           <span class="stat-label">Blocked customers</span>
-          <strong class="stat-value"><%= stats.blockedCustomers %></strong>
+          <strong class="stat-value" data-count-to="<%= stats.blockedCustomers %>"><%= stats.blockedCustomers %></strong>
           <span class="stat-link">Review <%- icon('arrow-right', 'i-xs') %></span>
         </a>
       </div>
     </section>
 
     <section aria-labelledby="catalogue-stats">
-      <h2 class="admin-section-title" id="catalogue-stats">Catalogue</h2>
+      <h2 class="admin-section-title" data-reveal id="catalogue-stats">Catalogue</h2>
       <div class="stat-grid">
-        <div class="stat">
+        <div class="stat" data-reveal>
           <span class="stat-icon"><%- icon('box') %></span>
           <span class="stat-label">Active products</span>
-          <strong class="stat-value"><%= stats.products %></strong>
+          <strong class="stat-value" data-count-to="<%= stats.products %>"><%= stats.products %></strong>
         </div>
-        <div class="stat">
+        <div class="stat" data-reveal>
           <span class="stat-icon stat-icon-amber"><%- icon('alert') %></span>
           <span class="stat-label">Low stock (5 or fewer)</span>
-          <strong class="stat-value"><%= stats.lowStock %></strong>
+          <strong class="stat-value" data-count-to="<%= stats.lowStock %>"><%= stats.lowStock %></strong>
         </div>
-        <div class="stat">
+        <div class="stat" data-reveal>
           <span class="stat-icon stat-icon-red"><%- icon('x') %></span>
           <span class="stat-label">Out of stock</span>
-          <strong class="stat-value"><%= stats.outOfStock %></strong>
+          <strong class="stat-value" data-count-to="<%= stats.outOfStock %>"><%= stats.outOfStock %></strong>
         </div>
       </div>
       <% if (stats.products) { %>
-        <div class="stock-health panel">
+        <div class="stock-health panel" data-reveal>
           <div class="stock-health-head">
             <strong>Stock health</strong>
             <span class="muted"><%= Math.round(healthy / stockTotal * 100) %>% of products are well stocked</span>
@@ -85,7 +85,7 @@
     </section>
 
     <div class="admin-panels">
-      <section class="panel panel-flush" aria-labelledby="newest-title">
+      <section class="panel panel-flush" data-reveal aria-labelledby="newest-title">
         <div class="panel-head panel-head-row">
           <h2 id="newest-title">Newest customers</h2>
           <a href="/admin/users">Manage users <%- icon('chevron-right', 'i-sm') %></a>
@@ -110,7 +110,7 @@
         <% } %>
       </section>
 
-      <section class="panel" aria-labelledby="lowstock-title">
+      <section class="panel" data-reveal aria-labelledby="lowstock-title">
         <div class="panel-head panel-head-row">
           <h2 id="lowstock-title">Low stock</h2>
           <span class="muted">5 or fewer left</span>

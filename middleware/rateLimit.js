@@ -12,4 +12,13 @@ const authLimiter = rateLimit({
   message: { message: "Too many attempts. Please wait 15 minutes and try again." }
 });
 
-module.exports = { authLimiter };
+// Contact form and newsletter: 8 messages per 15 minutes per IP address, so the inbox cannot be flooded.
+const formLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many messages. Please wait a few minutes and try again." }
+});
+
+module.exports = { authLimiter, formLimiter };

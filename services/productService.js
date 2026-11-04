@@ -99,12 +99,26 @@ function getRelatedProducts(product, limit = 4) {
 }
 
 async function getHomeSections() {
-  const [deals, newest, categories] = await Promise.all([
-    Product.find({ ...Product.LISTED, discountPercent: { $gt: 0 } }).sort({ discountPercent: -1 }).limit(8).lean(),
-    Product.find({ ...Product.LISTED }).sort({ createdAt: -1, _id: -1 }).limit(8).lean(),
-    getCategorySummaries()
+  const [deals, newest, categories, brands] = await Promise.all([
+    Product.find({ ...Product.LISTED, discountPercent: { $gt: 0 } }).sort({ discountPercent: -1 }).limit(10).lean(),
+    Product.find({ ...Product.LISTED }).sort({ createdAt: -1, _id: -1 }).limit(10).lean(),
+    getCategorySummaries(),
+    Product.distinct("brand", { ...Product.LISTED })
   ]);
-  return { deals, newest, categories };
+  // There are no orders yet, so "best sellers" are the in-stock items not already in the deals row,
+  // highest price first. Switch this to real sales counts once orders exist.
+  const bestSellers = await Product.find({
+    ...Product.LISTED, stock: { $gt: 0 }, _id: { $nin: deals.map(p => p._id) }
+  }).sort({ price: -1, _id: 1 }).limit(10).lean();
+  return { deals, newest, bestSellers, categories, brands: brands.filter(Boolean).sort() };
+}
+
+// Listed products for the given ids, in the same order as the ids. Unknown or unlisted ids are skipped.
+async function getProductsByIds(ids) {
+  if (!ids.length) return [];
+  const found = await Product.find({ ...Product.LISTED, _id: { $in: ids } }).lean();
+  const byId = new Map(found.map(p => [String(p._id), p]));
+  return ids.map(id => byId.get(id)).filter(Boolean);
 }
 
 // What the JSON API returns for one product.
@@ -138,5 +152,6 @@ module.exports = {
   getProduct,
   getRelatedProducts,
   getHomeSections,
+  getProductsByIds,
   toPublicProduct
 };

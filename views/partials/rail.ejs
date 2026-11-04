@@ -1,0 +1,8 @@
+<%# A horizontal row of product cards with scroll buttons. Without JavaScript it still scrolls sideways. %>
+<div class="rail" data-rail>
+  <button type="button" class="rail-btn rail-prev" data-rail-step="-1" aria-label="Scroll <%= label %> left" disabled><%- icon('chevron-left') %></button>
+  <div class="rail-track" data-rail-track tabindex="0" role="region" aria-label="<%= label %>">
+    <% products.forEach(function (p) { %><%- include('product-card', { p: p }) %><% }) %>
+  </div>
+  <button type="button" class="rail-btn rail-next" data-rail-step="1" aria-label="Scroll <%= label %> right"><%- icon('chevron-right') %></button>
+</div>

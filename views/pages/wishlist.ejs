@@ -1,0 +1,53 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
+    <span aria-current="page">Wishlist</span>
+  </nav>
+  <div class="page-head">
+    <div>
+      <h1>Your wishlist</h1>
+      <p class="muted" data-wishlist-summary aria-live="polite">Saved on this device.</p>
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" data-wishlist-clear hidden><%- icon('trash', 'i-sm') %> Clear wishlist</button>
+  </div>
+
+  <% if (currentUser && currentUser.role === 'admin') { %>
+    <div class="empty-state">
+      <span class="empty-icon"><%- icon('heart', 'i-xl') %></span>
+      <h2>Wishlists are for shoppers</h2>
+      <p>You are signed in as an administrator.</p>
+      <a class="btn btn-primary" href="/admin">Go to dashboard</a>
+    </div>
+  <% } else { %>
+    <div data-wishlist-page>
+      <div class="product-grid" data-wishlist-grid aria-busy="true">
+        <% for (let n = 0; n < 4; n++) { %>
+          <div class="skeleton-card" aria-hidden="true"><div class="skeleton skeleton-media"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line is-short"></div></div>
+        <% } %>
+      </div>
+      <div class="empty-state" data-wishlist-empty hidden>
+        <span class="empty-icon"><%- icon('heart', 'i-xl') %></span>
+        <h2>Your wishlist is empty</h2>
+        <p>Tap the heart on any product to save it here for later.</p>
+        <a class="btn btn-primary" href="/products">Browse all gear</a>
+      </div>
+      <div class="empty-state" data-wishlist-error hidden>
+        <span class="empty-icon"><%- icon('alert', 'i-xl') %></span>
+        <h2>We couldn't load your wishlist</h2>
+        <p>Check your connection and try again.</p>
+        <button type="button" class="btn btn-primary" data-wishlist-retry>Try again</button>
+      </div>
+      <noscript>
+        <div class="empty-state">
+          <h2>Turn on JavaScript to see your wishlist</h2>
+          <p>Your wishlist is saved in this browser and needs JavaScript to show.</p>
+        </div>
+      </noscript>
+    </div>
+  <% } %>
+</main>
+
+<%- include('../partials/footer') %>

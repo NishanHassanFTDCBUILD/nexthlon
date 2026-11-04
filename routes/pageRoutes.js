@@ -6,6 +6,15 @@ const { customerPage, adminPage, guestOnly } = require("../middleware/auth");
 router.get("/", pages.home);
 router.get("/products", pages.products);
 router.get("/products/:slug", pages.productDetail);
+router.get("/wishlist", pages.wishlist);
+
+// Store information and the policies Razorpay asks for
+router.get("/about", pages.infoPage("about"));
+router.get("/contact", pages.infoPage("contact"));
+router.get("/privacy", pages.infoPage("privacy"));
+router.get("/terms", pages.infoPage("terms"));
+router.get("/refund-policy", pages.infoPage("refund"));
+router.get("/shipping-policy", pages.infoPage("shipping"));
 
 // Customer account
 router.get("/login", guestOnly, pages.login);

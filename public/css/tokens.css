@@ -1,0 +1,279 @@
+/* ==========================================================================
+   Nexthlon design tokens
+   One place for colour, spacing, type, radius, shadow and layering.
+   Light is the default. Dark follows the system setting, unless the visitor
+   picked a theme with the header toggle (saved in localStorage, applied by
+   /js/theme.js as <html data-theme="light|dark"> before the page paints).
+   ========================================================================== */
+:root {
+  color-scheme: light;
+
+  /* ---------- Brand ---------- */
+  --brand: #ff7a1a;            /* Nexthlon orange: buttons, highlights */
+  --brand-rgb: 255, 122, 26;
+  --brand-hover: #f26a05;
+  --brand-press: #db5f00;
+  --brand-ink: #b34700;        /* orange text on light surfaces (5.6:1 on white) */
+  --brand-soft: #fff1e6;       /* tinted backgrounds */
+  --brand-soft-2: #ffe2cc;
+  --on-brand: #1a1205;         /* text on orange (dark text keeps contrast high) */
+  --accent: #ffb26b;           /* orange highlight used on navy areas */
+  --accent-rgb: 255, 178, 107;
+
+  --navy-950: #050b16;
+  --navy-900: #0a1628;
+  --navy-800: #102240;
+  --navy-700: #183058;
+  --navy-600: #24406e;
+  --navy-rgb: 10, 22, 40;
+
+  /* ---------- Status ---------- */
+  --success: #0b7a4b;
+  --success-rgb: 11, 122, 75;
+  --success-soft: #e3f6ec;
+  --success-line: #bfe6d2;
+  --warning: #995400;
+  --warning-strong: #e39a1a;
+  --warning-soft: #fff3dc;
+  --danger: #c62828;
+  --danger-rgb: 198, 40, 40;
+  --danger-hover: #a81f1f;
+  --danger-ink: #a12020;
+  --danger-soft: #fdeaea;
+  --danger-soft-2: #f9d9d9;
+  --danger-line: #f4c7c7;
+  --deal: #cc0c39;
+  --info: #1a5fd0;
+  --info-soft: #e8f0fd;
+
+  /* ---------- Surfaces and text ---------- */
+  --bg: #eef1f6;               /* page floor */
+  --surface: #ffffff;          /* cards, panels */
+  --surface-2: #f7f8fb;        /* subtle fills: table heads, inputs at rest */
+  --surface-3: #e8ecf3;        /* placeholders, tracks */
+  --glass: rgba(255, 255, 255, 0.9);
+  --ink: #0f1a2b;
+  --ink-2: #364559;
+  --muted: #5b6a80;
+  --muted-2: #8b98ab;
+  --placeholder: #8592a6;
+  --disabled: #aab4c3;
+  --line: #dde3ec;
+  --line-strong: #c6cfdc;
+  --line-hover: #a6b3c5;
+  --hairline: rgba(15, 26, 43, 0.06);
+  --link: #1a5fd0;
+  --link-hover: #0f47a8;
+  --on-dark: #c7d2e3;
+  --on-dark-muted: #9aabc4;
+  --focus: #1a5fd0;
+  --ring: 0 0 0 4px rgba(26, 95, 208, 0.18);
+  --ring-brand: 0 0 0 4px rgba(var(--brand-rgb), 0.28);
+  --ring-danger: 0 0 0 4px rgba(var(--danger-rgb), 0.12);
+
+  /* ---------- Spacing: an 8px scale (with 4px half steps) ---------- */
+  --space-0: 0;
+  --space-half: 4px;
+  --space-1: 8px;
+  --space-1h: 12px;
+  --space-2: 16px;
+  --space-2h: 20px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --space-8: 64px;
+  --space-10: 80px;
+
+  /* ---------- Type ---------- */
+  --font: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-md: 17px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 30px;
+  --text-3xl: 38px;
+  --text-4xl: 48px;
+  --text-hero: clamp(36px, 5.2vw, 68px);
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 800;
+  --leading-tight: 1.15;
+  --leading-normal: 1.55;
+
+  /* ---------- Radius ---------- */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* ---------- Shadows ---------- */
+  --shadow-xs: 0 1px 2px rgba(var(--navy-rgb), 0.06);
+  --shadow-sm: 0 1px 2px rgba(var(--navy-rgb), 0.05), 0 2px 8px rgba(var(--navy-rgb), 0.06);
+  --shadow-md: 0 2px 4px rgba(var(--navy-rgb), 0.05), 0 10px 28px rgba(var(--navy-rgb), 0.1);
+  --shadow-lg: 0 24px 60px rgba(var(--navy-rgb), 0.22);
+  --shadow-brand: 0 8px 22px rgba(var(--brand-rgb), 0.35);
+
+  /* ---------- Layers ---------- */
+  --z-base: 1;
+  --z-raised: 5;
+  --z-sticky: 30;
+  --z-header: 40;
+  --z-dropdown: 50;
+  --z-drawer: 60;
+  --z-modal: 70;
+  --z-toast: 1000;
+
+  /* ---------- Motion ---------- */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --duration-fast: 0.15s;
+  --duration: 0.25s;
+
+  --header-h: 112px;
+
+  /* ---------- Older names, kept so existing page styles follow the tokens ---------- */
+  --blue: var(--brand);
+  --blue-600: var(--link);
+  --blue-700: var(--brand-ink);
+  --blue-100: var(--brand-soft-2);
+  --blue-50: var(--brand-soft);
+  --cyan: var(--accent);
+  --floor: var(--bg);
+  --floor-2: var(--surface-3);
+  --green: var(--success);
+  --green-50: var(--success-soft);
+  --amber: var(--warning);
+  --amber-50: var(--warning-soft);
+  --red: var(--danger);
+  --red-50: var(--danger-soft);
+  --fs-xs: var(--text-xs);
+  --fs-sm: var(--text-sm);
+  --fs-base: var(--text-base);
+  --fs-md: var(--text-md);
+  --fs-lg: var(--text-lg);
+  --fs-xl: var(--text-xl);
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --r-xs: var(--radius-xs);
+  --r-sm: var(--radius-sm);
+  --r: var(--radius);
+  --r-lg: var(--radius-lg);
+  --r-pill: var(--radius-pill);
+  --sh-xs: var(--shadow-xs);
+  --sh-sm: var(--shadow-sm);
+  --sh-md: var(--shadow-md);
+  --sh-lg: var(--shadow-lg);
+}
+
+/* ---------- Dark mode ---------- */
+/* The same values twice: once for "follow the system", once for the saved choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --brand-hover: #ff8a33;
+    --brand-press: #ff9a4d;
+    --brand-ink: #ffa35c;
+    --brand-soft: rgba(255, 122, 26, 0.14);
+    --brand-soft-2: rgba(255, 122, 26, 0.24);
+    --success: #45c98a;
+    --success-soft: rgba(69, 201, 138, 0.14);
+    --success-line: rgba(69, 201, 138, 0.3);
+    --warning: #f0b14a;
+    --warning-soft: rgba(240, 177, 74, 0.14);
+    --danger: #ff6b6b;
+    --danger-rgb: 255, 107, 107;
+    --danger-hover: #ff8585;
+    --danger-ink: #ffb3b3;
+    --danger-soft: rgba(255, 107, 107, 0.14);
+    --danger-soft-2: rgba(255, 107, 107, 0.22);
+    --danger-line: rgba(255, 107, 107, 0.32);
+    --deal: #ff5277;
+    --info: #7fb0ff;
+    --info-soft: rgba(127, 176, 255, 0.14);
+    --bg: #0b111c;
+    --surface: #141c2a;
+    --surface-2: #192232;
+    --surface-3: #222d3f;
+    --glass: rgba(20, 28, 42, 0.88);
+    --ink: #e8edf5;
+    --ink-2: #c3cddb;
+    --muted: #96a3b7;
+    --muted-2: #74839a;
+    --placeholder: #7d8aa0;
+    --disabled: #556378;
+    --line: #273246;
+    --line-strong: #34415a;
+    --line-hover: #4a5874;
+    --hairline: rgba(255, 255, 255, 0.06);
+    --link: #8ab8ff;
+    --link-hover: #b3d0ff;
+    --focus: #8ab8ff;
+    --ring: 0 0 0 4px rgba(138, 184, 255, 0.25);
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --brand-hover: #ff8a33;
+  --brand-press: #ff9a4d;
+  --brand-ink: #ffa35c;
+  --brand-soft: rgba(255, 122, 26, 0.14);
+  --brand-soft-2: rgba(255, 122, 26, 0.24);
+  --success: #45c98a;
+  --success-soft: rgba(69, 201, 138, 0.14);
+  --success-line: rgba(69, 201, 138, 0.3);
+  --warning: #f0b14a;
+  --warning-soft: rgba(240, 177, 74, 0.14);
+  --danger: #ff6b6b;
+  --danger-rgb: 255, 107, 107;
+  --danger-hover: #ff8585;
+  --danger-ink: #ffb3b3;
+  --danger-soft: rgba(255, 107, 107, 0.14);
+  --danger-soft-2: rgba(255, 107, 107, 0.22);
+  --danger-line: rgba(255, 107, 107, 0.32);
+  --deal: #ff5277;
+  --info: #7fb0ff;
+  --info-soft: rgba(127, 176, 255, 0.14);
+  --bg: #0b111c;
+  --surface: #141c2a;
+  --surface-2: #192232;
+  --surface-3: #222d3f;
+  --glass: rgba(20, 28, 42, 0.88);
+  --ink: #e8edf5;
+  --ink-2: #c3cddb;
+  --muted: #96a3b7;
+  --muted-2: #74839a;
+  --placeholder: #7d8aa0;
+  --disabled: #556378;
+  --line: #273246;
+  --line-strong: #34415a;
+  --line-hover: #4a5874;
+  --hairline: rgba(255, 255, 255, 0.06);
+  --link: #8ab8ff;
+  --link-hover: #b3d0ff;
+  --focus: #8ab8ff;
+  --ring: 0 0 0 4px rgba(138, 184, 255, 0.25);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+}

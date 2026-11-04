@@ -1,0 +1,24 @@
+<%# Template text. Tell your own story here. %>
+<%- include('../partials/info-start', { heading: 'About Nexthlon', lead: 'Performance sports gear, picked by people who train.' }) %>
+<article class="doc section-box">
+  <p><%= store.brandName %> is run by <%= store.legalName %>. We started in [year] with one idea: athletes should be able to buy genuine, well-made gear at a fair price, with the M.R.P. and the discount shown up front.</p>
+
+  <div class="about-grid">
+    <div class="about-card"><span class="trust-icon"><%- icon('award') %></span><h2>Genuine brands</h2><p>Every product comes from its maker or an authorised distributor.</p></div>
+    <div class="about-card"><span class="trust-icon"><%- icon('tag') %></span><h2>Clear pricing</h2><p>You always see the M.R.P., your price and exactly how much you save.</p></div>
+    <div class="about-card"><span class="trust-icon"><%- icon('headset') %></span><h2>Real support</h2><p>Talk to people who know the gear, <%= store.supportHours %>.</p></div>
+  </div>
+
+  <h2>What we sell</h2>
+  <p>Gear for <%= navCategories.slice(0, -1).join(', ') %> and <%= navCategories[navCategories.length - 1] %>. [Add a few lines about how you choose your products.]</p>
+
+  <h2>Business details</h2>
+  <address class="doc-address">
+    <%= store.legalName %><br>
+    <%= store.address %><br>
+    GSTIN: <%= store.gstin %><br>
+    Email: <%= store.supportEmail %> · Phone: <%= store.supportPhone %>
+  </address>
+  <p><a class="btn btn-primary" href="/contact"><%- icon('headset', 'i-sm') %> Contact us</a></p>
+</article>
+<%- include('../partials/info-end') %>

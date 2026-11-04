@@ -1,0 +1,31 @@
+<%# Opening of every store information page: breadcrumb, side menu and the page heading.
+    Pass: heading, lead (optional), updated (true for policies). Close with info-end. %>
+<%- include('head') %>
+<%- include('header') %>
+<%
+  const infoLinks = [
+    { key: 'about', href: '/about', label: 'About us', icon: 'award' },
+    { key: 'contact', href: '/contact', label: 'Contact us', icon: 'headset' },
+    { key: 'shipping', href: '/shipping-policy', label: 'Shipping and delivery', icon: 'truck' },
+    { key: 'refund', href: '/refund-policy', label: 'Cancellation and refunds', icon: 'rotate-ccw' },
+    { key: 'terms', href: '/terms', label: 'Terms and conditions', icon: 'info' },
+    { key: 'privacy', href: '/privacy', label: 'Privacy policy', icon: 'lock' }
+  ];
+%>
+<main id="main" class="container page info-page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
+    <span aria-current="page"><%= heading %></span>
+  </nav>
+  <div class="info-layout">
+    <nav class="info-nav" aria-label="Help and policies">
+      <% infoLinks.forEach(function (link) { %>
+        <a href="<%= link.href %>" class="<%= pageKey === link.key ? 'is-active' : '' %>" <%- pageKey === link.key ? 'aria-current="page"' : '' %>><%- icon(link.icon, 'i-sm') %> <%= link.label %></a>
+      <% }) %>
+    </nav>
+    <div class="info-main">
+      <header class="info-head">
+        <h1><%= heading %></h1>
+        <% if (typeof lead !== 'undefined' && lead) { %><p class="info-lead"><%= lead %></p><% } %>
+        <% if (typeof updated !== 'undefined' && updated) { %><p class="info-updated"><%- icon('calendar', 'i-xs') %> Last updated: <%= store.policyUpdated %></p><% } %>
+      </header>

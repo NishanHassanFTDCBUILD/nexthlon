@@ -3,6 +3,8 @@ const profileService = require("../services/profileService");
 const adminService = require("../services/adminService");
 const adminProductService = require("../services/adminProductService");
 const cartService = require("../services/cartService");
+const homeService = require("../services/homeService");
+const { CONTACT_TOPICS } = require("../config/store");
 const { INDIAN_STATES, CATEGORIES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
@@ -10,9 +12,33 @@ const { linkBuilder } = require("../utils/queryString");
 // ---------- Store pages ----------
 
 const home = asyncHandler(async (req, res) => {
-  const sections = await productService.getHomeSections();
-  res.render("pages/home", { title: "Nexthlon | Your Next Move Starts Here", ...sections });
+  const data = await homeService.getHomePage();
+  res.render("pages/home", { title: "Nexthlon | Your Next Move Starts Here", ...data });
 });
+
+// The wishlist lives in the browser (localStorage); the page fills itself from /api/products/lookup.
+function wishlist(req, res) {
+  res.render("pages/wishlist", { title: "Your wishlist | Nexthlon" });
+}
+
+// ---------- Store information and policy pages ----------
+
+const INFO_PAGES = {
+  about: { view: "pages/about", title: "About us" },
+  contact: { view: "pages/contact", title: "Contact us" },
+  privacy: { view: "pages/privacy", title: "Privacy policy" },
+  terms: { view: "pages/terms", title: "Terms and conditions" },
+  refund: { view: "pages/refund-policy", title: "Cancellation and refund policy" },
+  shipping: { view: "pages/shipping-policy", title: "Shipping and delivery policy" }
+};
+
+// One handler per page, e.g. infoPage("privacy").
+function infoPage(key) {
+  const page = INFO_PAGES[key];
+  return function renderInfoPage(req, res) {
+    res.render(page.view, { title: `${page.title} | Nexthlon`, pageKey: key, topics: CONTACT_TOPICS });
+  };
+}
 
 const products = asyncHandler(async (req, res) => {
   const [result, categories] = await Promise.all([
@@ -125,6 +151,8 @@ const adminProductEdit = asyncHandler(async (req, res) => {
 
 module.exports = {
   home,
+  wishlist,
+  infoPage,
   products,
   productDetail,
   login,
