@@ -1,43 +1,55 @@
-<%- include('../partials/head', { bodyClass: 'admin-login-body' }) %>
+<%- include('../partials/head', { bodyClass: 'au-body cr-body', styles: ['auth'] }) %>
 
-<main id="main" class="admin-login">
-  <div class="admin-login-card">
+<%# The admin "control room": a WebGL wireframe globe with glowing data points, a scanning line and a
+    terminal that types a greeting. One glass card to sign in; no sign-up here. %>
+<main id="main" class="cr" data-auth data-mode="admin">
+  <div class="cr-scene" data-globe-scene aria-hidden="true">
+    <canvas class="cr-canvas" data-globe-canvas></canvas>
+    <div class="cr-fallback"><span></span><span></span></div>
+    <div class="cr-grid"></div>
+    <div class="cr-scan"></div>
+  </div>
+
+  <header class="au-top cr-top">
     <a class="brand brand-light" href="/" aria-label="Nexthlon home">
       <span class="brand-mark"><%- icon('bolt') %></span>
-      <span class="brand-word">NEXTHLON<small>Admin console</small></span>
+      <span class="brand-word">NEXTHLON<small>Control room</small></span>
     </a>
-    <div class="admin-login-badge"><%- icon('shield', 'i-sm') %> Restricted area</div>
-    <div>
-      <h1>Administrator sign in</h1>
-      <p class="admin-login-lead">Only Nexthlon staff accounts can sign in here.</p>
+    <a class="au-back" href="/"><%- icon('chevron-left', 'i-sm') %> Back to store</a>
+  </header>
+
+  <section class="cr-panel" aria-labelledby="cr-title">
+    <div class="cr-terminal" aria-hidden="true">
+      <span class="cr-terminal-dots"><i></i><i></i><i></i></span>
+      <p data-terminal data-text="> Secure admin access…|> Session: encrypted, HttpOnly cookie|> Awaiting credentials">&gt; Secure admin access…</p>
     </div>
 
-    <% if (reason === 'blocked') { %>
-      <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>This account has been blocked.</span></div>
-    <% } else if (reason === 'expired') { %>
-      <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
-    <% } %>
-
-    <form class="form" data-auth-form data-endpoint="/api/admin/login" data-busy-label="Checking…" novalidate>
-      <div class="form-alert" data-form-alert aria-live="assertive"></div>
-      <input type="hidden" name="next" value="<%= next %>">
-      <div class="field">
-        <label for="email">Admin email</label>
-        <input id="email" name="email" type="email" autocomplete="username" required maxlength="254" aria-describedby="email-error">
-        <p class="field-error" id="email-error" data-error-for="email"></p>
+    <div class="au-card cr-card" data-tilt-card>
+      <div class="au-card-head">
+        <span class="cr-badge"><%- icon('shield', 'i-xs') %> Restricted area</span>
+        <h1 class="au-title" id="cr-title">Admin sign in</h1>
+        <p class="muted">For Nexthlon staff only. Every attempt is rate limited.</p>
       </div>
-      <div class="field">
-        <label for="password">Password</label>
-        <div class="password-wrap">
-          <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="64" aria-describedby="password-error">
-          <button type="button" class="reveal" data-reveal="password" aria-label="Show password"><%- icon('eye') %></button>
-        </div>
-        <p class="field-error" id="password-error" data-error-for="password"></p>
-      </div>
-      <button class="btn btn-primary btn-block btn-lg" type="submit"><%- icon('lock', 'i-sm') %> Sign in securely</button>
-    </form>
-    <a class="admin-login-back" href="/"><%- icon('chevron-left', 'i-xs') %> Back to the Nexthlon store</a>
-  </div>
+      <% if (reason === 'blocked') { %>
+        <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>This account has been blocked.</span></div>
+      <% } else if (reason === 'expired') { %>
+        <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
+      <% } %>
+      <form class="au-form" data-auth-form data-endpoint="/api/admin/login" data-kind="admin" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <input type="hidden" name="next" value="<%= next %>">
+        <%- include('../partials/auth-field', { id: 'admin-email', name: 'email', label: 'Admin email', type: 'email', fieldIcon: 'mail', autocomplete: 'username', max: 254, hint: '' }) %>
+        <%- include('../partials/auth-field', { id: 'admin-password', name: 'password', label: 'Password', type: 'password', fieldIcon: 'lock', autocomplete: 'current-password', max: 64, hint: '<span class="au-caps" data-caps hidden>Caps Lock is on</span>' }) %>
+        <button class="au-submit" type="submit" data-submit data-magnetic>
+          <span class="au-submit-label">Enter the console</span>
+          <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+          <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </button>
+      </form>
+      <p class="au-foot muted"><%- icon('user', 'i-xs') %> Shopping instead? <a href="/login">Customer sign in</a></p>
+    </div>
+  </section>
+  <div class="au-zoom" data-auth-zoom aria-hidden="true"></div>
 </main>
 
-<%- include('../partials/scripts', { scripts: ['auth'] }) %>
+<%- include('../partials/scripts', { scripts: ['auth'], modules: ['auth3d'] }) %>

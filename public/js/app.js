@@ -62,6 +62,8 @@
       const error = new Error(data.message || "Something went wrong. Please try again.");
       error.status = response.status;
       error.fieldErrors = data.errors || {};
+      // Lets a form read rate-limit headers (attempts left) on a failed request.
+      error.headers = response.headers;
       throw error;
     }
     return data;

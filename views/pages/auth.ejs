@@ -1,0 +1,113 @@
+<%- include('../partials/head', { bodyClass: 'au-body', styles: ['auth'] }) %>
+
+<%
+  // One page for /login and /signup. The card flips between the two forms without a reload;
+  // without JavaScript each URL simply shows its own form.
+  const isSignup = mode === 'signup';
+  const nextQuery = next !== '/' ? '?next=' + encodeURIComponent(next) : '';
+%>
+<main id="main" class="au" data-auth data-mode="<%= mode %>">
+  <section class="au-scene" data-auth-scene>
+    <canvas class="au-canvas" data-auth-canvas aria-hidden="true"></canvas>
+    <div class="au-scene-fallback" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="au-motto" aria-hidden="true">
+      <span class="au-motto-kicker"><%- icon('bolt', 'i-xs') %> Nexthlon performance gear</span>
+      <p class="au-motto-line" data-motto data-lines="Train harder.|Run further.|Play smarter.|Lift heavier.">Train harder.</p>
+      <p class="au-motto-sub">Gear picked by athletes, delivered across India.</p>
+    </div>
+  </section>
+
+  <header class="au-top">
+    <a class="brand brand-light" href="/" aria-label="Nexthlon home">
+      <span class="brand-mark"><%- icon('bolt') %></span>
+      <span class="brand-word">NEXTHLON</span>
+    </a>
+  </header>
+
+  <section class="au-panel" aria-label="Sign in or create an account">
+    <a class="au-back" href="/"><%- icon('chevron-left', 'i-sm') %> Back to store</a>
+    <nav class="au-switch" aria-label="Choose sign in or create account" data-auth-switch>
+      <span class="au-switch-pill" aria-hidden="true"></span>
+      <a href="/login<%= nextQuery %>" data-auth-to="login" <%- isSignup ? '' : 'aria-current="page"' %>>Sign in</a>
+      <a href="/signup<%= nextQuery %>" data-auth-to="signup" <%- isSignup ? 'aria-current="page"' : '' %>>Create account</a>
+    </nav>
+
+    <div class="au-flip" data-auth-flip>
+      <div class="au-flip-inner">
+        <%# ---------- Front: sign in ---------- %>
+        <div class="au-card au-face au-face-login" data-face="login" data-tilt-card <%- isSignup ? 'inert aria-hidden="true"' : '' %>>
+          <div class="au-card-head">
+            <h1 class="au-title"><%= isSignup ? 'Welcome back' : 'Welcome back' %></h1>
+            <p class="muted">Sign in to pick up where you left off.</p>
+          </div>
+          <% if (reason === 'blocked') { %>
+            <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Your account has been blocked. Please contact Nexthlon support.</span></div>
+          <% } else if (reason === 'expired') { %>
+            <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
+          <% } %>
+          <form class="au-form" data-auth-form data-endpoint="/api/login" data-kind="login" novalidate>
+            <div class="form-alert" data-form-alert aria-live="assertive"></div>
+            <input type="hidden" name="next" value="<%= next %>">
+            <%- include('../partials/auth-field', { id: 'login-email', name: 'email', label: 'Email address', type: 'email', fieldIcon: 'mail', autocomplete: 'email', max: 254, hint: '' }) %>
+            <%- include('../partials/auth-field', { id: 'login-password', name: 'password', label: 'Password', type: 'password', fieldIcon: 'lock', autocomplete: 'current-password', max: 64, hint: '<span class="au-caps" data-caps hidden>Caps Lock is on</span>' }) %>
+            <button class="au-submit" type="submit" data-submit data-magnetic>
+              <span class="au-submit-label">Sign in</span>
+              <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+              <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+            </button>
+          </form>
+          <p class="au-foot muted"><%- icon('shield', 'i-xs') %> Store administrator? <a href="/admin/login">Admin console</a></p>
+        </div>
+
+        <%# ---------- Back: create an account ---------- %>
+        <div class="au-card au-face au-face-signup" data-face="signup" data-tilt-card <%- isSignup ? '' : 'inert aria-hidden="true"' %>>
+          <div class="au-card-head">
+            <h1 class="au-title">Join Nexthlon</h1>
+            <p class="muted">It takes less than a minute.<%= referralReward > 0 ? ' Got an invite? You both get ' + formatPrice(referralReward) + '.' : '' %></p>
+          </div>
+          <form class="au-form" data-auth-form data-endpoint="/api/signup" data-kind="signup" novalidate>
+            <div class="form-alert" data-form-alert aria-live="assertive"></div>
+            <input type="hidden" name="next" value="<%= next %>">
+            <%- include('../partials/auth-field', { id: 'signup-name', name: 'name', label: 'Full name', type: 'text', fieldIcon: 'user', autocomplete: 'name', max: 60, hint: '' }) %>
+            <%- include('../partials/auth-field', { id: 'signup-email', name: 'email', label: 'Email address', type: 'email', fieldIcon: 'mail', autocomplete: 'email', max: 254, hint: '' }) %>
+            <%- include('../partials/auth-field', { id: 'signup-password', name: 'password', label: 'Password', type: 'password', fieldIcon: 'lock', autocomplete: 'new-password', max: 64, hint: '<span class="au-caps" data-caps hidden>Caps Lock is on</span>' }) %>
+            <div class="au-strength" data-strength-box>
+              <div class="au-meter" aria-hidden="true"><span data-meter-bar></span></div>
+              <p class="au-meter-label" data-meter-label aria-live="polite">Use 8 or more characters with a letter and a number.</p>
+              <ul class="au-checks" aria-label="Password checklist">
+                <li data-check="length"><span class="au-check-mark" aria-hidden="true"></span>8+ characters<em>required</em><span class="sr-only" data-check-state> (not yet)</span></li>
+                <li data-check="letter"><span class="au-check-mark" aria-hidden="true"></span>A letter<em>required</em><span class="sr-only" data-check-state> (not yet)</span></li>
+                <li data-check="number"><span class="au-check-mark" aria-hidden="true"></span>A number<em>required</em><span class="sr-only" data-check-state> (not yet)</span></li>
+                <li data-check="upper"><span class="au-check-mark" aria-hidden="true"></span>An uppercase letter<span class="sr-only" data-check-state> (not yet)</span></li>
+                <li data-check="symbol"><span class="au-check-mark" aria-hidden="true"></span>A symbol<span class="sr-only" data-check-state> (not yet)</span></li>
+              </ul>
+            </div>
+            <%- include('../partials/auth-field', { id: 'signup-confirm', name: 'confirmPassword', label: 'Confirm password', type: 'password', fieldIcon: 'check', autocomplete: 'new-password', max: 64, hint: '' }) %>
+            <details class="au-referral" <%= referralCode ? 'open' : '' %>>
+              <summary><%- icon('gift', 'i-sm') %> Have a referral code?</summary>
+              <%- include('../partials/auth-field', { id: 'signup-referral', name: 'referralCode', label: 'Referral code (optional)', type: 'text', fieldIcon: 'tag', autocomplete: 'off', max: 12, value: referralCode, optional: true, hint: '', extra: 'autocapitalize="characters" spellcheck="false"' }) %>
+            </details>
+            <button class="au-submit" type="submit" data-submit data-magnetic>
+              <span class="au-submit-label">Create account</span>
+              <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+              <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+            </button>
+            <p class="au-foot muted">By creating an account you agree to our <a href="/terms">terms</a> and <a href="/privacy">privacy policy</a>.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="au-success" data-auth-success role="status" aria-live="polite" hidden>
+    <canvas class="au-success-confetti" data-auth-confetti aria-hidden="true"></canvas>
+    <div class="au-success-card">
+      <svg class="au-success-tick" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28"/><path d="M19 33l9 9 17-19"/></svg>
+      <h2 data-success-title>Welcome to Nexthlon!</h2>
+      <p data-success-text></p>
+    </div>
+  </div>
+  <div class="au-zoom" data-auth-zoom aria-hidden="true"></div>
+</main>
+
+<%- include('../partials/scripts', { scripts: ['confetti', 'auth'], modules: ['auth3d'] }) %>

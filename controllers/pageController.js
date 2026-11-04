@@ -118,24 +118,23 @@ const productDetail = asyncHandler(async (req, res) => {
 
 // ---------- Account pages ----------
 
-function login(req, res) {
-  res.render("pages/login", {
-    title: "Sign in | Nexthlon",
-    next: safeNextPath(req.query.next, "/"),
-    reason: req.query.reason
+// /login and /signup share one page whose card flips between the two forms.
+// /signup?ref=CODE fills in a friend's referral code.
+function authPage(mode) {
+  return asyncHandler(async (req, res) => {
+    const ref = referralService.normaliseCode(req.query.ref);
+    res.render("pages/auth", {
+      title: mode === "signup" ? "Create your account | Nexthlon" : "Sign in | Nexthlon",
+      mode,
+      next: safeNextPath(req.query.next, "/"),
+      reason: req.query.reason,
+      referralCode: referralService.CODE.test(ref) ? ref : "",
+      referralReward: await settingsService.get("referralReward")
+    });
   });
 }
-
-// /signup?ref=CODE fills in a friend's referral code.
-const signup = asyncHandler(async (req, res) => {
-  const ref = referralService.normaliseCode(req.query.ref);
-  res.render("pages/signup", {
-    title: "Create your account | Nexthlon",
-    next: safeNextPath(req.query.next, "/"),
-    referralCode: referralService.CODE.test(ref) ? ref : "",
-    referralReward: await settingsService.get("referralReward")
-  });
-});
+const login = authPage("login");
+const signup = authPage("signup");
 
 const wallet = asyncHandler(async (req, res) => {
   const [data, referral] = await Promise.all([

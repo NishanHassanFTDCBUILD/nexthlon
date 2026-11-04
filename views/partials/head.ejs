@@ -17,5 +17,7 @@
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/motion.css">
+  <% (typeof styles !== 'undefined' ? styles : []).forEach(function (name) { %><link rel="stylesheet" href="/css/<%= name %>.css">
+  <% }) %>
 </head>
 <body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>">

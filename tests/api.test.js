@@ -1503,3 +1503,22 @@ test("a payment that lands after the shopper cancelled the order is refunded at 
   // The cart was never emptied.
   assert.equal((await call("GET", "/api/cart", { cookie: late.cookie })).data.cart.items.length, 1);
 });
+
+// ---------- Redesigned sign-in pages ----------
+test("sign in and create account share one flipping card; admins get the control room", async () => {
+  const login = await call("GET", "/login?next=%2Fcart");
+  assert.equal(login.status, 200);
+  assert.match(login.data, /data-mode="login"/);
+  assert.match(login.data, /data-endpoint="\/api\/login"/);
+  assert.match(login.data, /data-endpoint="\/api\/signup"/);
+  assert.match(login.data, /data-face="signup"[^>]*inert/);
+  assert.match(login.data, /href="\/signup\?next=%2Fcart"/);
+  const signup = await call("GET", "/signup");
+  assert.match(signup.data, /data-mode="signup"/);
+  assert.match(signup.data, /data-face="login"[^>]*inert/);
+  assert.match(signup.data, /type="module" src="\/js\/auth3d\.js"/);
+  const admin = await call("GET", "/admin/login");
+  assert.match(admin.data, /data-globe-scene/);
+  assert.match(admin.data, /data-endpoint="\/api\/admin\/login"/);
+  assert.doesNotMatch(admin.data, /\/api\/signup/);
+});

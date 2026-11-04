@@ -1,0 +1,21 @@
+<%# One sign-in field: an icon, the input, a floating label, an animated underline, a tick when
+    valid, and the error slot. Pass { id, name, label, type, icon, autocomplete, max, value, extra }. %>
+<%
+  const fieldType = typeof type !== 'undefined' ? type : 'text';
+  const isPassword = fieldType === 'password';
+  const describedBy = id + '-error' + (typeof hint !== 'undefined' && hint ? ' ' + id + '-hint' : '');
+%>
+<div class="au-field <%= isPassword ? 'au-field-password' : '' %>" data-field>
+  <span class="au-field-icon" aria-hidden="true"><%- icon(typeof fieldIcon !== 'undefined' ? fieldIcon : 'user', 'i-sm') %></span>
+  <input id="<%= id %>" name="<%= name %>" type="<%= fieldType %>" placeholder=" " autocomplete="<%= typeof autocomplete !== 'undefined' ? autocomplete : 'off' %>" maxlength="<%= typeof max !== 'undefined' ? max : 254 %>" <%= typeof optional !== 'undefined' && optional ? '' : 'required' %> aria-describedby="<%= describedBy %>" value="<%= typeof value !== 'undefined' ? value : '' %>" <%- typeof extra !== 'undefined' ? extra : '' %>>
+  <label for="<%= id %>"><%= label %></label>
+  <span class="au-line" aria-hidden="true"></span>
+  <span class="au-ok" aria-hidden="true"><%- icon('check', 'i-xs') %></span>
+  <% if (isPassword) { %>
+    <button type="button" class="au-eye" data-eye aria-label="Show password" aria-controls="<%= id %>" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="au-eye-shape" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle class="au-eye-pupil" cx="12" cy="12" r="3"/><path class="au-eye-slash" d="M3 3l18 18"/></svg>
+    </button>
+  <% } %>
+  <% if (typeof hint !== 'undefined' && hint) { %><p class="au-hint" id="<%= id %>-hint"><%- hint %></p><% } %>
+  <p class="field-error" id="<%= id %>-error" data-error-for="<%= name %>"></p>
+</div>
