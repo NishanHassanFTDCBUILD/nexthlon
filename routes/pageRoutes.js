@@ -32,7 +32,6 @@ router.get("/orders/:orderId/invoice", customerPage, pages.orderInvoice);
 router.get("/admin/login", guestOnly, pages.adminLogin);
 router.get("/admin", adminPage, pages.adminDashboard);
 router.get("/admin/users", adminPage, pages.adminUsers);
-router.get("/admin/design-system", adminPage, pages.adminDesignSystem);
 router.get("/admin/products", adminPage, pages.adminProducts);
 router.get("/admin/products/new", adminPage, pages.adminProductNew);
 router.get("/admin/products/:productId/edit", adminPage, pages.adminProductEdit);

@@ -162,7 +162,7 @@
   @keyframes nx-line-draw { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
 }
 
-/* ---------- Design system: empty-state illustrations float, and tooltips ---------- */
+/* ---------- Empty-state illustrations float, and tooltips ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .empty-art .ea-object { animation: nx-float 4.5s var(--ease-in-out) infinite; }
   .empty-art .ea-shadow { transform-box: fill-box; transform-origin: center; animation: nx-float-shadow 4.5s var(--ease-in-out) infinite; }

@@ -31,7 +31,7 @@ code { font: 0.9em/1 Consolas, monospace; background: var(--brand-soft); padding
 
 /* One clear keyboard focus ring everywhere. Dark areas switch it to orange. */
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.on-dark, .promo-bar, .site-header, .hero, .carousel, .join-banner, .site-footer, .auth-side, .admin-sidebar, .admin-login-body, .toast, .deal-banner { --focus: var(--accent); }
+.on-dark, .promo-bar, .site-header, .join-banner, .site-footer, .admin-sidebar, .toast { --focus: var(--accent); }
 
 .container { width: 100%; max-width: 1440px; margin: 0 auto; padding-left: max(var(--space-2), env(safe-area-inset-left)); padding-right: max(var(--space-2), env(safe-area-inset-right)); }
 .page { padding-top: var(--space-2h); padding-bottom: var(--space-8); }
@@ -434,7 +434,7 @@ dialog[open] { animation: pop 0.22s var(--ease); }
 }
 
 /* ==========================================================================
-   Design system additions: icon buttons, switch, chips, tooltips, option cards,
+   Extra components: icon buttons, switch, chips, tooltips, option cards,
    bottom sheet, data table and illustrated empty states.
    ========================================================================== */
 
