@@ -1,93 +1,135 @@
 <%- include('../partials/head', { bodyClass: 'admin-body' }) %>
 
+<%
+  const healthy = Math.max(stats.products - stats.lowStock - stats.outOfStock, 0);
+  const stockTotal = Math.max(stats.products, 1);
+%>
 <div class="admin-shell">
   <%- include('../partials/admin-sidebar') %>
 
   <main id="main" class="admin-main">
     <header class="admin-top">
       <div>
+        <span class="section-kicker">Overview</span>
         <h1>Dashboard</h1>
         <p class="muted">Welcome back, <%= firstName(currentUser.name) %>. Here is how Nexthlon looks today.</p>
       </div>
-      <span class="admin-who"><span class="avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span> <%= currentUser.email %></span>
+      <div class="admin-top-actions">
+        <a class="btn btn-ghost btn-sm" href="/"><%- icon('home', 'i-sm') %> View store</a>
+        <a class="btn btn-primary btn-sm" href="/admin/users"><%- icon('users', 'i-sm') %> Manage users</a>
+      </div>
     </header>
 
-    <section class="stat-grid" aria-label="Store statistics">
-      <a class="stat" href="/admin/users">
-        <span class="stat-icon"><%- icon('users') %></span>
-        <span class="stat-label">Customers</span>
-        <strong><%= stats.customers %></strong>
-      </a>
-      <a class="stat" href="/admin/users">
-        <span class="stat-icon stat-icon-green"><%- icon('plus') %></span>
-        <span class="stat-label">New this week</span>
-        <strong><%= stats.newCustomers %></strong>
-      </a>
-      <a class="stat" href="/admin/users?status=blocked">
-        <span class="stat-icon stat-icon-red"><%- icon('lock') %></span>
-        <span class="stat-label">Blocked customers</span>
-        <strong><%= stats.blockedCustomers %></strong>
-      </a>
-      <div class="stat">
-        <span class="stat-icon"><%- icon('box') %></span>
-        <span class="stat-label">Active products</span>
-        <strong><%= stats.products %></strong>
-      </div>
-      <div class="stat">
-        <span class="stat-icon stat-icon-amber"><%- icon('alert') %></span>
-        <span class="stat-label">Low stock (5 or fewer)</span>
-        <strong><%= stats.lowStock %></strong>
-      </div>
-      <div class="stat">
-        <span class="stat-icon stat-icon-red"><%- icon('x') %></span>
-        <span class="stat-label">Out of stock</span>
-        <strong><%= stats.outOfStock %></strong>
+    <section aria-labelledby="customers-stats">
+      <h2 class="admin-section-title" id="customers-stats">Customers</h2>
+      <div class="stat-grid">
+        <a class="stat" href="/admin/users">
+          <span class="stat-icon"><%- icon('users') %></span>
+          <span class="stat-label">Customers</span>
+          <strong class="stat-value"><%= stats.customers %></strong>
+          <span class="stat-link">View all <%- icon('arrow-right', 'i-xs') %></span>
+        </a>
+        <a class="stat" href="/admin/users">
+          <span class="stat-icon stat-icon-green"><%- icon('plus') %></span>
+          <span class="stat-label">New this week</span>
+          <strong class="stat-value"><%= stats.newCustomers %></strong>
+          <span class="stat-link">In the last 7 days</span>
+        </a>
+        <a class="stat" href="/admin/users?status=blocked">
+          <span class="stat-icon stat-icon-red"><%- icon('lock') %></span>
+          <span class="stat-label">Blocked customers</span>
+          <strong class="stat-value"><%= stats.blockedCustomers %></strong>
+          <span class="stat-link">Review <%- icon('arrow-right', 'i-xs') %></span>
+        </a>
       </div>
     </section>
 
+    <section aria-labelledby="catalogue-stats">
+      <h2 class="admin-section-title" id="catalogue-stats">Catalogue</h2>
+      <div class="stat-grid">
+        <div class="stat">
+          <span class="stat-icon"><%- icon('box') %></span>
+          <span class="stat-label">Active products</span>
+          <strong class="stat-value"><%= stats.products %></strong>
+        </div>
+        <div class="stat">
+          <span class="stat-icon stat-icon-amber"><%- icon('alert') %></span>
+          <span class="stat-label">Low stock (5 or fewer)</span>
+          <strong class="stat-value"><%= stats.lowStock %></strong>
+        </div>
+        <div class="stat">
+          <span class="stat-icon stat-icon-red"><%- icon('x') %></span>
+          <span class="stat-label">Out of stock</span>
+          <strong class="stat-value"><%= stats.outOfStock %></strong>
+        </div>
+      </div>
+      <% if (stats.products) { %>
+        <div class="stock-health panel">
+          <div class="stock-health-head">
+            <strong>Stock health</strong>
+            <span class="muted"><%= Math.round(healthy / stockTotal * 100) %>% of products are well stocked</span>
+          </div>
+          <div class="stock-bar" role="img" aria-label="<%= healthy %> well stocked, <%= stats.lowStock %> low, <%= stats.outOfStock %> out of stock">
+            <% if (healthy) { %><span class="stock-bar-ok" style="flex-grow: <%= healthy %>"></span><% } %>
+            <% if (stats.lowStock) { %><span class="stock-bar-low" style="flex-grow: <%= stats.lowStock %>"></span><% } %>
+            <% if (stats.outOfStock) { %><span class="stock-bar-out" style="flex-grow: <%= stats.outOfStock %>"></span><% } %>
+          </div>
+          <ul class="stock-legend">
+            <li><span class="dot dot-ok"></span> Well stocked <strong><%= healthy %></strong></li>
+            <li><span class="dot dot-low"></span> Low <strong><%= stats.lowStock %></strong></li>
+            <li><span class="dot dot-out"></span> Out <strong><%= stats.outOfStock %></strong></li>
+          </ul>
+        </div>
+      <% } %>
+    </section>
+
     <div class="admin-panels">
-      <section class="panel">
+      <section class="panel panel-flush" aria-labelledby="newest-title">
         <div class="panel-head panel-head-row">
-          <h2>Newest customers</h2>
+          <h2 id="newest-title">Newest customers</h2>
           <a href="/admin/users">Manage users <%- icon('chevron-right', 'i-sm') %></a>
         </div>
         <% if (recentCustomers.length) { %>
           <div class="table-wrap">
-            <table class="table">
-              <thead><tr><th>Customer</th><th>Joined</th><th>Status</th></tr></thead>
+            <table class="table table-stack">
+              <thead><tr><th scope="col">Customer</th><th scope="col">Joined</th><th scope="col">Status</th></tr></thead>
               <tbody>
                 <% recentCustomers.forEach(function (c) { %>
                   <tr>
                     <td><div class="person"><span class="avatar avatar-sm"><%= c.name.charAt(0).toUpperCase() %></span><div><strong><%= c.name %></strong><span><%= c.email %></span></div></div></td>
-                    <td><%= formatDate(c.createdAt) %></td>
-                    <td><span class="pill <%= c.isBlocked ? 'pill-red' : 'pill-green' %>"><%= c.isBlocked ? 'Blocked' : 'Active' %></span></td>
+                    <td data-label="Joined"><%= formatDate(c.createdAt) %></td>
+                    <td data-label="Status"><span class="pill <%= c.isBlocked ? 'pill-red' : 'pill-green' %>"><%= c.isBlocked ? 'Blocked' : 'Active' %></span></td>
                   </tr>
                 <% }) %>
               </tbody>
             </table>
           </div>
         <% } else { %>
-          <p class="muted">No customers have signed up yet.</p>
+          <div class="panel-empty"><%- icon('users', 'i-lg') %><p>No customers have signed up yet.</p></div>
         <% } %>
       </section>
 
-      <section class="panel">
+      <section class="panel" aria-labelledby="lowstock-title">
         <div class="panel-head panel-head-row">
-          <h2>Low stock</h2>
+          <h2 id="lowstock-title">Low stock</h2>
           <span class="muted">5 or fewer left</span>
         </div>
         <% if (lowStockProducts.length) { %>
           <ul class="stock-list">
             <% lowStockProducts.forEach(function (p) { %>
               <li>
-                <img src="<%= p.image %>" alt="" width="44" height="44" loading="lazy">
-                <div><a href="/products/<%= p.slug %>"><%= p.name %></a><span><%= p.category %></span></div>
-                <span class="pill <%= p.stock === 0 ? 'pill-red' : 'pill-amber' %>"><%= p.stock === 0 ? 'Out' : p.stock + ' left' %></span>
+                <img src="<%= p.image %>" alt="" width="48" height="48" loading="lazy">
+                <div class="stock-list-info">
+                  <a href="/products/<%= p.slug %>"><%= p.name %></a>
+                  <span><%= p.category %></span>
+                  <span class="mini-meter" aria-hidden="true"><span class="<%= p.stock === 0 ? 'is-out' : '' %>" style="--fill: <%= Math.min(p.stock, 5) / 5 %>"></span></span>
+                </div>
+                <span class="pill <%= p.stock === 0 ? 'pill-red' : 'pill-amber' %>"><%= p.stock === 0 ? 'Out of stock' : p.stock + ' left' %></span>
               </li>
             <% }) %>
           </ul>
         <% } else { %>
-          <p class="muted">Every product is well stocked.</p>
+          <div class="panel-empty"><%- icon('check', 'i-lg') %><p>Every product is well stocked.</p></div>
         <% } %>
       </section>
     </div>

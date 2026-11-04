@@ -7,33 +7,36 @@
       <span class="brand-word">NEXTHLON<small>Admin console</small></span>
     </a>
     <div class="admin-login-badge"><%- icon('shield', 'i-sm') %> Restricted area</div>
-    <h1>Administrator sign in</h1>
-    <p>Only Nexthlon staff accounts can sign in here.</p>
+    <div>
+      <h1>Administrator sign in</h1>
+      <p class="admin-login-lead">Only Nexthlon staff accounts can sign in here.</p>
+    </div>
 
     <% if (reason === 'blocked') { %>
-      <div class="alert alert-danger" role="alert"><%- icon('alert') %> This account has been blocked.</div>
+      <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>This account has been blocked.</span></div>
     <% } else if (reason === 'expired') { %>
-      <div class="alert alert-info" role="status"><%- icon('alert') %> Your session has ended. Please sign in again.</div>
+      <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
     <% } %>
 
-    <form class="form" data-auth-form data-endpoint="/api/admin/login" novalidate>
+    <form class="form" data-auth-form data-endpoint="/api/admin/login" data-busy-label="Checking…" novalidate>
+      <div class="form-alert" data-form-alert aria-live="assertive"></div>
       <input type="hidden" name="next" value="<%= next %>">
       <div class="field">
         <label for="email">Admin email</label>
-        <input id="email" name="email" type="email" autocomplete="username" required maxlength="254">
-        <p class="field-error" data-error-for="email"></p>
+        <input id="email" name="email" type="email" autocomplete="username" required maxlength="254" aria-describedby="email-error">
+        <p class="field-error" id="email-error" data-error-for="email"></p>
       </div>
       <div class="field">
         <label for="password">Password</label>
         <div class="password-wrap">
-          <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="64">
+          <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="64" aria-describedby="password-error">
           <button type="button" class="reveal" data-reveal="password" aria-label="Show password"><%- icon('eye') %></button>
         </div>
-        <p class="field-error" data-error-for="password"></p>
+        <p class="field-error" id="password-error" data-error-for="password"></p>
       </div>
-      <button class="btn btn-primary btn-block btn-lg" type="submit">Sign in securely</button>
+      <button class="btn btn-primary btn-block btn-lg" type="submit"><%- icon('lock', 'i-sm') %> Sign in securely</button>
     </form>
-    <a class="admin-login-back" href="/">Back to the Nexthlon store</a>
+    <a class="admin-login-back" href="/"><%- icon('chevron-left', 'i-xs') %> Back to the Nexthlon store</a>
   </div>
 </main>
 

@@ -6,6 +6,7 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
   skipSuccessfulRequests: true,
+  //Sends standard rate-limit information in HTTP response headers.
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { message: "Too many attempts. Please wait 15 minutes and try again." }

@@ -1,12 +1,11 @@
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="site-header">
-  <div class="promo-bar">
-    <div class="container promo-inner">
-      <span><%- icon('bolt', 'i-sm') %> Gear tested on the 17 KM hill run</span>
-      <span class="hide-sm">Genuine brands · Clear MRP pricing · Secure accounts</span>
-    </div>
+<div class="promo-bar">
+  <div class="container promo-inner">
+    <span><%- icon('bolt', 'i-sm') %> Gear tested on the 17 KM hill run</span>
+    <span class="hide-sm">Genuine brands <i aria-hidden="true">·</i> Clear M.R.P. pricing <i aria-hidden="true">·</i> Secure accounts</span>
   </div>
-
+</div>
+<header class="site-header" data-site-header>
   <div class="mainbar">
     <div class="container mainbar-inner">
       <a class="brand" href="/" aria-label="Nexthlon home">
@@ -16,14 +15,17 @@
 
       <form class="search" action="/products" method="get" role="search">
         <label class="sr-only" for="search-category">Category</label>
-        <select id="search-category" name="category">
-          <option value="">All</option>
-          <% navCategories.forEach(function (name) { %>
-            <option value="<%= name %>" <%= query.category === name ? 'selected' : '' %>><%= name %></option>
-          <% }) %>
-        </select>
+        <span class="search-cat">
+          <select id="search-category" name="category">
+            <option value="">All</option>
+            <% navCategories.forEach(function (name) { %>
+              <option value="<%= name %>" <%= query.category === name ? 'selected' : '' %>><%= name %></option>
+            <% }) %>
+          </select>
+          <%- icon('chevron-down', 'i-xs') %>
+        </span>
         <label class="sr-only" for="search-q">Search Nexthlon</label>
-        <input id="search-q" type="search" name="q" maxlength="80" autocomplete="off"
+        <input id="search-q" type="search" name="q" maxlength="80" autocomplete="off" enterkeyhint="search"
                value="<%= typeof query.q === 'string' ? query.q : '' %>"
                placeholder="Search trail shoes, footballs, tents…">
         <button type="submit" aria-label="Search"><%- icon('search') %></button>
@@ -31,35 +33,45 @@
 
       <div class="account" data-menu>
         <% if (currentUser) { %>
-          <button type="button" class="account-btn" data-menu-toggle aria-expanded="false" aria-haspopup="true">
+          <button type="button" class="account-btn" data-menu-toggle aria-expanded="false" aria-controls="account-menu">
             <span class="avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span>
             <span class="account-text">
               <small>Hello, <%= firstName(currentUser.name) %></small>
-              <strong>Account <%- icon('chevron-down', 'i-xs') %></strong>
+              <strong>Account <%- icon('chevron-down', 'i-xs account-caret') %></strong>
             </span>
+            <span class="sr-only">Open account menu</span>
           </button>
-          <div class="menu" data-menu-panel hidden>
+          <div class="menu" id="account-menu" data-menu-panel tabindex="-1" hidden>
             <div class="menu-head">
-              <strong><%= currentUser.name %></strong>
-              <span><%= currentUser.email %></span>
+              <span class="avatar avatar-md"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+              <span class="menu-who">
+                <strong><%= currentUser.name %></strong>
+                <span><%= currentUser.email %></span>
+              </span>
+              <% if (currentUser.role === 'admin') { %><span class="pill pill-blue menu-role">Admin</span><% } %>
             </div>
-            <% if (currentUser.role === 'admin') { %>
-              <a href="/admin"><%- icon('grid') %> Admin dashboard</a>
-              <a href="/admin/users"><%- icon('users') %> Manage users</a>
-            <% } else { %>
-              <a href="/profile"><%- icon('user') %> Your profile</a>
-              <a href="/profile#addresses"><%- icon('pin') %> Saved addresses</a>
-              <a href="/profile#security"><%- icon('lock') %> Login &amp; security</a>
-            <% } %>
-            <button type="button" class="menu-logout"
-                    data-logout="<%= currentUser.role === 'admin' ? '/api/admin/logout' : '/api/logout' %>">
-              <%- icon('logout') %> Sign out
-            </button>
+            <div class="menu-group">
+              <% if (currentUser.role === 'admin') { %>
+                <a href="/admin"><%- icon('grid') %> Admin dashboard</a>
+                <a href="/admin/users"><%- icon('users') %> Manage users</a>
+              <% } else { %>
+                <a href="/profile"><%- icon('user') %> Your profile</a>
+                <a href="/profile#addresses"><%- icon('pin') %> Saved addresses</a>
+                <a href="/profile#security"><%- icon('lock') %> Login &amp; security</a>
+              <% } %>
+            </div>
+            <div class="menu-group">
+              <button type="button" class="menu-logout"
+                      data-logout="<%= currentUser.role === 'admin' ? '/api/admin/logout' : '/api/logout' %>">
+                <%- icon('logout') %> Sign out
+              </button>
+            </div>
           </div>
         <% } else { %>
           <a class="account-btn" href="/login">
             <span class="avatar is-guest"><%- icon('user') %></span>
             <span class="account-text"><small>Hello, sign in</small><strong>Account</strong></span>
+            <span class="sr-only">Sign in</span>
           </a>
           <a class="btn btn-primary btn-sm hide-sm" href="/signup">Join free</a>
         <% } %>
@@ -68,10 +80,10 @@
   </div>
 
   <nav class="catnav" aria-label="Shop by category">
-    <div class="container catnav-inner">
-      <a href="/products" class="<%= path === '/products' && !query.category ? 'is-active' : '' %>"><%- icon('grid', 'i-sm') %> All gear</a>
+    <div class="container catnav-inner" data-catnav>
+      <a href="/products" class="<%= path === '/products' && !query.category ? 'is-active' : '' %>" <%- path === '/products' && !query.category ? 'aria-current="page"' : '' %>><%- icon('grid', 'i-sm') %> All gear</a>
       <% navCategories.forEach(function (name) { %>
-        <a href="/products?category=<%= encodeURIComponent(name) %>" class="<%= query.category === name ? 'is-active' : '' %>"><%= name %></a>
+        <a href="/products?category=<%= encodeURIComponent(name) %>" class="<%= query.category === name ? 'is-active' : '' %>" <%- query.category === name ? 'aria-current="page"' : '' %>><%= name %></a>
       <% }) %>
     </div>
   </nav>

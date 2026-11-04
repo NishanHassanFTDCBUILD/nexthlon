@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const { COOKIE_NAME, verifyToken, clearAuthCookie } = require("../services/tokenService");
 const { HttpError } = require("../utils/http");
-
+//Reads JWT from cookie or Bearer header
 // The token can arrive as a "Bearer" header (Postman, mobile apps) or as the login cookie (browser).
 function readToken(req) {
   const header = req.get("authorization") || "";
@@ -9,7 +9,7 @@ function readToken(req) {
   const cookie = req.cookies && req.cookies[COOKIE_NAME];
   return cookie ? { token: cookie, fromCookie: true } : { token: null, fromCookie: false };
 }
-
+//	Verifies JWT and attaches user
 // Runs on every request. The JWT says who the user is. The quick database lookup makes sure
 // the account still exists, is not blocked, and has not changed its password since the token was made.
 // No sessions are stored on the server: the token itself is the proof of login.
@@ -47,7 +47,7 @@ async function attachUser(req, res, next) {
 }
 
 // ---------- API guards: they reply with JSON errors ----------
-
+//checks whether user is logged in
 function requireAuth(req, res, next) {
   if (req.user) return next();
   if (req.authProblem === "blocked") {
@@ -55,7 +55,7 @@ function requireAuth(req, res, next) {
   }
   return next(new HttpError(401, "Please sign in to continue."));
 }
-
+//Checks customer/admin role
 function requireRole(role) {
   return function roleGuard(req, res, next) {
     if (req.user && req.user.role === role) return next();
@@ -64,19 +64,19 @@ function requireRole(role) {
 }
 
 // ---------- Page guards: they redirect instead ----------
-
+//Redirects unauthenticated visitors
 function redirectToLogin(req, res, loginPath) {
   const params = new URLSearchParams({ next: req.originalUrl });
   if (req.authProblem) params.set("reason", req.authProblem);
   return res.redirect(`${loginPath}?${params}`);
 }
-
+//	Protects customer pages
 function customerPage(req, res, next) {
   if (!req.user) return redirectToLogin(req, res, "/login");
   if (req.user.role !== "customer") return res.redirect("/admin");
   return next();
 }
-
+//Protects admin pages
 function adminPage(req, res, next) {
   if (!req.user) return redirectToLogin(req, res, "/admin/login");
   if (req.user.role !== "admin") {
@@ -84,7 +84,7 @@ function adminPage(req, res, next) {
   }
   return next();
 }
-
+//Prevents logged-in users from seeing login/signup pages
 // Signed-in users have no reason to see the login and signup pages.
 function guestOnly(req, res, next) {
   if (!req.user) return next();

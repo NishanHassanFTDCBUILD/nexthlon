@@ -1,4 +1,4 @@
-// Sign in, sign up and admin sign in forms.
+// Sign in, sign up and admin sign in forms, and the password rules checklist.
 (function () {
   "use strict";
 
@@ -8,14 +8,22 @@
     number: value => /\d/.test(value)
   };
 
-  // Ticks the password rules as the user types.
+  // Ticks the password rules as the user types and fills the strength bar.
   document.querySelectorAll("[data-strength]").forEach(input => {
-    const list = input.closest(".field").querySelector("[data-rules]");
+    const field = input.closest(".field");
+    const list = field.querySelector("[data-rules]");
+    const bar = field.querySelector("[data-strength-bar]");
     if (!list) return;
     input.addEventListener("input", () => {
+      let met = 0;
       list.querySelectorAll("[data-rule]").forEach(item => {
-        item.classList.toggle("is-met", RULES[item.dataset.rule](input.value));
+        const ok = RULES[item.dataset.rule](input.value);
+        if (ok) met += 1;
+        item.classList.toggle("is-met", ok);
+        const state = item.querySelector("[data-rule-state]");
+        if (state) state.textContent = ok ? " (done)" : " (not yet)";
       });
+      if (bar) bar.dataset.score = input.value ? String(met) : "0";
     });
   });
 
@@ -43,11 +51,14 @@
       const result = await Nx.submitForm(form, {
         url: form.dataset.endpoint,
         body: values,
-        busyLabel: "Signing in…"
+        busyLabel: form.dataset.busyLabel || "Signing in…"
       });
       if (result) {
+        Nx.formAlert(form, result.message, "success");
+        Nx.busy(form.querySelector('[type="submit"]'), true, "Taking you there…");
         Nx.flash(result.message);
-        window.location.assign(next);
+        // replace, not assign: Back must not return to the sign-in form.
+        window.location.replace(next);
       }
     });
   });

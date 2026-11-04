@@ -4,40 +4,51 @@
   <%- include('../partials/auth-side') %>
 
   <div class="auth-main">
-    <a class="auth-back" href="/"><%- icon('chevron-right', 'i-sm flip') %> Back to store</a>
-    <div class="auth-card">
-      <h1>Create your account</h1>
-      <p class="muted">It takes less than a minute.</p>
+    <div class="auth-top">
+      <a class="brand auth-mobile-brand" href="/" aria-label="Nexthlon home">
+        <span class="brand-mark"><%- icon('bolt') %></span>
+        <span class="brand-word">NEXTHLON</span>
+      </a>
+      <a class="auth-back" href="/"><%- icon('chevron-left', 'i-sm') %> Back to store</a>
+    </div>
 
-      <form class="form" data-auth-form data-endpoint="/api/signup" novalidate>
+    <div class="auth-card">
+      <div class="auth-card-head">
+        <h1>Create your account</h1>
+        <p class="muted">It takes less than a minute.</p>
+      </div>
+
+      <form class="form" data-auth-form data-endpoint="/api/signup" data-busy-label="Creating your account…" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
         <input type="hidden" name="next" value="<%= next %>">
         <div class="field">
           <label for="name">Full name</label>
-          <input id="name" name="name" type="text" autocomplete="name" required minlength="2" maxlength="60">
-          <p class="field-error" data-error-for="name"></p>
+          <input id="name" name="name" type="text" autocomplete="name" required minlength="2" maxlength="60" aria-describedby="name-error">
+          <p class="field-error" id="name-error" data-error-for="name"></p>
         </div>
         <div class="field">
           <label for="email">Email address</label>
-          <input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
-          <p class="field-error" data-error-for="email"></p>
+          <input id="email" name="email" type="email" autocomplete="email" required maxlength="254" aria-describedby="email-error" placeholder="you@example.com">
+          <p class="field-error" id="email-error" data-error-for="email"></p>
         </div>
         <div class="field">
           <label for="password">Password</label>
           <div class="password-wrap">
-            <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="64" data-strength>
+            <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="64" data-strength aria-describedby="password-rules password-error">
             <button type="button" class="reveal" data-reveal="password" aria-label="Show password"><%- icon('eye') %></button>
           </div>
-          <ul class="rules" data-rules>
-            <li data-rule="length">8 to 64 characters</li>
-            <li data-rule="letter">At least one letter</li>
-            <li data-rule="number">At least one number</li>
+          <div class="strength" aria-hidden="true"><span class="strength-bar" data-strength-bar></span></div>
+          <ul class="rules" id="password-rules" data-rules aria-label="Password must have">
+            <li data-rule="length"><span class="rule-mark" aria-hidden="true"></span>8 to 64 characters<span class="sr-only" data-rule-state> (not yet)</span></li>
+            <li data-rule="letter"><span class="rule-mark" aria-hidden="true"></span>At least one letter<span class="sr-only" data-rule-state> (not yet)</span></li>
+            <li data-rule="number"><span class="rule-mark" aria-hidden="true"></span>At least one number<span class="sr-only" data-rule-state> (not yet)</span></li>
           </ul>
-          <p class="field-error" data-error-for="password"></p>
+          <p class="field-error" id="password-error" data-error-for="password"></p>
         </div>
         <div class="field">
           <label for="confirmPassword">Confirm password</label>
-          <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required maxlength="64">
-          <p class="field-error" data-error-for="confirmPassword"></p>
+          <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required maxlength="64" aria-describedby="confirmPassword-error">
+          <p class="field-error" id="confirmPassword-error" data-error-for="confirmPassword"></p>
         </div>
         <button class="btn btn-primary btn-block btn-lg" type="submit">Create account</button>
       </form>

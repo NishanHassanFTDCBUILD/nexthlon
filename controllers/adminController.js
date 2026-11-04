@@ -20,6 +20,7 @@ const setCustomerBlocked = asyncHandler(async (req, res) => {
   }
   const customer = await adminService.setCustomerBlocked(req.params.userId, isBlocked);
   res.json({
+    //condition ? valueIfTrue : valueIfFalse
     message: isBlocked ? `${customer.name} has been blocked.` : `${customer.name} has been unblocked.`,
     customer
   });

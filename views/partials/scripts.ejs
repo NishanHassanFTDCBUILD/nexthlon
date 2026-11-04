@@ -1,7 +1,8 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<dialog class="confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-title">
+<dialog class="confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
   <form method="dialog">
+    <span class="confirm-icon" data-confirm-icon><%- icon('alert') %></span>
     <h2 id="confirm-title">Are you sure?</h2>
     <p id="confirm-message"></p>
     <div class="dialog-actions">

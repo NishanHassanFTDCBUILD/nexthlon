@@ -1,20 +1,35 @@
 <%- include('../partials/head') %>
 <%- include('../partials/header') %>
 
+<%
+  // Page numbers to show: first, last, and two either side of the current page, with gaps between.
+  const pageList = [];
+  for (let n = 1; n <= pagination.pages; n++) {
+    if (n === 1 || n === pagination.pages || Math.abs(n - pagination.page) <= 1) pageList.push(n);
+    else if (pageList[pageList.length - 1] !== '…') pageList.push('…');
+  }
+  const firstItem = pagination.total ? (pagination.page - 1) * pagination.limit + 1 : 0;
+  const lastItem = Math.min(pagination.page * pagination.limit, pagination.total);
+%>
 <main id="main" class="container page">
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
     <% if (filters.category) { %>
-      <a href="/products">All gear</a> <%- icon('chevron-right', 'i-xs') %> <span><%= filters.category %></span>
+      <a href="/products">All gear</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page"><%= filters.category %></span>
     <% } else { %>
-      <span>All gear</span>
+      <span aria-current="page">All gear</span>
     <% } %>
   </nav>
 
-  <div class="catalog">
-    <aside class="filters">
-      <details class="filter-panel" data-filter-panel open>
-        <summary><%- icon('filter', 'i-sm') %> Filters</summary>
+  <div class="catalog" data-catalog>
+    <div class="drawer-backdrop" data-filter-close hidden></div>
+    <aside class="filters" id="filter-drawer" aria-label="Filters" data-filter-drawer>
+      <div class="filter-panel">
+        <div class="filter-head">
+          <h2><%- icon('sliders', 'i-sm') %> Filters</h2>
+          <% if (chips.length) { %><a class="clear-link" href="/products">Clear all</a><% } %>
+          <button type="button" class="icon-btn filter-close" data-filter-close aria-label="Close filters"><%- icon('x') %></button>
+        </div>
         <form id="filters" class="filter-form" action="/products" method="get" data-auto-submit>
           <% if (filters.q) { %><input type="hidden" name="q" value="<%= filters.q %>"><% } %>
 
@@ -35,10 +50,10 @@
           <fieldset>
             <legend>Price (₹)</legend>
             <div class="price-inputs">
-              <label class="sr-only" for="min-price">Minimum price</label>
+              <label class="sr-only" for="min-price">Minimum price in rupees</label>
               <input id="min-price" type="number" name="min" min="0" step="1" inputmode="numeric" placeholder="Min" value="<%= filters.min !== null ? filters.min : '' %>">
-              <span>to</span>
-              <label class="sr-only" for="max-price">Maximum price</label>
+              <span aria-hidden="true">–</span>
+              <label class="sr-only" for="max-price">Maximum price in rupees</label>
               <input id="max-price" type="number" name="max" min="0" step="1" inputmode="numeric" placeholder="Max" value="<%= filters.max !== null ? filters.max : '' %>">
             </div>
             <button type="submit" class="btn btn-secondary btn-sm btn-block">Apply price</button>
@@ -46,40 +61,54 @@
 
           <fieldset>
             <legend>Availability</legend>
-            <label class="choice">
+            <label class="choice choice-switch">
               <input type="checkbox" name="inStock" value="1" <%= filters.inStock ? 'checked' : '' %>>
               <span>Hide out-of-stock items</span>
             </label>
           </fieldset>
-
-          <% if (chips.length) { %><a class="clear-link" href="/products">Clear all filters</a><% } %>
         </form>
-      </details>
+      </div>
     </aside>
 
-    <section class="results" aria-labelledby="results-heading">
-      <div class="results-bar">
-        <div>
-          <h1 id="results-heading"><%= heading %></h1>
-          <p class="muted"><%= pagination.total %> <%= pagination.total === 1 ? 'result' : 'results' %></p>
-        </div>
-        <label class="sort">
-          <span>Sort by</span>
-          <select name="sort" form="filters" data-auto-submit-field>
-            <% Object.entries(sorts).forEach(function ([key, option]) { %>
-              <option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= option.label %></option>
-            <% }) %>
-          </select>
-        </label>
+    <section class="results" aria-labelledby="results-heading" data-results>
+      <div class="results-head">
+        <h1 id="results-heading"><%= heading %></h1>
+        <p class="muted" aria-live="polite">
+          <% if (pagination.total) { %>
+            Showing <%= firstItem %>–<%= lastItem %> of <%= pagination.total %> <%= pagination.total === 1 ? 'result' : 'results' %>
+          <% } else { %>
+            0 results
+          <% } %>
+        </p>
       </div>
 
-      <% if (chips.length) { %>
-        <div class="chips" aria-label="Active filters">
-          <% chips.forEach(function (chip) { %>
-            <a class="chip" href="<%= chip.href %>" aria-label="Remove filter <%= chip.label %>"><%= chip.label %> <%- icon('x', 'i-xs') %></a>
-          <% }) %>
-        </div>
-      <% } %>
+      <div class="toolbar-sticky" data-sticky-toolbar>
+        <button type="button" class="btn btn-ghost btn-sm filter-open" data-filter-open aria-controls="filter-drawer" aria-expanded="false">
+          <%- icon('sliders', 'i-sm') %> Filters<% if (chips.length) { %> <span class="count-badge"><%= chips.length %></span><% } %>
+        </button>
+        <% if (chips.length) { %>
+          <ul class="chips" aria-label="Active filters">
+            <% chips.forEach(function (chip) { %>
+              <li><a class="chip" href="<%= chip.href %>" aria-label="Remove filter: <%= chip.label %>"><%= chip.label %> <%- icon('x', 'i-xs') %></a></li>
+            <% }) %>
+            <li><a class="chip chip-clear" href="/products">Clear all</a></li>
+          </ul>
+        <% } else { %>
+          <span class="toolbar-hint">Choose a sport, price or availability to narrow down.</span>
+        <% } %>
+        <label class="sort">
+          <span>Sort by</span>
+          <span class="select-wrap">
+            <select name="sort" form="filters" data-auto-submit-field>
+              <% Object.entries(sorts).forEach(function ([key, option]) { %>
+                <option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= option.label %></option>
+              <% }) %>
+            </select>
+            <%- icon('chevron-down', 'i-xs') %>
+          </span>
+        </label>
+        <span class="loading-bar" aria-hidden="true"></span>
+      </div>
 
       <% if (products.length) { %>
         <div class="product-grid product-grid-3">
@@ -87,7 +116,7 @@
         </div>
       <% } else { %>
         <div class="empty-state">
-          <%- icon('search', 'i-xl') %>
+          <span class="empty-icon"><%- icon('search', 'i-xl') %></span>
           <h2>No gear matches those filters</h2>
           <p>Try a different word, widen the price range, or browse every sport.</p>
           <a class="btn btn-primary" href="/products">Browse all gear</a>
@@ -97,13 +126,21 @@
       <% if (pagination.pages > 1) { %>
         <nav class="pagination" aria-label="Pages">
           <% if (pagination.page > 1) { %>
-            <a href="<%= link({ page: pagination.page - 1 }) %>" rel="prev">Previous</a>
+            <a class="page-step" href="<%= link({ page: pagination.page - 1 }) %>" rel="prev"><%- icon('chevron-left', 'i-sm') %> <span>Previous</span></a>
+          <% } else { %>
+            <span class="page-step is-disabled" aria-hidden="true"><%- icon('chevron-left', 'i-sm') %> <span>Previous</span></span>
           <% } %>
-          <% for (let n = 1; n <= pagination.pages; n++) { %>
-            <a href="<%= link({ page: n === 1 ? '' : n }) %>" class="<%= n === pagination.page ? 'is-current' : '' %>" <%- n === pagination.page ? 'aria-current="page"' : '' %>><%= n %></a>
-          <% } %>
+          <% pageList.forEach(function (n) { %>
+            <% if (n === '…') { %>
+              <span class="page-gap" aria-hidden="true">…</span>
+            <% } else { %>
+              <a href="<%= link({ page: n === 1 ? '' : n }) %>" class="page-num <%= n === pagination.page ? 'is-current' : '' %>" <%- n === pagination.page ? 'aria-current="page"' : '' %> aria-label="Page <%= n %>"><%= n %></a>
+            <% } %>
+          <% }) %>
           <% if (pagination.page < pagination.pages) { %>
-            <a href="<%= link({ page: pagination.page + 1 }) %>" rel="next">Next</a>
+            <a class="page-step" href="<%= link({ page: pagination.page + 1 }) %>" rel="next"><span>Next</span> <%- icon('chevron-right', 'i-sm') %></a>
+          <% } else { %>
+            <span class="page-step is-disabled" aria-hidden="true"><span>Next</span> <%- icon('chevron-right', 'i-sm') %></span>
           <% } %>
         </nav>
       <% } %>

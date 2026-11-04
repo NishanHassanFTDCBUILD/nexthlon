@@ -36,9 +36,33 @@
       });
       if (result) {
         passwordForm.reset();
+        passwordForm.querySelectorAll("[data-rules] .is-met").forEach(item => item.classList.remove("is-met"));
+        const bar = passwordForm.querySelector("[data-strength-bar]");
+        if (bar) bar.dataset.score = "0";
+        Nx.formAlert(passwordForm, result.message, "success");
         Nx.toast(result.message);
       }
     });
+  }
+
+  // ---------- Section menu ----------
+  // Highlights the section currently on screen in the side menu.
+  const navLinks = [...document.querySelectorAll("[data-account-nav] a[href^='#']")];
+  if (navLinks.length && "IntersectionObserver" in window) {
+    const mark = id => navLinks.forEach(link => {
+      const on = link.getAttribute("href") === `#${id}`;
+      link.classList.toggle("is-active", on);
+      if (on) link.setAttribute("aria-current", "true");
+      else link.removeAttribute("aria-current");
+    });
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => { if (entry.isIntersecting) mark(entry.target.id); });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    navLinks.forEach(link => {
+      const section = document.querySelector(link.getAttribute("href"));
+      if (section) observer.observe(section);
+    });
+    mark((location.hash || navLinks[0].getAttribute("href")).slice(1));
   }
 
   // ---------- Address book ----------
@@ -58,6 +82,7 @@
       addressForm.elements.isDefault.checked = Boolean(address.isDefault);
     }
     title.textContent = address ? "Edit address" : "Add a new address";
+    addressForm.querySelector('[type="submit"]').textContent = address ? "Save changes" : "Save address";
     dialog.showModal();
     addressForm.elements.fullName.focus();
   }
@@ -96,10 +121,12 @@
         confirmLabel: "Remove address"
       });
       if (!confirmed) return;
+      Nx.busy(button, true, "Removing…");
       try {
         const result = await Nx.api(`/api/addresses/${encodeURIComponent(button.dataset.addressDelete)}`, { method: "DELETE" });
         reloadWith(result.message);
       } catch (error) {
+        Nx.busy(button, false);
         Nx.toast(error.message, "error");
       }
     });
@@ -107,12 +134,12 @@
 
   document.querySelectorAll("[data-address-default]").forEach(button => {
     button.addEventListener("click", async () => {
-      button.disabled = true;
+      Nx.busy(button, true, "Saving…");
       try {
         const result = await Nx.api(`/api/addresses/${encodeURIComponent(button.dataset.addressDefault)}/default`, { method: "PATCH" });
         reloadWith(result.message);
       } catch (error) {
-        button.disabled = false;
+        Nx.busy(button, false);
         Nx.toast(error.message, "error");
       }
     });

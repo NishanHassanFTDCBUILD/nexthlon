@@ -3,13 +3,24 @@
 
 <main id="main" class="container page">
   <div class="error-page">
-    <span class="error-code">404</span>
+    <span class="error-code" aria-hidden="true">404</span>
     <h1>This trail ends here</h1>
     <p class="muted"><%= message %></p>
+    <form class="error-search" action="/products" method="get" role="search">
+      <label class="sr-only" for="error-q">Search Nexthlon</label>
+      <%- icon('search', 'i-sm') %>
+      <input id="error-q" type="search" name="q" maxlength="80" placeholder="Search for gear instead…">
+      <button class="btn btn-primary btn-sm" type="submit">Search</button>
+    </form>
     <div class="error-actions">
-      <a class="btn btn-primary" href="/">Back to home</a>
-      <a class="btn btn-ghost" href="/products">Browse all gear</a>
+      <a class="btn btn-ghost" href="/"><%- icon('home', 'i-sm') %> Back to home</a>
+      <a class="btn btn-ghost" href="/products"><%- icon('grid', 'i-sm') %> Browse all gear</a>
     </div>
+    <nav class="error-links" aria-label="Popular sports">
+      <% navCategories.slice(0, 6).forEach(function (name) { %>
+        <a class="chip chip-plain" href="/products?category=<%= encodeURIComponent(name) %>"><%= name %></a>
+      <% }) %>
+    </nav>
   </div>
 </main>
 

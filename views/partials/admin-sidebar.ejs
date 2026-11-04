@@ -4,6 +4,7 @@
     <span class="brand-word">NEXTHLON<small>Admin console</small></span>
   </a>
   <nav class="admin-nav" aria-label="Admin">
+    <span class="admin-nav-label">Manage</span>
     <a href="/admin" class="<%= path === '/admin' ? 'is-active' : '' %>" <%- path === '/admin' ? 'aria-current="page"' : '' %>><%- icon('grid') %> Dashboard</a>
     <a href="/admin/users" class="<%= path === '/admin/users' ? 'is-active' : '' %>" <%- path === '/admin/users' ? 'aria-current="page"' : '' %>><%- icon('users') %> Users</a>
     <span class="admin-nav-label">Next modules</span>
@@ -11,7 +12,11 @@
     <span class="admin-nav-soon"><%- icon('truck') %> Orders <em>Soon</em></span>
   </nav>
   <div class="admin-sidebar-foot">
-    <a href="/"><%- icon('home') %> View store</a>
-    <button type="button" data-logout="/api/admin/logout"><%- icon('logout') %> Sign out</button>
+    <div class="admin-sidebar-user">
+      <span class="avatar avatar-sm"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+      <span><strong><%= currentUser.name %></strong><small><%= currentUser.email %></small></span>
+    </div>
+    <a href="/"><%- icon('home') %> <span>View store</span></a>
+    <button type="button" data-logout="/api/admin/logout"><%- icon('logout') %> <span>Sign out</span></button>
   </div>
 </aside>

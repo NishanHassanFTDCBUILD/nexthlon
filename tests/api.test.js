@@ -241,3 +241,25 @@ test("pages: guards and redirects", async () => {
   }
   assert.equal((await call("GET", "/products/missing-item")).status, 404);
 });
+
+test("signed-in pages and the API are never cached, static files still are", async () => {
+  const customer = await call("POST", "/api/login", { body: { email: "ravi@nexthlon.test", password: "pitch2024" } });
+  const admin = await call("POST", "/api/admin/login", { body: { email: "admin@nexthlon.test", password: "AdminPass123" } });
+
+  const profile = await fetch(base + "/profile", { headers: { Cookie: customer.cookie }, redirect: "manual" });
+  assert.equal(profile.status, 200);
+  assert.match(profile.headers.get("cache-control") || "", /no-store/);
+
+  const dashboard = await fetch(base + "/admin", { headers: { Cookie: admin.cookie }, redirect: "manual" });
+  assert.equal(dashboard.status, 200);
+  assert.match(dashboard.headers.get("cache-control") || "", /no-store/);
+
+  const me = await fetch(base + "/api/me", { headers: { Cookie: customer.cookie } });
+  assert.equal(me.status, 200);
+  assert.match(me.headers.get("cache-control") || "", /no-store/);
+  assert.equal(me.headers.get("pragma"), "no-cache");
+
+  const css = await fetch(base + "/css/style.css");
+  assert.equal(css.status, 200);
+  assert.doesNotMatch(css.headers.get("cache-control") || "", /no-store/);
+});

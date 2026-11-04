@@ -1,15 +1,24 @@
 <article class="product-card">
-  <a class="product-media" href="/products/<%= p.slug %>" tabindex="-1" aria-hidden="true">
-    <img src="<%= p.image %>" alt="" loading="lazy" width="400" height="400">
+  <div class="product-media">
+    <img src="<%= p.image %>" alt="" loading="lazy" decoding="async" width="400" height="400">
     <% if (p.discountPercent > 0) { %><span class="tag tag-deal"><%= p.discountPercent %>% off</span><% } %>
-  </a>
+  </div>
   <div class="product-body">
-    <span class="product-meta"><%= p.brand %> · <%= p.category %></span>
+    <span class="product-meta"><%= p.brand %></span>
     <h3 class="product-name"><a href="/products/<%= p.slug %>"><%= p.name %></a></h3>
-    <div class="price-row">
-      <span class="price"><%= formatPrice(p.price) %></span>
-      <% if (p.mrp > p.price) { %><span class="mrp">M.R.P. <s><%= formatPrice(p.mrp) %></s></span><% } %>
+    <div class="price-block">
+      <div class="price-row">
+        <% if (p.discountPercent > 0) { %><span class="price-off">-<%= p.discountPercent %>%</span><% } %>
+        <span class="price"><%= formatPrice(p.price) %></span>
+      </div>
+      <% if (p.mrp > p.price) { %>
+        <span class="mrp">M.R.P. <s><%= formatPrice(p.mrp) %></s></span>
+        <span class="saving">You save <%= formatPrice(p.mrp - p.price) %></span>
+      <% } %>
     </div>
-    <%- include('stock', { stock: p.stock }) %>
+    <div class="product-foot">
+      <%- include('stock', { stock: p.stock }) %>
+      <span class="product-cat"><%= p.category %></span>
+    </div>
   </div>
 </article>

@@ -1,24 +1,33 @@
 <%- include('../partials/head') %>
 <%- include('../partials/header') %>
 
+<%
+  const photos = product.gallery && product.gallery.length > 1 ? product.gallery : [product.image];
+  const saving = product.mrp > product.price ? product.mrp - product.price : 0;
+%>
 <main id="main" class="container page">
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
     <a href="/products?category=<%= encodeURIComponent(product.category) %>"><%= product.category %></a> <%- icon('chevron-right', 'i-xs') %>
-    <span><%= product.name %></span>
+    <span aria-current="page"><%= product.name %></span>
   </nav>
 
   <div class="pdp">
-    <div class="gallery" data-gallery>
+    <div class="gallery <%= photos.length > 1 ? 'has-thumbs' : '' %>" data-gallery>
       <div class="gallery-main">
-        <img src="<%= product.image %>" alt="<%= product.name %>" width="640" height="640" data-gallery-main>
+        <img src="<%= photos[0] %>" alt="<%= product.name %>" width="640" height="640" fetchpriority="high" data-gallery-main>
         <% if (product.discountPercent > 0) { %><span class="tag tag-deal"><%= product.discountPercent %>% off</span><% } %>
+        <% if (photos.length > 1) { %>
+          <button type="button" class="gallery-nav gallery-prev" data-gallery-step="-1" aria-label="Previous photo"><%- icon('chevron-left') %></button>
+          <button type="button" class="gallery-nav gallery-next" data-gallery-step="1" aria-label="Next photo"><%- icon('chevron-right') %></button>
+          <span class="gallery-count" aria-live="polite"><span data-gallery-index>1</span> / <%= photos.length %></span>
+        <% } %>
       </div>
-      <% if (product.gallery && product.gallery.length > 1) { %>
-        <div class="gallery-thumbs">
-          <% product.gallery.forEach(function (src, index) { %>
-            <button type="button" class="thumb" data-src="<%= src %>" aria-label="Show photo <%= index + 1 %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
-              <img src="<%= src %>" alt="" width="80" height="80">
+      <% if (photos.length > 1) { %>
+        <div class="gallery-thumbs" role="group" aria-label="Product photos">
+          <% photos.forEach(function (src, index) { %>
+            <button type="button" class="thumb" data-src="<%= src %>" aria-label="Show photo <%= index + 1 %> of <%= photos.length %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
+              <img src="<%= src %>" alt="" width="80" height="80" loading="lazy">
             </button>
           <% }) %>
         </div>
@@ -26,31 +35,40 @@
     </div>
 
     <div class="pdp-info">
-      <a class="pdp-brand" href="/products?q=<%= encodeURIComponent(product.brand) %>">Visit the <%= product.brand %> range</a>
+      <a class="pdp-brand" href="/products?q=<%= encodeURIComponent(product.brand) %>">Visit the <%= product.brand %> range <%- icon('chevron-right', 'i-xs') %></a>
       <h1><%= product.name %></h1>
-      <span class="pill"><%= product.category %></span>
-
-      <div class="pdp-price">
-        <% if (product.discountPercent > 0) { %><span class="pdp-off">-<%= product.discountPercent %>%</span><% } %>
-        <span class="price price-lg"><%= formatPrice(product.price) %></span>
+      <div class="pdp-tags">
+        <a class="pill" href="/products?category=<%= encodeURIComponent(product.category) %>"><%= product.category %></a>
+        <%- include('../partials/stock', { stock: product.stock }) %>
       </div>
-      <% if (product.mrp > product.price) { %>
-        <p class="mrp">M.R.P. <s><%= formatPrice(product.mrp) %></s> Â· You save <%= formatPrice(product.mrp - product.price) %></p>
-      <% } %>
-      <%- include('../partials/stock', { stock: product.stock }) %>
+
+      <div class="price-panel">
+        <% if (product.discountPercent > 0) { %><span class="deal-badge"><%- icon('tag', 'i-xs') %> Deal</span><% } %>
+        <div class="pdp-price">
+          <% if (product.discountPercent > 0) { %><span class="pdp-off">-<%= product.discountPercent %>%</span><% } %>
+          <span class="price price-lg"><%= formatPrice(product.price) %></span>
+        </div>
+        <% if (saving) { %>
+          <p class="mrp">M.R.P.: <s><%= formatPrice(product.mrp) %></s></p>
+          <p class="saving saving-lg">You save <%= formatPrice(saving) %><% if (product.discountPercent > 0) { %> (<%= product.discountPercent %>%)<% } %></p>
+        <% } %>
+      </div>
 
       <% if (product.highlights && product.highlights.length) { %>
         <div class="pdp-section">
           <h2>About this item</h2>
           <ul class="highlights">
-            <% product.highlights.forEach(function (line) { %><li><%= line %></li><% }) %>
+            <% product.highlights.forEach(function (line) { %><li><%- icon('check', 'i-sm') %><span><%= line %></span></li><% }) %>
           </ul>
         </div>
       <% } %>
     </div>
 
     <aside class="buy-box" aria-label="Ordering">
-      <span class="price"><%= formatPrice(product.price) %></span>
+      <div class="buy-price">
+        <span class="price"><%= formatPrice(product.price) %></span>
+        <% if (saving) { %><span class="mrp">M.R.P. <s><%= formatPrice(product.mrp) %></s></span><% } %>
+      </div>
       <%- include('../partials/stock', { stock: product.stock }) %>
       <div class="notice">
         <%- icon('truck') %>
@@ -62,7 +80,7 @@
         <a class="btn btn-ghost btn-block" href="/login?next=<%= encodeURIComponent('/products/' + product.slug) %>">Sign in</a>
       <% } else if (currentUser.role === 'customer') { %>
         <p class="muted">Your saved addresses will be ready at checkout.</p>
-        <a class="btn btn-primary btn-block" href="/profile#addresses">Manage delivery addresses</a>
+        <a class="btn btn-primary btn-block" href="/profile#addresses"><%- icon('pin', 'i-sm') %> Manage delivery addresses</a>
       <% } else { %>
         <p class="muted">You are signed in as an administrator.</p>
         <a class="btn btn-primary btn-block" href="/admin">Go to dashboard</a>
@@ -75,32 +93,40 @@
   </div>
 
   <% const specEntries = Object.entries(product.specs || {}); %>
-  <div class="pdp-details">
-    <% if (product.description) { %>
-      <section class="panel">
-        <h2>Product description</h2>
-        <p><%= product.description %></p>
-      </section>
-    <% } %>
-    <% if (specEntries.length) { %>
-      <section class="panel">
-        <h2>Technical details</h2>
-        <table class="spec-table">
-          <tbody>
-            <% specEntries.forEach(function ([key, value]) { %>
-              <tr><th scope="row"><%= key %></th><td><%= value %></td></tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </section>
-    <% } %>
-  </div>
+  <% if (product.description || specEntries.length) { %>
+    <div class="pdp-details">
+      <% if (product.description) { %>
+        <section class="panel" aria-labelledby="desc-title">
+          <h2 id="desc-title" class="panel-title">Product description</h2>
+          <p class="prose"><%= product.description %></p>
+        </section>
+      <% } %>
+      <% if (specEntries.length) { %>
+        <section class="panel" aria-labelledby="spec-title">
+          <h2 id="spec-title" class="panel-title">Technical details</h2>
+          <div class="spec-wrap">
+            <table class="spec-table">
+              <caption class="sr-only">Technical details for <%= product.name %></caption>
+              <tbody>
+                <% specEntries.forEach(function ([key, value]) { %>
+                  <tr><th scope="row"><%= key %></th><td><%= value %></td></tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      <% } %>
+    </div>
+  <% } %>
 
   <% if (related.length) { %>
-    <section class="section">
+    <section class="section" aria-labelledby="related-title">
       <div class="section-head">
-        <h2>More <%= product.category %> gear</h2>
-        <a href="/products?category=<%= encodeURIComponent(product.category) %>">See all <%- icon('chevron-right', 'i-sm') %></a>
+        <div>
+          <span class="section-kicker">You may also like</span>
+          <h2 id="related-title">More <%= product.category %> gear</h2>
+        </div>
+        <a class="section-link" href="/products?category=<%= encodeURIComponent(product.category) %>">See all <%- icon('chevron-right', 'i-sm') %></a>
       </div>
       <div class="product-grid">
         <% related.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>

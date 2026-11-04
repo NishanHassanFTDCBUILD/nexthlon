@@ -1,15 +1,19 @@
 <%- include('../partials/head') %>
 <%- include('../partials/header') %>
 
+<%
+  const totalProducts = categories.reduce(function (sum, c) { return sum + c.count; }, 0);
+  const bestSaving = deals.length ? deals[0].discountPercent : 0;
+%>
 <main id="main">
-  <section class="hero">
+  <section class="hero" aria-labelledby="hero-title">
     <div class="container hero-inner">
       <div class="hero-copy">
-        <span class="eyebrow">The performance sports marketplace</span>
-        <h1>Your Next Move <span>Starts Here.</span></h1>
-        <p>Trail shoes, match balls, rackets, tents and training gear, picked for athletes who actually use them.</p>
+        <span class="eyebrow"><%- icon('bolt', 'i-xs') %> The performance sports marketplace</span>
+        <h1 id="hero-title">Your Next Move <span>Starts Here.</span></h1>
+        <p class="hero-lead">Trail shoes, match balls, rackets, tents and training gear, picked for athletes who actually use them.</p>
         <div class="hero-actions">
-          <a class="btn btn-primary btn-lg" href="/products">Shop all gear <%- icon('chevron-right', 'i-sm') %></a>
+          <a class="btn btn-primary btn-lg" href="/products">Shop all gear <%- icon('arrow-right', 'i-sm') %></a>
           <% if (!currentUser) { %>
             <a class="btn btn-outline-light btn-lg" href="/signup">Create free account</a>
           <% } else if (currentUser.role === 'customer') { %>
@@ -18,15 +22,26 @@
             <a class="btn btn-outline-light btn-lg" href="/admin">Admin dashboard</a>
           <% } %>
         </div>
+        <% if (totalProducts) { %>
+          <dl class="hero-stats">
+            <div><dt>Products</dt><dd><%= totalProducts %></dd></div>
+            <div><dt>Sports</dt><dd><%= categories.length %></dd></div>
+            <% if (bestSaving) { %><div><dt>Top saving</dt><dd><%= bestSaving %>%</dd></div><% } %>
+          </dl>
+        <% } %>
       </div>
+
       <% if (deals.length) { %>
-        <div class="hero-stack" aria-hidden="true">
+        <div class="hero-showcase" aria-hidden="true">
           <% deals.slice(0, 3).forEach(function (p, index) { %>
             <a class="hero-card hero-card-<%= index + 1 %>" href="/products/<%= p.slug %>" tabindex="-1">
-              <img src="<%= p.image %>" alt="" width="320" height="320">
+              <span class="hero-card-media">
+                <img src="<%= p.image %>" alt="" width="360" height="360" <%- index === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %>>
+                <span class="tag tag-deal"><%= p.discountPercent %>% off</span>
+              </span>
               <span class="hero-card-info">
                 <strong><%= p.name %></strong>
-                <span><%= formatPrice(p.price) %> <em><%= p.discountPercent %>% off</em></span>
+                <span class="hero-card-price"><%= formatPrice(p.price) %> <s><%= formatPrice(p.mrp) %></s></span>
               </span>
             </a>
           <% }) %>
@@ -36,26 +51,30 @@
   </section>
 
   <section class="perks container" aria-label="Why Nexthlon">
-    <div class="perk"><%- icon('award') %><div><strong>Genuine brands</strong><span>Every item listed with its maker</span></div></div>
-    <div class="perk"><%- icon('tag') %><div><strong>Clear pricing</strong><span>See the M.R.P. and your saving</span></div></div>
-    <div class="perk"><%- icon('shield') %><div><strong>Secure accounts</strong><span>Hashed passwords and JWT sign-in</span></div></div>
-    <div class="perk"><%- icon('pin') %><div><strong>Saved addresses</strong><span>Keep up to 10 delivery addresses</span></div></div>
+    <div class="perk"><span class="perk-icon"><%- icon('award') %></span><div><strong>Genuine brands</strong><span>Every item listed with its maker</span></div></div>
+    <div class="perk"><span class="perk-icon"><%- icon('tag') %></span><div><strong>Clear pricing</strong><span>See the M.R.P. and your saving</span></div></div>
+    <div class="perk"><span class="perk-icon"><%- icon('shield') %></span><div><strong>Secure accounts</strong><span>Hashed passwords and JWT sign-in</span></div></div>
+    <div class="perk"><span class="perk-icon"><%- icon('pin') %></span><div><strong>Saved addresses</strong><span>Keep up to 10 delivery addresses</span></div></div>
   </section>
 
   <% if (categories.length) { %>
-    <section class="container section">
+    <section class="container section" aria-labelledby="sports-title">
       <div class="section-head">
-        <h2>Shop by sport</h2>
-        <a href="/products">See all gear <%- icon('chevron-right', 'i-sm') %></a>
+        <div>
+          <span class="section-kicker">Browse</span>
+          <h2 id="sports-title">Shop by sport</h2>
+        </div>
+        <a class="section-link" href="/products">See all gear <%- icon('chevron-right', 'i-sm') %></a>
       </div>
       <div class="category-grid">
         <% categories.forEach(function (c) { %>
           <a class="category-tile" href="/products?category=<%= encodeURIComponent(c.name) %>">
-            <img src="<%= c.image %>" alt="" loading="lazy" width="300" height="300">
+            <img src="<%= c.image %>" alt="" loading="lazy" decoding="async" width="300" height="375">
             <span class="category-info">
               <strong><%= c.name %></strong>
               <span><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>
             </span>
+            <span class="category-go" aria-hidden="true"><%- icon('arrow-right', 'i-sm') %></span>
           </a>
         <% }) %>
       </div>
@@ -63,10 +82,13 @@
   <% } %>
 
   <% if (deals.length) { %>
-    <section class="container section">
+    <section class="container section" aria-labelledby="deals-title">
       <div class="section-head">
-        <h2>Today's biggest savings</h2>
-        <a href="/products?sort=discount">See all deals <%- icon('chevron-right', 'i-sm') %></a>
+        <div>
+          <span class="section-kicker">Deals</span>
+          <h2 id="deals-title">Today's biggest savings</h2>
+        </div>
+        <a class="section-link" href="/products?sort=discount">See all deals <%- icon('chevron-right', 'i-sm') %></a>
       </div>
       <div class="product-grid">
         <% deals.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
@@ -77,20 +99,27 @@
   <% if (!currentUser) { %>
     <section class="container section">
       <div class="join-banner">
-        <div>
+        <div class="join-copy">
+          <span class="section-kicker">Free account</span>
           <h2>Join Nexthlon in under a minute</h2>
           <p>Save your delivery addresses now, so checkout is one tap away when ordering opens.</p>
         </div>
-        <a class="btn btn-light btn-lg" href="/signup">Create your account</a>
+        <div class="join-actions">
+          <a class="btn btn-light btn-lg" href="/signup">Create your account</a>
+          <a class="join-signin" href="/login">Already a member? Sign in</a>
+        </div>
       </div>
     </section>
   <% } %>
 
   <% if (newest.length) { %>
-    <section class="container section">
+    <section class="container section" aria-labelledby="new-title">
       <div class="section-head">
-        <h2>Fresh in the locker room</h2>
-        <a href="/products?sort=newest">See what's new <%- icon('chevron-right', 'i-sm') %></a>
+        <div>
+          <span class="section-kicker">Just landed</span>
+          <h2 id="new-title">Fresh in the locker room</h2>
+        </div>
+        <a class="section-link" href="/products?sort=newest">See what's new <%- icon('chevron-right', 'i-sm') %></a>
       </div>
       <div class="product-grid">
         <% newest.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
@@ -101,7 +130,7 @@
   <% if (!deals.length && !newest.length) { %>
     <section class="container section">
       <div class="empty-state">
-        <%- icon('box', 'i-xl') %>
+        <span class="empty-icon"><%- icon('box', 'i-xl') %></span>
         <h2>The shelves are empty</h2>
         <p>Run <code>npm run seed:products</code> to add the starter catalogue.</p>
       </div>

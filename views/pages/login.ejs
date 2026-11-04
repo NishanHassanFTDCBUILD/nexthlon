@@ -4,38 +4,48 @@
   <%- include('../partials/auth-side') %>
 
   <div class="auth-main">
-    <a class="auth-back" href="/"><%- icon('chevron-right', 'i-sm flip') %> Back to store</a>
+    <div class="auth-top">
+      <a class="brand auth-mobile-brand" href="/" aria-label="Nexthlon home">
+        <span class="brand-mark"><%- icon('bolt') %></span>
+        <span class="brand-word">NEXTHLON</span>
+      </a>
+      <a class="auth-back" href="/"><%- icon('chevron-left', 'i-sm') %> Back to store</a>
+    </div>
+
     <div class="auth-card">
-      <h1>Sign in</h1>
-      <p class="muted">Welcome back, athlete.</p>
+      <div class="auth-card-head">
+        <h1>Sign in</h1>
+        <p class="muted">Welcome back, athlete. Pick up where you left off.</p>
+      </div>
 
       <% if (reason === 'blocked') { %>
-        <div class="alert alert-danger" role="alert"><%- icon('alert') %> Your account has been blocked. Please contact Nexthlon support.</div>
+        <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Your account has been blocked. Please contact Nexthlon support.</span></div>
       <% } else if (reason === 'expired') { %>
-        <div class="alert alert-info" role="status"><%- icon('alert') %> Your session has ended. Please sign in again.</div>
+        <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
       <% } %>
 
-      <form class="form" data-auth-form data-endpoint="/api/login" novalidate>
+      <form class="form" data-auth-form data-endpoint="/api/login" data-busy-label="Signing in…" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
         <input type="hidden" name="next" value="<%= next %>">
         <div class="field">
           <label for="email">Email address</label>
-          <input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
-          <p class="field-error" data-error-for="email"></p>
+          <input id="email" name="email" type="email" autocomplete="email" required maxlength="254" aria-describedby="email-error" placeholder="you@example.com">
+          <p class="field-error" id="email-error" data-error-for="email"></p>
         </div>
         <div class="field">
           <label for="password">Password</label>
           <div class="password-wrap">
-            <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="64">
+            <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="64" aria-describedby="password-error">
             <button type="button" class="reveal" data-reveal="password" aria-label="Show password"><%- icon('eye') %></button>
           </div>
-          <p class="field-error" data-error-for="password"></p>
+          <p class="field-error" id="password-error" data-error-for="password"></p>
         </div>
         <button class="btn btn-primary btn-block btn-lg" type="submit">Sign in</button>
       </form>
 
       <div class="auth-divider"><span>New to Nexthlon?</span></div>
       <a class="btn btn-ghost btn-block" href="/signup<%= next !== '/' ? '?next=' + encodeURIComponent(next) : '' %>">Create your Nexthlon account</a>
-      <p class="auth-foot muted">Store administrator? <a href="/admin/login">Sign in to the admin console</a></p>
+      <p class="auth-foot muted"><%- icon('shield', 'i-xs') %> Store administrator? <a href="/admin/login">Sign in to the admin console</a></p>
     </div>
   </div>
 </main>

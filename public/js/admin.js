@@ -11,16 +11,18 @@
         message: isBlocked
           ? "They will be able to sign in and use their account again."
           : "They will be signed out right away and cannot sign in until you unblock them.",
-        confirmLabel: isBlocked ? "Unblock" : "Block customer"
+        confirmLabel: isBlocked ? "Unblock" : "Block customer",
+        tone: isBlocked ? "primary" : "danger"
       });
       if (!confirmed) return;
 
-      button.disabled = true;
+      Nx.busy(button, true, isBlocked ? "Unblocking…" : "Blocking…");
       try {
         const result = await Nx.api(`/api/admin/customers/${encodeURIComponent(button.dataset.blockUser)}/block`, {
           method: "PATCH",
           body: { isBlocked: !isBlocked }
         });
+        Nx.busy(button, false);
         const nowBlocked = result.customer.isBlocked;
         const row = button.closest("tr");
         const status = row.querySelector("[data-status]");
@@ -28,12 +30,12 @@
         status.className = `pill ${nowBlocked ? "pill-red" : "pill-green"}`;
         button.dataset.blocked = String(nowBlocked);
         button.textContent = nowBlocked ? "Unblock" : "Block";
+        button.setAttribute("aria-label", `${nowBlocked ? "Unblock" : "Block"} ${name}`);
         button.className = `btn btn-sm ${nowBlocked ? "btn-secondary" : "btn-danger-soft"}`;
         Nx.toast(result.message);
       } catch (error) {
+        Nx.busy(button, false);
         Nx.toast(error.message, "error");
-      } finally {
-        button.disabled = false;
       }
     });
   });
