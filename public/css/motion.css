@@ -173,3 +173,52 @@
   @keyframes nx-float-shadow { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.82); opacity: 0.6; } }
   @keyframes nx-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 }
+
+/* ---------- 3D home ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* The headline: each letter turns up from rotateX(90deg). */
+  .js-motion .hero3d-title .char { transform-origin: 50% 100%; animation: nx-char-in 0.9s var(--ease-out) calc(var(--i) * 42ms + 200ms) both; }
+  @keyframes nx-char-in { from { opacity: 0; transform: rotateX(90deg) translateY(18px); } to { opacity: 1; transform: none; } }
+  .js-motion .hero3d-kicker, .js-motion .hero3d-text, .js-motion .hero3d-actions { animation: nx-reveal-up 0.8s var(--ease-out) 0.9s both; }
+  .js-motion .hero3d-text { animation-delay: 1.05s; }
+  .js-motion .hero3d-actions { animation-delay: 1.2s; }
+  .hero3d-scroll span { transform-origin: top; animation: nx-scroll-cue 1.8s var(--ease-in-out) infinite; }
+  @keyframes nx-scroll-cue { 0% { transform: scaleY(0); opacity: 1; } 60% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+
+  /* CSS 3D fallback hero: turning rings and floating cards. */
+  .hf-ring-1 { animation: nx-ring-a 18s linear infinite; }
+  .hf-ring-2 { animation: nx-ring-b 24s linear infinite; }
+  .hf-ring-3 { animation: nx-ring-c 30s linear infinite; }
+  @keyframes nx-ring-a { to { transform: rotateX(72deg) rotateZ(360deg); } }
+  @keyframes nx-ring-b { to { transform: rotateY(64deg) rotateX(18deg) rotateZ(360deg); } }
+  @keyframes nx-ring-c { to { transform: rotateX(-58deg) rotateY(30deg) rotateZ(-360deg); } }
+  .hf-card { animation: nx-hover-float 6s var(--ease-in-out) infinite; }
+  .hf-card-2 { animation-delay: -2s; }
+  .hf-card-3 { animation-delay: -4s; }
+  @keyframes nx-hover-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -14px; } }
+
+  /* Showcase: the product floats, the ring turns, the label lines draw in. */
+  .showcase-product { animation: nx-hover-float 5s var(--ease-in-out) infinite; }
+  .podium-ring { animation: nx-podium 14s linear infinite; }
+  @keyframes nx-podium { to { transform: rotateX(73deg) rotateZ(360deg); } }
+  .showcase-stage:not(.is-in) .showcase-line { stroke-dashoffset: 120; }
+  .showcase-stage:not(.is-in) .showcase-label span { opacity: 0; transform: translateY(8px); }
+  .showcase-line { transition: stroke-dashoffset 0.9s var(--ease-out); }
+  .showcase-label span { transition: opacity 0.5s var(--ease-out) 0.6s, transform 0.5s var(--ease-out) 0.6s; }
+  .showcase-label-2 .showcase-line, .showcase-label-2 span { transition-delay: 0.25s, 0.85s; }
+  .showcase-label-3 .showcase-line, .showcase-label-3 span { transition-delay: 0.5s, 1.1s; }
+
+  /* Flip-digit countdown. */
+  .flip-digits.is-flipping { animation: nx-flip-digit 0.5s var(--ease-out); }
+  @keyframes nx-flip-digit { from { transform: perspective(240px) rotateX(-95deg); opacity: 0.3; } to { transform: perspective(240px) rotateX(0); opacity: 1; } }
+
+  /* 3D stats turn up into place. */
+  .js-motion .stat3d[data-reveal].is-revealed:not([data-reveal-done]) { animation-name: nx-turn-up; animation-duration: 0.9s; }
+  @keyframes nx-turn-up { from { opacity: 0; transform: rotateX(-75deg) translateY(30px); } to { opacity: 1; transform: none; } }
+
+  /* Depth tiles lift a little more than flat cards. */
+  .js-motion .depth-tile[data-tilt].is-tilting { transform: perspective(700px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateZ(10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition: none; }
+}

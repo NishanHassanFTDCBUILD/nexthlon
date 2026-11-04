@@ -538,13 +538,19 @@ test("product lookup returns listed products in the order asked, and skips the r
   assert.deepEqual((await call("GET", "/api/products/lookup?ids[$ne]=x")).data.products, []);
 });
 
-test("home page: carousel, trust badges, deals countdown, rails and brands", async () => {
+test("home page: 3D hero, trust badges, flip deals and countdown, journey, rails and brands", async () => {
   // Best sellers are the in-stock items that are not already in the deals row.
   await makeProduct({ name: "Plain Training Tee", slug: "plain-training-tee", category: "Fitness", price: 499, mrp: 499, stock: 8, image: "/img/favicon.svg" });
   const res = await call("GET", "/");
   assert.equal(res.status, 200);
-  assert.match(res.data, /data-carousel/);
-  assert.match(res.data, /aria-roledescription="slide"/);
+  // The 3D hero: a WebGL canvas, the CSS 3D fallback, and the headline split into letters for the 3D reveal.
+  assert.match(res.data, /data-hero3d/);
+  assert.match(res.data, /data-hero3d-canvas/);
+  assert.match(res.data, /class="hero3d-fallback"/);
+  assert.match(res.data, /<span class="char" style="--i: 0">B<\/span>/);
+  assert.match(res.data, /type="module" src="\/js\/home3d\.js"/);
+  assert.match(res.data, /data-flip-card/);
+  assert.match(res.data, /data-journey/);
   assert.match(res.data, /Free delivery/);
   assert.match(res.data, /Deals of the day/);
   assert.match(res.data, /data-countdown data-left="\d+"/);

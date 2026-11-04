@@ -9,45 +9,50 @@
   const ss = pad(Math.floor(left / 1000) % 60);
   const shopper = !currentUser || currentUser.role === 'customer';
 %>
+<%
+  // Products for the 3D ring: best sellers first, then new arrivals, no repeats, up to 10.
+  const seen = {};
+  const galaxy = bestSellers.concat(newest, deals).filter(function (p) {
+    if (seen[p._id]) return false;
+    seen[p._id] = true;
+    return true;
+  }).slice(0, 10);
+  const star = deals[0] || bestSellers[0] || newest[0];
+  const journey = categories.slice(0, 6);
+  const productCount = categories.reduce(function (sum, c) { return sum + c.count; }, 0);
+  const headline = ['Built', 'for', 'every', 'athlete'];
+  let letterIndex = 0;
+%>
 <main id="main" class="home">
-  <h1 class="sr-only">Nexthlon: performance sports gear</h1>
-
-  <section class="carousel" data-carousel aria-roledescription="carousel" aria-label="Featured offers">
-    <div class="carousel-track" data-carousel-track>
-      <% slides.forEach(function (s, index) { %>
-        <div class="slide <%= s.image ? '' : 'slide-plain' %>" role="group" aria-roledescription="slide" aria-label="<%= index + 1 %> of <%= slides.length %>" data-slide>
-          <% if (s.image) { %>
-            <img class="slide-img" src="<%= s.image %>" alt="" width="1600" height="640" <%- index === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %> decoding="async">
-          <% } %>
-          <div class="container slide-inner">
-            <div class="slide-copy">
-              <span class="eyebrow"><%- icon('bolt', 'i-xs') %> <%= s.kicker %></span>
-              <h2 class="slide-title"><%= s.title %></h2>
-              <p class="slide-text"><%= s.text %></p>
-              <a class="btn btn-primary btn-lg" href="<%= s.href %>"><%= s.cta %> <%- icon('arrow-right', 'i-sm') %></a>
-            </div>
-          </div>
-        </div>
-      <% }) %>
-    </div>
-    <% if (slides.length > 1) { %>
-      <div class="carousel-controls" data-carousel-controls hidden>
-        <button type="button" class="carousel-arrow carousel-prev" data-carousel-step="-1" aria-label="Previous slide"><%- icon('chevron-left') %></button>
-        <button type="button" class="carousel-arrow carousel-next" data-carousel-step="1" aria-label="Next slide"><%- icon('chevron-right') %></button>
-        <div class="carousel-bar container">
-          <div class="carousel-dots" role="group" aria-label="Choose a slide">
-            <% slides.forEach(function (s, index) { %>
-              <button type="button" class="carousel-dot" data-carousel-dot="<%= index %>" aria-label="Slide <%= index + 1 %>: <%= s.title %>" <%- index === 0 ? 'aria-current="true"' : '' %>></button>
-            <% }) %>
-          </div>
-          <button type="button" class="carousel-pause" data-carousel-pause aria-pressed="false">
-            <span class="carousel-pause-icon"><%- icon('pause', 'i-sm') %></span>
-            <span class="carousel-play-icon"><%- icon('play', 'i-sm') %></span>
-            <span class="sr-only">Pause slideshow</span>
-          </button>
-        </div>
+  <%# ---------- 1. Hero: a WebGL particle sphere that becomes the logo, then an athlete, as you scroll ---------- %>
+  <section class="hero3d" data-hero3d aria-labelledby="hero-title" data-stage="0">
+    <div class="hero3d-sticky">
+      <canvas class="hero3d-canvas" data-hero3d-canvas aria-hidden="true"></canvas>
+      <div class="hero3d-fallback" aria-hidden="true">
+        <span class="hf-orb"></span>
+        <span class="hf-ring hf-ring-1"></span><span class="hf-ring hf-ring-2"></span><span class="hf-ring hf-ring-3"></span>
+        <% galaxy.slice(0, 3).forEach(function (p, i) { %>
+          <img class="hf-card hf-card-<%= i + 1 %>" src="<%= p.image %>" alt="" width="160" height="160" <%- i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %> decoding="async">
+        <% }) %>
       </div>
-    <% } %>
+      <div class="container hero3d-content">
+        <span class="hero3d-kicker"><%- icon('bolt', 'i-sm') %> Nexthlon performance gear</span>
+        <h1 id="hero-title" class="hero3d-title" data-split>
+          <% headline.forEach(function (word, w) { %><span class="word"><% word.split('').forEach(function (ch) { %><span class="char" style="--i: <%= letterIndex++ %>"><%= ch %></span><% }) %></span><%= w < headline.length - 1 ? ' ' : '' %><% }) %>
+        </h1>
+        <p class="hero3d-text">Shoes, balls, rackets and outdoor kit chosen by athletes, delivered across India. Scroll to see the gear come together.</p>
+        <div class="hero3d-actions">
+          <a class="btn btn-gradient btn-lg" href="/products" data-magnetic>Shop all gear <%- icon('arrow-right', 'i-sm') %></a>
+          <a class="btn btn-outline-light btn-lg" href="/products?sort=discount">Today's deals</a>
+        </div>
+        <ol class="hero3d-stages" aria-hidden="true">
+          <li data-stage-label="0">Every sport</li>
+          <li data-stage-label="1">One brand</li>
+          <li data-stage-label="2">Built for you</li>
+        </ol>
+      </div>
+      <span class="hero3d-scroll" aria-hidden="true"><span></span> Scroll</span>
+    </div>
   </section>
 
   <section class="container trust-strip" aria-label="Why shop with Nexthlon">
@@ -69,6 +74,152 @@
     </a>
   </section>
 
+  <%# ---------- 2. Product galaxy: a ring of product cards in 3D. Drag, swipe or use the arrow keys. ---------- %>
+  <% if (galaxy.length >= 3) { %>
+    <section class="section galaxy" aria-labelledby="galaxy-title" data-galaxy>
+      <div class="container section-head" data-reveal>
+        <div>
+          <span class="section-kicker">Featured gear</span>
+          <h2 id="galaxy-title">The Nexthlon galaxy</h2>
+          <p class="muted galaxy-hint">Drag or swipe to spin. Pick anything to take a closer look.</p>
+        </div>
+        <a class="section-link" href="/products">See all gear <%- icon('chevron-right', 'i-sm') %></a>
+      </div>
+      <div class="galaxy-stage" data-galaxy-stage tabindex="0" role="region" aria-label="Featured products. Use the left and right arrow keys to spin.">
+        <div class="galaxy-ring" data-galaxy-ring style="--count: <%= galaxy.length %>">
+          <% galaxy.forEach(function (p, i) { %>
+            <a class="galaxy-card" href="/products/<%= p.slug %>" style="--i: <%= i %>" data-galaxy-card>
+              <span class="galaxy-media"><img src="<%= p.image %>" alt="" width="240" height="240" loading="lazy" decoding="async"></span>
+              <span class="galaxy-name"><%= p.name %></span>
+              <span class="galaxy-price"><%= formatPrice(p.price) %><% if (p.discountPercent > 0) { %> <em><%= p.discountPercent %>% off</em><% } %></span>
+            </a>
+          <% }) %>
+        </div>
+        <span class="galaxy-floor" aria-hidden="true"></span>
+      </div>
+    </section>
+  <% } %>
+
+  <%# ---------- 3. Scroll journey: fly through a tunnel of sports ---------- %>
+  <% if (journey.length >= 2) { %>
+    <section class="journey" aria-labelledby="journey-title" data-journey style="--cards: <%= journey.length %>">
+      <div class="journey-sticky">
+        <div class="container journey-head">
+          <span class="section-kicker">Scroll the journey</span>
+          <h2 id="journey-title">Pick your sport</h2>
+          <ol class="journey-progress" aria-hidden="true">
+            <% journey.forEach(function (c, i) { %><li data-journey-dot="<%= i %>"><%= c.name %></li><% }) %>
+          </ol>
+        </div>
+        <div class="journey-view">
+          <div class="journey-track" data-journey-track>
+            <% journey.forEach(function (c, i) { %>
+              <a class="journey-card" href="/products?category=<%= c.slug %>" style="--i: <%= i %>" data-journey-card>
+                <img src="<%= c.image %>" alt="" width="480" height="320" loading="lazy" decoding="async">
+                <span class="journey-card-text">
+                  <span class="journey-num"><%= String(i + 1).padStart(2, '0') %></span>
+                  <strong><%= c.name %></strong>
+                  <span><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>
+                  <span class="journey-cta">Shop <%= c.name %> <%- icon('arrow-right', 'i-sm') %></span>
+                </span>
+              </a>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    </section>
+  <% } %>
+
+  <%# ---------- 4. Showcase: one product on a rotating podium, lit by the mouse ---------- %>
+  <% if (star) { %>
+    <section class="container section showcase" aria-labelledby="showcase-title" data-showcase>
+      <div class="showcase-copy" data-reveal>
+        <span class="section-kicker">In the spotlight</span>
+        <h2 id="showcase-title"><%= star.name %></h2>
+        <div class="price-block">
+          <div class="price-row">
+            <span class="price price-lg"><%= formatPrice(star.price) %></span>
+            <% if (star.mrp > star.price) { %><span class="mrp"><span class="sr-only">M.R.P. </span><s><%= formatPrice(star.mrp) %></s></span><% } %>
+            <% if (star.discountPercent > 0) { %><span class="off"><%= star.discountPercent %>% off</span><% } %>
+          </div>
+        </div>
+        <ul class="showcase-points">
+          <% (star.highlights && star.highlights.length ? star.highlights.slice(0, 3) : ['Chosen by athletes', 'Genuine brand', store.returnDays + '-day easy returns']).forEach(function (line) { %>
+            <li><%- icon('check', 'i-sm') %> <%= line %></li>
+          <% }) %>
+        </ul>
+        <a class="btn btn-primary btn-lg" href="/products/<%= star.slug %>" data-magnetic>View product <%- icon('arrow-right', 'i-sm') %></a>
+      </div>
+      <div class="showcase-stage" data-showcase-stage aria-hidden="true">
+        <span class="showcase-light"></span>
+        <div class="showcase-scene">
+          <img class="showcase-product" src="<%= star.image %>" alt="" width="420" height="420" loading="lazy" decoding="async">
+          <img class="showcase-reflection" src="<%= star.image %>" alt="" width="420" height="420" loading="lazy" decoding="async">
+          <span class="showcase-podium"><span class="podium-top"></span><span class="podium-ring"></span></span>
+        </div>
+        <% (star.highlights && star.highlights.length ? star.highlights.slice(0, 3) : ['Chosen by athletes', 'Genuine brand', 'Easy returns']).forEach(function (line, i) { %>
+          <span class="showcase-label showcase-label-<%= i + 1 %>"><svg class="showcase-line" viewBox="0 0 100 40" preserveAspectRatio="none"><path d="M0 38 L40 38 L100 2"/></svg><span><%= (function (t) { var words = t.split(/[:,(]| with | that | for /)[0].trim().split(' '); return words.slice(0, 3).join(' ') + (words.length > 3 ? '…' : ''); })(line) %></span></span>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
+
+  <%# ---------- 5. Deals of the day: 3D flip cards and a flip-digit countdown ---------- %>
+  <% if (deals.length) { %>
+    <section class="container section" aria-labelledby="deals-title">
+      <div class="section-box deal-box">
+        <div class="section-head deal-head">
+          <div>
+            <span class="section-kicker">Ends at midnight</span>
+            <h2 id="deals-title">Deals of the day</h2>
+          </div>
+          <div class="countdown flip-countdown" data-countdown data-left="<%= left %>" data-ends="<%= new Date(dealEndsAt).toISOString() %>" role="timer" aria-label="Time left on today's deals">
+            <span class="countdown-label"><%- icon('clock', 'i-sm') %> Ends in</span>
+            <% [['h', hh, 'hours'], ['m', mm, 'minutes'], ['s', ss, 'seconds']].forEach(function ([key, value, unit], n) { %>
+              <span class="flip-unit">
+                <span class="flip-digits" data-countdown-<%= key %> data-value="<%= value %>"><%= value %></span>
+                <small><%= unit %></small>
+              </span>
+              <% if (n < 2) { %><span class="countdown-sep" aria-hidden="true">:</span><% } %>
+            <% }) %>
+          </div>
+          <a class="section-link" href="/products?sort=discount">See all deals <%- icon('chevron-right', 'i-sm') %></a>
+        </div>
+        <ul class="flip-grid">
+          <% deals.slice(0, 8).forEach(function (p) { %>
+            <li class="flip-card" data-flip-card data-reveal>
+              <div class="flip-inner">
+                <div class="flip-face flip-front">
+                  <span class="tag tag-deal"><%= p.discountPercent %>% off</span>
+                  <img src="<%= p.image %>" alt="" width="260" height="260" loading="lazy" decoding="async">
+                  <strong class="flip-name"><%= p.name %></strong>
+                  <span class="price-row"><span class="price price-sm"><%= formatPrice(p.price) %></span><span class="mrp"><s><%= formatPrice(p.mrp) %></s></span></span>
+                  <button type="button" class="flip-toggle" data-flip-toggle aria-expanded="false" aria-label="Show the offer on <%= p.name %>"><%- icon('rotate-ccw', 'i-sm') %></button>
+                </div>
+                <div class="flip-face flip-back">
+                  <span class="flip-off"><%= p.discountPercent %>%<small>off today</small></span>
+                  <strong class="flip-name"><%= p.name %></strong>
+                  <span class="saving">You save <%= formatPrice(p.mrp - p.price) %></span>
+                  <% if (p.stock > 0 && shopper) { %>
+                    <% if (currentUser) { %>
+                      <button type="button" class="btn btn-primary btn-sm" data-quick-add="<%= p._id %>" data-quick-image="<%= p.image %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
+                    <% } else { %>
+                      <a class="btn btn-primary btn-sm" href="/login?next=<%= encodeURIComponent('/products/' + p.slug) %>"><%- icon('cart', 'i-sm') %> Sign in to buy</a>
+                    <% } %>
+                  <% } else if (p.stock <= 0) { %>
+                    <span class="stock stock-out">Out of stock</span>
+                  <% } %>
+                  <a class="link-btn" href="/products/<%= p.slug %>">View details</a>
+                </div>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+    </section>
+  <% } %>
+
+  <%# ---------- 6. Shop by sport: tiles with depth layers ---------- %>
   <% if (categories.length) { %>
     <section class="container section" aria-labelledby="sports-title">
       <div class="section-head" data-reveal>
@@ -78,39 +229,25 @@
         </div>
         <a class="section-link" href="/products">See all gear <%- icon('chevron-right', 'i-sm') %></a>
       </div>
-      <div class="category-row">
+      <div class="depth-grid">
         <% categories.forEach(function (c) { %>
-          <a class="category-tile" data-reveal href="/products?category=<%= c.slug %>">
-            <span class="category-media"><img src="<%= c.image %>" alt="" loading="lazy" decoding="async" width="240" height="240"></span>
-            <strong><%= c.name %></strong>
-            <span><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>
+          <a class="depth-tile" data-reveal data-tilt href="/products?category=<%= c.slug %>">
+            <span class="depth-media"><img src="<%= c.image %>" alt="" loading="lazy" decoding="async" width="320" height="320"></span>
+            <span class="depth-title"><%= c.name %></span>
+            <span class="depth-price"><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>
           </a>
         <% }) %>
       </div>
     </section>
   <% } %>
 
-  <% if (deals.length) { %>
-    <section class="container section" aria-labelledby="deals-title">
-      <div class="section-box deal-box">
-        <div class="section-head deal-head">
-          <div>
-            <span class="section-kicker">Ends at midnight</span>
-            <h2 id="deals-title">Deals of the day</h2>
-          </div>
-          <div class="countdown" data-countdown data-left="<%= left %>" data-ends="<%= new Date(dealEndsAt).toISOString() %>" role="timer" aria-label="Time left on today's deals">
-            <%- icon('clock', 'i-sm') %>
-            <span class="countdown-label">Ends in</span>
-            <span class="countdown-box" data-countdown-h><%= hh %></span><span class="countdown-sep" aria-hidden="true">:</span>
-            <span class="countdown-box" data-countdown-m><%= mm %></span><span class="countdown-sep" aria-hidden="true">:</span>
-            <span class="countdown-box" data-countdown-s><%= ss %></span>
-          </div>
-          <a class="section-link" href="/products?sort=discount">See all deals <%- icon('chevron-right', 'i-sm') %></a>
-        </div>
-        <%- include('../partials/rail', { products: deals, label: 'Deals of the day' }) %>
-      </div>
-    </section>
-  <% } %>
+  <%# ---------- 7. Numbers that count up ---------- %>
+  <section class="container section stats3d" aria-label="Nexthlon in numbers">
+    <div class="stat3d" data-reveal><strong data-count-to="<%= productCount %>"><%= productCount %></strong><span>Products in stock and ready</span></div>
+    <div class="stat3d" data-reveal><strong data-count-to="<%= categories.length %>"><%= categories.length %></strong><span>Sports covered</span></div>
+    <div class="stat3d" data-reveal><strong data-count-to="<%= brands.length %>"><%= brands.length %></strong><span>Genuine brands</span></div>
+    <div class="stat3d" data-reveal><strong data-count-to="<%= store.returnDays %>"><%= store.returnDays %></strong><span>Days to return, no questions</span></div>
+  </section>
 
   <% if (bestSellers.length) { %>
     <section class="container section" aria-labelledby="best-title">
@@ -204,4 +341,4 @@
   <% } %>
 </main>
 
-<%- include('../partials/footer', { scripts: ['home'] }) %>
+<%- include('../partials/footer', { scripts: ['home'], modules: ['home3d'] }) %>
