@@ -145,6 +145,31 @@ function validateProduct(body = {}) {
   return { errors, value };
 }
 
+// A quantity from the cart: a whole number, sent as a number or as text like "2".
+// Stock and the 5-per-product limit are checked in cartService against the database.
+function readQuantity(value) {
+  if (typeof value === "number") return Number.isInteger(value) ? value : null;
+  const raw = text(value);
+  return /^\d{1,3}$/.test(raw) ? Number(raw) : null;
+}
+
+function validateCartQuantity(body = {}) {
+  const errors = {};
+  const quantity = readQuantity(body.quantity);
+  if (quantity === null || quantity < 1) errors.quantity = "Choose a quantity of at least 1.";
+  return { errors, value: { quantity } };
+}
+
+// Only the product and quantity are read. Any price sent by the browser is ignored.
+function validateCartItem(body = {}) {
+  const errors = {};
+  const productId = text(body.productId);
+  if (!/^[a-f0-9]{24}$/i.test(productId)) errors.productId = "Choose a product.";
+  const quantity = body.quantity === undefined ? 1 : readQuantity(body.quantity);
+  if (quantity === null || quantity < 1) errors.quantity = "Choose a quantity of at least 1.";
+  return { errors, value: { productId, quantity } };
+}
+
 module.exports = {
   hasErrors,
   validateSignup,
@@ -152,5 +177,7 @@ module.exports = {
   validateProfile,
   validatePasswordChange,
   validateAddress,
-  validateProduct
+  validateProduct,
+  validateCartItem,
+  validateCartQuantity
 };

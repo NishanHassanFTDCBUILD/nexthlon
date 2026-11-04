@@ -1,0 +1,86 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page">Your cart</span>
+  </nav>
+
+  <div class="cart-page" data-cart>
+    <section class="cart-main" aria-labelledby="cart-title">
+      <div class="cart-head">
+        <h1 id="cart-title">Your cart</h1>
+        <p class="muted" data-cart-heading-count aria-live="polite">
+          <%= summary.count %> <%= summary.count === 1 ? 'item' : 'items' %>
+        </p>
+      </div>
+
+      <div class="panel panel-flush cart-list-panel" data-cart-list-panel <%= items.length ? '' : 'hidden' %>>
+        <% if (summary.unavailableCount) { %>
+          <div class="alert alert-info cart-alert" role="status" data-cart-unavailable-note>
+            <%- icon('info') %>
+            <span>Some items are unavailable right now. They are not counted in your total.</span>
+          </div>
+        <% } %>
+        <ul class="cart-list">
+          <% items.forEach(function (item) { %>
+            <li class="cart-item <%= item.available ? '' : 'is-unavailable' %>" data-cart-item="<%= item.productId %>" data-name="<%= item.name %>">
+              <a class="cart-item-media" href="/products/<%= item.slug %>" tabindex="-1" aria-hidden="true">
+                <img src="<%= item.image %>" alt="" width="112" height="112" loading="lazy">
+              </a>
+              <div class="cart-item-info">
+                <span class="product-meta"><%= item.brand %></span>
+                <h2 class="cart-item-name"><a href="/products/<%= item.slug %>"><%= item.name %></a></h2>
+                <div class="cart-item-price">
+                  <span class="price"><%= formatPrice(item.price) %></span>
+                  <% if (item.mrp > item.price) { %><span class="mrp">M.R.P. <s><%= formatPrice(item.mrp) %></s></span><span class="price-off"><%= item.discountPercent %>% off</span><% } %>
+                </div>
+                <% if (!item.available) { %>
+                  <span class="pill pill-red"><%- icon('alert', 'i-xs') %> Unavailable · <%= item.reason %></span>
+                <% } else if (item.stock <= 5) { %>
+                  <span class="stock stock-low">Only <%= item.stock %> left</span>
+                <% } %>
+                <% if (item.available && item.priceChanged) { %>
+                  <p class="cart-note"><%- icon('info', 'i-xs') %> Price changed from <%= formatPrice(item.priceAtAdd) %> since you added it.</p>
+                <% } %>
+              </div>
+              <div class="cart-item-actions">
+                <div class="qty qty-sm" role="group" aria-label="Quantity for <%= item.name %>">
+                  <button type="button" class="qty-btn" data-cart-step="-1" aria-label="One less <%= item.name %>" <%= !item.available || item.quantity <= 1 ? 'disabled' : '' %>><%- icon('minus', 'i-sm') %></button>
+                  <output class="qty-value" data-cart-qty aria-live="polite"><%= item.quantity %></output>
+                  <button type="button" class="qty-btn" data-cart-step="1" aria-label="One more <%= item.name %>" <%= !item.available || item.quantity >= item.maxQuantity ? 'disabled' : '' %>><%- icon('plus', 'i-sm') %></button>
+                </div>
+                <strong class="cart-line-total" data-cart-line-total><%= item.available ? formatPrice(item.lineTotal) : '—' %></strong>
+                <button type="button" class="link-btn cart-remove" data-cart-remove aria-label="Remove <%= item.name %> from your cart"><%- icon('trash', 'i-xs') %> Remove</button>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+
+      <div class="empty-state" data-cart-empty <%= items.length ? 'hidden' : '' %>>
+        <span class="empty-icon"><%- icon('cart', 'i-xl') %></span>
+        <h2>Your cart is empty</h2>
+        <p>Find trail shoes, match balls, tents and more. Everything you add shows up here.</p>
+        <a class="btn btn-primary" href="/products">Continue shopping <%- icon('arrow-right', 'i-sm') %></a>
+      </div>
+    </section>
+
+    <aside class="cart-summary panel" aria-labelledby="summary-title" data-cart-summary <%= items.length ? '' : 'hidden' %>>
+      <h2 id="summary-title" class="panel-title">Order summary</h2>
+      <dl class="summary-list">
+        <div><dt>M.R.P. total</dt><dd data-summary="mrpTotal"><%= formatPrice(summary.mrpTotal) %></dd></div>
+        <div class="summary-savings"><dt>Total savings</dt><dd data-summary="savings">−<%= formatPrice(summary.savings) %></dd></div>
+        <div><dt>Subtotal (<span data-summary="itemCount"><%= summary.itemCount %></span> <span data-summary-items><%= summary.itemCount === 1 ? 'item' : 'items' %></span>)</dt><dd data-summary="subtotal"><%= formatPrice(summary.subtotal) %></dd></div>
+        <div><dt>Delivery</dt><dd class="muted">Worked out at checkout</dd></div>
+        <div class="summary-total"><dt>Grand total</dt><dd data-summary="grandTotal"><%= formatPrice(summary.grandTotal) %></dd></div>
+      </dl>
+      <p class="saving summary-saving-note" data-summary-saving-note <%= summary.savings > 0 ? '' : 'hidden' %>>You save <span data-summary="savings-plain"><%= formatPrice(summary.savings) %></span> on this order.</p>
+      <button class="btn btn-primary btn-block btn-lg" type="button" disabled aria-describedby="checkout-note"><%- icon('lock', 'i-sm') %> Proceed to checkout</button>
+      <p class="hint" id="checkout-note"><%- icon('info', 'i-xs') %> Checkout opens in the next Nexthlon update.</p>
+      <a class="btn btn-ghost btn-block" href="/products">Continue shopping</a>
+    </aside>
+  </div>
+</main>
+
+<%- include('../partials/footer', { scripts: ['cart'] }) %>

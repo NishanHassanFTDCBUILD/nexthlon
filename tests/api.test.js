@@ -411,3 +411,95 @@ test("store: product page shows breadcrumbs, prices, stock and the zoomable gall
   assert.equal(missing.status, 404);
   assert.match(missing.data, /This trail ends here/);
 });
+
+// ---------- Cart ----------
+const Cart = require("../models/Cart");
+let shopperCookie;
+let shoeId;
+
+test("cart: only signed-in customers, and guests are sent to sign in", async () => {
+  shoeId = String((await Product.findOne({ slug: "nexthlon-trail-shoe" }))._id);
+  assert.equal((await call("GET", "/api/cart")).status, 401);
+  assert.equal((await call("POST", "/api/cart/items", { body: { productId: shoeId } })).status, 401);
+  assert.equal((await call("GET", "/api/cart", { cookie: adminCookieForProducts })).status, 403);
+  assert.equal((await call("GET", "/cart")).location, "/login?next=%2Fcart");
+  const guestPage = await call("GET", "/products/nexthlon-trail-shoe");
+  assert.match(guestPage.data, /href="\/login\?next=%2Fproducts%2Fnexthlon-trail-shoe"[^>]*>[\s\S]*?Add to cart/);
+
+  const shopper = await call("POST", "/api/signup", { body: { name: "Meera Iyer", email: "meera@nexthlon.test", password: "court2024", confirmPassword: "court2024" } });
+  shopperCookie = shopper.cookie;
+  const empty = await call("GET", "/api/cart", { cookie: shopperCookie });
+  assert.equal(empty.data.cart.items.length, 0);
+  assert.equal((await call("GET", "/cart", { cookie: shopperCookie })).status, 200);
+});
+
+test("cart: adding twice raises the quantity, and the price always comes from the database", async () => {
+  const first = await call("POST", "/api/cart/items", { body: { productId: shoeId, quantity: 1, price: 1, priceAtAdd: 1 }, cookie: shopperCookie });
+  assert.equal(first.status, 201);
+  assert.equal(first.data.cart.items[0].price, 2999);
+  const second = await call("POST", "/api/cart/items", { body: { productId: shoeId, quantity: 2 }, cookie: shopperCookie });
+  assert.equal(second.data.cart.items.length, 1);
+  assert.equal(second.data.cart.items[0].quantity, 3);
+  assert.equal(second.data.cart.summary.subtotal, 8997);
+  assert.equal(second.data.cart.summary.count, 3);
+
+  // The admin changes the price: the cart follows it straight away.
+  await Product.updateOne({ _id: shoeId }, { $set: { price: 2500 } });
+  const repriced = await call("GET", "/api/cart", { cookie: shopperCookie });
+  assert.equal(repriced.data.cart.summary.subtotal, 7500);
+  assert.equal(repriced.data.cart.items[0].priceChanged, true);
+  await Product.updateOne({ _id: shoeId }, { $set: { price: 2999 } });
+
+  const page = await call("GET", "/products/nexthlon-trail-shoe", { cookie: shopperCookie });
+  assert.match(page.data, /data-cart-count >3</);
+});
+
+test("cart: the stock limit and the 5-per-product limit are enforced on the server", async () => {
+  const overStock = await call("POST", "/api/cart/items", { body: { productId: shoeId, quantity: 2 }, cookie: shopperCookie });
+  assert.equal(overStock.status, 400);
+  assert.match(overStock.data.message, /already have 3 in your cart\. You can add 1 more/);
+  assert.equal((await call("PATCH", `/api/cart/items/${shoeId}`, { body: { quantity: 5 }, cookie: shopperCookie })).status, 400);
+  assert.equal((await call("PATCH", `/api/cart/items/${shoeId}`, { body: { quantity: 0 }, cookie: shopperCookie })).status, 400);
+  const four = await call("PATCH", `/api/cart/items/${shoeId}`, { body: { quantity: 4 }, cookie: shopperCookie });
+  assert.equal(four.data.cart.items[0].quantity, 4);
+
+  const plenty = await Product.create({ name: "Grip Tape", slug: "grip-tape", category: "Tennis", price: 199, mrp: 249, stock: 40, image: "/img/favicon.svg" });
+  assert.equal((await call("POST", "/api/cart/items", { body: { productId: String(plenty._id), quantity: 6 }, cookie: shopperCookie })).status, 400);
+  assert.equal((await call("POST", "/api/cart/items", { body: { productId: String(plenty._id), quantity: 5 }, cookie: shopperCookie })).status, 201);
+  const sixth = await call("POST", "/api/cart/items", { body: { productId: String(plenty._id), quantity: 1 }, cookie: shopperCookie });
+  assert.equal(sixth.status, 400);
+  assert.match(sixth.data.message, /most you can buy/);
+  assert.equal((await call("DELETE", `/api/cart/items/${plenty._id}`, { cookie: shopperCookie })).status, 200);
+  assert.equal((await call("DELETE", `/api/cart/items/${plenty._id}`, { cookie: shopperCookie })).status, 404);
+});
+
+test("cart: unlisted and out-of-stock products cannot be added, and show as unavailable", async () => {
+  const hidden = await Product.create({ name: "Old Racket", slug: "old-racket", category: "Tennis", price: 999, mrp: 999, stock: 5, image: "/img/favicon.svg", isListed: false });
+  const soldOut = await Product.create({ name: "Sold Out Cap", slug: "sold-out-cap", category: "Running", price: 299, mrp: 399, stock: 0, image: "/img/favicon.svg" });
+  assert.match((await call("POST", "/api/cart/items", { body: { productId: String(hidden._id) }, cookie: shopperCookie })).data.message, /no longer available/);
+  assert.match((await call("POST", "/api/cart/items", { body: { productId: String(soldOut._id) }, cookie: shopperCookie })).data.message, /out of stock/);
+  assert.equal((await call("POST", "/api/cart/items", { body: { productId: "64b000000000000000000099" }, cookie: shopperCookie })).status, 400);
+
+  // A product in the cart is unlisted later: it stays visible but leaves the total.
+  await Product.updateOne({ _id: shoeId }, { $set: { isListed: false } });
+  const after = await call("GET", "/api/cart", { cookie: shopperCookie });
+  assert.equal(after.data.cart.items[0].available, false);
+  assert.equal(after.data.cart.items[0].reason, "No longer sold");
+  assert.equal(after.data.cart.summary.subtotal, 0);
+  assert.equal((await call("PATCH", `/api/cart/items/${shoeId}`, { body: { quantity: 1 }, cookie: shopperCookie })).status, 400);
+  const page = await call("GET", "/cart", { cookie: shopperCookie });
+  assert.match(page.data, /Unavailable · No longer sold/);
+  await Product.updateOne({ _id: shoeId }, { $set: { isListed: true } });
+});
+
+test("cart: blocked customers are signed out of the cart too", async () => {
+  const meera = await User.findOne({ email: "meera@nexthlon.test" });
+  await User.updateOne({ _id: meera._id }, { $set: { isBlocked: true } });
+  assert.equal((await call("GET", "/api/cart", { cookie: shopperCookie })).status, 403);
+  assert.equal((await call("GET", "/cart", { cookie: shopperCookie })).location, "/login?next=%2Fcart&reason=blocked");
+  await User.updateOne({ _id: meera._id }, { $set: { isBlocked: false } });
+
+  const cleared = await call("DELETE", "/api/cart", { cookie: shopperCookie });
+  assert.equal(cleared.data.cart.items.length, 0);
+  assert.equal((await Cart.findOne({ user: meera._id })).items.length, 0);
+});

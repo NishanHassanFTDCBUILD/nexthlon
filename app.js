@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const config = require("./config/env");
 const { viewLocals } = require("./middleware/viewLocals");
 const { attachUser } = require("./middleware/auth");
+const { cartCount } = require("./middleware/cartCount");
 const { originCheck } = require("./middleware/originCheck");
 const { noCache } = require("./middleware/noCache");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -50,6 +51,7 @@ app.use(express.urlencoded({ extended: false, limit: "20kb" }));
 app.use(cookieParser());
 app.use(viewLocals);
 app.use(attachUser);
+app.use(cartCount);
 
 // JSON API
 app.get("/api/health", (req, res) => res.json({ status: "ok", app: "Nexthlon API" }));
@@ -58,6 +60,7 @@ app.use("/api", require("./routes/authRoutes"));
 app.use("/api", require("./routes/productRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
 app.use("/api/addresses", require("./routes/addressRoutes"));
+app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 
 // EJS pages

@@ -31,6 +31,18 @@
         <button type="submit" aria-label="Search"><%- icon('search') %></button>
       </form>
 
+      <% if (!currentUser || currentUser.role === 'customer') { %>
+        <% const count = typeof cartCount === 'number' ? cartCount : 0; %>
+        <a class="cart-link <%= path === '/cart' ? 'is-active' : '' %>" href="/cart" data-cart-link
+           aria-label="Cart, <%= count %> <%= count === 1 ? 'item' : 'items' %>">
+          <span class="cart-icon">
+            <%- icon('cart') %>
+            <span class="cart-badge" data-cart-count <%= count ? '' : 'hidden' %>><%= count %></span>
+          </span>
+          <span class="cart-text">Cart</span>
+        </a>
+      <% } %>
+
       <div class="account" data-menu>
         <% if (currentUser) { %>
           <button type="button" class="account-btn" data-menu-toggle aria-expanded="false" aria-controls="account-menu">
@@ -57,6 +69,7 @@
                 <a href="/admin/users"><%- icon('users') %> Manage users</a>
               <% } else { %>
                 <a href="/profile"><%- icon('user') %> Your profile</a>
+                <a href="/cart"><%- icon('cart') %> Your cart</a>
                 <a href="/profile#addresses"><%- icon('pin') %> Saved addresses</a>
                 <a href="/profile#security"><%- icon('lock') %> Login &amp; security</a>
               <% } %>

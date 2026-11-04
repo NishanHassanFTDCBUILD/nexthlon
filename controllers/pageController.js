@@ -2,6 +2,7 @@ const productService = require("../services/productService");
 const profileService = require("../services/profileService");
 const adminService = require("../services/adminService");
 const adminProductService = require("../services/adminProductService");
+const cartService = require("../services/cartService");
 const { INDIAN_STATES, CATEGORIES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
@@ -69,6 +70,11 @@ const profile = asyncHandler(async (req, res) => {
   res.render("pages/profile", { title: "Your account | Nexthlon", addresses, states: INDIAN_STATES });
 });
 
+const cart = asyncHandler(async (req, res) => {
+  const data = await cartService.getCart(req.user._id);
+  res.render("pages/cart", { title: "Your cart | Nexthlon", ...data });
+});
+
 // ---------- Admin pages ----------
 
 function adminLogin(req, res) {
@@ -124,6 +130,7 @@ module.exports = {
   login,
   signup,
   profile,
+  cart,
   adminLogin,
   adminDashboard,
   adminUsers,

@@ -197,6 +197,23 @@
     }
   };
 
+  // ---------- Header cart count ----------
+  // Updates the badge on the header cart icon after any cart change, without reloading.
+  Nx.setCartCount = function setCartCount(count) {
+    const total = Math.max(0, Number(count) || 0);
+    document.querySelectorAll("[data-cart-count]").forEach(badge => {
+      badge.textContent = String(total);
+      badge.hidden = total === 0;
+      badge.classList.remove("is-bumped");
+      // Restart the little bump animation (the class is styled in style.css).
+      void badge.offsetWidth;
+      badge.classList.add("is-bumped");
+    });
+    document.querySelectorAll("[data-cart-link]").forEach(link => {
+      link.setAttribute("aria-label", `Cart, ${total} ${total === 1 ? "item" : "items"}`);
+    });
+  };
+
   // ---------- Confirm dialog ----------
   // tone "danger" (red button) for destructive actions, "primary" (blue) for safe ones.
   Nx.confirm = function confirmDialog({ title, message, confirmLabel = "Confirm", tone = "danger" }) {

@@ -11,6 +11,7 @@ router.get("/products/:slug", pages.productDetail);
 router.get("/login", guestOnly, pages.login);
 router.get("/signup", guestOnly, pages.signup);
 router.get("/profile", customerPage, pages.profile);
+router.get("/cart", customerPage, pages.cart);
 
 // Admin console
 router.get("/admin/login", guestOnly, pages.adminLogin);

@@ -72,17 +72,28 @@
         <% if (saving) { %><span class="mrp">M.R.P. <s><%= formatPrice(product.mrp) %></s></span><% } %>
       </div>
       <%- include('../partials/stock', { stock: product.stock }) %>
-      <div class="notice">
-        <%- icon('truck') %>
-        <p><strong>Online ordering opens soon.</strong> Cart and checkout arrive in the next Nexthlon update.</p>
-      </div>
-      <% if (!currentUser) { %>
-        <p class="muted">Create an account and save your delivery address now, so checkout is quick later.</p>
-        <a class="btn btn-primary btn-block" href="/signup?next=<%= encodeURIComponent('/products/' + product.slug) %>">Create your account</a>
-        <a class="btn btn-ghost btn-block" href="/login?next=<%= encodeURIComponent('/products/' + product.slug) %>">Sign in</a>
+      <% const maxQty = Math.min(product.stock, 5); %>
+      <% if (product.stock <= 0) { %>
+        <button class="btn btn-primary btn-block" type="button" disabled><%- icon('cart', 'i-sm') %> Out of stock</button>
+        <p class="muted">This item is sold out right now. Check back soon.</p>
+      <% } else if (!currentUser) { %>
+        <%# Guests are sent to sign in, then straight back to this product. %>
+        <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent('/products/' + product.slug) %>"><%- icon('cart', 'i-sm') %> Add to cart</a>
+        <p class="muted">Sign in to add items to your cart. New here? <a href="/signup?next=<%= encodeURIComponent('/products/' + product.slug) %>">Create an account</a>.</p>
       <% } else if (currentUser.role === 'customer') { %>
-        <p class="muted">Your saved addresses will be ready at checkout.</p>
-        <a class="btn btn-primary btn-block" href="/profile#addresses"><%- icon('pin', 'i-sm') %> Manage delivery addresses</a>
+        <form class="add-to-cart" data-add-to-cart data-product-id="<%= product._id %>" novalidate>
+          <div class="qty-row">
+            <label for="qty">Quantity</label>
+            <div class="qty" data-qty>
+              <button type="button" class="qty-btn" data-qty-step="-1" aria-label="One less" disabled><%- icon('minus', 'i-sm') %></button>
+              <input id="qty" name="quantity" type="number" inputmode="numeric" min="1" max="<%= maxQty %>" step="1" value="1" data-qty-input>
+              <button type="button" class="qty-btn" data-qty-step="1" aria-label="One more" <%= maxQty <= 1 ? 'disabled' : '' %>><%- icon('plus', 'i-sm') %></button>
+            </div>
+          </div>
+          <p class="hint">Up to <%= maxQty %> per order.</p>
+          <button class="btn btn-primary btn-block btn-lg" type="submit"><%- icon('cart', 'i-sm') %> Add to cart</button>
+        </form>
+        <a class="btn btn-ghost btn-block" href="/cart">View cart</a>
       <% } else { %>
         <p class="muted">You are signed in as an administrator.</p>
         <a class="btn btn-primary btn-block" href="/admin">Go to dashboard</a>
@@ -137,4 +148,4 @@
   <% } %>
 </main>
 
-<%- include('../partials/footer', { scripts: ['catalog'] }) %>
+<%- include('../partials/footer', { scripts: ['catalog', 'cart'] }) %>
