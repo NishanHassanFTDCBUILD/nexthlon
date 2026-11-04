@@ -5,7 +5,7 @@
   "use strict";
 
   const Nx = window.Nx || (window.Nx = {});
-  const colours = ["#ff7a1a", "#ffb26b", "#0b7a4b", "#1a5fd0", "#cc0c39", "#f5a623"];
+  const colours = ["#d4ff3a", "#ecff9e", "#f5f5f0", "#34d399", "#60a5fa", "#ff5a1f"];
 
   Nx.confetti = function confetti(canvas, { keep = false } = {}) {
     if (!canvas || !canvas.getContext || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;

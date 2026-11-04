@@ -123,7 +123,7 @@ export function drawDumbbell(ctx) {
   plate(294, 26, 128);
 }
 
-// An animated orange and navy fog, drawn on a full-screen quad behind everything.
+// An animated obsidian fog with a faint volt glow, drawn on a full-screen quad behind everything.
 export const fogShader = {
   vertex: `
     attribute vec3 aPosition;
@@ -145,12 +145,12 @@ export const fogShader = {
     void main() {
       vec2 p = vUv * 3.0 + vec2(uTime * 0.04, uTime * 0.025);
       float n = fbm(p + fbm(p + uTime * 0.05));
-      vec3 navy = vec3(0.016, 0.035, 0.075), deep = vec3(0.05, 0.11, 0.22), orange = vec3(1.0, 0.46, 0.1);
-      vec3 colour = mix(navy, deep, n);
+      vec3 obsidian = vec3(0.018, 0.018, 0.022), smoke = vec3(0.075, 0.075, 0.085), volt = vec3(0.83, 1.0, 0.23);
+      vec3 colour = mix(obsidian, smoke, n);
       float glow = smoothstep(0.5, 0.92, n) * (0.55 + 0.25 * sin(uTime * 0.35 + uMorph));
       vec2 m = vec2(uMouse.x * 0.5 + 0.5, 0.5 - uMouse.y * 0.5);
       float spot = 0.12 / (0.2 + distance(vUv, m) * 2.6);
-      colour += orange * (glow * 0.38 + spot * 0.22);
+      colour += volt * (glow * 0.16 + spot * 0.12);
       colour *= 1.0 - 0.45 * length(vUv - vec2(0.5, 0.55));
       gl_FragColor = vec4(colour, 1.0);
     }`

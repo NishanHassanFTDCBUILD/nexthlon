@@ -38,7 +38,7 @@
         const py = horizon + (height - horizon) * (1 - row / ROWS) + (wave * height * 0.18) / z;
         const glow = Math.max(0, wave + 0.35);
         ctx.globalAlpha = Math.min(1, (0.12 + glow * 0.55) * (1 - row / ROWS));
-        ctx.fillStyle = glow > 0.38 ? "#ff7a1a" : "#ffb26b";
+        ctx.fillStyle = glow > 0.38 ? "#d4ff3a" : "#8f9a6a";
         const r = Math.max(0.6, (2.2 / z) * (0.7 + glow));
         ctx.beginPath();
         ctx.arc(px, py, r, 0, Math.PI * 2);

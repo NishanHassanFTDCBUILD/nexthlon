@@ -82,12 +82,12 @@
   .js-motion .site-header::after {
     background: rgba(var(--navy-rgb), 0.8);
     -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
-    box-shadow: 0 10px 30px rgba(4, 12, 24, 0.35); opacity: 0;
+    box-shadow: 0 10px 30px rgba(5, 5, 6, 0.35); opacity: 0;
   }
   .js-motion .site-header.is-scrolled::before { opacity: 0; }
   .js-motion .site-header.is-scrolled::after { opacity: 1; }
   /* A see-through tint that looks like the usual navy-800 over the solid layer. */
-  .js-motion .site-header .catnav { background: rgba(16, 34, 64, 0.5); }
+  .js-motion .site-header .catnav { background: rgba(26, 26, 30, 0.5); }
 
   /* ---------- Scroll progress bar ---------- */
   .scroll-progress { position: fixed; z-index: 1200; top: 0; left: 0; right: 0; height: 3px; pointer-events: none; }

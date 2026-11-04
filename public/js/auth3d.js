@@ -1,6 +1,6 @@
 // Sign-in pages in 3D (ES module, built on public/js/3d):
 //   customers  glowing particles form a running athlete, then a football, then a dumbbell, in a
-//              loop over the orange and navy fog. The mouse makes them swirl away and come back.
+//              loop over the obsidian and volt fog. The mouse makes them swirl away and come back.
 //   admins     a turning wireframe globe with glowing data points, for the "control room".
 // Decoration only: without WebGL the scene shows its CSS fallback, and with reduced motion one
 // still frame is drawn.
@@ -91,7 +91,7 @@ function buildAthletes(canvas, { tier }) {
       aBell: { data: sampleShape(drawDumbbell, count, size), size: 3 },
       aRandom: { data: random, size: 3 }
     },
-    uniforms: { uSize: 30, uRatio: 1, uPush: 0, uMouse: [0, 0], uWeights: [1, 0, 0], uColorA: [1.0, 0.5, 0.12], uColorB: [1.0, 0.84, 0.66] }
+    uniforms: { uSize: 30, uRatio: 1, uPush: 0, uMouse: [0, 0], uWeights: [1, 0, 0], uColorA: [0.83, 1.0, 0.23], uColorB: [0.96, 1.0, 0.82] }
   }));
   const pointer = pointerTracker(canvas);
   let push = 0;
@@ -135,7 +135,7 @@ const lineShader = {
     precision mediump float;
     varying float vFront;
     void main() {
-      vec3 colour = mix(vec3(0.16, 0.3, 0.55), vec3(1.0, 0.55, 0.2), vFront);
+      vec3 colour = mix(vec3(0.2, 0.2, 0.23), vec3(0.83, 1.0, 0.23), vFront);
       gl_FragColor = vec4(colour * (0.2 + 0.6 * vFront), 1.0);
     }`
 };
@@ -197,7 +197,7 @@ function buildGlobe(canvas, { tier }) {
     blending: "additive",
     depthTest: false,
     attributes: { aRandom: { data: random, size: 3 } },
-    uniforms: { uSize: 70, uRatio: 1, uColorA: [1.0, 0.5, 0.12], uColorB: [0.55, 0.78, 1.0] }
+    uniforms: { uSize: 70, uRatio: 1, uColorA: [0.83, 1.0, 0.23], uColorB: [0.96, 0.96, 0.92] }
   }));
   scene.onUpdate(time => {
     const aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);

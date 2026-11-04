@@ -1,47 +1,55 @@
-// Runs in <head>, before the page paints: applies the theme the visitor picked (light, dark or
-// system), so the page never flashes the wrong colours. Also offers window.NxTheme to switch it:
-// the choice is saved in localStorage, and the colours fade over (tokens.css, theme-switching).
+// Runs in <head>, before the page paints: applies the theme the visitor picked, so the page never
+// flashes the wrong colours. Dark (obsidian) is the default. "System" follows the device setting.
+// <html data-theme> is always "dark" or "light" (what tokens.css reads); data-theme-mode is the
+// choice itself, for the toggle icon. Also offers window.NxTheme to switch it: the choice is saved
+// in localStorage and the colours fade over (tokens.css, theme-switching).
 (function () {
   "use strict";
 
   const root = document.documentElement;
   const KEY = "nx-theme";
-  const MODES = ["system", "light", "dark"];
+  const MODES = ["dark", "light", "system"];
+  const systemLight = window.matchMedia("(prefers-color-scheme: light)");
   let timer = 0;
 
   function read() {
     try {
       const saved = localStorage.getItem(KEY);
-      return saved === "light" || saved === "dark" ? saved : "system";
+      return MODES.includes(saved) ? saved : "dark";
     } catch {
-      return "system"; // storage blocked: follow the system setting
+      return "dark"; // storage blocked: the default theme
     }
   }
 
+  function resolve(mode) {
+    if (mode === "system") return systemLight.matches ? "light" : "dark";
+    return mode;
+  }
+
   function apply(mode) {
-    if (mode === "system") root.removeAttribute("data-theme");
-    else root.setAttribute("data-theme", mode);
+    root.setAttribute("data-theme", resolve(mode));
     root.setAttribute("data-theme-mode", mode);
   }
 
   apply(read());
+  // On "System", follow the device when it switches between light and dark.
+  systemLight.addEventListener("change", () => {
+    if (read() === "system") apply("system");
+  });
 
   window.NxTheme = {
     MODES,
     get: read,
     // The colours actually showing: "light" or "dark".
     resolved() {
-      const mode = read();
-      if (mode !== "system") return mode;
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      return resolve(read());
     },
     set(mode) {
       if (!MODES.includes(mode)) return;
       root.classList.add("theme-switching");
       apply(mode);
       try {
-        if (mode === "system") localStorage.removeItem(KEY);
-        else localStorage.setItem(KEY, mode);
+        localStorage.setItem(KEY, mode);
       } catch {
         /* the theme still changes for this page */
       }
@@ -49,7 +57,7 @@
       timer = setTimeout(() => root.classList.remove("theme-switching"), 420);
       document.dispatchEvent(new CustomEvent("nx:theme", { detail: { mode } }));
     },
-    // System → Light → Dark → System
+    // Dark → Light → System → Dark
     next() {
       const mode = read();
       this.set(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);

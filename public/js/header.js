@@ -3,7 +3,7 @@
 (function () {
   "use strict";
 
-  // ---------- Theme switch: System → Light → Dark ----------
+  // ---------- Theme switch: Dark → Light → System ----------
   // theme.js (in <head>) applies and saves the choice; the icon follows html[data-theme-mode].
   const NAMES = { system: "System", light: "Light", dark: "Dark" };
   function showTheme() {

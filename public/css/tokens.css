@@ -1,75 +1,98 @@
 /* ==========================================================================
-   Nexthlon design tokens
+   Nexthlon design tokens: "Obsidian & Volt"
    One place for colour, spacing, type, radius, shadow and layering.
-   Light is the default. Dark follows the system setting, unless the visitor
-   picked a theme with the header toggle (saved in localStorage, applied by
-   /js/theme.js as <html data-theme="light|dark"> before the page paints).
+   Dark (obsidian) is the default. Light (ivory) is used when the visitor picks it
+   with the header toggle, or picks "System" on a light system. /js/theme.js sets
+   <html data-theme="light|dark"> before the page paints; without JavaScript the
+   site is dark.
+
+   Colour rules
+   - Volt (--brand) is for buttons, highlights, active states and glows. Volt TEXT
+     is only used on dark backgrounds; on light ones text uses --brand-ink.
+   - Ember (--deal) is only for sale and deal badges.
+   - Text on a coloured fill uses the matching --on-* token, so it keeps AA contrast
+     in both themes.
+   - The older names (--navy-*, --accent, --blue, ...) are kept and point at the new
+     palette, so every page follows these tokens.
    ========================================================================== */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* ---------- Brand ---------- */
-  --brand: #ff7a1a;            /* Nexthlon orange: buttons, highlights */
-  --brand-rgb: 255, 122, 26;
-  --brand-hover: #f26a05;
-  --brand-press: #db5f00;
-  --brand-ink: #b34700;        /* orange text on light surfaces (5.6:1 on white) */
-  --brand-soft: #fff1e6;       /* tinted backgrounds */
-  --brand-soft-2: #ffe2cc;
-  --on-brand: #1a1205;         /* text on orange (dark text keeps contrast high) */
-  --accent: #ffb26b;           /* orange highlight used on navy areas */
-  --accent-rgb: 255, 178, 107;
+  /* ---------- Brand: volt ---------- */
+  --brand: #d4ff3a;
+  --brand-rgb: 212, 255, 58;
+  --brand-hover: #e2ff74;
+  --brand-press: #bfe81f;
+  --brand-ink: #d4ff3a;        /* volt text (dark backgrounds only) */
+  --brand-soft: rgba(212, 255, 58, 0.1);
+  --brand-soft-2: rgba(212, 255, 58, 0.18);
+  --on-brand: #0a0a0b;         /* text on volt: 17:1 */
+  --accent: #d4ff3a;           /* highlight on the always-dark areas (header, footer, hero) */
+  --accent-rgb: 212, 255, 58;
+  --volt: #d4ff3a;
+  --volt-rgb: 212, 255, 58;
 
-  --navy-950: #050b16;
-  --navy-900: #0a1628;
-  --navy-800: #102240;
-  --navy-700: #183058;
-  --navy-600: #24406e;
-  --navy-rgb: 10, 22, 40;
+  /* ---------- Ember: sale and deal badges only ---------- */
+  --deal: #ff5a1f;
+  --deal-rgb: 255, 90, 31;
+  --on-deal: #0a0a0b;          /* dark text on ember: 6.9:1 */
+  --ember: var(--deal);
+
+  /* ---------- Obsidian scale (the always-dark areas; old "navy" names) ---------- */
+  --navy-950: #050506;
+  --navy-900: #0a0a0b;
+  --navy-800: #121214;
+  --navy-700: #1a1a1e;
+  --navy-600: #232328;
+  --navy-rgb: 10, 10, 11;
 
   /* ---------- Status ---------- */
-  --success: #0b7a4b;
-  --success-rgb: 11, 122, 75;
-  --success-soft: #e3f6ec;
-  --success-line: #bfe6d2;
-  --warning: #995400;
-  --warning-strong: #e39a1a;
-  --warning-soft: #fff3dc;
-  --danger: #c62828;
-  --danger-rgb: 198, 40, 40;
-  --danger-hover: #a81f1f;
-  --danger-ink: #a12020;
-  --danger-soft: #fdeaea;
-  --danger-soft-2: #f9d9d9;
-  --danger-line: #f4c7c7;
-  --deal: #cc0c39;
-  --info: #1a5fd0;
-  --info-soft: #e8f0fd;
+  --success: #34d399;
+  --success-rgb: 52, 211, 153;
+  --success-soft: rgba(52, 211, 153, 0.12);
+  --success-line: rgba(52, 211, 153, 0.3);
+  --on-success: #0a0a0b;
+  --warning: #fbbf24;
+  --warning-strong: #f59e0b;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --danger: #f87171;
+  --danger-rgb: 248, 113, 113;
+  --danger-hover: #fca5a5;
+  --danger-ink: #fca5a5;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --danger-soft-2: rgba(248, 113, 113, 0.2);
+  --danger-line: rgba(248, 113, 113, 0.32);
+  --on-danger: #0a0a0b;
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.12);
 
   /* ---------- Surfaces and text ---------- */
-  --bg: #eef1f6;               /* page floor */
-  --surface: #ffffff;          /* cards, panels */
-  --surface-2: #f7f8fb;        /* subtle fills: table heads, inputs at rest */
-  --surface-3: #e8ecf3;        /* placeholders, tracks */
-  --glass: rgba(255, 255, 255, 0.9);
-  --ink: #0f1a2b;
-  --ink-2: #364559;
-  --muted: #5b6a80;
-  --muted-2: #8b98ab;
-  --placeholder: #8592a6;
-  --disabled: #aab4c3;
-  --line: #dde3ec;
-  --line-strong: #c6cfdc;
-  --line-hover: #a6b3c5;
-  --hairline: rgba(15, 26, 43, 0.06);
-  --link: #1a5fd0;
-  --link-hover: #0f47a8;
-  --on-dark: #c7d2e3;
-  --on-dark-muted: #9aabc4;
-  --focus: #1a5fd0;
-  --ring: 0 0 0 4px rgba(26, 95, 208, 0.18);
+  --bg: #0a0a0b;               /* obsidian page floor */
+  --surface: #121214;          /* cards, panels */
+  --surface-2: #1a1a1e;        /* subtle fills: table heads, inputs at rest */
+  --surface-3: #232328;        /* placeholders, tracks */
+  --surface-raised: #1a1a1e;
+  --glass: rgba(18, 18, 20, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --ink: #f5f5f0;              /* ivory */
+  --ink-2: #d4d4cd;
+  --muted: #9a9aa3;
+  --muted-2: #74747c;
+  --placeholder: #74747c;
+  --disabled: #4a4a52;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --line-hover: rgba(255, 255, 255, 0.26);
+  --hairline: rgba(255, 255, 255, 0.06);
+  --link: #d4ff3a;
+  --link-hover: #e8ff9a;
+  --on-dark: #d4d4cd;
+  --on-dark-muted: #9a9aa3;
+  --focus: #d4ff3a;
+  --ring: 0 0 0 4px rgba(212, 255, 58, 0.22);
   --ring-brand: 0 0 0 4px rgba(var(--brand-rgb), 0.28);
-  --ring-danger: 0 0 0 4px rgba(var(--danger-rgb), 0.12);
+  --ring-danger: 0 0 0 4px rgba(var(--danger-rgb), 0.16);
+  --glow: 0 0 0 1px rgba(var(--brand-rgb), 0.5), 0 0 24px rgba(var(--brand-rgb), 0.22);
 
   /* ---------- Spacing: an 8px scale (with 4px half steps) ---------- */
   --space-0: 0;
@@ -96,43 +119,44 @@
   --text-lg: 20px;
   /* Headings scale smoothly between a 360px phone and a 1440px screen. */
   --text-xl: clamp(20px, 0.37vw + 18.7px, 24px);
-  --text-2xl: clamp(24px, 0.56vw + 22px, 30px);
-  --text-3xl: clamp(28px, 0.93vw + 24.7px, 38px);
-  --text-4xl: clamp(34px, 1.3vw + 29.3px, 48px);
-  --text-hero: clamp(36px, 5.2vw, 68px);
-  --text-display: clamp(42px, 6.4vw, 92px);
+  --text-2xl: clamp(26px, 0.74vw + 23.3px, 34px);
+  --text-3xl: clamp(32px, 1.3vw + 27.3px, 46px);
+  --text-4xl: clamp(38px, 1.85vw + 31.3px, 58px);
+  --text-hero: clamp(44px, 6.4vw, 92px);
+  --text-display: clamp(52px, 8.4vw, 132px);
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
   --weight-black: 800;
-  --leading-tight: 1.15;
-  --leading-normal: 1.55;
+  --leading-tight: 1.05;
+  --leading-normal: 1.6;
+  --tracking-display: -0.005em; /* big condensed headlines sit tight */
+  --tracking-label: 0.16em;     /* small uppercase labels */
 
   /* ---------- Radius ---------- */
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
   --radius-pill: 999px;
 
-  /* ---------- Shadows ---------- */
-  --shadow-xs: 0 1px 2px rgba(var(--navy-rgb), 0.06);
-  --shadow-sm: 0 1px 2px rgba(var(--navy-rgb), 0.05), 0 2px 8px rgba(var(--navy-rgb), 0.06);
-  --shadow-md: 0 2px 4px rgba(var(--navy-rgb), 0.05), 0 10px 28px rgba(var(--navy-rgb), 0.1);
-  --shadow-lg: 0 24px 60px rgba(var(--navy-rgb), 0.22);
-  --shadow-xl: 0 2px 6px rgba(var(--navy-rgb), 0.06), 0 32px 80px rgba(var(--navy-rgb), 0.28);
-  --shadow-brand: 0 8px 22px rgba(var(--brand-rgb), 0.35);
-  --shadow-brand-lg: 0 14px 40px rgba(var(--brand-rgb), 0.4);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(var(--navy-rgb), 0.04);
+  /* ---------- Shadows: soft and layered ---------- */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35), 0 24px 48px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.3), 0 24px 64px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 2px 6px rgba(0, 0, 0, 0.35), 0 40px 100px rgba(0, 0, 0, 0.65);
+  --shadow-brand: 0 8px 28px rgba(var(--brand-rgb), 0.25);
+  --shadow-brand-lg: 0 14px 44px rgba(var(--brand-rgb), 0.32);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 
-  /* ---------- Surfaces and gradients ---------- */
-  --surface-raised: #ffffff;
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --gradient-brand: linear-gradient(135deg, #ff9a3d 0%, var(--brand) 45%, #f25c05 100%);
-  --gradient-navy: radial-gradient(120% 140% at 100% 0%, var(--navy-600), var(--navy-900) 60%);
-  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0));
+  /* ---------- Gradients and texture ---------- */
+  --gradient-brand: linear-gradient(135deg, #ecff9e 0%, #d4ff3a 48%, #a9d600 100%);
+  --gradient-navy: radial-gradient(120% 140% at 100% 0%, #202026, #0a0a0b 62%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+  --grain-opacity: 0.05;
 
   /* ---------- Layers ---------- */
   --z-base: 1;
@@ -198,111 +222,77 @@
   --sh-lg: var(--shadow-lg);
 }
 
-/* ---------- Dark mode ---------- */
-/* The same values twice: once for "follow the system", once for the saved choice. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --brand-hover: #ff8a33;
-    --brand-press: #ff9a4d;
-    --brand-ink: #ffa35c;
-    --brand-soft: rgba(255, 122, 26, 0.14);
-    --brand-soft-2: rgba(255, 122, 26, 0.24);
-    --success: #45c98a;
-    --success-soft: rgba(69, 201, 138, 0.14);
-    --success-line: rgba(69, 201, 138, 0.3);
-    --warning: #f0b14a;
-    --warning-soft: rgba(240, 177, 74, 0.14);
-    --danger: #ff6b6b;
-    --danger-rgb: 255, 107, 107;
-    --danger-hover: #ff8585;
-    --danger-ink: #ffb3b3;
-    --danger-soft: rgba(255, 107, 107, 0.14);
-    --danger-soft-2: rgba(255, 107, 107, 0.22);
-    --danger-line: rgba(255, 107, 107, 0.32);
-    --deal: #ff5277;
-    --info: #7fb0ff;
-    --info-soft: rgba(127, 176, 255, 0.14);
-    --bg: #0b111c;
-    --surface: #141c2a;
-    --surface-2: #192232;
-    --surface-3: #222d3f;
-    --glass: rgba(20, 28, 42, 0.88);
-    --ink: #e8edf5;
-    --ink-2: #c3cddb;
-    --muted: #96a3b7;
-    --muted-2: #74839a;
-    --placeholder: #7d8aa0;
-    --disabled: #556378;
-    --line: #273246;
-    --line-strong: #34415a;
-    --line-hover: #4a5874;
-    --hairline: rgba(255, 255, 255, 0.06);
-    --link: #8ab8ff;
-    --link-hover: #b3d0ff;
-    --focus: #8ab8ff;
-    --ring: 0 0 0 4px rgba(138, 184, 255, 0.25);
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
-    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
-    --shadow-xl: 0 2px 6px rgba(0, 0, 0, 0.35), 0 32px 80px rgba(0, 0, 0, 0.65);
-    --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-    --surface-raised: #1a2334;
-    --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
-    --glass-border: rgba(255, 255, 255, 0.08);
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --brand-hover: #ff8a33;
-  --brand-press: #ff9a4d;
-  --brand-ink: #ffa35c;
-  --brand-soft: rgba(255, 122, 26, 0.14);
-  --brand-soft-2: rgba(255, 122, 26, 0.24);
-  --success: #45c98a;
-  --success-soft: rgba(69, 201, 138, 0.14);
-  --success-line: rgba(69, 201, 138, 0.3);
-  --warning: #f0b14a;
-  --warning-soft: rgba(240, 177, 74, 0.14);
-  --danger: #ff6b6b;
-  --danger-rgb: 255, 107, 107;
-  --danger-hover: #ff8585;
-  --danger-ink: #ffb3b3;
-  --danger-soft: rgba(255, 107, 107, 0.14);
-  --danger-soft-2: rgba(255, 107, 107, 0.22);
-  --danger-line: rgba(255, 107, 107, 0.32);
-  --deal: #ff5277;
-  --info: #7fb0ff;
-  --info-soft: rgba(127, 176, 255, 0.14);
-  --bg: #0b111c;
-  --surface: #141c2a;
-  --surface-2: #192232;
-  --surface-3: #222d3f;
-  --glass: rgba(20, 28, 42, 0.88);
-  --ink: #e8edf5;
-  --ink-2: #c3cddb;
-  --muted: #96a3b7;
-  --muted-2: #74839a;
-  --placeholder: #7d8aa0;
-  --disabled: #556378;
-  --line: #273246;
-  --line-strong: #34415a;
-  --line-hover: #4a5874;
-  --hairline: rgba(255, 255, 255, 0.06);
-  --link: #8ab8ff;
-  --link-hover: #b3d0ff;
-  --focus: #8ab8ff;
-  --ring: 0 0 0 4px rgba(138, 184, 255, 0.25);
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
-  --shadow-xl: 0 2px 6px rgba(0, 0, 0, 0.35), 0 32px 80px rgba(0, 0, 0, 0.65);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --surface-raised: #1a2334;
-  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
-  --glass-border: rgba(255, 255, 255, 0.08);
+/* ---------- Light: ivory ----------
+   The header, footer, hero and other "always dark" areas keep the obsidian scale
+   (--navy-*) and volt accent, so they look the same in both themes. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --brand: #9bc400;
+  --brand-rgb: 155, 196, 0;
+  --brand-hover: #8ab000;
+  --brand-press: #7a9c00;
+  --brand-ink: #4a6200;        /* volt-olive text on ivory: 7.3:1 */
+  --brand-soft: rgba(155, 196, 0, 0.14);
+  --brand-soft-2: rgba(155, 196, 0, 0.26);
+  --on-brand: #0a0a0b;
+
+  --deal: #c2410c;
+  --deal-rgb: 194, 65, 12;
+  --on-deal: #ffffff;
+
+  --success: #047857;
+  --success-rgb: 4, 120, 87;
+  --success-soft: #e3f4ec;
+  --success-line: #b6e2cd;
+  --on-success: #ffffff;
+  --warning: #92400e;
+  --warning-strong: #d97706;
+  --warning-soft: #fdf3dc;
+  --danger: #dc2626;
+  --danger-rgb: 220, 38, 38;
+  --danger-hover: #b91c1c;
+  --danger-ink: #b91c1c;
+  --danger-soft: #fdecec;
+  --danger-soft-2: #fadada;
+  --danger-line: #f4c4c4;
+  --on-danger: #ffffff;
+  --info: #2563eb;
+  --info-soft: #e8effd;
+
+  --bg: #f7f7f4;
+  --surface: #ffffff;
+  --surface-2: #efefea;
+  --surface-3: #e4e4de;
+  --surface-raised: #ffffff;
+  --glass: rgba(255, 255, 255, 0.76);
+  --glass-border: rgba(10, 10, 11, 0.08);
+  --ink: #0a0a0b;
+  --ink-2: #2e2e33;
+  --muted: #5c5c64;
+  --muted-2: #85858d;
+  --placeholder: #85858d;
+  --disabled: #b4b4ba;
+  --line: rgba(10, 10, 11, 0.1);
+  --line-strong: rgba(10, 10, 11, 0.16);
+  --line-hover: rgba(10, 10, 11, 0.3);
+  --hairline: rgba(10, 10, 11, 0.06);
+  --link: #4a6200;
+  --link-hover: #364800;
+  --focus: #4a6200;
+  --ring: 0 0 0 4px rgba(155, 196, 0, 0.32);
+  --glow: 0 0 0 1px rgba(var(--brand-rgb), 0.6), 0 0 22px rgba(var(--brand-rgb), 0.28);
+
+  --shadow-xs: 0 1px 2px rgba(10, 10, 11, 0.06);
+  --shadow-sm: 0 1px 2px rgba(10, 10, 11, 0.05), 0 4px 12px rgba(10, 10, 11, 0.06);
+  --shadow-md: 0 1px 2px rgba(10, 10, 11, 0.04), 0 8px 24px rgba(10, 10, 11, 0.08), 0 24px 48px rgba(10, 10, 11, 0.06);
+  --shadow-lg: 0 2px 4px rgba(10, 10, 11, 0.05), 0 24px 64px rgba(10, 10, 11, 0.16);
+  --shadow-xl: 0 2px 6px rgba(10, 10, 11, 0.06), 0 40px 100px rgba(10, 10, 11, 0.22);
+  --shadow-brand: 0 8px 26px rgba(var(--brand-rgb), 0.3);
+  --shadow-brand-lg: 0 14px 40px rgba(var(--brand-rgb), 0.36);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 0 0 1px rgba(10, 10, 11, 0.04);
+  --gradient-brand: linear-gradient(135deg, #c8ef2a 0%, #9bc400 50%, #7fa300 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+  --grain-opacity: 0.035;
 }
 
 /* Switching theme fades the colours over 0.35s (theme.js adds the class for a moment).

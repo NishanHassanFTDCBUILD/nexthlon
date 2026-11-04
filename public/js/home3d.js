@@ -1,6 +1,6 @@
 // Home page 3D (ES module, built on public/js/3d):
 //   1. Hero: thousands of glowing particles form a sphere, then the NEXTHLON logo, then a running
-//      athlete as you scroll, over an animated orange and navy fog. The mouse moves the camera.
+//      athlete as you scroll, over an animated obsidian and volt fog. The mouse moves the camera.
 //      This is the page's only WebGL canvas.
 //   2. Product galaxy: product cards on a CSS 3D ring. Drag, swipe or arrow keys spin it.
 //   3. Pick your sport: six sport cards on a CSS 3D ring, turned by scroll, drag, tabs, keys and a timer.
@@ -71,7 +71,7 @@ function buildHero(canvas, { tier }) {
     blending: "additive",
     depthTest: false,
     attributes: { aLogo: { data: logo, size: 3 }, aAthlete: { data: athlete, size: 3 }, aRandom: { data: random, size: 3 } },
-    uniforms: { uSize: 26, uRatio: 1, uColorA: [1.0, 0.5, 0.12], uColorB: [1.0, 0.82, 0.62] }
+    uniforms: { uSize: 26, uRatio: 1, uColorA: [0.83, 1.0, 0.23], uColorB: [0.96, 1.0, 0.82] }
   }));
   fog.uniforms = { uMouse: [0, 0], uMorph: 0 };
 
