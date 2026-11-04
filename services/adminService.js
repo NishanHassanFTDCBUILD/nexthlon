@@ -22,7 +22,7 @@ async function getDashboardStats() {
     Product.countDocuments({ ...Product.LISTED, stock: 0 }),
     User.find({ role: "customer" }).sort({ createdAt: -1 }).limit(6).lean(),
     Product.find({ ...Product.LISTED, stock: { $lte: LOW_STOCK_LIMIT } })
-      .sort({ stock: 1, name: 1 }).limit(6).select("name slug stock image category").lean()
+      .sort({ stock: 1, name: 1 }).limit(6).select("name slug stock image category").populate("category", "name").lean()
   ]);
 
   return {

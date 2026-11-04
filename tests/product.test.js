@@ -7,14 +7,15 @@ const { detectImageType, isUploadedImage } = require("../services/imageService")
 const { planImages, orderImages, readAdminFilters } = require("../services/adminProductService");
 const Product = require("../models/Product");
 
-const good = { name: "TrailFlex 2 Shoes", category: "Running", brand: "", price: "2999", mrp: "3999", stock: "4", description: " Light and fast. " };
+const CATEGORY_ID = "64b0000000000000000000c1";
+const good = { name: "TrailFlex 2 Shoes", category: CATEGORY_ID, brand: "", price: "2999", mrp: "3999", stock: "4", description: " Light and fast. " };
 
 test("product validation accepts good input and cleans it", () => {
   const { errors, value } = validateProduct(good);
   assert.equal(hasErrors(errors), false);
   assert.deepEqual(value, {
-    name: "TrailFlex 2 Shoes", description: "Light and fast.", category: "Running",
-    brand: "Nexthlon", price: 2999, mrp: 3999, stock: 4
+    name: "TrailFlex 2 Shoes", description: "Light and fast.", category: CATEGORY_ID,
+    brand: "Nexthlon", basePrice: 299900, mrp: 399900, offerPercent: 0, stock: 4
   });
 });
 
@@ -34,15 +35,17 @@ test("product stock must be a whole number of 0 or more", () => {
   assert.equal(validateProduct({ ...good, stock: "0" }).errors.stock, undefined);
 });
 
-test("product name is 3 to 120 characters and the category must be from the list", () => {
+test("product name is 3 to 120 characters and the category must be a real id", () => {
   assert.ok(validateProduct({ ...good, name: "Ab" }).errors.name);
   assert.ok(validateProduct({ ...good, name: "x".repeat(121) }).errors.name);
   assert.equal(validateProduct({ ...good, name: "x".repeat(120) }).errors.name, undefined);
   assert.ok(validateProduct({ ...good, category: "Hacking" }).errors.category);
+  assert.ok(validateProduct({ ...good, category: { $ne: "" } }).errors.category);
 });
 
 test("the discount is worked out from price and M.R.P., never from the form", () => {
   assert.equal(validateProduct({ ...good, discountPercent: "99" }).value.discountPercent, undefined);
+  assert.equal(validateProduct({ ...good, price: "1" }).value.price, undefined);
   assert.equal(Product.discountFor(2999, 3999), 25);
   assert.equal(Product.discountFor(500, 500), 0);
 });

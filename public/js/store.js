@@ -5,7 +5,6 @@
   "use strict";
 
   const Nx = window.Nx || (window.Nx = {});
-  const rupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
   const ID = /^[a-f0-9]{24}$/;
   const WISH_KEY = "nx-wishlist";
   const RECENT_KEY = "nx-recent";
@@ -86,12 +85,12 @@
     link.href = `/products/${encodeURIComponent(p.slug)}`;
     link.textContent = p.name;
     const row = card.querySelector(".price-row");
-    row.querySelector(".price").textContent = rupees.format(p.price);
+    row.querySelector(".price").textContent = Nx.formatPrice(p.price);
     if (p.mrp > p.price) {
       const mrp = document.createElement("span");
       mrp.className = "mrp";
       const struck = document.createElement("s");
-      struck.textContent = rupees.format(p.mrp);
+      struck.textContent = Nx.formatPrice(p.mrp);
       const hidden = document.createElement("span");
       hidden.className = "sr-only";
       hidden.textContent = "M.R.P. ";

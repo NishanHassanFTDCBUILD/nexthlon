@@ -1,11 +1,10 @@
 const mongoose = require("mongoose");
 
-// One cart per customer. Prices shown in the cart always come from the product itself;
-// priceAtAdd is only kept to tell the shopper when a price has changed since they added it.
+// One cart per customer: just products and quantities. Prices are never stored here;
+// they always come live from the product.
 const cartItemSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-  quantity: { type: Number, required: true, min: 1, validate: Number.isInteger },
-  priceAtAdd: { type: Number, required: true, min: 0 }
+  quantity: { type: Number, required: true, min: 1, validate: Number.isInteger }
 }, { _id: false });
 
 const cartSchema = new mongoose.Schema({

@@ -4,7 +4,6 @@
   "use strict";
 
   const root = document.documentElement;
-  const rupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
   // ---------- Theme switch ----------
   // The choice is saved in localStorage; theme.js applies it before the next page paints.
@@ -138,7 +137,7 @@
       highlight(name, product.name, query);
       const meta = document.createElement("span");
       meta.className = "suggest-meta";
-      meta.textContent = `${product.category} · ${rupees.format(product.price)}`;
+      meta.textContent = `${product.category} · ${Nx.formatPrice(product.price)}`;
       text.append(name, meta);
       link.append(img, text);
       list.append(item);

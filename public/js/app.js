@@ -2,7 +2,16 @@
 (function () {
   "use strict";
 
-  const Nx = (window.Nx = {});
+  const Nx = (window.Nx = window.Nx || {});
+
+  // ---------- Money ----------
+  // The API sends money in paise (₹1 = 100 paise): 12345600 shows as "₹1,23,456".
+  const wholeRupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+  const exactRupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Nx.formatPrice = function formatPrice(paise) {
+    const value = Math.round(Number(paise) || 0);
+    return value % 100 === 0 ? wholeRupees.format(value / 100) : exactRupees.format(value / 100);
+  };
 
   // Sign-in calls answer 401/403 for a wrong password; those must stay on the form.
   const LOGIN_CALLS = ["/api/login", "/api/signup", "/api/admin/login"];

@@ -4,12 +4,16 @@
 <%
   const photos = product.gallery && product.gallery.length > 1 ? product.gallery : [product.image];
   const saving = product.mrp > product.price ? product.mrp - product.price : 0;
+  const cat = product.category || {};
+  const maxQty = Math.min(product.stock, 5);
+  const shopper = !currentUser || currentUser.role === 'customer';
+  const reviewTotal = reviews.pagination.total;
 %>
 <main id="main" class="container page">
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
     <a href="/products">All gear</a> <%- icon('chevron-right', 'i-xs') %>
-    <a href="/products?category=<%= encodeURIComponent(product.category) %>"><%= product.category %></a> <%- icon('chevron-right', 'i-xs') %>
+    <a href="/products?category=<%= cat.slug %>"><%= cat.name %></a> <%- icon('chevron-right', 'i-xs') %>
     <span aria-current="page"><%= product.name %></span>
   </nav>
 
@@ -18,6 +22,7 @@
       <div class="gallery-main" data-zoom>
         <img src="<%= photos[0] %>" alt="<%= product.name %>" width="640" height="640" fetchpriority="high" data-gallery-main>
         <span class="zoom-hint" aria-hidden="true"><%- icon('search', 'i-xs') %> Hover to zoom</span>
+        <button type="button" class="gallery-full" data-lightbox-open><%- icon('grid', 'i-sm') %><span class="sr-only">View photos full screen</span></button>
         <% if (product.discountPercent > 0) { %><span class="tag tag-deal"><%= product.discountPercent %>% off</span><% } %>
         <% if (photos.length > 1) { %>
           <button type="button" class="gallery-nav gallery-prev" data-gallery-step="-1" aria-label="Previous photo"><%- icon('chevron-left') %></button>
@@ -37,10 +42,15 @@
     </div>
 
     <div class="pdp-info">
-      <a class="pdp-brand" href="/products?q=<%= encodeURIComponent(product.brand) %>">Visit the <%= product.brand %> range <%- icon('chevron-right', 'i-xs') %></a>
+      <a class="pdp-brand" href="/products?brand=<%= encodeURIComponent(product.brand) %>">Visit the <%= product.brand %> range <%- icon('chevron-right', 'i-xs') %></a>
       <h1><%= product.name %></h1>
       <div class="pdp-tags">
-        <a class="pill" href="/products?category=<%= encodeURIComponent(product.category) %>"><%= product.category %></a>
+        <% if (product.ratingCount > 0) { %>
+          <a class="pdp-rating" href="#reviews"><span class="rating" style="--rating: <%= product.ratingAverage %>" aria-hidden="true"></span> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %> <%= product.ratingCount === 1 ? 'review' : 'reviews' %>)</span><span class="sr-only">, rated <%= product.ratingAverage.toFixed(1) %> out of 5</span></a>
+        <% } else { %>
+          <a class="pdp-rating muted" href="#reviews">No reviews yet</a>
+        <% } %>
+        <a class="pill" href="/products?category=<%= cat.slug %>"><%= cat.name %></a>
         <%- include('../partials/stock', { stock: product.stock }) %>
       </div>
 
@@ -51,8 +61,11 @@
           <span class="price price-lg"><%= formatPrice(product.price) %></span>
         </div>
         <% if (saving) { %>
-          <p class="mrp">M.R.P.: <s><%= formatPrice(product.mrp) %></s></p>
+          <p class="mrp">M.R.P.: <s><%= formatPrice(product.mrp) %></s> <span class="muted">Inclusive of all taxes</span></p>
           <p class="saving saving-lg">You save <%= formatPrice(saving) %><% if (product.discountPercent > 0) { %> (<%= product.discountPercent %>%)<% } %></p>
+        <% } %>
+        <% if (offer) { %>
+          <p class="offer-line"><%- icon('tag', 'i-xs') %> <%= offer.text %> (best offer chosen for you)</p>
         <% } %>
       </div>
 
@@ -72,7 +85,16 @@
         <% if (saving) { %><span class="mrp">M.R.P. <s><%= formatPrice(product.mrp) %></s></span><% } %>
       </div>
       <%- include('../partials/stock', { stock: product.stock }) %>
-      <% const maxQty = Math.min(product.stock, 5); %>
+
+      <form class="delivery-check" data-delivery-check novalidate>
+        <label for="pincode"><%- icon('pin', 'i-xs') %> Delivery to PIN code</label>
+        <div class="delivery-row">
+          <input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6" pattern="[1-9][0-9]{5}" placeholder="e.g. 560001" aria-describedby="pincode-result">
+          <button class="btn btn-ghost btn-sm" type="submit">Check</button>
+        </div>
+        <p class="delivery-result" id="pincode-result" data-delivery-result aria-live="polite">Enter your PIN code to see when it arrives.</p>
+      </form>
+
       <% if (product.stock <= 0) { %>
         <button class="btn btn-primary btn-block" type="button" disabled><%- icon('cart', 'i-sm') %> Out of stock</button>
         <p class="muted">This item is sold out right now. Check back soon.</p>
@@ -80,7 +102,6 @@
         <%# Guests are sent to sign in, then straight back to this product. %>
         <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent('/products/' + product.slug) %>"><%- icon('cart', 'i-sm') %> Add to cart</a>
         <p class="muted">Sign in to add items to your cart. New here? <a href="/signup?next=<%= encodeURIComponent('/products/' + product.slug) %>">Create an account</a>.</p>
-        <button type="button" class="wish-btn wish-btn-inline" data-wish-id="<%= product._id %>" aria-pressed="false" hidden><%- icon('heart', 'i-sm') %> <span data-wish-label>Add to wishlist</span></button>
       <% } else if (currentUser.role === 'customer') { %>
         <form class="add-to-cart" data-add-to-cart data-product-id="<%= product._id %>" novalidate>
           <div class="qty-row">
@@ -95,11 +116,16 @@
           <button class="btn btn-primary btn-block btn-lg" type="submit"><%- icon('cart', 'i-sm') %> Add to cart</button>
         </form>
         <a class="btn btn-ghost btn-block" href="/cart">View cart</a>
-        <button type="button" class="wish-btn wish-btn-inline" data-wish-id="<%= product._id %>" aria-pressed="false" hidden><%- icon('heart', 'i-sm') %> <span data-wish-label>Add to wishlist</span></button>
       <% } else { %>
         <p class="muted">You are signed in as an administrator.</p>
         <a class="btn btn-primary btn-block" href="/admin">Go to dashboard</a>
       <% } %>
+      <div class="buy-actions">
+        <% if (shopper) { %>
+          <button type="button" class="wish-btn wish-btn-inline" data-wish-id="<%= product._id %>" aria-pressed="false" hidden><%- icon('heart', 'i-sm') %> <span data-wish-label>Add to wishlist</span></button>
+        <% } %>
+        <button type="button" class="btn btn-ghost share-btn" data-share data-share-title="<%= product.name %>"><%- icon('send', 'i-sm') %> Share</button>
+      </div>
       <ul class="buy-facts">
         <li><%- icon('truck', 'i-sm') %> <% if (product.price >= store.freeDeliveryMin) { %>Free delivery<% } else { %>Delivery <%= formatPrice(store.deliveryFee) %>, free over <%= formatPrice(store.freeDeliveryMin) %><% } %></li>
         <li><%- icon('rotate-ccw', 'i-sm') %> <a href="/refund-policy"><%= store.returnDays %>-day easy returns</a></li>
@@ -113,7 +139,7 @@
   <section class="pdp-details section-box" data-tabs data-reveal aria-label="Product details">
     <div class="tabs-list" role="tablist" aria-label="Product details">
       <% if (product.description) { %><button type="button" class="tab" role="tab" id="tab-desc" aria-controls="panel-desc">Description</button><% } %>
-      <% if (specEntries.length) { %><button type="button" class="tab" role="tab" id="tab-spec" aria-controls="panel-spec">Technical details</button><% } %>
+      <% if (specEntries.length) { %><button type="button" class="tab" role="tab" id="tab-spec" aria-controls="panel-spec">Specifications</button><% } %>
       <button type="button" class="tab" role="tab" id="tab-ship" aria-controls="panel-ship">Delivery and returns</button>
     </div>
     <% if (product.description) { %>
@@ -124,11 +150,13 @@
     <% } %>
     <% if (specEntries.length) { %>
       <div class="tab-panel" role="tabpanel" id="panel-spec" aria-labelledby="tab-spec" tabindex="0">
-        <h2 class="panel-title">Technical details</h2>
+        <h2 class="panel-title">Specifications</h2>
         <div class="spec-wrap">
           <table class="spec-table">
-            <caption class="sr-only">Technical details for <%= product.name %></caption>
+            <caption class="sr-only">Specifications for <%= product.name %></caption>
             <tbody>
+              <tr><th scope="row">Brand</th><td><%= product.brand %></td></tr>
+              <tr><th scope="row">Category</th><td><%= cat.name %></td></tr>
               <% specEntries.forEach(function ([key, value]) { %>
                 <tr><th scope="row"><%= key %></th><td><%= value %></td></tr>
               <% }) %>
@@ -147,20 +175,120 @@
     </div>
   </section>
 
+  <section class="section section-box reviews" id="reviews" aria-labelledby="reviews-title" data-reviews data-product-id="<%= product._id %>">
+    <div class="section-head">
+      <div>
+        <span class="section-kicker">From verified buyers</span>
+        <h2 id="reviews-title">Ratings and reviews</h2>
+      </div>
+    </div>
+    <div class="reviews-layout">
+      <div class="review-summary">
+        <% if (reviewTotal) { %>
+          <p class="review-average"><strong><%= product.ratingAverage.toFixed(1) %></strong><span class="muted">out of 5</span></p>
+          <span class="rating rating-lg" style="--rating: <%= product.ratingAverage %>" role="img" aria-label="Rated <%= product.ratingAverage.toFixed(1) %> out of 5"></span>
+          <p class="muted"><%= reviewTotal %> <%= reviewTotal === 1 ? 'review' : 'reviews' %></p>
+          <ul class="review-bars" aria-label="How customers rated it">
+            <% reviews.breakdown.forEach(function (row) { %>
+              <li><span><%= row.stars %>★</span><span class="review-bar" aria-hidden="true"><span style="--fill: <%= reviewTotal ? row.count / reviewTotal : 0 %>"></span></span><span class="muted"><%= row.count %><span class="sr-only"> <%= row.count === 1 ? 'review' : 'reviews' %> with <%= row.stars %> stars</span></span></li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="review-average"><strong>–</strong><span class="muted">No ratings yet</span></p>
+        <% } %>
+
+        <div class="review-gate">
+          <% if (reviewState.canReview) { %>
+            <button type="button" class="btn btn-primary btn-block" data-review-open aria-expanded="false" aria-controls="review-form"><%- icon('edit', 'i-sm') %> Write a review</button>
+          <% } else if (reviewState.reason === 'signin') { %>
+            <p class="muted">Bought this? <a href="/login?next=<%= encodeURIComponent('/products/' + product.slug + '#reviews') %>">Sign in</a> to review it.</p>
+          <% } else if (reviewState.reason === 'reviewed') { %>
+            <p class="muted"><%- icon('check', 'i-xs') %> Thanks, you have reviewed this product.</p>
+          <% } else if (reviewState.reason === 'not_received') { %>
+            <p class="muted">Only customers who received this product can review it.</p>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="review-main">
+        <% if (reviewState.canReview) { %>
+          <form class="form review-form" id="review-form" data-review-form hidden novalidate>
+            <div class="form-alert" data-form-alert aria-live="assertive"></div>
+            <fieldset class="star-input" aria-describedby="rating-error">
+              <legend>Your rating</legend>
+              <div class="star-choices">
+                <% for (let s = 5; s >= 1; s--) { %>
+                  <input type="radio" id="star-<%= s %>" name="rating" value="<%= s %>"><label for="star-<%= s %>" title="<%= s %> <%= s === 1 ? 'star' : 'stars' %>"><%- icon('star') %><span class="sr-only"><%= s %> <%= s === 1 ? 'star' : 'stars' %></span></label>
+                <% } %>
+              </div>
+              <p class="field-error" id="rating-error" data-error-for="rating"></p>
+            </fieldset>
+            <div class="float-field">
+              <input id="review-title" name="title" maxlength="80" placeholder=" " aria-describedby="review-title-error">
+              <label for="review-title">Title (optional)</label>
+              <p class="field-error" id="review-title-error" data-error-for="title"></p>
+            </div>
+            <div class="float-field">
+              <textarea id="review-body" name="body" required minlength="10" maxlength="1000" rows="5" placeholder=" " aria-describedby="review-body-error"></textarea>
+              <label for="review-body">What did you like or dislike?</label>
+              <p class="field-error" id="review-body-error" data-error-for="body"></p>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-ghost" data-review-cancel>Cancel</button>
+              <button type="submit" class="btn btn-primary">Post review</button>
+            </div>
+          </form>
+        <% } %>
+
+        <ol class="review-list" data-review-list>
+          <% reviews.reviews.forEach(function (r) { %>
+            <li class="review">
+              <div class="review-top">
+                <span class="rating-chip"><%= r.rating %> <%- icon('star', 'i-xs') %></span>
+                <% if (r.title) { %><strong><%= r.title %></strong><% } %>
+              </div>
+              <p class="review-body"><%= r.body %></p>
+              <p class="review-meta"><%= r.author %> · <%= formatDate(r.createdAt) %> · <%- icon('package-check', 'i-xs') %> Verified buyer</p>
+            </li>
+          <% }) %>
+        </ol>
+        <% if (!reviewTotal) { %>
+          <div class="state-box" data-review-empty><%- icon('star', 'i-sm') %> No reviews yet. Customers who receive this product can review it.</div>
+        <% } %>
+        <% if (reviews.pagination.pages > 1) { %>
+          <button type="button" class="btn btn-ghost btn-block" data-review-more data-next-page="2"><%- icon('chevron-down', 'i-sm') %> Show more reviews</button>
+        <% } %>
+        <p class="state-box is-error" data-review-error hidden>We couldn't load more reviews. <button type="button" class="link-btn" data-review-retry>Try again</button></p>
+      </div>
+    </div>
+  </section>
+
   <% if (related.length) { %>
     <section class="section" aria-labelledby="related-title">
       <div class="section-head" data-reveal>
         <div>
           <span class="section-kicker">You may also like</span>
-          <h2 id="related-title">More <%= product.category %> gear</h2>
+          <h2 id="related-title">More <%= cat.name %> gear</h2>
         </div>
-        <a class="section-link" href="/products?category=<%= encodeURIComponent(product.category) %>">See all <%- icon('chevron-right', 'i-sm') %></a>
+        <a class="section-link" href="/products?category=<%= cat.slug %>">See all <%- icon('chevron-right', 'i-sm') %></a>
       </div>
-      <div class="product-grid">
-        <% related.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
-      </div>
+      <%- include('../partials/rail', { products: related, label: 'Related products' }) %>
     </section>
   <% } %>
 </main>
 
-<%- include('../partials/footer', { scripts: ['catalog', 'cart'] }) %>
+<dialog class="lightbox" id="lightbox" aria-label="Photos of <%= product.name %>" data-lightbox data-photos="<%= JSON.stringify(photos) %>">
+  <div class="lightbox-bar">
+    <span class="lightbox-count" aria-live="polite"><span data-lightbox-index>1</span> / <%= photos.length %></span>
+    <button type="button" class="icon-btn lightbox-close" data-lightbox-close><%- icon('x') %><span class="sr-only">Close full screen photos</span></button>
+  </div>
+  <div class="lightbox-stage">
+    <img src="<%= photos[0] %>" alt="<%= product.name %>" data-lightbox-img>
+    <% if (photos.length > 1) { %>
+      <button type="button" class="lightbox-nav lightbox-prev" data-lightbox-step="-1" aria-label="Previous photo"><%- icon('chevron-left') %></button>
+      <button type="button" class="lightbox-nav lightbox-next" data-lightbox-step="1" aria-label="Next photo"><%- icon('chevron-right') %></button>
+    <% } %>
+  </div>
+</dialog>
+
+<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart'] }) %>

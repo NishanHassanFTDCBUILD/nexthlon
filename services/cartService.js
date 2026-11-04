@@ -5,8 +5,13 @@ const { HttpError } = require("../utils/http");
 
 const MAX_PER_PRODUCT = 5;
 
+// Hidden products, and products in hidden categories, count as no longer sold.
+function isSold(product) {
+  return Boolean(product && product.isListed !== false && product.categoryListed !== false);
+}
+
 function isAvailable(product) {
-  return Boolean(product && product.isListed !== false && product.stock > 0);
+  return isSold(product) && product.stock > 0;
 }
 
 // The most of one product a customer may hold: what is in stock, and never more than 5.
@@ -16,7 +21,7 @@ function limitFor(product) {
 
 // Every quantity rule in one place. Returns a message for the shopper, or null if it is fine.
 function quantityProblem(product, quantity) {
-  if (!product || product.isListed === false) return "This product is no longer available.";
+  if (!isSold(product)) return "This product is no longer available.";
   if (!(product.stock > 0)) return "This product is out of stock.";
   if (!Number.isInteger(quantity) || quantity < 1) return "Choose a quantity of at least 1.";
   if (quantity > MAX_PER_PRODUCT) return `You can buy up to ${MAX_PER_PRODUCT} of each product.`;
@@ -49,9 +54,7 @@ function buildCartView(lines = []) {
       quantity,
       maxQuantity: available ? limitFor(product) : 0,
       available,
-      reason: available ? null : product.isListed === false ? "No longer sold" : "Out of stock",
-      priceChanged: line.priceAtAdd !== undefined && line.priceAtAdd !== product.price,
-      priceAtAdd: line.priceAtAdd,
+      reason: available ? null : isSold(product) ? "Out of stock" : "No longer sold",
       lineTotal: available ? product.price * quantity : 0,
       lineMrp: available ? Math.max(product.mrp, product.price) * quantity : 0
     };
@@ -65,9 +68,8 @@ function buildCartView(lines = []) {
       summary.unavailableCount += 1;
     }
   }
-  summary.subtotal = Math.round(summary.subtotal * 100) / 100;
-  summary.mrpTotal = Math.round(summary.mrpTotal * 100) / 100;
-  summary.savings = Math.round((summary.mrpTotal - summary.subtotal) * 100) / 100;
+  // Everything is in whole paise, so the sums are exact.
+  summary.savings = summary.mrpTotal - summary.subtotal;
   summary.grandTotal = summary.subtotal;
   return { items, summary };
 }
@@ -138,12 +140,8 @@ async function addItem(userId, productId, quantity) {
     throw new HttpError(400, problem);
   }
 
-  if (existing) {
-    existing.quantity = already + quantity;
-    existing.priceAtAdd = product.price;
-  } else {
-    cart.items.push({ product: id, quantity, priceAtAdd: product.price });
-  }
+  if (existing) existing.quantity = already + quantity;
+  else cart.items.push({ product: id, quantity });
   await cart.save();
   return { product, cart: await getCart(userId) };
 }

@@ -1,4 +1,5 @@
 const productService = require("./productService");
+const { formatPaise } = require("../utils/money");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -44,11 +45,11 @@ function buildHeroSlides({ deals = [], categories = [] } = {}) {
     .forEach(category => {
       const line = SPORT_LINES[category.name] || GENERAL_LINE;
       slides.push({
-        kicker: `${category.name} · from ₹${Number(category.fromPrice || 0).toLocaleString("en-IN")}`,
+        kicker: `${category.name} · from ${formatPaise(category.fromPrice || 0)}`,
         title: line.title,
         text: line.text,
         cta: `Shop ${category.name}`,
-        href: `/products?category=${encodeURIComponent(category.name)}`,
+        href: `/products?category=${encodeURIComponent(category.slug)}`,
         image: category.image
       });
     });

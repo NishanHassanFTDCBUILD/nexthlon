@@ -122,7 +122,7 @@
                 <img src="<%= p.image %>" alt="" width="48" height="48" loading="lazy">
                 <div class="stock-list-info">
                   <a href="/admin/products/<%= p._id %>/edit"><%= p.name %></a>
-                  <span><%= p.category %></span>
+                  <span><%= p.category ? p.category.name : "" %></span>
                   <span class="mini-meter" aria-hidden="true"><span class="<%= p.stock === 0 ? 'is-out' : '' %>" style="--fill: <%= Math.min(p.stock, 5) / 5 %>"></span></span>
                 </div>
                 <span class="pill <%= p.stock === 0 ? 'pill-red' : 'pill-amber' %>"><%= p.stock === 0 ? 'Out of stock' : p.stock + ' left' %></span>

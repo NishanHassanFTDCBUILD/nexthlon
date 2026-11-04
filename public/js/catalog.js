@@ -22,7 +22,28 @@
     filterForm.addEventListener("change", event => {
       if (event.target.type === "radio" || event.target.type === "checkbox") filterForm.requestSubmit();
     });
-    filterForm.addEventListener("submit", showLoading);
+    // Empty fields are left out, so the URL only holds filters that are really set
+    // ("?category=running&max=3000", not "?category=running&min=&max=3000&rating=").
+    filterForm.addEventListener("submit", () => {
+      const fields = [...filterForm.elements, ...document.querySelectorAll('[form="filters"]')];
+      fields.forEach(field => {
+        if (!field.name || field.disabled) return;
+        const unchecked = (field.type === "radio" || field.type === "checkbox") && !field.checked;
+        if (unchecked) return;
+        if (field.value === "" || (field.name === "sort" && field.value === "relevance")) {
+          field.disabled = true;
+          field.dataset.wasEmpty = "1";
+        }
+      });
+      showLoading();
+    });
+    // Coming back to this page: switch those fields on again.
+    window.addEventListener("pageshow", () => {
+      document.querySelectorAll("[data-was-empty]").forEach(field => {
+        field.disabled = false;
+        delete field.dataset.wasEmpty;
+      });
+    });
     document.querySelectorAll("[data-auto-submit-field]").forEach(field => {
       field.addEventListener("change", () => filterForm.requestSubmit());
     });
@@ -32,6 +53,54 @@
       if (!event.metaKey && !event.ctrlKey && !event.shiftKey) showLoading();
     });
   });
+
+  // ---------- Price range slider ----------
+  // Two range handles drive the min/max boxes. Only the boxes are sent, and a box left at
+  // the end of the range is sent empty, so the URL stays clean.
+  const priceBox = document.querySelector("[data-price-filter]");
+  if (priceBox) {
+    const slider = priceBox.querySelector("[data-range]");
+    const lowRange = priceBox.querySelector("[data-range-min]");
+    const highRange = priceBox.querySelector("[data-range-max]");
+    const minBox = priceBox.querySelector("[data-price-min]");
+    const maxBox = priceBox.querySelector("[data-price-max]");
+    const fill = priceBox.querySelector("[data-range-fill]");
+    const low = Number(priceBox.dataset.low);
+    const high = Number(priceBox.dataset.high);
+    const rupees = value => `₹${Number(value).toLocaleString("en-IN")}`;
+
+    const paint = () => {
+      const span = high - low || 1;
+      fill.style.setProperty("--from", String((Number(lowRange.value) - low) / span));
+      fill.style.setProperty("--to", String((Number(highRange.value) - low) / span));
+      lowRange.setAttribute("aria-valuetext", rupees(lowRange.value));
+      highRange.setAttribute("aria-valuetext", rupees(highRange.value));
+    };
+    const fromRanges = moved => {
+      if (Number(lowRange.value) > Number(highRange.value)) {
+        if (moved === lowRange) lowRange.value = highRange.value;
+        else highRange.value = lowRange.value;
+      }
+      minBox.value = Number(lowRange.value) <= low ? "" : lowRange.value;
+      maxBox.value = Number(highRange.value) >= high ? "" : highRange.value;
+      paint();
+    };
+    const fromBoxes = () => {
+      lowRange.value = minBox.value === "" ? low : Math.min(Math.max(Number(minBox.value), low), high);
+      highRange.value = maxBox.value === "" ? high : Math.min(Math.max(Number(maxBox.value), low), high);
+      paint();
+    };
+    if (high > low) {
+      slider.hidden = false;
+      lowRange.addEventListener("input", () => fromRanges(lowRange));
+      highRange.addEventListener("input", () => fromRanges(highRange));
+      // Letting go of a handle applies the new range.
+      [lowRange, highRange].forEach(range => range.addEventListener("change", () => filterForm && filterForm.requestSubmit()));
+      minBox.addEventListener("input", fromBoxes);
+      maxBox.addEventListener("input", fromBoxes);
+      paint();
+    }
+  }
 
   // ---------- Filter drawer (phones and small tablets) ----------
   const catalog = document.querySelector("[data-catalog]");

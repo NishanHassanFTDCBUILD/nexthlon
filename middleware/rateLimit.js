@@ -21,4 +21,13 @@ const formLimiter = rateLimit({
   message: { message: "Too many messages. Please wait a few minutes and try again." }
 });
 
-module.exports = { authLimiter, formLimiter };
+// Reviews: a customer can only write one per product anyway; this just stops scripted floods.
+const reviewLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many reviews in a short time. Please try again later." }
+});
+
+module.exports = { authLimiter, formLimiter, reviewLimiter };

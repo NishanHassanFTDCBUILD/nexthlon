@@ -80,7 +80,7 @@
       </div>
       <div class="category-row">
         <% categories.forEach(function (c) { %>
-          <a class="category-tile" data-reveal href="/products?category=<%= encodeURIComponent(c.name) %>">
+          <a class="category-tile" data-reveal href="/products?category=<%= c.slug %>">
             <span class="category-media"><img src="<%= c.image %>" alt="" loading="lazy" decoding="async" width="240" height="240"></span>
             <strong><%= c.name %></strong>
             <span><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>

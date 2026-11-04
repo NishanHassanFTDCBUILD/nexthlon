@@ -17,21 +17,21 @@ test("deals end at the next midnight in India, whatever the server's time zone",
 
 test("hero slides: the top deal first, then the biggest sports, never more than 4", () => {
   const categories = [
-    { name: "Tennis", count: 2, fromPrice: 1499, image: "/t.jpg" },
-    { name: "Running", count: 9, fromPrice: 799, image: "/r.jpg" },
-    { name: "Hiking", count: 5, fromPrice: 2999, image: "/h.jpg" },
-    { name: "Cricket", count: 5, fromPrice: 1199, image: "/c.jpg" },
-    { name: "Football", count: 1, fromPrice: 599, image: "/f.jpg" }
+    { name: "Tennis", slug: "tennis", count: 2, fromPrice: 149900, image: "/t.jpg" },
+    { name: "Running", slug: "running", count: 9, fromPrice: 79900, image: "/r.jpg" },
+    { name: "Hiking", slug: "hiking", count: 5, fromPrice: 299900, image: "/h.jpg" },
+    { name: "Cricket", slug: "cricket", count: 5, fromPrice: 119900, image: "/c.jpg" },
+    { name: "Football", slug: "football", count: 1, fromPrice: 59900, image: "/f.jpg" }
   ];
   const slides = buildHeroSlides({ deals: [{ discountPercent: 40, image: "/deal.jpg" }], categories });
   assert.equal(slides.length, 4);
   assert.equal(slides[0].title, "Up to 40% off top gear");
   assert.equal(slides[0].href, "/products?sort=discount");
   assert.deepEqual(slides.slice(1).map(s => s.href), [
-    "/products?category=Running", "/products?category=Cricket", "/products?category=Hiking"
+    "/products?category=running", "/products?category=cricket", "/products?category=hiking"
   ]);
   assert.match(slides[1].kicker, /from ₹799/);
-  assert.equal(buildHeroSlides({ categories: [{ name: "Running", count: 1, fromPrice: 1234, image: "" }] })[0].kicker, "Running · from ₹1,234");
+  assert.equal(buildHeroSlides({ categories: [{ name: "Running", slug: "running", count: 1, fromPrice: 123400, image: "" }] })[0].kicker, "Running · from ₹1,234");
 });
 
 test("hero slides: an empty store still gets one slide", () => {

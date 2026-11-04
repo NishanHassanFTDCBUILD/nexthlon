@@ -4,8 +4,10 @@ const adminService = require("../services/adminService");
 const adminProductService = require("../services/adminProductService");
 const cartService = require("../services/cartService");
 const homeService = require("../services/homeService");
+const reviewService = require("../services/reviewService");
+const Category = require("../models/Category");
 const { CONTACT_TOPICS } = require("../config/store");
-const { INDIAN_STATES, CATEGORIES } = require("../config/catalog");
+const { INDIAN_STATES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
 
@@ -40,23 +42,37 @@ function infoPage(key) {
   };
 }
 
+const rupeeText = value => `₹${Number(value).toLocaleString("en-IN")}`;
+
 const products = asyncHandler(async (req, res) => {
-  const [result, categories] = await Promise.all([
-    productService.listProducts(req.query),
-    productService.getCategorySummaries()
-  ]);
-  const { q, category, min, max, inStock, sort } = result.filters;
-  const heading = q ? `Results for "${q}"` : category || "All sports gear";
+  const result = await productService.listProducts(req.query);
+  const categories = await productService.getCategorySummaries();
+  const { q, brands, min, max, discount, rating, inStock, sort, view } = result.filters;
+  const category = result.category;
+  const heading = q ? `Results for "${q}"` : category ? category.name : "All sports gear";
+  // Every filter lives in the URL, so a filtered page can be bookmarked, shared or reloaded.
   const link = linkBuilder("/products", {
-    q, category, min, max, inStock: inStock ? "1" : "", sort: sort === "featured" ? "" : sort
+    q,
+    category: category ? category.slug : "",
+    brand: brands,
+    min,
+    max,
+    discount: discount || "",
+    rating: rating || "",
+    inStock: inStock ? "1" : "",
+    sort: sort === "relevance" ? "" : sort,
+    view: view === "list" ? "list" : ""
   });
 
   // Removable chips for each active filter.
   const chips = [];
   if (q) chips.push({ label: `"${q}"`, href: link({ q: "", page: "" }) });
-  if (category) chips.push({ label: category, href: link({ category: "", page: "" }) });
-  if (min !== null) chips.push({ label: `From ₹${min}`, href: link({ min: "", page: "" }) });
-  if (max !== null) chips.push({ label: `Up to ₹${max}`, href: link({ max: "", page: "" }) });
+  if (category) chips.push({ label: category.name, href: link({ category: "", page: "" }) });
+  brands.forEach(name => chips.push({ label: name, href: link({ brand: brands.filter(b => b !== name), page: "" }) }));
+  if (min !== null) chips.push({ label: `From ${rupeeText(min)}`, href: link({ min: "", page: "" }) });
+  if (max !== null) chips.push({ label: `Up to ${rupeeText(max)}`, href: link({ max: "", page: "" }) });
+  if (discount) chips.push({ label: `${discount}% off or more`, href: link({ discount: "", page: "" }) });
+  if (rating) chips.push({ label: `${rating}★ and up`, href: link({ rating: "", page: "" }) });
   if (inStock) chips.push({ label: "In stock", href: link({ inStock: "", page: "" }) });
 
   res.render("pages/products", {
@@ -64,6 +80,8 @@ const products = asyncHandler(async (req, res) => {
     heading,
     categories,
     sorts: productService.SORTS,
+    discountSteps: productService.DISCOUNT_STEPS,
+    ratingSteps: productService.RATING_STEPS,
     link,
     chips,
     ...result
@@ -73,8 +91,20 @@ const products = asyncHandler(async (req, res) => {
 const productDetail = asyncHandler(async (req, res) => {
   const product = await productService.getProduct(req.params.slug);
   if (!product) throw new HttpError(404, "That product is no longer available.");
-  const related = await productService.getRelatedProducts(product);
-  res.render("pages/product", { title: `${product.name} | Nexthlon`, product, related });
+  const [related, reviews, reviewState] = await Promise.all([
+    productService.getRelatedProducts(product),
+    reviewService.listReviews(product._id, 1),
+    reviewService.reviewStatus(req.user, product._id)
+  ]);
+  res.render("pages/product", {
+    title: `${product.name} | Nexthlon`,
+    metaDescription: (product.description || product.name).slice(0, 155),
+    product,
+    offer: productService.offerLabel(product),
+    related,
+    reviews,
+    reviewState
+  });
 });
 
 // ---------- Account pages ----------
@@ -134,19 +164,21 @@ const adminProducts = asyncHandler(async (req, res) => {
   res.render("admin/products", {
     title: "Products | Nexthlon Admin",
     link,
-    categories: CATEGORIES,
+    categories: await Category.find().sort({ sortOrder: 1, name: 1 }).select("name").lean(),
     sorts: adminProductService.ADMIN_SORTS,
     ...data
   });
 });
 
-function adminProductNew(req, res) {
-  res.render("admin/product-form", { title: "Add product | Nexthlon Admin", product: null, categories: CATEGORIES });
-}
+const adminProductNew = asyncHandler(async (req, res) => {
+  const categories = await Category.find().sort({ sortOrder: 1, name: 1 }).select("name isListed").lean();
+  res.render("admin/product-form", { title: "Add product | Nexthlon Admin", product: null, categories });
+});
 
 const adminProductEdit = asyncHandler(async (req, res) => {
   const product = await adminProductService.getAdminProduct(req.params.productId);
-  res.render("admin/product-form", { title: `Edit ${product.name} | Nexthlon Admin`, product, categories: CATEGORIES });
+  const categories = await Category.find().sort({ sortOrder: 1, name: 1 }).select("name isListed").lean();
+  res.render("admin/product-form", { title: `Edit ${product.name} | Nexthlon Admin`, product, categories });
 });
 
 module.exports = {

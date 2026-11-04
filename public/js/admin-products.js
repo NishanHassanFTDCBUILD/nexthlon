@@ -189,7 +189,7 @@
     event.preventDefault();
     // Everything is checked on the server, which reports every problem at once (photos included).
     const data = new FormData();
-    for (const name of ["name", "description", "category", "brand", "price", "mrp", "stock"]) {
+    for (const name of ["name", "description", "category", "brand", "price", "mrp", "offerPercent", "stock"]) {
       data.append(name, form.elements[name].value);
     }
     const kept = items.filter(item => item.kind === "kept");

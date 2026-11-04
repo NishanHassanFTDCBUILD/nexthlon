@@ -6,7 +6,7 @@ const UNIT_MS = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 };
 function durationToMs(value) {
   const [, count, unit] = value.match(DURATION);
   return Number(count) * UNIT_MS[unit];
-}
+}  
 
 function readConfig() {
   const isProduction = process.env.NODE_ENV === "production";

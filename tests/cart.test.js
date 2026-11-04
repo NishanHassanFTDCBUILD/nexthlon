@@ -28,10 +28,9 @@ test("unlisted, out-of-stock and missing products cannot be added", () => {
   assert.match(quantityProblem(null, 1), /no longer available/);
 });
 
-test("cart totals use the price from the database, not the price when added", () => {
-  const { items, summary } = buildCartView([{ product: shoe, quantity: 2, priceAtAdd: 1 }]);
+test("cart totals use the price from the database", () => {
+  const { items, summary } = buildCartView([{ product: shoe, quantity: 2 }]);
   assert.equal(items[0].price, 2999);
-  assert.equal(items[0].priceChanged, true);
   assert.equal(summary.subtotal, 5998);
   assert.equal(summary.mrpTotal, 7998);
   assert.equal(summary.savings, 2000);

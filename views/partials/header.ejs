@@ -32,8 +32,8 @@
         <span class="search-cat">
           <select id="search-category" name="category">
             <option value="">All</option>
-            <% navCategories.forEach(function (name) { %>
-              <option value="<%= name %>" <%= query.category === name ? 'selected' : '' %>><%= name %></option>
+            <% navCategories.forEach(function (c) { const name = c.name; %>
+              <option value="<%= c.slug %>" <%= query.category === c.slug ? 'selected' : '' %>><%= name %></option>
             <% }) %>
           </select>
           <%- icon('chevron-down', 'i-xs') %>
@@ -138,8 +138,8 @@
           <div class="mega-col mega-col-wide">
             <h2 class="mega-title">Shop by sport</h2>
             <ul class="mega-sports">
-              <% navCategories.forEach(function (name) { %>
-                <li><a href="/products?category=<%= encodeURIComponent(name) %>"><span class="mega-initial" aria-hidden="true"><%= name.charAt(0) %></span><%= name %></a></li>
+              <% navCategories.forEach(function (c) { const name = c.name; %>
+                <li><a href="/products?category=<%= c.slug %>"><span class="mega-initial" aria-hidden="true"><%= name.charAt(0) %></span><%= name %></a></li>
               <% }) %>
             </ul>
           </div>
@@ -171,8 +171,8 @@
       <div class="catnav-links" data-catnav>
         <a href="/products?sort=discount" class="catnav-deal <%= path === '/products' && query.sort === 'discount' ? 'is-active' : '' %>"><%- icon('tag', 'i-sm') %> Deals</a>
         <a href="/products?sort=newest" class="<%= path === '/products' && query.sort === 'newest' ? 'is-active' : '' %>">New arrivals</a>
-        <% navCategories.forEach(function (name) { %>
-          <a href="/products?category=<%= encodeURIComponent(name) %>" class="<%= query.category === name ? 'is-active' : '' %>" <%- query.category === name ? 'aria-current="page"' : '' %>><%= name %></a>
+        <% navCategories.forEach(function (c) { const name = c.name; %>
+          <a href="/products?category=<%= c.slug %>" class="<%= query.category === c.slug ? 'is-active' : '' %>" <%- query.category === c.slug ? 'aria-current="page"' : '' %>><%= name %></a>
         <% }) %>
       </div>
     </div>
@@ -192,8 +192,8 @@
       <a href="/products?sort=discount"><%- icon('tag', 'i-sm') %> Deals of the day</a>
       <a href="/products?sort=newest"><%- icon('sparkles', 'i-sm') %> New arrivals</a>
       <h3>Shop by sport</h3>
-      <% navCategories.forEach(function (name) { %>
-        <a href="/products?category=<%= encodeURIComponent(name) %>"><span class="mega-initial" aria-hidden="true"><%= name.charAt(0) %></span> <%= name %></a>
+      <% navCategories.forEach(function (c) { const name = c.name; %>
+        <a href="/products?category=<%= c.slug %>"><span class="mega-initial" aria-hidden="true"><%= name.charAt(0) %></span> <%= name %></a>
       <% }) %>
       <h3>Your account</h3>
       <% if (isAdmin) { %>

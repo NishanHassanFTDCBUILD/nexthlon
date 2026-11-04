@@ -35,8 +35,8 @@
           <span class="sr-only">Category</span>
           <select name="category" data-auto-submit-field>
             <option value="">All categories</option>
-            <% categories.forEach(function (name) { %>
-              <option value="<%= name %>" <%= filters.category === name ? 'selected' : '' %>><%= name %></option>
+            <% categories.forEach(function (c) { %>
+              <option value="<%= c._id %>" <%= filters.category === String(c._id) ? 'selected' : '' %>><%= c.name %></option>
             <% }) %>
           </select>
           <%- icon('chevron-down', 'i-xs') %>
@@ -85,7 +85,7 @@
                   <td>
                     <div class="person product-person">
                       <img class="product-thumb" src="<%= p.image %>" alt="" width="48" height="48" loading="lazy">
-                      <div><strong><%= p.name %></strong><span><%= p.category %> · <%= p.brand %></span></div>
+                      <div><strong><%= p.name %></strong><span><%= p.categoryName %> · <%= p.brand %></span></div>
                     </div>
                   </td>
                   <td data-label="Price"><strong><%= formatPrice(p.price) %></strong></td>

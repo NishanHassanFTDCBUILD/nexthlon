@@ -10,7 +10,7 @@
   </div>
 
   <h2>What we sell</h2>
-  <p>Gear for <%= navCategories.slice(0, -1).join(', ') %> and <%= navCategories[navCategories.length - 1] %>. [Add a few lines about how you choose your products.]</p>
+  <p>Gear for <%= navCategories.slice(0, -1).map(function (c) { return c.name; }).join(', ') %> and <%= (navCategories[navCategories.length - 1] || {}).name %>. [Add a few lines about how you choose your products.]</p>
 
   <h2>Business details</h2>
   <address class="doc-address">

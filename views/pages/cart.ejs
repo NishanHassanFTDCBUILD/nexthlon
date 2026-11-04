@@ -40,9 +40,6 @@
                 <% } else if (item.stock <= 5) { %>
                   <span class="stock stock-low">Only <%= item.stock %> left</span>
                 <% } %>
-                <% if (item.available && item.priceChanged) { %>
-                  <p class="cart-note"><%- icon('info', 'i-xs') %> Price changed from <%= formatPrice(item.priceAtAdd) %> since you added it.</p>
-                <% } %>
               </div>
               <div class="cart-item-actions">
                 <div class="qty qty-sm" role="group" aria-label="Quantity for <%= item.name %>">

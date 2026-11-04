@@ -1,6 +1,6 @@
 // Store details shown on the policy pages, the footer and the contact page.
 // Everything in [square brackets] is a placeholder: replace it with your real details
-// before applying for Razorpay. Amounts are in rupees.
+// before applying for Razorpay. Amounts are in paise (₹1 = 100 paise).
 
 const STORE = {
   brandName: "Nexthlon",
@@ -11,8 +11,8 @@ const STORE = {
   supportPhone: "[+91 00000 00000]",
   supportHours: "Monday to Saturday, 10 am to 6 pm IST",
   grievanceOfficer: "[Name of grievance officer]",
-  freeDeliveryMin: 999,
-  deliveryFee: 79,
+  freeDeliveryMin: 49900, // free delivery above ₹499
+  deliveryFee: 4000, // ₹40 below that
   returnDays: 7,
   refundDays: "5 to 7 working days",
   dispatchDays: "1 to 2 working days",

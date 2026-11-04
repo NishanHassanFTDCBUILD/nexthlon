@@ -1,12 +1,17 @@
 const router = require("express").Router();
-const { listProducts, searchProducts, lookupProducts, getProduct, listCategories } = require("../controllers/productController");
+const products = require("../controllers/productController");
+const { requireAuth, requireRole } = require("../middleware/auth");
+const { reviewLimiter } = require("../middleware/rateLimit");
 
 // Mounted at /api. Public: no sign-in needed to browse.
 // "/products/search" and "/products/lookup" must come before "/products/:id", or they would be read as ids.
-router.get("/products/search", searchProducts);
-router.get("/products/lookup", lookupProducts);
-router.get("/products", listProducts);
-router.get("/products/:id", getProduct);
-router.get("/categories", listCategories);
+router.get("/products/search", products.searchProducts);
+router.get("/products/lookup", products.lookupProducts);
+router.get("/products", products.listProducts);
+router.get("/products/:id/reviews", products.listReviews);
+router.post("/products/:id/reviews", requireAuth, requireRole("customer"), reviewLimiter, products.addReview);
+router.get("/products/:id", products.getProduct);
+router.get("/categories", products.listCategories);
+router.get("/delivery/estimate", products.deliveryEstimate);
 
 module.exports = router;

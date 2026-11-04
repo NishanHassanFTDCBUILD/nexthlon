@@ -5,7 +5,7 @@ const helmet = require("helmet");
 //Load the tool that reads cookies into req.cookies. We need it to read the JWT cookie.
 const cookieParser = require("cookie-parser");
 const config = require("./config/env");
-const { viewLocals } = require("./middleware/viewLocals");
+const { viewLocals, navCategories } = require("./middleware/viewLocals");
 const { attachUser } = require("./middleware/auth");
 const { cartCount } = require("./middleware/cartCount");
 const { originCheck } = require("./middleware/originCheck");
@@ -52,6 +52,7 @@ app.use(cookieParser());
 app.use(viewLocals);
 app.use(attachUser);
 app.use(cartCount);
+app.use(navCategories);
 
 // JSON API
 app.get("/api/health", (req, res) => res.json({ status: "ok", app: "Nexthlon API" }));

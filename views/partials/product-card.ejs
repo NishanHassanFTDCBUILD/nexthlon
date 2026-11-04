@@ -9,6 +9,14 @@
   <div class="product-body">
     <span class="product-meta"><%= p.brand %></span>
     <h3 class="product-name"><a href="/products/<%= p.slug %>"><%= p.name %></a></h3>
+    <% if (p.ratingCount > 0) { %>
+      <p class="product-rating"><span class="rating-chip"><%= p.ratingAverage.toFixed(1) %> <%- icon('star', 'i-xs') %></span> <span class="muted">(<%= p.ratingCount %>)</span><span class="sr-only"> Rated <%= p.ratingAverage.toFixed(1) %> out of 5 by <%= p.ratingCount %> <%= p.ratingCount === 1 ? 'customer' : 'customers' %></span></p>
+    <% } %>
+    <% if (p.highlights && p.highlights.length) { %>
+      <ul class="product-points">
+        <% p.highlights.slice(0, 2).forEach(function (line) { %><li><%= line.split(':')[0] %></li><% }) %>
+      </ul>
+    <% } %>
     <div class="price-block">
       <div class="price-row">
         <span class="price"><%= formatPrice(p.price) %></span>

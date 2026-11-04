@@ -1,11 +1,14 @@
 const productService = require("../services/productService");
+const reviewService = require("../services/reviewService");
+const { estimateDelivery } = require("../services/deliveryService");
 const { HttpError, asyncHandler } = require("../utils/http");
-const { readIdList } = require("../utils/validators");
+const { readIdList, validateReview, hasErrors } = require("../utils/validators");
 
-// GET /api/products?q=&category=&min=&max=&inStock=1&sort=&page=
+// GET /api/products?q=&category=&brand=&min=&max=&discount=&rating=&inStock=1&sort=&page=
+// Prices are in paise; min and max in the query are whole rupees.
 const listProducts = asyncHandler(async (req, res) => {
-  const { products, pagination, filters } = await productService.listProducts(req.query);
-  res.json({ products: products.map(productService.toPublicProduct), pagination, filters });
+  const { products, pagination, filters, facets } = await productService.listProducts(req.query);
+  res.json({ products: products.map(productService.toPublicProduct), pagination, filters, facets });
 });
 
 // GET /api/products/search?q=
@@ -36,4 +39,27 @@ const listCategories = asyncHandler(async (req, res) => {
   res.json({ categories: await productService.getCategorySummaries() });
 });
 
-module.exports = { listProducts, searchProducts, lookupProducts, getProduct, listCategories };
+// GET /api/products/:id/reviews?page=
+const listReviews = asyncHandler(async (req, res) => {
+  const product = await productService.getProduct(req.params.id);
+  if (!product) throw new HttpError(404, "Product not found.");
+  const page = productService.toPositiveInt(req.query.page, 1);
+  res.json(await reviewService.listReviews(product._id, page));
+});
+
+// POST /api/products/:id/reviews   body: { rating, title, body }   (customers who received it)
+const addReview = asyncHandler(async (req, res) => {
+  const { errors, value } = validateReview(req.body);
+  if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);
+  const result = await reviewService.addReview(req.user, req.params.id, value);
+  res.status(201).json({ message: "Thanks! Your review is live.", ...result });
+});
+
+// GET /api/delivery/estimate?pincode=560001
+const deliveryEstimate = asyncHandler(async (req, res) => {
+  const estimate = estimateDelivery(req.query.pincode);
+  if (!estimate) throw new HttpError(400, "Enter a valid 6-digit PIN code.", { pincode: "Enter a valid 6-digit PIN code." });
+  res.json({ estimate });
+});
+
+module.exports = { listProducts, searchProducts, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate };

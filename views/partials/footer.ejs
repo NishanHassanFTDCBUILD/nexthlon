@@ -44,8 +44,8 @@
         <li><a href="/products">All gear</a></li>
         <li><a href="/products?sort=discount">Deals of the day</a></li>
         <li><a href="/products?sort=newest">New arrivals</a></li>
-        <% navCategories.slice(0, 5).forEach(function (name) { %>
-          <li><a href="/products?category=<%= encodeURIComponent(name) %>"><%= name %></a></li>
+        <% navCategories.slice(0, 5).forEach(function (c) { const name = c.name; %>
+          <li><a href="/products?category=<%= c.slug %>"><%= name %></a></li>
         <% }) %>
       </ul>
     </nav>

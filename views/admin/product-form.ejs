@@ -2,7 +2,7 @@
 
 <%
   const isEdit = Boolean(product);
-  const p = product || { name: '', description: '', category: '', brand: '', price: '', mrp: '', stock: '', images: [], isListed: true };
+  const p = product || { name: '', description: '', category: '', brand: '', basePriceRupees: '', mrpRupees: '', offerPercent: 0, stock: '', images: [], isListed: true };
 %>
 <div class="admin-shell">
   <%- include('../partials/admin-sidebar') %>
@@ -46,8 +46,8 @@
               <div class="select-wrap select-field">
                 <select id="p-category" name="category" required aria-describedby="p-category-error">
                   <option value="">Choose a category</option>
-                  <% categories.forEach(function (name) { %>
-                    <option value="<%= name %>" <%= p.category === name ? 'selected' : '' %>><%= name %></option>
+                  <% categories.forEach(function (c) { %>
+                    <option value="<%= c._id %>" <%= p.category === String(c._id) ? 'selected' : '' %>><%= c.name %><%= c.isListed === false ? ' (unlisted)' : '' %></option>
                   <% }) %>
                 </select>
                 <%- icon('chevron-down', 'i-xs') %>
@@ -72,18 +72,24 @@
           <div class="form-grid form-grid-2">
             <div class="field">
               <label for="p-price">Selling price (₹)</label>
-              <input id="p-price" name="price" type="number" inputmode="decimal" min="1" step="0.01" required value="<%= p.price %>" aria-describedby="p-price-error" data-price>
+              <input id="p-price" name="price" type="number" inputmode="decimal" min="1" step="0.01" required value="<%= p.basePriceRupees %>" aria-describedby="p-price-error" data-price>
               <p class="field-error" id="p-price-error" data-error-for="price"></p>
             </div>
             <div class="field">
               <label for="p-mrp">M.R.P. (₹)</label>
-              <input id="p-mrp" name="mrp" type="number" inputmode="decimal" min="1" step="0.01" required value="<%= p.mrp %>" aria-describedby="p-mrp-error" data-mrp>
+              <input id="p-mrp" name="mrp" type="number" inputmode="decimal" min="1" step="0.01" required value="<%= p.mrpRupees %>" aria-describedby="p-mrp-error" data-mrp>
               <p class="field-error" id="p-mrp-error" data-error-for="mrp"></p>
             </div>
             <div class="field">
               <label for="p-stock">Stock</label>
               <input id="p-stock" name="stock" type="number" inputmode="numeric" min="0" step="1" required value="<%= p.stock %>" aria-describedby="p-stock-error">
               <p class="field-error" id="p-stock-error" data-error-for="stock"></p>
+            </div>
+            <div class="field">
+              <label for="p-offer">Product offer (%) <span class="optional">(optional)</span></label>
+              <input id="p-offer" name="offerPercent" type="number" inputmode="numeric" min="0" max="90" step="1" value="<%= p.offerPercent %>" aria-describedby="p-offer-error p-offer-hint" data-offer>
+              <p class="hint" id="p-offer-hint">The higher of this and the category offer is taken off the selling price.</p>
+              <p class="field-error" id="p-offer-error" data-error-for="offerPercent"></p>
             </div>
             <div class="field">
               <span class="field-label">Discount</span>

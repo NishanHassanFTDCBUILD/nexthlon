@@ -15,6 +15,22 @@ const app = require("../app");
 const User = require("../models/User");
 const Product = require("../models/Product");
 const { hashPassword } = require("../services/authService");
+const Category = require("../models/Category");
+const categoryService = require("../services/categoryService");
+
+// Test products are written in rupees for readability; the store keeps paise.
+const categoryIds = {};
+async function categoryId(name) {
+  if (!categoryIds[name]) {
+    const category = await categoryService.ensureCategory(name);
+    categoryIds[name] = category._id;
+    categoryService.invalidate();
+  }
+  return categoryIds[name];
+}
+async function makeProduct({ category, price, mrp, ...rest }) {
+  return Product.create({ ...rest, category: await categoryId(category), basePrice: price * 100, mrp: mrp * 100 });
+}
 
 let server;
 let base;
@@ -52,7 +68,8 @@ test.before(async () => {
   await mongoose.connection.dropDatabase();
   await User.syncIndexes();
   await User.create({ name: "Store Admin", email: "admin@nexthlon.test", passwordHash: await hashPassword("AdminPass123"), role: "admin" });
-  await Product.create({
+  await Product.syncIndexes();
+  await makeProduct({
     name: "Nexthlon Trail Shoe", slug: "nexthlon-trail-shoe", category: "Running", brand: "Nexthlon",
     price: 2999, mrp: 3999, stock: 4, image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff"
   });
@@ -214,7 +231,7 @@ test("logout clears the cookie", async () => {
 });
 
 test("product API: list, search, detail and categories", async () => {
-  const list = await call("GET", "/api/products?category=Running&inStock=1");
+  const list = await call("GET", "/api/products?category=running&inStock=1");
   assert.equal(list.data.products.length, 1);
   assert.equal(list.data.products[0].discountPercent, 25);
   assert.equal((await call("GET", "/api/products/search")).status, 400);
@@ -284,6 +301,7 @@ let adminCookieForProducts;
 let createdProduct;
 
 test("admin product APIs are for admins only", async () => {
+  productFields.category = String(await categoryId("Hiking"));
   assert.equal((await call("GET", "/api/admin/products")).status, 401);
   const customer = await call("POST", "/api/login", { body: { email: "ravi@nexthlon.test", password: "pitch2024" } });
   assert.equal((await call("GET", "/api/admin/products", { cookie: customer.cookie })).status, 403);
@@ -377,7 +395,7 @@ test("unlisting hides a product from shoppers but keeps it for admins", async ()
 
 test("admin product pages are guarded and render", async () => {
   assert.equal((await call("GET", "/admin/products")).location, "/admin/login?next=%2Fadmin%2Fproducts");
-  for (const path of ["/admin/products", "/admin/products?status=out&category=Hiking", "/admin/products/new", `/admin/products/${createdProduct.id}/edit`]) {
+  for (const path of ["/admin/products", `/admin/products?status=out&category=${productFields.category}`, "/admin/products/new", `/admin/products/${createdProduct.id}/edit`]) {
     assert.equal((await call("GET", path, { cookie: adminCookieForProducts })).status, 200, path);
   }
   assert.equal((await call("GET", "/admin/products/not-an-id/edit", { cookie: adminCookieForProducts })).status, 404);
@@ -391,9 +409,9 @@ test("store: A to Z sort, price range and only listed products", async () => {
   assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)));
 
   const range = await call("GET", "/api/products?min=1000&max=2000");
-  assert.ok(range.data.products.every(p => p.price >= 1000 && p.price <= 2000));
+  assert.ok(range.data.products.every(p => p.price >= 100000 && p.price <= 200000));
 
-  const page = await call("GET", "/products?category=Running&sort=name_asc&min=100");
+  const page = await call("GET", "/products?category=running&sort=name_asc&min=100");
   assert.equal(page.status, 200);
   assert.match(page.data, /Name: A to Z/);
   assert.match(page.data, /From ₹100/);
@@ -436,19 +454,18 @@ test("cart: only signed-in customers, and guests are sent to sign in", async () 
 test("cart: adding twice raises the quantity, and the price always comes from the database", async () => {
   const first = await call("POST", "/api/cart/items", { body: { productId: shoeId, quantity: 1, price: 1, priceAtAdd: 1 }, cookie: shopperCookie });
   assert.equal(first.status, 201);
-  assert.equal(first.data.cart.items[0].price, 2999);
+  assert.equal(first.data.cart.items[0].price, 299900);
   const second = await call("POST", "/api/cart/items", { body: { productId: shoeId, quantity: 2 }, cookie: shopperCookie });
   assert.equal(second.data.cart.items.length, 1);
   assert.equal(second.data.cart.items[0].quantity, 3);
-  assert.equal(second.data.cart.summary.subtotal, 8997);
+  assert.equal(second.data.cart.summary.subtotal, 899700);
   assert.equal(second.data.cart.summary.count, 3);
 
   // The admin changes the price: the cart follows it straight away.
-  await Product.updateOne({ _id: shoeId }, { $set: { price: 2500 } });
+  await Product.updateOne({ _id: shoeId }, { $set: { basePrice: 250000, price: 250000 } });
   const repriced = await call("GET", "/api/cart", { cookie: shopperCookie });
-  assert.equal(repriced.data.cart.summary.subtotal, 7500);
-  assert.equal(repriced.data.cart.items[0].priceChanged, true);
-  await Product.updateOne({ _id: shoeId }, { $set: { price: 2999 } });
+  assert.equal(repriced.data.cart.summary.subtotal, 750000);
+  await Product.updateOne({ _id: shoeId }, { $set: { basePrice: 299900, price: 299900 } });
 
   const page = await call("GET", "/products/nexthlon-trail-shoe", { cookie: shopperCookie });
   assert.match(page.data, /data-cart-count >3</);
@@ -463,7 +480,7 @@ test("cart: the stock limit and the 5-per-product limit are enforced on the serv
   const four = await call("PATCH", `/api/cart/items/${shoeId}`, { body: { quantity: 4 }, cookie: shopperCookie });
   assert.equal(four.data.cart.items[0].quantity, 4);
 
-  const plenty = await Product.create({ name: "Grip Tape", slug: "grip-tape", category: "Tennis", price: 199, mrp: 249, stock: 40, image: "/img/favicon.svg" });
+  const plenty = await makeProduct({ name: "Grip Tape", slug: "grip-tape", category: "Tennis", price: 199, mrp: 249, stock: 40, image: "/img/favicon.svg" });
   assert.equal((await call("POST", "/api/cart/items", { body: { productId: String(plenty._id), quantity: 6 }, cookie: shopperCookie })).status, 400);
   assert.equal((await call("POST", "/api/cart/items", { body: { productId: String(plenty._id), quantity: 5 }, cookie: shopperCookie })).status, 201);
   const sixth = await call("POST", "/api/cart/items", { body: { productId: String(plenty._id), quantity: 1 }, cookie: shopperCookie });
@@ -474,8 +491,8 @@ test("cart: the stock limit and the 5-per-product limit are enforced on the serv
 });
 
 test("cart: unlisted and out-of-stock products cannot be added, and show as unavailable", async () => {
-  const hidden = await Product.create({ name: "Old Racket", slug: "old-racket", category: "Tennis", price: 999, mrp: 999, stock: 5, image: "/img/favicon.svg", isListed: false });
-  const soldOut = await Product.create({ name: "Sold Out Cap", slug: "sold-out-cap", category: "Running", price: 299, mrp: 399, stock: 0, image: "/img/favicon.svg" });
+  const hidden = await makeProduct({ name: "Old Racket", slug: "old-racket", category: "Tennis", price: 999, mrp: 999, stock: 5, image: "/img/favicon.svg", isListed: false });
+  const soldOut = await makeProduct({ name: "Sold Out Cap", slug: "sold-out-cap", category: "Running", price: 299, mrp: 399, stock: 0, image: "/img/favicon.svg" });
   assert.match((await call("POST", "/api/cart/items", { body: { productId: String(hidden._id) }, cookie: shopperCookie })).data.message, /no longer available/);
   assert.match((await call("POST", "/api/cart/items", { body: { productId: String(soldOut._id) }, cookie: shopperCookie })).data.message, /out of stock/);
   assert.equal((await call("POST", "/api/cart/items", { body: { productId: "64b000000000000000000099" }, cookie: shopperCookie })).status, 400);
@@ -510,20 +527,20 @@ const NewsletterSubscriber = require("../models/NewsletterSubscriber");
 
 test("product lookup returns listed products in the order asked, and skips the rest", async () => {
   const shoe = await Product.findOne({ slug: "nexthlon-trail-shoe" });
-  const ball = await Product.create({ name: "Match Ball Pro", slug: "match-ball-pro", category: "Football", brand: "Strike", price: 1299, mrp: 1599, stock: 9, image: "/img/favicon.svg" });
-  const gone = await Product.create({ name: "Retired Bat", slug: "retired-bat", category: "Cricket", price: 999, mrp: 999, stock: 3, image: "/img/favicon.svg", isListed: false });
+  const ball = await makeProduct({ name: "Match Ball Pro", slug: "match-ball-pro", category: "Football", brand: "Strike", price: 1299, mrp: 1599, stock: 9, image: "/img/favicon.svg" });
+  const gone = await makeProduct({ name: "Retired Bat", slug: "retired-bat", category: "Cricket", price: 999, mrp: 999, stock: 3, image: "/img/favicon.svg", isListed: false });
   const res = await call("GET", `/api/products/lookup?ids=${ball._id},${gone._id},junk,${shoe._id},${ball._id}`);
   assert.equal(res.status, 200);
   assert.deepEqual(res.data.products.map(p => p.slug), ["match-ball-pro", "nexthlon-trail-shoe"]);
   // Prices always come from the database.
-  assert.equal(res.data.products[0].price, 1299);
+  assert.equal(res.data.products[0].price, 129900);
   assert.deepEqual((await call("GET", "/api/products/lookup")).data.products, []);
   assert.deepEqual((await call("GET", "/api/products/lookup?ids[$ne]=x")).data.products, []);
 });
 
 test("home page: carousel, trust badges, deals countdown, rails and brands", async () => {
   // Best sellers are the in-stock items that are not already in the deals row.
-  await Product.create({ name: "Plain Training Tee", slug: "plain-training-tee", category: "Fitness", price: 499, mrp: 499, stock: 8, image: "/img/favicon.svg" });
+  await makeProduct({ name: "Plain Training Tee", slug: "plain-training-tee", category: "Fitness", price: 499, mrp: 499, stock: 8, image: "/img/favicon.svg" });
   const res = await call("GET", "/");
   assert.equal(res.status, 200);
   assert.match(res.data, /data-carousel/);
@@ -584,4 +601,142 @@ test("newsletter: subscribing twice keeps one row and gives the same answer", as
   assert.equal(first.data.message, again.data.message);
   assert.equal(await NewsletterSubscriber.countDocuments({ email: "fan@example.com" }), 1);
   assert.equal((await call("POST", "/api/newsletter", { body: { email: "not-an-email" } })).status, 400);
+});
+
+// ---------- Phase 2: categories, offers, search, filters, reviews and delivery ----------
+const Review = require("../models/Review");
+const { runMigrations } = require("../services/migrationService");
+
+test("category names are unique whatever the letter case", async () => {
+  const first = await categoryService.ensureCategory("Badminton");
+  const again = await categoryService.ensureCategory("  badminton ");
+  assert.equal(String(first._id), String(again._id));
+  await assert.rejects(Category.create({ name: "BADMINTON", slug: "badminton-2" }), /duplicate key/);
+});
+
+test("the category offer applies when it beats the product offer, and prices follow it", async () => {
+  const racket = await makeProduct({ name: "Smash Racket", slug: "smash-racket", category: "Badminton", brand: "Volt", price: 2000, mrp: 2500, stock: 6, image: "/img/favicon.svg", offerPercent: 10 });
+  assert.equal(racket.price, 180000);
+  const category = await Category.findOneAndUpdate({ nameKey: "badminton" }, { $set: { offerPercent: 25 } }, { new: true });
+  await Product.syncCategory(category);
+  categoryService.invalidate();
+  const res = await call("GET", "/api/products/smash-racket");
+  assert.equal(res.data.product.price, 150000);
+  assert.equal(res.data.product.discountPercent, 40);
+  assert.equal(res.data.product.offer.source, "category");
+  const page = await call("GET", "/products/smash-racket");
+  assert.match(page.data, /25% Badminton offer applied/);
+  assert.match(page.data, /<s>₹2,500<\/s>/);
+});
+
+test("hidden categories hide their products, and their direct links show the friendly 404 page", async () => {
+  const category = await Category.findOneAndUpdate({ nameKey: "badminton" }, { $set: { isListed: false } }, { new: true });
+  await Product.syncCategory(category);
+  categoryService.invalidate();
+  assert.equal((await call("GET", "/api/products/smash-racket")).status, 404);
+  const page = await call("GET", "/products/smash-racket");
+  assert.equal(page.status, 404);
+  assert.match(page.data, /This trail ends here/);
+  assert.equal((await call("GET", "/products?category=badminton")).status, 404);
+  assert.equal((await call("GET", "/api/products?q=smash")).data.products.length, 0);
+  assert.doesNotMatch((await call("GET", "/")).data, /category=badminton/);
+
+  category.isListed = true;
+  await category.save();
+  await Product.syncCategory(category);
+  categoryService.invalidate();
+  assert.equal((await call("GET", "/api/products/smash-racket")).status, 200);
+});
+
+test("search uses the text index for whole words and still finds partial words", async () => {
+  const indexes = await Product.collection.indexes();
+  assert.ok(indexes.some(index => index.name === "product_text"));
+  const words = await call("GET", "/api/products/search?q=smash racket");
+  assert.equal(words.data.products[0].slug, "smash-racket");
+  const brand = await call("GET", "/api/products?q=volt");
+  assert.deepEqual(brand.data.products.map(p => p.slug), ["smash-racket"]);
+  const partial = await call("GET", "/api/products/search?q=rack");
+  assert.ok(partial.data.products.some(p => p.slug === "smash-racket"));
+  assert.equal((await call("GET", "/api/products?q=zzzqqq")).data.products.length, 0);
+});
+
+test("filters: brand, discount, rating and price slider facets", async () => {
+  const brand = await call("GET", "/api/products?brand=Volt&brand=Strike");
+  assert.ok(brand.data.products.length >= 2);
+  assert.ok(brand.data.products.every(p => ["Volt", "Strike"].includes(p.brand)));
+  assert.ok(brand.data.facets.brands.some(b => b.name === "Nexthlon"));
+  const deep = await call("GET", "/api/products?discount=40");
+  assert.ok(deep.data.products.length > 0 && deep.data.products.every(p => p.discountPercent >= 40));
+  assert.equal((await call("GET", "/api/products?rating=4")).data.products.length, 0);
+  assert.ok(brand.data.facets.priceHigh >= brand.data.facets.priceLow);
+  const page = await call("GET", "/products?brand=Volt&discount=40&view=list");
+  assert.match(page.data, /class="product-grid product-grid-3 is-list"/);
+  assert.match(page.data, /aria-label="Remove filter: Volt"/);
+  assert.match(page.data, /40% off or more/);
+});
+
+test("reviews: only customers who received the product, once each, and the average is stored", async () => {
+  const racket = await Product.findOne({ slug: "smash-racket" });
+  const review = { rating: 4, title: "Light and quick", body: "Great control at the net, strings held up." };
+  assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: review })).status, 401);
+
+  const buyer = await call("POST", "/api/signup", { body: { name: "Kiran Rao", email: "kiran@nexthlon.test", password: "court2024", confirmPassword: "court2024" } });
+  const before = await call("POST", `/api/products/${racket._id}/reviews`, { body: review, cookie: buyer.cookie });
+  assert.equal(before.status, 403);
+  let page = await call("GET", "/products/smash-racket", { cookie: buyer.cookie });
+  assert.match(page.data, /Only customers who received this product can review it/);
+
+  // A delivered order line for this product makes the customer eligible.
+  const kiran = await User.findOne({ email: "kiran@nexthlon.test" });
+  await mongoose.connection.collection("orders").insertOne({ user: kiran._id, items: [{ product: racket._id, status: "delivered", quantity: 1 }] });
+  page = await call("GET", "/products/smash-racket", { cookie: buyer.cookie });
+  assert.match(page.data, /data-review-open/);
+  assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, rating: 7 }, cookie: buyer.cookie })).status, 400);
+  const posted = await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, user: "someone-else", rating: 4 }, cookie: buyer.cookie });
+  assert.equal(posted.status, 201);
+  assert.equal(posted.data.review.author, "Kiran R.");
+  assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: review, cookie: buyer.cookie })).status, 409);
+
+  const stored = await Product.findById(racket._id).lean();
+  assert.equal(stored.ratingAverage, 4);
+  assert.equal(stored.ratingCount, 1);
+  assert.equal(await Review.countDocuments({ product: racket._id }), 1);
+  const listed = await call("GET", "/api/products/smash-racket/reviews");
+  assert.equal(listed.data.reviews[0].title, "Light and quick");
+  assert.deepEqual(listed.data.breakdown.map(row => row.count), [0, 1, 0, 0, 0]);
+  assert.equal((await call("GET", "/api/products?rating=4")).data.products[0].slug, "smash-racket");
+  const sorted = await call("GET", "/api/products?sort=rating");
+  assert.equal(sorted.data.products[0].slug, "smash-racket");
+});
+
+test("product page: lightbox, share, delivery check, reviews and related products", async () => {
+  await makeProduct({ name: "Trail Socks", slug: "trail-socks", category: "Running", brand: "Nexthlon", price: 399, mrp: 499, stock: 30, image: "/img/favicon.svg" });
+  const res = await call("GET", "/products/nexthlon-trail-shoe");
+  assert.match(res.data, /data-lightbox-open/);
+  assert.match(res.data, /data-share/);
+  assert.match(res.data, /data-delivery-check/);
+  assert.match(res.data, /id="reviews"/);
+  assert.match(res.data, /More Running gear/);
+  assert.match(res.data, /href="\/products\/trail-socks"/);
+});
+
+test("delivery estimate API checks the PIN code", async () => {
+  assert.equal((await call("GET", "/api/delivery/estimate?pincode=12ab56")).status, 400);
+  const ok = await call("GET", "/api/delivery/estimate?pincode=110001");
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.estimate.zone, "metro");
+  assert.match(ok.data.estimate.label, /–/);
+});
+
+test("old products in rupees with text categories are upgraded once at start-up", async () => {
+  await Product.collection.insertOne({ name: "Old Skipping Rope", slug: "old-skipping-rope", category: "Fitness", brand: "Nexthlon", price: 349, mrp: 499, discountPercent: 30, stock: 3, image: "/img/favicon.svg", isActive: true });
+  await runMigrations();
+  await runMigrations();
+  const rope = await Product.findOne({ slug: "old-skipping-rope" }).populate("category").lean();
+  assert.equal(rope.basePrice, 34900);
+  assert.equal(rope.price, 34900);
+  assert.equal(rope.mrp, 49900);
+  assert.equal(rope.isListed, true);
+  assert.equal(rope.category.name, "Fitness");
+  assert.equal(rope.discountPercent, 30);
 });

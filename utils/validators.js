@@ -1,13 +1,14 @@
-const { INDIAN_STATES, CATEGORIES } = require("../config/catalog");
+const { INDIAN_STATES } = require("../config/catalog");
+const { rupeesToPaise } = require("./money");
 const { CONTACT_TOPICS } = require("../config/store");
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^[6-9]\d{9}$/;
 const PINCODE = /^[1-9]\d{5}$/;
 const NAME = /^\p{L}[\p{L} .'-]*$/u;
-const MONEY = /^\d{1,8}(\.\d{1,2})?$/;
 const WHOLE = /^\d{1,6}$/;
-const MAX_PRICE = 10_000_000;
+const MAX_PRICE = 10_000_000 * 100; // ₹1 crore, in paise
+const OBJECT_ID = /^[a-f0-9]{24}$/i;
 
 function text(value) {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
@@ -112,13 +113,21 @@ function longText(value) {
   return typeof value === "string" ? value.replace(/\r\n/g, "\n").trim() : "";
 }
 
-// Form fields arrive as text, so numbers are read from strings like "2999" or "2999.50".
+// Form fields arrive as rupees typed as text ("2999" or "2999.50"); they are stored as paise.
 function readMoney(value) {
-  const raw = typeof value === "number" ? String(value) : text(value);
-  return MONEY.test(raw) ? Number(raw) : null;
+  return rupeesToPaise(typeof value === "number" ? String(value) : text(value));
 }
 
-// Admin product form. discountPercent and slug are never read from here; the server works them out.
+// A whole-number percentage from 0 to max, sent as a number or text. Empty means 0.
+function readPercent(value, max = 90) {
+  const raw = typeof value === "number" ? String(value) : text(value);
+  if (raw === "") return 0;
+  return /^\d{1,2}$/.test(raw) && Number(raw) <= max ? Number(raw) : null;
+}
+
+// Admin product form. The selling price, discount and slug are never read from here; the server
+// works them out from the base price, the M.R.P. and the offers. category is the category's id
+// (the service checks that it exists).
 function validateProduct(body = {}) {
   const errors = {};
   const value = {
@@ -126,8 +135,9 @@ function validateProduct(body = {}) {
     description: longText(body.description),
     category: text(body.category),
     brand: text(body.brand) || "Nexthlon",
-    price: readMoney(body.price),
+    basePrice: readMoney(body.price),
     mrp: readMoney(body.mrp),
+    offerPercent: readPercent(body.offerPercent),
     stock: null
   };
   const stockRaw = typeof body.stock === "number" ? String(body.stock) : text(body.stock);
@@ -135,14 +145,26 @@ function validateProduct(body = {}) {
 
   if (value.name.length < 3 || value.name.length > 120) errors.name = "Enter a product name of 3 to 120 characters.";
   if (value.description.length > 4000) errors.description = "Keep the description under 4000 characters.";
-  if (!CATEGORIES.includes(value.category)) errors.category = "Choose a category.";
+  if (!OBJECT_ID.test(value.category)) errors.category = "Choose a category.";
   if (value.brand.length > 60) errors.brand = "Keep the brand under 60 characters.";
-  if (value.price === null || value.price <= 0 || value.price > MAX_PRICE) {
+  if (value.basePrice === null || value.basePrice <= 0 || value.basePrice > MAX_PRICE) {
     errors.price = "Enter a price greater than 0 (up to 2 decimal places).";
   }
   if (value.mrp === null || value.mrp > MAX_PRICE) errors.mrp = "Enter the M.R.P. as a number.";
-  else if (value.price !== null && value.mrp < value.price) errors.mrp = "M.R.P. must be the same as or higher than the price.";
+  else if (value.basePrice !== null && value.mrp < value.basePrice) errors.mrp = "M.R.P. must be the same as or higher than the price.";
+  if (value.offerPercent === null) errors.offerPercent = "Enter an offer from 0 to 90 percent.";
   if (value.stock === null) errors.stock = "Enter stock as a whole number, 0 or more.";
+  return { errors, value };
+}
+
+// A product review. Only the stars, title and text are read; who wrote it comes from the login.
+function validateReview(body = {}) {
+  const errors = {};
+  const rating = typeof body.rating === "number" ? body.rating : Number(text(body.rating));
+  const value = { rating, title: text(body.title), body: longText(body.body) };
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) errors.rating = "Choose from 1 to 5 stars.";
+  if (value.title.length > 80) errors.title = "Keep the title under 80 characters.";
+  if (value.body.length < 10 || value.body.length > 1000) errors.body = "Write a review of 10 to 1000 characters.";
   return { errors, value };
 }
 
@@ -215,6 +237,9 @@ module.exports = {
   validateContact,
   validateNewsletter,
   readIdList,
+  readMoney,
+  readPercent,
+  validateReview,
   validateSignup,
   validateLogin,
   validateProfile,

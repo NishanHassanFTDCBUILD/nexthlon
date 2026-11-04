@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
-const { CATEGORIES, LOW_STOCK_LIMIT } = require("../config/catalog");
+const Category = require("../models/Category");
+const { LOW_STOCK_LIMIT } = require("../config/catalog");
+const { paiseToRupees } = require("../utils/money");
 const { HttpError } = require("../utils/http");
 const { slugify } = require("../utils/slug");
 const { escapeRegex, toPositiveInt } = require("./productService");
@@ -27,16 +29,24 @@ function imagesOf(product) {
   return [...new Set([product.image, ...(product.gallery || [])].filter(Boolean))];
 }
 
+// Money stays in paise here; the *Rupees copies fill the admin form, which works in rupees.
 function toAdminProduct(product) {
+  const category = product.category && product.category.name ? product.category : null;
   return {
     id: String(product._id),
     name: product.name,
     slug: product.slug,
-    category: product.category,
+    category: category ? String(category._id) : String(product.category || ""),
+    categoryName: category ? category.name : "",
     brand: product.brand,
     description: product.description || "",
+    basePrice: product.basePrice,
     price: product.price,
     mrp: product.mrp,
+    basePriceRupees: paiseToRupees(product.basePrice),
+    mrpRupees: paiseToRupees(product.mrp),
+    offerPercent: product.offerPercent || 0,
+    bestOffer: product.bestOffer || 0,
     discountPercent: product.discountPercent,
     stock: product.stock,
     isListed: product.isListed !== false,
@@ -52,7 +62,7 @@ function toAdminProduct(product) {
 function readAdminFilters(query = {}) {
   return {
     q: typeof query.q === "string" ? query.q.trim().slice(0, 80) : "",
-    category: CATEGORIES.includes(query.category) ? query.category : "",
+    category: typeof query.category === "string" && mongoose.isValidObjectId(query.category) ? query.category : "",
     status: STATUSES.includes(query.status) ? query.status : "all",
     sort: Object.hasOwn(ADMIN_SORTS, query.sort) ? query.sort : "newest",
     page: toPositiveInt(query.page, 1)
@@ -73,6 +83,7 @@ async function listAdminProducts(query) {
       .sort(ADMIN_SORTS[filters.sort].order)
       .skip((filters.page - 1) * PAGE_SIZE)
       .limit(PAGE_SIZE)
+      .populate("category", "name")
       .lean(),
     Product.countDocuments(filter)
   ]);
@@ -86,9 +97,17 @@ async function listAdminProducts(query) {
 
 async function findProduct(productId) {
   if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
-  const product = await Product.findById(productId);
+  const product = await Product.findById(productId).populate("category", "name offerPercent isListed");
   if (!product) throw new HttpError(404, "Product not found.");
   return product;
+}
+
+// The chosen category must exist. Its offer and visibility are copied onto the product.
+async function checkCategory(value, errors) {
+  if (errors.category) return null;
+  const category = await Category.findById(value.category).lean();
+  if (!category) errors.category = "Choose a category.";
+  return category;
 }
 
 async function getAdminProduct(productId) {
@@ -155,11 +174,17 @@ function checkUploads(files, errors) {
 
 // Saves the product. New photos are written to disk only after every check has passed,
 // and they are removed again if the database save fails.
-async function persist(product, value, plan, files) {
+async function persist(product, value, plan, files, category) {
   const newUrls = await imageService.saveImages(files);
   try {
     const images = orderImages(plan, newUrls);
-    Object.assign(product, value, { image: images[0], gallery: images });
+    Object.assign(product, value, {
+      category: category._id,
+      categoryOffer: category.offerPercent || 0,
+      categoryListed: category.isListed !== false,
+      image: images[0],
+      gallery: images
+    });
     if (product.isNew || product.isModified("name")) product.slug = await uniqueSlug(value.name, product._id);
     try {
       await product.save();
@@ -174,6 +199,7 @@ async function persist(product, value, plan, files) {
     throw error;
   }
   await imageService.deleteImages(plan.removed);
+  await product.populate("category", "name");
   return toAdminProduct(product);
 }
 
@@ -181,8 +207,9 @@ async function createProduct({ value, errors, body, files }) {
   const plan = planImages({ current: [], keepRaw: "[]", mainRaw: body.mainImage, newCount: files.length });
   if (plan.error) errors.images = plan.error;
   checkUploads(files, errors);
+  const category = await checkCategory(value, errors);
   if (Object.keys(errors).length) throw new HttpError(400, "Please fix the highlighted fields.", errors);
-  return persist(new Product(), value, plan, files);
+  return persist(new Product(), value, plan, files, category);
 }
 
 async function updateProduct(productId, { value, errors, body, files }) {
@@ -190,8 +217,9 @@ async function updateProduct(productId, { value, errors, body, files }) {
   const plan = planImages({ current: imagesOf(product), keepRaw: body.keepImages, mainRaw: body.mainImage, newCount: files.length });
   if (plan.error) errors.images = plan.error;
   checkUploads(files, errors);
+  const category = await checkCategory(value, errors);
   if (Object.keys(errors).length) throw new HttpError(400, "Please fix the highlighted fields.", errors);
-  return persist(product, value, plan, files);
+  return persist(product, value, plan, files, category);
 }
 
 // Unlisting hides a product from shoppers without deleting it, so it can be listed again later.

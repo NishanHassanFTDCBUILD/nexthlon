@@ -3,8 +3,8 @@
 (function () {
   "use strict";
 
-  const rupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
-  const formatPrice = value => rupees.format(value || 0);
+  // Money from the API is in paise.
+  const formatPrice = value => Nx.formatPrice(value);
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   // ---------- Fly to cart ----------

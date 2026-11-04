@@ -1,0 +1,97 @@
+const mongoose = require("mongoose");
+const Review = require("../models/Review");
+const Product = require("../models/Product");
+const { HttpError } = require("../utils/http");
+
+const PAGE_SIZE = 5;
+
+// True when the customer has an order in which this product was delivered to them.
+async function hasReceived(userId, productId) {
+  const order = await mongoose.connection.collection("orders").findOne(
+    { user: new mongoose.Types.ObjectId(String(userId)), items: { $elemMatch: { product: new mongoose.Types.ObjectId(String(productId)), status: "delivered" } } },
+    { projection: { _id: 1 } }
+  );
+  return Boolean(order);
+}
+
+// Whether this visitor may review the product, and why not. user is the signed-in user or null.
+async function reviewStatus(user, productId) {
+  if (!user) return { canReview: false, reason: "signin" };
+  if (user.role !== "customer") return { canReview: false, reason: "admin" };
+  const mine = await Review.findOne({ product: productId, user: user._id }).lean();
+  if (mine) return { canReview: false, reason: "reviewed", review: publicReview(mine) };
+  if (!(await hasReceived(user._id, productId))) return { canReview: false, reason: "not_received" };
+  return { canReview: true, reason: null };
+}
+
+function publicReview(review) {
+  return {
+    id: String(review._id),
+    author: review.authorName,
+    rating: review.rating,
+    title: review.title,
+    body: review.body,
+    createdAt: review.createdAt
+  };
+}
+
+// "Asha Nair" -> "Asha N."
+function shortName(name) {
+  const parts = String(name || "Customer").trim().split(/\s+/);
+  return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.` : parts[0];
+}
+
+// How many reviews gave each star rating, 5 down to 1.
+async function ratingBreakdown(productId) {
+  const groups = await Review.aggregate([
+    { $match: { product: new mongoose.Types.ObjectId(String(productId)) } },
+    { $group: { _id: "$rating", count: { $sum: 1 } } }
+  ]);
+  const counts = new Map(groups.map(group => [group._id, group.count]));
+  return [5, 4, 3, 2, 1].map(stars => ({ stars, count: counts.get(stars) || 0 }));
+}
+
+async function listReviews(productId, page = 1) {
+  const [reviews, total, breakdown] = await Promise.all([
+    Review.find({ product: productId }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+    Review.countDocuments({ product: productId }),
+    ratingBreakdown(productId)
+  ]);
+  return {
+    reviews: reviews.map(publicReview),
+    breakdown,
+    pagination: { page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total, limit: PAGE_SIZE }
+  };
+}
+
+// Keeps the product's stored average (one decimal place) and count in step with its reviews.
+async function refreshProductRating(productId) {
+  const [stats] = await Review.aggregate([
+    { $match: { product: new mongoose.Types.ObjectId(String(productId)) } },
+    { $group: { _id: null, average: { $avg: "$rating" }, count: { $sum: 1 } } }
+  ]);
+  const ratingAverage = stats ? Math.round(stats.average * 10) / 10 : 0;
+  const ratingCount = stats ? stats.count : 0;
+  await Product.updateOne({ _id: productId }, { $set: { ratingAverage, ratingCount } });
+  return { average: ratingAverage, count: ratingCount };
+}
+
+async function addReview(user, productId, value) {
+  if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
+  const product = await Product.findOne({ _id: productId, ...Product.LISTED }).select("_id").lean();
+  if (!product) throw new HttpError(404, "Product not found.");
+  const status = await reviewStatus(user, product._id);
+  if (status.reason === "reviewed") throw new HttpError(409, "You have already reviewed this product.");
+  if (!status.canReview) throw new HttpError(403, "Only customers who received this product can review it.");
+  let review;
+  try {
+    review = await Review.create({ ...value, product: product._id, user: user._id, authorName: shortName(user.name) });
+  } catch (error) {
+    if (error.code === 11000) throw new HttpError(409, "You have already reviewed this product.");
+    throw error;
+  }
+  const rating = await refreshProductRating(product._id);
+  return { review: publicReview(review), rating };
+}
+
+module.exports = { PAGE_SIZE, hasReceived, reviewStatus, listReviews, ratingBreakdown, refreshProductRating, addReview, shortName, publicReview };

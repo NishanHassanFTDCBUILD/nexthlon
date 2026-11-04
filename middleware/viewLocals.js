@@ -1,7 +1,7 @@
-const { CATEGORIES } = require("../config/catalog");
 const { STORE, PRICE_BANDS } = require("../config/store");
+const categoryService = require("../services/categoryService");
+const { formatPaise } = require("../utils/money");
 
-const rupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 const shortDate = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
 // Values and helper functions every EJS view can use. Set first, so even error pages have them.
@@ -12,13 +12,13 @@ function viewLocals(req, res, next) {
   res.locals.path = req.path;
   //Stores URL query parameters
   res.locals.query = req.query;
-  //Makes categories available to navigation.
-  res.locals.navCategories = CATEGORIES;
+  // Filled with the listed categories (from the database) by navCategories below.
+  res.locals.navCategories = [];
   // Store details for the footer and policy pages, and price bands for the category menu.
   res.locals.store = STORE;
   res.locals.priceBands = PRICE_BANDS;
-  //Converts numbers into Indian currency.
-  res.locals.formatPrice = value => rupees.format(value || 0);
+  // Money is stored in paise: 12345600 shows as ₹1,23,456.
+  res.locals.formatPrice = formatPaise;
   //Converts dates into readable format.
   res.locals.formatDate = value => (value ? shortDate.format(new Date(value)) : "—");
   //Extracts the first name using split(" ")[0].
@@ -29,4 +29,15 @@ function viewLocals(req, res, next) {
   next();
 }
 
-module.exports = { viewLocals };
+// The listed categories for the header, menus and footer. Only page requests need them.
+async function navCategories(req, res, next) {
+  if (req.method !== "GET" || req.path.startsWith("/api/")) return next();
+  try {
+    res.locals.navCategories = await categoryService.listedCategories();
+  } catch {
+    res.locals.navCategories = [];
+  }
+  return next();
+}
+
+module.exports = { viewLocals, navCategories };
