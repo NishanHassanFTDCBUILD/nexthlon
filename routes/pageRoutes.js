@@ -21,6 +21,11 @@ router.get("/login", guestOnly, pages.login);
 router.get("/signup", guestOnly, pages.signup);
 router.get("/profile", customerPage, pages.profile);
 router.get("/cart", customerPage, pages.cart);
+router.get("/checkout", customerPage, pages.checkout);
+router.get("/orders", customerPage, pages.orders);
+router.get("/orders/:orderId", customerPage, pages.orderDetail);
+router.get("/orders/:orderId/success", customerPage, pages.orderSuccess);
+router.get("/orders/:orderId/invoice", customerPage, pages.orderInvoice);
 
 // Admin console
 router.get("/admin/login", guestOnly, pages.adminLogin);

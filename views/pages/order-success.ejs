@@ -1,0 +1,24 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<% const activeCount = order.items.reduce(function (sum, item) { return sum + item.quantity; }, 0); %>
+<main id="main" class="container page">
+  <canvas class="confetti" data-confetti aria-hidden="true"></canvas>
+  <section class="success-card section-box" aria-labelledby="success-title">
+    <span class="success-icon"><%- icon('check', 'i-xl') %></span>
+    <h1 id="success-title">Thank you! Your order is placed.</h1>
+    <p class="muted">Order <strong><%= order.orderId %></strong> · <%= activeCount %> <%= activeCount === 1 ? 'item' : 'items' %> · <%= formatPrice(order.total) %></p>
+    <p data-success-delivery data-pincode="<%= order.address.pincode %>" aria-live="polite">Delivering to <%= order.address.fullName %>, <%= order.address.city %> <%= order.address.pincode %>.</p>
+    <% if (order.paymentMethod === 'cod') { %>
+      <p class="pill pill-amber"><%- icon('wallet', 'i-xs') %> Pay <%= formatPrice(order.total) %> in cash or UPI on delivery</p>
+    <% } else if (order.paymentStatus === 'paid') { %>
+      <p class="pill pill-green"><%- icon('check', 'i-xs') %> Payment received</p>
+    <% } %>
+    <div class="success-actions">
+      <a class="btn btn-primary" href="/orders/<%= order.orderId %>"><%- icon('package-check', 'i-sm') %> Track your order</a>
+      <a class="btn btn-ghost" href="/products">Continue shopping</a>
+    </div>
+  </section>
+</main>
+
+<%- include('../partials/footer', { scripts: ['confetti'] }) %>

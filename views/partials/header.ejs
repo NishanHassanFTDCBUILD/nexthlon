@@ -85,7 +85,7 @@
                   <a href="/admin/users"><%- icon('users') %> Manage users</a>
                 <% } else { %>
                   <a href="/profile"><%- icon('user') %> Your account</a>
-                  <span class="menu-soon"><%- icon('package-check') %> Your orders <em>Soon</em></span>
+                  <a href="/orders"><%- icon('package-check') %> Your orders</a>
                   <a href="/wishlist"><%- icon('heart') %> Your wishlist</a>
                   <a href="/cart"><%- icon('cart') %> Your cart</a>
                   <a href="/profile#addresses"><%- icon('pin') %> Saved addresses</a>
@@ -202,6 +202,7 @@
         <a href="/admin/products"><%- icon('box', 'i-sm') %> Manage products</a>
       <% } else if (currentUser) { %>
         <a href="/profile"><%- icon('user', 'i-sm') %> Your account</a>
+        <a href="/orders"><%- icon('package-check', 'i-sm') %> Your orders</a>
         <a href="/wishlist"><%- icon('heart', 'i-sm') %> Your wishlist</a>
         <a href="/cart"><%- icon('cart', 'i-sm') %> Your cart</a>
       <% } else { %>

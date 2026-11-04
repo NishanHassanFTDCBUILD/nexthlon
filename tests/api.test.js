@@ -823,3 +823,163 @@ test("cart summary: M.R.P. total, discount, delivery fee below ₹499 and the gr
   assert.match(page.data, /Save for later/);
   assert.match(page.data, /Delivery fee/);
 });
+
+// ---------- Phase 4: checkout and Cash on Delivery orders ----------
+const Order = require("../models/Order");
+const Address = require("../models/Address");
+const orderService = require("../services/orderService");
+
+async function newCustomer(name, email) {
+  const res = await call("POST", "/api/signup", { body: { name, email, password: "order2024", confirmPassword: "order2024" } });
+  const user = await User.findOne({ email });
+  const address = await Address.create({ user: user._id, fullName: name, phone: "9876543210", line1: "12 MG Road", city: "Bengaluru", state: "Karnataka", pincode: "560001", isDefault: true });
+  return { cookie: res.cookie, user, addressId: String(address._id) };
+}
+
+let buyer;
+let placed;
+
+test("checkout is for customers with something in the cart", async () => {
+  assert.equal((await call("GET", "/checkout")).location, "/login?next=%2Fcheckout");
+  buyer = await newCustomer("Order Tester", "orders@nexthlon.test");
+  assert.equal((await call("GET", "/checkout", { cookie: buyer.cookie })).location, "/cart");
+  assert.equal((await call("POST", "/api/orders", { body: { addressId: buyer.addressId, paymentMethod: "cod" }, cookie: buyer.cookie })).status, 400);
+});
+
+test("placing a COD order: server prices, atomic stock, snapshots, cart cleared", async () => {
+  const pole = await makeProduct({ name: "Carbon Trek Pole", slug: "carbon-trek-pole", category: "Hiking", brand: "Nexthlon", price: 1200, mrp: 1500, stock: 3, image: "/img/favicon.svg" });
+  await call("POST", "/api/cart/items", { body: { productId: String(pole._id), quantity: 2 }, cookie: buyer.cookie });
+  const page = await call("GET", "/checkout", { cookie: buyer.cookie });
+  assert.equal(page.status, 200);
+  assert.match(page.data, /Cash on Delivery/);
+
+  const quote = await call("POST", "/api/checkout/quote", { body: {}, cookie: buyer.cookie });
+  assert.equal(quote.data.quote.totals.total, 240000);
+  assert.equal(quote.data.quote.codAllowed, true);
+
+  // Someone else's address is refused.
+  const other = await newCustomer("Other Person", "other-orders@nexthlon.test");
+  assert.equal((await call("POST", "/api/orders", { body: { addressId: other.addressId, paymentMethod: "cod" }, cookie: buyer.cookie })).status, 400);
+  assert.equal((await call("POST", "/api/orders", { body: { addressId: buyer.addressId, paymentMethod: "bitcoin" }, cookie: buyer.cookie })).status, 400);
+
+  const res = await call("POST", "/api/orders", { body: { addressId: buyer.addressId, paymentMethod: "cod", total: 1, items: [{ price: 1 }] }, cookie: buyer.cookie });
+  assert.equal(res.status, 201);
+  placed = res.data.order;
+  assert.match(placed.orderId, /^NX-\d{4}-\d{6}$/);
+  assert.equal(res.data.redirect, `/orders/${placed.orderId}/success`);
+  assert.equal(placed.total, 240000);
+  assert.equal(placed.items[0].price, 120000);
+  assert.equal(placed.items[0].name, "Carbon Trek Pole");
+  assert.equal(placed.address.city, "Bengaluru");
+  assert.equal(placed.paymentStatus, "pending");
+  assert.equal((await Product.findById(pole._id)).stock, 1);
+  assert.equal((await call("GET", "/api/cart", { cookie: buyer.cookie })).data.cart.items.length, 0);
+
+  // The snapshot does not change when the product does.
+  await Product.updateOne({ _id: pole._id }, { $set: { name: "Renamed Pole", price: 1, basePrice: 1 } });
+  const again = await call("GET", `/api/orders/${placed.orderId}`, { cookie: buyer.cookie });
+  assert.equal(again.data.order.items[0].name, "Carbon Trek Pole");
+  assert.equal(again.data.order.items[0].price, 120000);
+  await Product.updateOne({ _id: pole._id }, { $set: { name: "Carbon Trek Pole", basePrice: 120000, price: 120000 } });
+  const success = await call("GET", res.data.redirect, { cookie: buyer.cookie });
+  assert.match(success.data, /data-confetti/);
+});
+
+test("the last item cannot be sold twice, even when two orders arrive together", async () => {
+  const lamp = await makeProduct({ name: "Head Lamp", slug: "head-lamp", category: "Camping", price: 900, mrp: 900, stock: 1, image: "/img/favicon.svg" });
+  const a = await newCustomer("Racer One", "race1@nexthlon.test");
+  const b = await newCustomer("Racer Two", "race2@nexthlon.test");
+  for (const who of [a, b]) await call("POST", "/api/cart/items", { body: { productId: String(lamp._id), quantity: 1 }, cookie: who.cookie });
+  const results = await Promise.all([a, b].map(who => call("POST", "/api/orders", { body: { addressId: who.addressId, paymentMethod: "cod" }, cookie: who.cookie })));
+  assert.deepEqual(results.map(r => r.status).sort(), [201, 409]);
+  assert.match(results.find(r => r.status === 409).data.message, /sold out/);
+  assert.equal((await Product.findById(lamp._id)).stock, 0);
+  assert.equal(await Order.countDocuments({ "items.product": lamp._id }), 1);
+});
+
+test("Cash on Delivery only up to ₹5,000, and unavailable items block checkout", async () => {
+  const tent = await makeProduct({ name: "Expedition Tent", slug: "expedition-tent", category: "Camping", price: 5200, mrp: 6000, stock: 4, image: "/img/favicon.svg" });
+  const big = await newCustomer("Big Spender", "big@nexthlon.test");
+  await call("POST", "/api/cart/items", { body: { productId: String(tent._id), quantity: 1 }, cookie: big.cookie });
+  const refused = await call("POST", "/api/orders", { body: { addressId: big.addressId, paymentMethod: "cod" }, cookie: big.cookie });
+  assert.equal(refused.status, 400);
+  assert.match(refused.data.message, /up to ₹5,000/);
+  assert.equal((await Product.findById(tent._id)).stock, 4);
+
+  await call("DELETE", "/api/cart", { cookie: big.cookie });
+  const socks = await Product.findOne({ slug: "trail-socks" });
+  await call("POST", "/api/cart/items", { body: { productId: String(socks._id), quantity: 1 }, cookie: big.cookie });
+  await Product.updateOne({ _id: socks._id }, { $set: { isListed: false } });
+  const blocked = await call("POST", "/api/orders", { body: { addressId: big.addressId, paymentMethod: "cod" }, cookie: big.cookie });
+  assert.equal(blocked.status, 409);
+  await Product.updateOne({ _id: socks._id }, { $set: { isListed: true } });
+});
+
+test("orders belong to their customer: lists, details, pages and invoices", async () => {
+  const other = await call("POST", "/api/login", { body: { email: "other-orders@nexthlon.test", password: "order2024" } });
+  assert.equal((await call("GET", `/api/orders/${placed.orderId}`, { cookie: other.cookie })).status, 404);
+  assert.equal((await call("GET", `/orders/${placed.orderId}`, { cookie: other.cookie })).status, 404);
+  assert.equal((await call("GET", `/orders/${placed.orderId}/invoice`, { cookie: other.cookie })).status, 404);
+  assert.equal((await call("GET", "/api/orders", { cookie: other.cookie })).data.orders.length, 0);
+
+  const mine = await call("GET", "/api/orders?status=active", { cookie: buyer.cookie });
+  assert.equal(mine.data.orders.length, 1);
+  assert.equal((await call("GET", "/api/orders?status=delivered", { cookie: buyer.cookie })).data.orders.length, 0);
+  assert.equal((await call("GET", "/api/orders?q=trek", { cookie: buyer.cookie })).data.orders.length, 1);
+  const list = await call("GET", "/orders", { cookie: buyer.cookie });
+  assert.match(list.data, new RegExp(placed.orderId));
+  const detail = await call("GET", `/orders/${placed.orderId}`, { cookie: buyer.cookie });
+  assert.match(detail.data, /class="timeline"/);
+  assert.match(detail.data, /Cancel order/);
+
+  const pdf = await fetch(`${base}/orders/${placed.orderId}/invoice`, { headers: { Cookie: buyer.cookie } });
+  assert.equal(pdf.status, 200);
+  assert.equal(pdf.headers.get("content-type"), "application/pdf");
+  assert.match(pdf.headers.get("content-disposition"), /INV-\d{4}-\d{6}\.pdf/);
+  const bytes = Buffer.from(await pdf.arrayBuffer());
+  assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
+});
+
+test("cancelling one item, then the rest, puts the stock back", async () => {
+  const bottle = await makeProduct({ name: "Steel Bottle", slug: "steel-bottle", category: "Outdoor", price: 600, mrp: 800, stock: 10, image: "/img/favicon.svg" });
+  const pole = await Product.findOne({ slug: "carbon-trek-pole" });
+  await Product.updateOne({ _id: pole._id }, { $set: { stock: 5 } });
+  await call("POST", "/api/cart/items", { body: { productId: String(bottle._id), quantity: 2 }, cookie: buyer.cookie });
+  await call("POST", "/api/cart/items", { body: { productId: String(pole._id), quantity: 1 }, cookie: buyer.cookie });
+  const res = await call("POST", "/api/orders", { body: { addressId: buyer.addressId, paymentMethod: "cod" }, cookie: buyer.cookie });
+  const order = res.data.order;
+  assert.equal((await Product.findById(bottle._id)).stock, 8);
+
+  const bottleLine = order.items.find(i => i.name === "Steel Bottle");
+  const one = await call("POST", `/api/orders/${order.orderId}/items/${bottleLine.id}/cancel`, { body: { reason: "Ordered by mistake" }, cookie: buyer.cookie });
+  assert.equal(one.status, 200);
+  assert.equal(one.data.order.status, "placed");
+  assert.equal(one.data.order.items.find(i => i.id === bottleLine.id).status, "cancelled");
+  assert.equal((await Product.findById(bottle._id)).stock, 10);
+  assert.equal((await call("POST", `/api/orders/${order.orderId}/items/${bottleLine.id}/cancel`, { body: {}, cookie: buyer.cookie })).status, 400);
+
+  const all = await call("POST", `/api/orders/${order.orderId}/cancel`, { body: {}, cookie: buyer.cookie });
+  assert.equal(all.data.order.status, "cancelled");
+  assert.equal((await Product.findById(pole._id)).stock, 5);
+  assert.equal((await call("POST", `/api/orders/${order.orderId}/cancel`, { body: {}, cookie: buyer.cookie })).status, 400);
+});
+
+test("statuses move forward only; delivery marks COD paid and opens returns", async () => {
+  const order = await Order.findOne({ orderId: placed.orderId });
+  await orderService.advanceStatus(order, "shipped");
+  assert.equal((await call("POST", `/api/orders/${placed.orderId}/cancel`, { body: {}, cookie: buyer.cookie })).status, 400);
+  await assert.rejects(orderService.advanceStatus(order, "confirmed"), /cannot move/);
+  assert.equal((await call("POST", `/api/orders/${placed.orderId}/return`, { body: { reason: "Wrong size or fit" }, cookie: buyer.cookie })).status, 400);
+
+  await orderService.advanceStatus(order, "delivered");
+  const delivered = await Order.findOne({ orderId: placed.orderId }).lean();
+  assert.equal(delivered.paymentStatus, "paid");
+  assert.ok(delivered.deliveredAt);
+  assert.deepEqual(delivered.statusHistory.map(h => h.status), ["placed", "shipped", "delivered"]);
+
+  assert.equal((await call("POST", `/api/orders/${placed.orderId}/return`, { body: { reason: "Because" }, cookie: buyer.cookie })).status, 400);
+  const ret = await call("POST", `/api/orders/${placed.orderId}/return`, { body: { reason: "Wrong size or fit", note: "Too long" }, cookie: buyer.cookie });
+  assert.equal(ret.status, 200);
+  assert.equal(ret.data.order.status, "return_requested");
+  assert.equal((await call("POST", `/api/orders/${placed.orderId}/return`, { body: { reason: "Wrong size or fit" }, cookie: buyer.cookie })).status, 400);
+});

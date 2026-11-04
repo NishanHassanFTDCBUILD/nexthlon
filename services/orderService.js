@@ -1,0 +1,175 @@
+const mongoose = require("mongoose");
+const Order = require("../models/Order");
+const stockService = require("./stockService");
+const { HttpError } = require("../utils/http");
+const { escapeRegex, toPositiveInt } = require("./productService");
+const { STORE } = require("../config/store");
+const rules = require("../utils/orderRules");
+
+const PAGE_SIZE = 10;
+const LIST_FILTERS = {
+  all: null,
+  active: { orderStatus: { $in: ["placed", "confirmed", "shipped", "out_for_delivery"] } },
+  delivered: { orderStatus: "delivered" },
+  cancelled: { orderStatus: "cancelled" },
+  returns: { orderStatus: { $in: ["return_requested", "returned"] } }
+};
+const PERIODS = { all: null, "30d": 30, "6m": 183, "1y": 365 };
+
+// Refunds are paid out by the payments/wallet code, which registers itself here, so the
+// order rules do not depend on how money moves. Unpaid (Cash on Delivery) orders need none.
+let refundHandler = null;
+function setRefundHandler(handler) {
+  refundHandler = handler;
+}
+
+function readListFilters(query = {}) {
+  return {
+    status: Object.hasOwn(LIST_FILTERS, query.status) ? query.status : "all",
+    period: Object.hasOwn(PERIODS, query.period) ? query.period : "all",
+    q: typeof query.q === "string" ? query.q.trim().slice(0, 60) : "",
+    page: toPositiveInt(query.page, 1)
+  };
+}
+
+async function listOrders(userId, query, now = new Date()) {
+  const filters = readListFilters(query);
+  const filter = { user: userId, ...(LIST_FILTERS[filters.status] || {}) };
+  if (PERIODS[filters.period]) filter.createdAt = { $gte: new Date(now.getTime() - PERIODS[filters.period] * 24 * 60 * 60 * 1000) };
+  if (filters.q) {
+    const pattern = new RegExp(escapeRegex(filters.q), "i");
+    filter.$or = [{ orderId: pattern }, { "items.name": pattern }];
+  }
+  const [orders, total] = await Promise.all([
+    Order.find(filter).sort({ createdAt: -1 }).skip((filters.page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+    Order.countDocuments(filter)
+  ]);
+  return { orders, filters, pagination: { page: filters.page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total, limit: PAGE_SIZE } };
+}
+
+// Every customer lookup includes the owner, so nobody can see or change another customer's order.
+async function getOwnedOrder(userId, orderId) {
+  const id = String(orderId || "").trim().toUpperCase();
+  if (!/^NX-\d{4}-\d{6}$/.test(id)) throw new HttpError(404, "Order not found.");
+  const order = await Order.findOne({ orderId: id, user: userId });
+  if (!order) throw new HttpError(404, "Order not found.");
+  return order;
+}
+
+function settleStatus(order, by, note) {
+  const status = rules.deriveOrderStatus(order.items);
+  if (status !== order.orderStatus) {
+    order.orderStatus = status;
+    order.statusHistory.push({ status, by, note });
+  }
+}
+
+// Cancels these items: stock goes back, and paid money is refunded.
+async function cancelItems(order, items, { reason = "", by = "customer", refundMethod = "wallet" } = {}) {
+  const refund = order.paymentStatus === "paid" ? rules.refundFor(order, items.map(item => item._id)) : 0;
+  for (const item of items) {
+    item.status = "cancelled";
+    item.cancelReason = reason;
+  }
+  if (items.length !== order.items.length) {
+    order.statusHistory.push({ status: "item_cancelled", by, note: `${items.map(item => item.name).join(", ")} cancelled${reason ? `: ${reason}` : ""}` });
+  }
+  settleStatus(order, by, reason);
+  if (order.orderStatus === "cancelled") order.cancelReason = reason;
+  if (order.stockReserved) {
+    await stockService.returnStock(items.map(item => ({ product: item.product, quantity: item.quantity })));
+  }
+  await order.save();
+  if (refund > 0 && refundHandler) await refundHandler(order, refund, { method: refundMethod, reason: `Cancelled: ${reason || "by request"}` });
+  return order;
+}
+
+async function cancelOrder(userId, orderId, { reason, refundMethod } = {}) {
+  const order = await getOwnedOrder(userId, orderId);
+  const items = order.items.filter(rules.canCancelItem);
+  if (!items.length) throw new HttpError(400, "This order can no longer be cancelled.");
+  return cancelItems(order, items, { reason, by: "customer", refundMethod });
+}
+
+async function cancelItem(userId, orderId, itemId, { reason, refundMethod } = {}) {
+  const order = await getOwnedOrder(userId, orderId);
+  const item = mongoose.isValidObjectId(itemId) ? order.items.id(itemId) : null;
+  if (!item) throw new HttpError(404, "That item is not in this order.");
+  if (!rules.canCancelItem(item)) throw new HttpError(400, `${item.name} can no longer be cancelled.`);
+  return cancelItems(order, [item], { reason, by: "customer", refundMethod });
+}
+
+async function requestReturn(userId, orderId, { reason, note }, now = new Date()) {
+  const order = await getOwnedOrder(userId, orderId);
+  if (!rules.canRequestReturn(order, STORE.returnDays, now)) {
+    throw new HttpError(400, `Returns can be requested within ${STORE.returnDays} days of delivery.`);
+  }
+  order.items.forEach(item => {
+    if (item.status === "delivered") {
+      item.status = "return_requested";
+      item.returnReason = reason;
+    }
+  });
+  order.returnReason = reason;
+  order.returnNote = note;
+  settleStatus(order, "customer", reason);
+  await order.save();
+  return order;
+}
+
+// Moves an order forward (admin). Never backwards, and cancelled items stay cancelled.
+// Cash on Delivery is marked paid when the order is delivered.
+async function advanceStatus(order, nextStatus, by = "admin", now = new Date()) {
+  const current = rules.deriveOrderStatus(order.items);
+  if (!rules.nextStatuses(current).includes(nextStatus)) {
+    throw new HttpError(400, `An order that is "${rules.STATUS_LABELS[current] || current}" cannot move to "${rules.STATUS_LABELS[nextStatus] || nextStatus}".`);
+  }
+  const target = rules.FLOW.indexOf(nextStatus);
+  order.items.forEach(item => {
+    const at = rules.FLOW.indexOf(item.status);
+    if (at >= 0 && at < target) item.status = nextStatus;
+  });
+  if (nextStatus === "delivered") {
+    order.deliveredAt = now;
+    if (order.paymentMethod === "cod" && order.paymentStatus === "pending") order.paymentStatus = "paid";
+  }
+  order.orderStatus = nextStatus;
+  order.statusHistory.push({ status: nextStatus, by, at: now });
+  await order.save();
+  return order;
+}
+
+// The tracking timeline: each step of the journey, with the time it happened (if it has).
+function timelineFor(order) {
+  const reached = new Map();
+  order.statusHistory.forEach(entry => {
+    if (!reached.has(entry.status)) reached.set(entry.status, entry.at);
+  });
+  const steps = rules.FLOW.map(status => ({ status, label: rules.STATUS_LABELS[status], at: reached.get(status) || null, done: reached.has(status) }));
+  if (order.orderStatus === "cancelled") {
+    const kept = steps.filter(step => step.done);
+    kept.push({ status: "cancelled", label: "Cancelled", at: reached.get("cancelled") || null, done: true });
+    return kept;
+  }
+  if (["return_requested", "returned"].includes(order.orderStatus)) {
+    steps.push({ status: "return_requested", label: "Return requested", at: reached.get("return_requested") || null, done: true });
+    steps.push({ status: "returned", label: "Returned", at: reached.get("returned") || null, done: reached.has("returned") });
+  }
+  return steps;
+}
+
+module.exports = {
+  PAGE_SIZE,
+  LIST_FILTERS,
+  PERIODS,
+  setRefundHandler,
+  readListFilters,
+  listOrders,
+  getOwnedOrder,
+  cancelItems,
+  cancelOrder,
+  cancelItem,
+  requestReturn,
+  advanceStatus,
+  timelineFor
+};

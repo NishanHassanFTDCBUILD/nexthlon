@@ -1,5 +1,6 @@
 const { INDIAN_STATES } = require("../config/catalog");
 const { rupeesToPaise } = require("./money");
+const { CANCEL_REASONS, RETURN_REASONS } = require("./orderRules");
 const { CONTACT_TOPICS } = require("../config/store");
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -232,8 +233,34 @@ function readIdList(raw, max = 50) {
   return ids;
 }
 
+// Checkout: only which address and how to pay. Prices and totals are worked out on the server.
+function validatePlaceOrder(body = {}) {
+  const errors = {};
+  const value = { addressId: text(body.addressId), paymentMethod: text(body.paymentMethod) };
+  if (!OBJECT_ID.test(value.addressId)) errors.addressId = "Choose a delivery address.";
+  if (!value.paymentMethod) errors.paymentMethod = "Choose a payment method.";
+  return { errors, value };
+}
+
+// Cancelling: an optional reason from the list; anything else is dropped.
+function validateCancel(body = {}) {
+  const reason = text(body.reason);
+  const refundMethod = text(body.refundMethod) === "original" ? "original" : "wallet";
+  return { errors: {}, value: { reason: CANCEL_REASONS.includes(reason) ? reason : "", refundMethod } };
+}
+
+function validateReturn(body = {}) {
+  const errors = {};
+  const value = { reason: text(body.reason), note: longText(body.note).slice(0, 500) };
+  if (!RETURN_REASONS.includes(value.reason)) errors.reason = "Choose why you are returning it.";
+  return { errors, value };
+}
+
 module.exports = {
   hasErrors,
+  validatePlaceOrder,
+  validateCancel,
+  validateReturn,
   validateContact,
   validateNewsletter,
   readIdList,

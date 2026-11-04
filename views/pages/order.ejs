@@ -1,0 +1,160 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<%
+  const a = order.address;
+  const activeItems = order.items.filter(function (item) { return item.status !== 'cancelled'; });
+  const pillFor = function (status) {
+    if (status === 'delivered') return 'pill-green';
+    if (status === 'cancelled' || status === 'returned') return 'pill-red';
+    if (status === 'return_requested') return 'pill-amber';
+    return 'pill-blue';
+  };
+  const methodLabel = order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod === 'wallet' ? 'Nexthlon wallet' : 'UPI, card or net banking';
+  const paymentLabels = { pending: order.paymentMethod === 'cod' ? 'Pay on delivery' : 'Awaiting payment', paid: 'Paid', failed: 'Payment failed', refunded: 'Refunded', partially_refunded: 'Partly refunded' };
+  const timeText = function (value) { return value ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).format(new Date(value)) : ''; };
+%>
+<main id="main" class="container page" data-order data-order-id="<%= order.orderId %>" data-paid="<%= order.paymentStatus === 'paid' ? 'true' : 'false' %>">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <a href="/orders">Your orders</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page"><%= order.orderId %></span>
+  </nav>
+
+  <div class="page-head">
+    <div>
+      <h1>Order <%= order.orderId %></h1>
+      <p class="muted">Placed on <%= formatDate(order.createdAt) %> · <span class="pill <%= pillFor(order.orderStatus) %>"><%= labels[order.orderStatus] %></span></p>
+    </div>
+    <div class="order-actions">
+      <a class="btn btn-ghost btn-sm" href="/orders/<%= order.orderId %>/invoice"><%- icon('box', 'i-sm') %> Download invoice</a>
+      <% if (canReturn) { %><button type="button" class="btn btn-ghost btn-sm" data-open-dialog="return-dialog"><%- icon('rotate-ccw', 'i-sm') %> Return items</button><% } %>
+      <% if (canCancel) { %><button type="button" class="btn btn-danger-soft btn-sm" data-open-dialog="cancel-dialog" data-cancel-scope="order"><%- icon('x', 'i-sm') %> Cancel order</button><% } %>
+    </div>
+  </div>
+
+  <div class="order-layout">
+    <div class="order-main">
+      <section class="section-box" aria-labelledby="track-title">
+        <h2 id="track-title" class="panel-title">Tracking</h2>
+        <ol class="timeline">
+          <% timeline.forEach(function (step) { %>
+            <li class="timeline-step <%= step.done ? 'is-done' : '' %> <%= ['cancelled', 'return_requested', 'returned'].includes(step.status) ? 'is-alert' : '' %>" <%- step.status === order.orderStatus ? 'aria-current="step"' : '' %>>
+              <span class="timeline-dot" aria-hidden="true"><% if (step.done) { %><%- icon(step.status === 'cancelled' ? 'x' : 'check', 'i-xs') %><% } %></span>
+              <span class="timeline-text"><strong><%= step.label %></strong><span class="muted"><%= step.done ? timeText(step.at) : 'Pending' %></span></span>
+            </li>
+          <% }) %>
+        </ol>
+        <% if (order.cancelReason) { %><p class="muted">Cancelled: <%= order.cancelReason %></p><% } %>
+        <% if (order.returnReason) { %><p class="muted">Return reason: <%= order.returnReason %><%= order.returnNote ? ' · ' + order.returnNote : '' %></p><% } %>
+      </section>
+
+      <section class="section-box" aria-labelledby="items-title">
+        <h2 id="items-title" class="panel-title">Items</h2>
+        <ul class="order-items">
+          <% order.items.forEach(function (item) { %>
+            <li class="order-item <%= item.status === 'cancelled' ? 'is-cancelled' : '' %>">
+              <img src="<%= item.image %>" alt="" width="80" height="80" loading="lazy">
+              <div class="order-item-info">
+                <a href="/products/<%= item.slug %>"><strong><%= item.name %></strong></a>
+                <span class="muted">Qty <%= item.quantity %> · <%= formatPrice(item.price) %> each<% if (item.mrp > item.price) { %> · M.R.P. <s><%= formatPrice(item.mrp) %></s><% } %></span>
+                <span class="pill <%= pillFor(item.status) %>"><%= labels[item.status] %></span>
+              </div>
+              <div class="order-item-side">
+                <strong><%= formatPrice(item.lineTotal) %></strong>
+                <% if (['placed', 'confirmed'].includes(item.status) && activeItems.length > 1) { %>
+                  <button type="button" class="link-btn cart-remove" data-open-dialog="cancel-dialog" data-cancel-scope="item" data-item-id="<%= item._id %>" data-item-name="<%= item.name %>">Cancel item</button>
+                <% } %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      </section>
+    </div>
+
+    <aside class="order-side">
+      <section class="section-box" aria-labelledby="ship-title">
+        <h2 id="ship-title" class="panel-title">Delivery address</h2>
+        <address class="order-address"><strong><%= a.fullName %></strong><br><%= a.line1 %><%= a.line2 ? ', ' + a.line2 : '' %><br><% if (a.landmark) { %>Near <%= a.landmark %><br><% } %><%= a.city %>, <%= a.state %> <%= a.pincode %><br>+91 <%= a.phone %></address>
+      </section>
+      <section class="section-box" aria-labelledby="pay-title">
+        <h2 id="pay-title" class="panel-title">Payment</h2>
+        <p><%= methodLabel %> · <strong><%= paymentLabels[order.paymentStatus] || order.paymentStatus %></strong></p>
+        <dl class="summary-list">
+          <div><dt>M.R.P. total</dt><dd><%= formatPrice(order.mrpTotal) %></dd></div>
+          <div class="summary-savings"><dt>Discount</dt><dd>−<%= formatPrice(order.discount) %></dd></div>
+          <% if (order.couponDiscount) { %><div class="summary-savings"><dt>Coupon <%= order.couponCode %></dt><dd>−<%= formatPrice(order.couponDiscount) %></dd></div><% } %>
+          <div><dt>Delivery fee</dt><dd><%- order.deliveryFee ? formatPrice(order.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
+          <% if (order.walletUsed) { %><div><dt>Paid from wallet</dt><dd>−<%= formatPrice(order.walletUsed) %></dd></div><% } %>
+          <div class="summary-total"><dt><%= order.paymentMethod === 'cod' ? 'To pay on delivery' : 'Total' %></dt><dd><%= formatPrice(order.total) %></dd></div>
+          <% if (order.refundedAmount) { %><div class="summary-savings"><dt>Refunded</dt><dd><%= formatPrice(order.refundedAmount) %></dd></div><% } %>
+        </dl>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<dialog class="modal" id="cancel-dialog" aria-labelledby="cancel-title">
+  <form class="form" data-cancel-form novalidate>
+    <div class="modal-head">
+      <h2 id="cancel-title" data-cancel-title>Cancel this order?</h2>
+      <button type="button" class="icon-btn" data-dialog-close><%- icon('x') %><span class="sr-only">Close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-alert" data-form-alert aria-live="assertive"></div>
+      <p class="muted" data-cancel-text>The items go back on the shelf and you will not be charged.</p>
+      <div class="float-field">
+        <select id="cancel-reason" name="reason">
+          <option value="">Prefer not to say</option>
+          <% cancelReasons.forEach(function (reason) { %><option value="<%= reason %>"><%= reason %></option><% }) %>
+        </select>
+        <label for="cancel-reason">Reason (optional)</label>
+        <%- icon('chevron-down', 'i-sm select-caret') %>
+      </div>
+      <% if (order.paymentStatus === 'paid') { %>
+        <fieldset class="refund-choice">
+          <legend>Refund to</legend>
+          <label class="choice"><input type="radio" name="refundMethod" value="wallet" checked><span>Nexthlon wallet (instant)</span></label>
+          <label class="choice"><input type="radio" name="refundMethod" value="original"><span>Original payment method (5 to 7 working days)</span></label>
+        </fieldset>
+      <% } %>
+      <input type="hidden" name="itemId">
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" data-dialog-close>Keep it</button>
+      <button type="submit" class="btn btn-danger">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<% if (canReturn) { %>
+  <dialog class="modal" id="return-dialog" aria-labelledby="return-title">
+    <form class="form" data-return-form novalidate>
+      <div class="modal-head">
+        <h2 id="return-title">Return this order</h2>
+        <button type="button" class="icon-btn" data-dialog-close><%- icon('x') %><span class="sr-only">Close</span></button>
+      </div>
+      <div class="modal-body form">
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <p class="muted">Pack the items unused and in their original packaging. We will arrange a pickup.</p>
+        <div class="float-field">
+          <select id="return-reason" name="reason" required aria-describedby="return-reason-error">
+            <option value="">Choose a reason</option>
+            <% returnReasons.forEach(function (reason) { %><option value="<%= reason %>"><%= reason %></option><% }) %>
+          </select>
+          <label for="return-reason">Why are you returning it?</label>
+          <%- icon('chevron-down', 'i-sm select-caret') %>
+          <p class="field-error" id="return-reason-error" data-error-for="reason"></p>
+        </div>
+        <div class="float-field">
+          <textarea id="return-note" name="note" maxlength="500" rows="3" placeholder=" "></textarea>
+          <label for="return-note">Anything else? (optional)</label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-dialog-close>Not now</button>
+        <button type="submit" class="btn btn-primary">Request return</button>
+      </div>
+    </form>
+  </dialog>
+<% } %>
+
+<%- include('../partials/footer', { scripts: ['orders'] }) %>

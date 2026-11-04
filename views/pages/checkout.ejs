@@ -1,0 +1,141 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<%
+  const t = quote.totals;
+  const chosen = addresses.find(function (a) { return a.isDefault; }) || addresses[0];
+%>
+<main id="main" class="container page checkout" data-checkout>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <a href="/cart">Cart</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page">Checkout</span>
+  </nav>
+  <div class="checkout-top">
+    <h1>Checkout</h1>
+    <ol class="stepper" aria-label="Checkout steps">
+      <li data-stepper="1" aria-current="step"><span>1</span> Address</li>
+      <li data-stepper="2"><span>2</span> Summary</li>
+      <li data-stepper="3"><span>3</span> Payment</li>
+    </ol>
+  </div>
+  <noscript><div class="alert alert-info"><%- icon('info') %> <span>Please turn on JavaScript to place your order.</span></div></noscript>
+
+  <div class="checkout-layout">
+    <div class="checkout-steps">
+      <section class="step is-open" data-step="1" aria-labelledby="step1-title">
+        <header class="step-head">
+          <span class="step-num" aria-hidden="true">1</span>
+          <div>
+            <h2 id="step1-title">Delivery address</h2>
+            <p class="step-summary" data-step-summary></p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" data-step-edit="1" hidden>Change</button>
+        </header>
+        <div class="step-body">
+          <% if (addresses.length) { %>
+            <fieldset class="address-choices">
+              <legend class="sr-only">Choose where to deliver</legend>
+              <% addresses.forEach(function (a) { %>
+                <label class="address-choice">
+                  <input type="radio" name="addressId" value="<%= a._id %>" data-pincode="<%= a.pincode %>" data-label="<%= a.fullName %>, <%= a.city %> <%= a.pincode %>" <%= chosen && String(chosen._id) === String(a._id) ? 'checked' : '' %>>
+                  <span class="address-choice-body">
+                    <strong><%= a.fullName %></strong><% if (a.isDefault) { %> <span class="pill pill-blue">Default</span><% } %>
+                    <span><%= a.line1 %><%= a.line2 ? ', ' + a.line2 : '' %><%= a.landmark ? ', near ' + a.landmark : '' %></span>
+                    <span><%= a.city %>, <%= a.state %> <%= a.pincode %></span>
+                    <span class="muted"><%- icon('phone', 'i-xs') %> +91 <%= a.phone %></span>
+                  </span>
+                </label>
+              <% }) %>
+            </fieldset>
+          <% } else { %>
+            <div class="state-box"><%- icon('pin', 'i-sm') %> You have no saved addresses yet. Add one to continue.</div>
+          <% } %>
+          <p class="field-error" data-error-for="addressId"></p>
+          <div class="step-actions">
+            <button type="button" class="btn btn-ghost" data-address-add><%- icon('plus', 'i-sm') %> Add a new address</button>
+            <button type="button" class="btn btn-primary" data-step-next="1" <%= addresses.length ? '' : 'disabled' %>>Deliver here <%- icon('arrow-right', 'i-sm') %></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="step" data-step="2" aria-labelledby="step2-title">
+        <header class="step-head">
+          <span class="step-num" aria-hidden="true">2</span>
+          <div>
+            <h2 id="step2-title">Order summary</h2>
+            <p class="step-summary" data-step-summary></p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" data-step-edit="2" hidden>Change</button>
+        </header>
+        <div class="step-body" hidden>
+          <% if (quote.problems.length) { %>
+            <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Some items are no longer available: <%= quote.problems.join('; ') %>. <a href="/cart">Update your cart</a> to continue.</span></div>
+          <% } %>
+          <ul class="checkout-items">
+            <% quote.lines.forEach(function (item) { %>
+              <li>
+                <img src="<%= item.image %>" alt="" width="64" height="64" loading="lazy">
+                <div>
+                  <strong><%= item.name %></strong>
+                  <span class="muted">Qty <%= item.quantity %> · <%= formatPrice(item.price) %> each</span>
+                </div>
+                <strong><%= formatPrice(item.lineTotal) %></strong>
+              </li>
+            <% }) %>
+          </ul>
+          <p class="delivery-result" data-checkout-delivery aria-live="polite"></p>
+          <div class="step-actions">
+            <a class="btn btn-ghost" href="/cart">Edit cart</a>
+            <button type="button" class="btn btn-primary" data-step-next="2" <%= quote.problems.length ? 'disabled' : '' %>>Continue to payment <%- icon('arrow-right', 'i-sm') %></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="step" data-step="3" aria-labelledby="step3-title">
+        <header class="step-head">
+          <span class="step-num" aria-hidden="true">3</span>
+          <div><h2 id="step3-title">Payment method</h2></div>
+        </header>
+        <div class="step-body" hidden>
+          <form class="form" data-place-order novalidate>
+            <div class="form-alert" data-form-alert aria-live="assertive"></div>
+            <fieldset class="pay-options">
+              <legend class="sr-only">Choose how to pay</legend>
+              <label class="pay-option">
+                <input type="radio" name="paymentMethod" value="cod" <%= quote.codAllowed ? 'checked' : 'disabled' %>>
+                <span class="pay-option-body">
+                  <strong><%- icon('wallet', 'i-sm') %> Cash on Delivery</strong>
+                  <span class="muted"><%= quote.codAllowed ? 'Pay in cash or UPI when your order arrives.' : 'Available for orders up to ' + formatPrice(quote.codLimit) + '.' %></span>
+                </span>
+              </label>
+              <label class="pay-option is-soon">
+                <input type="radio" name="paymentMethod" value="razorpay" disabled>
+                <span class="pay-option-body">
+                  <strong><%- icon('credit-card', 'i-sm') %> UPI, cards and net banking</strong>
+                  <span class="muted">Secure online payment. Coming soon.</span>
+                </span>
+              </label>
+            </fieldset>
+            <p class="field-error" data-error-for="paymentMethod"></p>
+            <button class="btn btn-primary btn-lg btn-block" type="submit" <%= quote.codAllowed && !quote.problems.length ? '' : 'disabled' %>><%- icon('lock', 'i-sm') %> Place order · <%= formatPrice(t.total) %></button>
+            <p class="hint"><%- icon('shield', 'i-xs') %> By placing your order you agree to our <a href="/terms">terms</a> and <a href="/refund-policy">refund policy</a>.</p>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <aside class="cart-summary panel checkout-summary" aria-labelledby="price-title">
+      <h2 id="price-title" class="panel-title">Price details</h2>
+      <dl class="summary-list">
+        <div><dt>M.R.P. total (<%= t.itemCount %> <%= t.itemCount === 1 ? 'item' : 'items' %>)</dt><dd><%= formatPrice(t.mrpTotal) %></dd></div>
+        <div class="summary-savings"><dt>Discount on M.R.P.</dt><dd>−<%= formatPrice(t.discount) %></dd></div>
+        <div><dt>Delivery fee</dt><dd><%- t.deliveryFee ? formatPrice(t.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
+        <div class="summary-total"><dt>Amount to pay</dt><dd><%= formatPrice(t.total) %></dd></div>
+      </dl>
+      <% if (t.discount > 0) { %><p class="saving summary-saving-note">You save <%= formatPrice(t.discount) %> on this order.</p><% } %>
+      <p class="hint"><%- icon('shield', 'i-xs') %> Prices are checked again when you place the order.</p>
+    </aside>
+  </div>
+</main>
+
+<%- include('../partials/address-dialog') %>
+<%- include('../partials/footer', { scripts: ['profile', 'checkout'] }) %>

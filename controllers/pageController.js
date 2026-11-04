@@ -6,8 +6,12 @@ const cartService = require("../services/cartService");
 const homeService = require("../services/homeService");
 const reviewService = require("../services/reviewService");
 const wishlistService = require("../services/wishlistService");
+const checkoutService = require("../services/checkoutService");
+const orderService = require("../services/orderService");
+const invoiceService = require("../services/invoiceService");
+const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
-const { CONTACT_TOPICS } = require("../config/store");
+const { CONTACT_TOPICS, STORE } = require("../config/store");
 const { INDIAN_STATES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
@@ -129,7 +133,52 @@ const profile = asyncHandler(async (req, res) => {
 
 const cart = asyncHandler(async (req, res) => {
   const data = await cartService.getCart(req.user._id);
-  res.render("pages/cart", { title: "Your cart | Nexthlon", ...data });
+  res.render("pages/cart", { title: "Your cart | Nexthlon", checkoutOpen: true, ...data });
+});
+
+// ---------- Checkout and orders ----------
+
+const checkout = asyncHandler(async (req, res) => {
+  const [quote, addresses] = await Promise.all([
+    checkoutService.buildQuote(req.user._id),
+    profileService.listAddresses(req.user._id)
+  ]);
+  // Nothing to buy: back to the cart, which explains why.
+  if (!quote.lines.length) return res.redirect("/cart");
+  return res.render("pages/checkout", { title: "Checkout | Nexthlon", quote, addresses, states: INDIAN_STATES });
+});
+
+const orders = asyncHandler(async (req, res) => {
+  const data = await orderService.listOrders(req.user._id, req.query);
+  const { status, period, q } = data.filters;
+  const link = linkBuilder("/orders", { status: status === "all" ? "" : status, period: period === "all" ? "" : period, q });
+  res.render("pages/orders", { title: "Your orders | Nexthlon", link, labels: orderRules.STATUS_LABELS, ...data });
+});
+
+const orderDetail = asyncHandler(async (req, res) => {
+  const order = await orderService.getOwnedOrder(req.user._id, req.params.orderId);
+  res.render("pages/order", {
+    title: `Order ${order.orderId} | Nexthlon`,
+    order,
+    timeline: orderService.timelineFor(order),
+    labels: orderRules.STATUS_LABELS,
+    canCancel: order.items.some(orderRules.canCancelItem),
+    canReturn: orderRules.canRequestReturn(order, STORE.returnDays),
+    cancelReasons: orderRules.CANCEL_REASONS,
+    returnReasons: orderRules.RETURN_REASONS
+  });
+});
+
+const orderSuccess = asyncHandler(async (req, res) => {
+  const order = await orderService.getOwnedOrder(req.user._id, req.params.orderId);
+  res.render("pages/order-success", { title: "Order placed | Nexthlon", order });
+});
+
+const orderInvoice = asyncHandler(async (req, res) => {
+  const order = await orderService.getOwnedOrder(req.user._id, req.params.orderId);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${invoiceService.invoiceNumber(order)}.pdf"`);
+  invoiceService.writeInvoice(order, res);
 });
 
 // ---------- Admin pages ----------
@@ -192,6 +241,11 @@ module.exports = {
   signup,
   profile,
   cart,
+  checkout,
+  orders,
+  orderDetail,
+  orderSuccess,
+  orderInvoice,
   adminLogin,
   adminDashboard,
   adminUsers,

@@ -1,0 +1,76 @@
+<%# The add/edit address form, shared by the profile page and checkout. Needs "states". public/js/profile.js runs it. %>
+<dialog class="sheet-dialog" id="address-dialog" aria-labelledby="address-dialog-title">
+  <form class="form sheet-form" data-address-form novalidate>
+    <div class="dialog-head">
+      <span class="panel-icon"><%- icon('pin') %></span>
+      <div>
+        <h2 id="address-dialog-title">Add a new address</h2>
+        <p class="muted">Fields marked optional can be left empty.</p>
+      </div>
+      <button type="button" class="icon-btn" data-dialog-close aria-label="Close"><%- icon('x') %></button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-alert" data-form-alert aria-live="assertive"></div>
+      <input type="hidden" name="id">
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="a-fullName">Full name</label>
+          <input id="a-fullName" name="fullName" autocomplete="name" required maxlength="60" aria-describedby="a-fullName-error">
+          <p class="field-error" id="a-fullName-error" data-error-for="fullName"></p>
+        </div>
+        <div class="field">
+          <label for="a-phone">Mobile number</label>
+          <div class="input-prefix">
+            <span>+91</span>
+            <input id="a-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" required maxlength="10" placeholder="10-digit number" aria-describedby="a-phone-error">
+          </div>
+          <p class="field-error" id="a-phone-error" data-error-for="phone"></p>
+        </div>
+        <div class="field field-wide">
+          <label for="a-line1">Flat, house no., building, street</label>
+          <input id="a-line1" name="line1" autocomplete="address-line1" required maxlength="120" aria-describedby="a-line1-error">
+          <p class="field-error" id="a-line1-error" data-error-for="line1"></p>
+        </div>
+        <div class="field field-wide">
+          <label for="a-line2">Area, colony, village <span class="optional">(optional)</span></label>
+          <input id="a-line2" name="line2" autocomplete="address-line2" maxlength="120" aria-describedby="a-line2-error">
+          <p class="field-error" id="a-line2-error" data-error-for="line2"></p>
+        </div>
+        <div class="field">
+          <label for="a-landmark">Landmark <span class="optional">(optional)</span></label>
+          <input id="a-landmark" name="landmark" maxlength="80" placeholder="e.g. near Apollo hospital" aria-describedby="a-landmark-error">
+          <p class="field-error" id="a-landmark-error" data-error-for="landmark"></p>
+        </div>
+        <div class="field">
+          <label for="a-pincode">PIN code</label>
+          <input id="a-pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" required maxlength="6" placeholder="6 digits" aria-describedby="a-pincode-error">
+          <p class="field-error" id="a-pincode-error" data-error-for="pincode"></p>
+        </div>
+        <div class="field">
+          <label for="a-city">Town or city</label>
+          <input id="a-city" name="city" autocomplete="address-level2" required maxlength="50" aria-describedby="a-city-error">
+          <p class="field-error" id="a-city-error" data-error-for="city"></p>
+        </div>
+        <div class="field">
+          <label for="a-state">State</label>
+          <div class="select-wrap select-field">
+            <select id="a-state" name="state" autocomplete="address-level1" required aria-describedby="a-state-error">
+              <option value="">Choose a state</option>
+              <% states.forEach(function (state) { %><option value="<%= state %>"><%= state %></option><% }) %>
+            </select>
+            <%- icon('chevron-down', 'i-xs') %>
+          </div>
+          <p class="field-error" id="a-state-error" data-error-for="state"></p>
+        </div>
+        <label class="choice choice-card field-wide">
+          <input type="checkbox" name="isDefault" value="true">
+          <span><strong>Make this my default address</strong><small>We'll use it first at checkout.</small></span>
+        </label>
+      </div>
+    </div>
+    <div class="dialog-actions sheet-foot">
+      <button type="button" class="btn btn-ghost" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Save address</button>
+    </div>
+  </form>
+</dialog>
