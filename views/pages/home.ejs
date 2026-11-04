@@ -10,13 +10,6 @@
   const shopper = !currentUser || currentUser.role === 'customer';
 %>
 <%
-  // Products for the 3D ring: best sellers first, then new arrivals, no repeats, up to 10.
-  const seen = {};
-  const galaxy = bestSellers.concat(newest, deals).filter(function (p) {
-    if (seen[p._id]) return false;
-    seen[p._id] = true;
-    return true;
-  }).slice(0, 10);
   const star = deals[0] || bestSellers[0] || newest[0];
   const productCount = categories.reduce(function (sum, c) { return sum + c.count; }, 0);
   const headline = ['Built', 'for', 'every', 'athlete'];
@@ -30,7 +23,7 @@
       <div class="hero3d-fallback" aria-hidden="true">
         <span class="hf-orb"></span>
         <span class="hf-ring hf-ring-1"></span><span class="hf-ring hf-ring-2"></span><span class="hf-ring hf-ring-3"></span>
-        <% galaxy.slice(0, 3).forEach(function (p, i) { %>
+        <% featured.slice(0, 3).forEach(function (p, i) { %>
           <img class="hf-card hf-card-<%= i + 1 %>" src="<%= p.image %>" alt="" width="160" height="160" <%- i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %> decoding="async">
         <% }) %>
       </div>
@@ -73,28 +66,86 @@
     </a>
   </section>
 
-  <%# ---------- 2. Product galaxy: a ring of product cards in 3D. Drag, swipe or use the arrow keys. ---------- %>
-  <% if (galaxy.length >= 3) { %>
-    <section class="section galaxy" aria-labelledby="galaxy-title" data-galaxy>
-      <div class="container section-head" data-reveal>
-        <div>
-          <span class="section-kicker">Featured gear</span>
-          <h2 id="galaxy-title">The Nexthlon galaxy</h2>
-          <p class="muted galaxy-hint">Drag or swipe to spin. Pick anything to take a closer look.</p>
+  <%# ---------- 2. The zero-gravity showroom ----------
+       Without JavaScript: a plain grid of product cards. showroom3d.js turns it into a pinned 3D room
+       the camera flies through (wide screens), a floating swipe row (phones) or a still grid (reduced
+       motion). The detail card is filled from the card's own markup. %>
+  <% if (featured.length >= 3) { %>
+    <% const shopperKind = !currentUser ? 'guest' : (currentUser.role === 'customer' ? 'customer' : 'staff'); %>
+    <section class="showroom" aria-labelledby="showroom-title" data-showroom data-shopper="<%= shopperKind %>">
+      <div class="showroom-pin">
+        <canvas class="showroom-dust" data-showroom-dust aria-hidden="true"></canvas>
+        <span class="showroom-light" aria-hidden="true"></span>
+        <div class="container section-head showroom-head">
+          <div>
+            <span class="section-kicker">Featured gear</span>
+            <h2 id="showroom-title">The zero-gravity showroom</h2>
+            <p class="showroom-hint">Move your mouse to look around. Scroll to fly through.</p>
+          </div>
+          <a class="section-link" href="/products">See all gear <%- icon('arrow-right', 'i-sm') %></a>
         </div>
-        <a class="section-link" href="/products">See all gear <%- icon('chevron-right', 'i-sm') %></a>
-      </div>
-      <div class="galaxy-stage" data-galaxy-stage tabindex="0" role="region" aria-label="Featured products. Use the left and right arrow keys to spin.">
-        <div class="galaxy-ring" data-galaxy-ring style="--count: <%= galaxy.length %>">
-          <% galaxy.forEach(function (p, i) { %>
-            <a class="galaxy-card" href="/products/<%= p.slug %>" style="--i: <%= i %>" data-galaxy-card>
-              <span class="galaxy-media"><img src="<%= p.image %>" alt="" width="240" height="240" loading="lazy" decoding="async"></span>
-              <span class="galaxy-name"><%= p.name %></span>
-              <span class="galaxy-price"><%= formatPrice(p.price) %><% if (p.discountPercent > 0) { %> <em><%= p.discountPercent %>% off</em><% } %></span>
-            </a>
-          <% }) %>
+
+        <div class="showroom-stage" data-showroom-stage>
+          <div class="showroom-world" data-showroom-world>
+            <% featured.forEach(function (p, i) { %>
+              <article class="zg-card" data-zg-card data-id="<%= p.id %>" data-stock="<%= p.stock %>" data-rating="<%= p.rating %>" data-reviews="<%= p.ratingCount %>">
+                <div class="zg-float">
+                  <div class="zg-glass">
+                    <span class="zg-media"><img src="<%= p.image %>" alt="<%= p.name %>" width="320" height="320" loading="lazy" decoding="async"></span>
+                    <div class="zg-body">
+                      <% if (p.brand) { %><span class="zg-brand"><%= p.brand %></span><% } %>
+                      <a class="zg-link" href="/products/<%= p.slug %>" data-zg-link><span class="zg-name"><%= p.name %></span></a>
+                      <p class="zg-price">
+                        <strong data-zg-price><%= formatPrice(p.price) %></strong>
+                        <% if (p.mrp > p.price) { %><s data-zg-mrp><span class="sr-only">M.R.P. </span><%= formatPrice(p.mrp) %></s><% } %>
+                        <% if (p.discountPercent > 0) { %><em data-zg-off><%= p.discountPercent %>% off</em><% } %>
+                      </p>
+                      <% if (p.highlights.length) { %>
+                        <ul class="zg-highlights" data-zg-highlights hidden>
+                          <% p.highlights.forEach(function (h) { %><li><%= h %></li><% }) %>
+                        </ul>
+                      <% } %>
+                    </div>
+                    <% if (shopperKind !== 'staff') { %>
+                      <div class="zg-actions">
+                        <button type="button" class="zg-chip" data-zg-quick tabindex="-1">Quick view</button>
+                        <button type="button" class="zg-chip zg-chip-volt" data-zg-add tabindex="-1" <%= p.stock > 0 ? '' : 'disabled' %>><%= p.stock > 0 ? 'Add to cart' : 'Sold out' %></button>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+              </article>
+            <% }) %>
+          </div>
         </div>
-        <span class="galaxy-floor" aria-hidden="true"></span>
+
+        <%# The 3D detail card: it unfolds like a book over the room. %>
+        <div class="zg-detail" data-zg-detail role="dialog" aria-modal="true" aria-labelledby="zg-detail-name" hidden>
+          <div class="zg-book" data-zg-book>
+            <div class="zg-page zg-page-photo" data-zg-photo-page>
+              <img src="" alt="" width="520" height="520" data-zg-d-img>
+            </div>
+            <div class="zg-page zg-page-info" data-zg-info-page>
+              <button type="button" class="zg-close" data-zg-close aria-label="Close and fly back"><%- icon('x') %></button>
+              <span class="zg-d-brand" data-zg-d-brand></span>
+              <h3 class="zg-d-name" id="zg-detail-name" data-zg-d-name></h3>
+              <p class="zg-d-rating" data-zg-d-rating></p>
+              <p class="zg-d-price"><strong data-zg-d-price></strong> <s data-zg-d-mrp></s> <em data-zg-d-off></em></p>
+              <ul class="zg-d-highlights" data-zg-d-highlights></ul>
+              <% if (shopperKind !== 'staff') { %>
+                <div class="zg-d-buy">
+                  <div class="zg-qty" role="group" aria-label="Quantity">
+                    <button type="button" data-zg-step="-1" aria-label="One less"><%- icon('minus', 'i-sm') %></button>
+                    <input type="number" inputmode="numeric" min="1" max="5" value="1" aria-label="Quantity" data-zg-qty>
+                    <button type="button" data-zg-step="1" aria-label="One more"><%- icon('plus', 'i-sm') %></button>
+                  </div>
+                  <button type="button" class="btn btn-primary" data-zg-d-add><%- icon('cart', 'i-sm') %> Add to cart</button>
+                </div>
+              <% } %>
+              <a class="btn btn-ghost btn-block" href="/products" data-zg-d-view>View details <%- icon('arrow-right', 'i-sm') %></a>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   <% } %>
@@ -376,4 +427,4 @@
   <% } %>
 </main>
 
-<%- include('../partials/footer', { scripts: ['home'], modules: ['home3d'] }) %>
+<%- include('../partials/footer', { scripts: ['home'], modules: ['home3d', 'showroom3d'] }) %>

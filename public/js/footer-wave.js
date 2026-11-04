@@ -13,7 +13,6 @@
   let width = 0;
   let height = 0;
   let running = false;
-  let frame = 0;
   let onScreen = false;
 
   function size() {
@@ -48,20 +47,16 @@
     ctx.globalAlpha = 1;
   }
 
-  function loop(now) {
-    if (!running) return;
-    draw(now / 1000);
-    frame = requestAnimationFrame(loop);
-  }
-
+  // Frames come from the shared ticker (public/js/motion/ticker.js), which also pauses in hidden tabs.
+  let stop = null;
   function sync() {
-    const go = onScreen && !document.hidden && !reduced;
+    const go = onScreen && !reduced && Boolean(window.NxTicker);
     if (go && !running) {
       running = true;
-      frame = requestAnimationFrame(loop);
+      stop = window.NxTicker.add(time => draw(time));
     } else if (!go && running) {
       running = false;
-      cancelAnimationFrame(frame);
+      stop();
     }
   }
 

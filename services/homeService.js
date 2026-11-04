@@ -99,10 +99,45 @@ async function findGearImages(sports, categories) {
   return Object.fromEntries(pairs.filter(Boolean));
 }
 
+// ---------- "The zero-gravity showroom": up to 12 featured products ----------
+// Best sellers first, then new arrivals, then deals, with no repeats. Only what the cards and the
+// detail card show is passed to the page (money stays in paise).
+const SHOWROOM_SIZE = 12;
+function buildFeatured({ bestSellers = [], newest = [], deals = [] } = {}, size = SHOWROOM_SIZE) {
+  const seen = new Set();
+  return [...bestSellers, ...newest, ...deals]
+    .filter(product => {
+      const id = String(product._id);
+      if (seen.has(id) || !product.image) return false;
+      seen.add(id);
+      return true;
+    })
+    .slice(0, size)
+    .map(product => ({
+      id: String(product._id),
+      slug: product.slug,
+      name: product.name,
+      brand: product.brand || "",
+      image: product.image,
+      price: product.price,
+      mrp: product.mrp,
+      discountPercent: product.discountPercent || 0,
+      rating: Math.round((product.ratingAverage || 0) * 10) / 10,
+      ratingCount: product.ratingCount || 0,
+      stock: product.stock || 0,
+      highlights: (product.highlights || []).slice(0, 3)
+    }));
+}
+
 async function getHomePage(now = new Date()) {
   const sections = await productService.getHomeSections();
   const gearImages = await findGearImages(buildSportRing(sections.categories), sections.categories);
-  return { ...sections, sports: buildSportRing(sections.categories, gearImages), dealEndsAt: dealEndsAt(now) };
+  return {
+    ...sections,
+    sports: buildSportRing(sections.categories, gearImages),
+    featured: buildFeatured(sections),
+    dealEndsAt: dealEndsAt(now)
+  };
 }
 
-module.exports = { dealEndsAt, buildSportRing, portraitImage, getHomePage };
+module.exports = { dealEndsAt, buildSportRing, portraitImage, buildFeatured, getHomePage };

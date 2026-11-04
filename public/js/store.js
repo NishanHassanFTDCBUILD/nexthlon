@@ -37,6 +37,37 @@
     return Array.isArray(data.products) ? data.products : [];
   };
 
+  // ---------- Fly to cart ----------
+  // A small copy of the product photo flies to the header cart icon. Only transform and opacity move.
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  Nx.flyToCart = function flyToCart(sourceImg) {
+    const target = document.querySelector("[data-cart-link] .cart-icon");
+    if (!sourceImg || !target || reducedMotion.matches || typeof sourceImg.animate !== "function") return Promise.resolve();
+    const from = sourceImg.getBoundingClientRect();
+    const to = target.getBoundingClientRect();
+    if (!from.width || !to.width) return Promise.resolve();
+
+    const size = Math.min(120, from.width * 0.4);
+    const ghost = document.createElement("img");
+    ghost.src = sourceImg.currentSrc || sourceImg.src;
+    ghost.alt = "";
+    ghost.className = "fly-ghost";
+    ghost.style.width = `${size}px`;
+    ghost.style.height = `${size}px`;
+    ghost.style.left = `${from.left + from.width / 2 - size / 2}px`;
+    ghost.style.top = `${from.top + from.height / 2 - size / 2}px`;
+    document.body.append(ghost);
+
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+    const animation = ghost.animate([
+      { transform: "translate(0, 0) scale(1)", opacity: 1 },
+      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 60}px) scale(0.6)`, opacity: 0.9, offset: 0.55 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.12)`, opacity: 0.2 }
+    ], { duration: 750, easing: "cubic-bezier(0.5, 0, 0.2, 1)" });
+    return animation.finished.catch(() => {}).then(() => ghost.remove());
+  }
+
   // ---------- Product cards drawn in the browser (same markup as partials/product-card.ejs) ----------
   const iconSvg = (name, extra = "") =>
     `<svg class="i ${extra}" aria-hidden="true" focusable="false"><use href="/img/icons.svg#${name}"></use></svg>`;

@@ -253,14 +253,18 @@ export class Scene {
   }
 
   // Runs only when wanted, visible and on screen.
+  // Frames come from the site's shared ticker (public/js/motion/ticker.js) when it is loaded.
   sync() {
     const go = this.wanted && !document.hidden && this.onScreen;
     if (go && !this.running) {
       this.running = true;
       this.last = performance.now();
-      this.frame = requestAnimationFrame(this.loop);
+      if (window.NxTicker) this.unsubscribe = window.NxTicker.add((time, dt) => this.step(dt));
+      else this.frame = requestAnimationFrame(this.loop);
     } else if (!go && this.running) {
       this.running = false;
+      if (this.unsubscribe) this.unsubscribe();
+      this.unsubscribe = null;
       cancelAnimationFrame(this.frame);
     }
   }
@@ -277,13 +281,18 @@ export class Scene {
     this.meshes.forEach(mesh => mesh.draw(this.camera, this.uniforms));
   }
 
+  step(dt) {
+    this.elapsed += dt;
+    this.updaters.forEach(fn => fn(this.elapsed, dt));
+    this.render(this.elapsed);
+  }
+
+  // Fallback loop, used only when the shared ticker is not on the page.
   loop(now) {
     if (!this.running) return;
     const dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now;
-    this.elapsed += dt;
-    this.updaters.forEach(fn => fn(this.elapsed, dt));
-    this.render(this.elapsed);
+    this.step(dt);
     this.frame = requestAnimationFrame(this.loop);
   }
 

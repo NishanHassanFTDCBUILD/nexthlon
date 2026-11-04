@@ -2,14 +2,14 @@
 //   1. Hero: thousands of glowing particles form a sphere, then the NEXTHLON logo, then a running
 //      athlete as you scroll, over an animated obsidian and volt fog. The mouse moves the camera.
 //      This is the page's only WebGL canvas.
-//   2. Product galaxy: product cards on a CSS 3D ring. Drag, swipe or arrow keys spin it.
+//   2. The zero-gravity showroom lives in its own module, showroom3d.js.
 //   3. Pick your sport: six sport cards on a CSS 3D ring, turned by scroll, drag, tabs, keys and a timer.
 //   4. Showcase: a product on a turning podium, lit by the mouse.
 // Everything is decoration over real links and text: without JavaScript, WebGL or motion, the
 // page shows the same content as flat sections.
 import { Scene, Mesh, geometry } from "./3d/scene.js";
 import { boot } from "./3d/boot.js";
-import { createParallax, createDragRotate, scrollProgress, prefersReducedMotion, finePointer, deviceTier } from "./3d/interaction.js";
+import { createParallax, scrollProgress, prefersReducedMotion, finePointer, deviceTier } from "./3d/interaction.js";
 import { clamp, damp } from "./3d/math.js";
 import { sampleShape, spherePoints, drawLogo, drawAthlete, fogShader, dotFragment } from "./3d/shapes.js";
 
@@ -120,88 +120,6 @@ const hero = document.querySelector("[data-hero3d]");
 if (hero) {
   if (reduced) hero.classList.add("is-reduced");
   boot(hero, hero.querySelector("[data-hero3d-canvas]"), buildHero);
-}
-
-// ---------- A small rAF loop that runs only while its element is on screen ----------
-function whileVisible(element, frame) {
-  let running = false;
-  let id = 0;
-  let last = 0;
-  const loop = now => {
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    frame(dt);
-    id = requestAnimationFrame(loop);
-  };
-  const watcher = new IntersectionObserver(entries => {
-    const visible = entries.some(entry => entry.isIntersecting);
-    if (visible && !running) {
-      running = true;
-      last = performance.now();
-      id = requestAnimationFrame(loop);
-    } else if (!visible && running) {
-      running = false;
-      cancelAnimationFrame(id);
-    }
-  }, { rootMargin: "100px" });
-  watcher.observe(element);
-}
-
-// ---------- 2. Product galaxy ----------
-const galaxy = document.querySelector("[data-galaxy]");
-if (galaxy && !reduced && "IntersectionObserver" in window) {
-  const stage = galaxy.querySelector("[data-galaxy-stage]");
-  const ring = galaxy.querySelector("[data-galaxy-ring]");
-  const cards = [...ring.querySelectorAll("[data-galaxy-card]")];
-  const count = cards.length;
-  const step = (Math.PI * 2) / count;
-  let radius = 0;
-  const measure = () => {
-    const width = cards[0].offsetWidth || 200;
-    radius = Math.round(((width / 2) / Math.tan(Math.PI / count)) * 1.18);
-    ring.style.setProperty("--ring-radius", `${radius}px`);
-  };
-  galaxy.classList.add("is-3d");
-  measure();
-  window.addEventListener("resize", measure);
-
-  const drag = createDragRotate(stage, { speed: 0.008 });
-  let hovering = false;
-  let focusTarget = null;
-  stage.addEventListener("pointerenter", () => { hovering = true; });
-  stage.addEventListener("pointerleave", () => { hovering = false; });
-  // Tabbing to a card turns the ring to bring it to the front.
-  cards.forEach((card, i) => {
-    card.addEventListener("focus", () => {
-      const turns = Math.round((drag.state.angle + i * step) / (Math.PI * 2));
-      focusTarget = turns * Math.PI * 2 - i * step;
-    });
-    // Picking a card flies in towards it, then opens the product.
-    card.addEventListener("click", event => {
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey) return;
-      event.preventDefault();
-      card.classList.add("is-flying");
-      galaxy.classList.add("is-zooming");
-      setTimeout(() => window.location.assign(card.href), 420);
-    });
-  });
-
-  whileVisible(stage, dt => {
-    const state = drag.update(dt);
-    if (focusTarget !== null) {
-      state.angle = damp(state.angle, focusTarget, 8, dt);
-      if (Math.abs(state.angle - focusTarget) < 0.002) focusTarget = null;
-    } else if (!hovering && !state.dragging && Math.abs(state.velocity) < 0.05) {
-      state.angle += dt * 0.16;
-    }
-    ring.style.transform = `translateZ(${-radius}px) rotateY(${state.angle}rad)`;
-    cards.forEach((card, i) => {
-      const facing = Math.cos(i * step + state.angle);
-      card.style.opacity = (0.18 + 0.82 * ((facing + 1) / 2) ** 1.6).toFixed(3);
-      card.style.pointerEvents = facing > 0.35 ? "auto" : "none";
-      card.style.zIndex = String(Math.round((facing + 1) * 50));
-    });
-  });
 }
 
 // ---------- 3. Pick your sport: the 3D sport carousel ring ----------

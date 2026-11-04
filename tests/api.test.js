@@ -556,6 +556,14 @@ test("home page: 3D hero, trust badges, flip deals and countdown, sport ring, ra
   assert.match(res.data, /class="sport-card-meta">\d+ items? · from ₹/);
   assert.match(res.data, /data-ring-tabs hidden/);
   assert.doesNotMatch(res.data, /data-journey/);
+  // The zero-gravity showroom replaced the old product ring; it starts as a grid of real product links.
+  assert.match(res.data, /data-showroom data-shopper="guest"/);
+  assert.match(res.data, /The zero-gravity showroom/);
+  assert.match(res.data, /class="zg-link" href="\/products\/[a-z0-9-]+" data-zg-link/);
+  assert.match(res.data, /type="module" src="\/js\/showroom3d\.js"/);
+  // The shared animation loop loads before every other script.
+  assert.match(res.data, /<script src="\/js\/motion\/ticker\.js" defer><\/script>\s*<script src="\/js\/app\.js"/);
+  assert.doesNotMatch(res.data, /galaxy/i);
   assert.match(res.data, /Free delivery/);
   assert.match(res.data, /Deals of the day/);
   assert.match(res.data, /data-countdown data-left="\d+"/);

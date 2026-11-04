@@ -2,7 +2,7 @@
 require("./helpers");
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { dealEndsAt, buildSportRing, portraitImage } = require("../services/homeService");
+const { dealEndsAt, buildSportRing, portraitImage, buildFeatured } = require("../services/homeService");
 const { validateContact, validateNewsletter, readIdList, hasErrors } = require("../utils/validators");
 const { CONTACT_TOPICS } = require("../config/store");
 
@@ -103,4 +103,21 @@ test("newsletter: only a valid email is accepted, in lower case", () => {
   assert.deepEqual(validateNewsletter({ email: " Ravi@Example.IN " }), { errors: {}, value: { email: "ravi@example.in" } });
   assert.equal(validateNewsletter({ email: "ravi@" }).errors.email, "Enter a valid email address.");
   assert.equal(validateNewsletter({ email: { $ne: "" } }).errors.email, "Enter a valid email address.");
+});
+
+test("showroom: up to 12 featured products, best sellers first, no repeats, only card fields", () => {
+  const make = (id, extra = {}) => ({ _id: id, slug: `p-${id}`, name: `Product ${id}`, image: `/i/${id}.jpg`, price: 100000, mrp: 150000, discountPercent: 33, ratingAverage: 4.26, ratingCount: 3, stock: 4, highlights: ["a", "b", "c", "d"], passwordHash: "never", ...extra });
+  const bestSellers = [make("a1"), make("a2")];
+  const newest = [make("a2"), make("a3"), make("x0", { image: "" })];
+  const deals = Array.from({ length: 15 }, (_, i) => make(`d${i}`));
+  const featured = buildFeatured({ bestSellers, newest, deals });
+  assert.equal(featured.length, 12);
+  assert.deepEqual(featured.slice(0, 4).map(p => p.id), ["a1", "a2", "a3", "d0"]);
+  // Products without a photo are skipped; only what the cards show is kept.
+  assert.ok(!featured.some(p => p.id === "x0"));
+  assert.deepEqual(Object.keys(featured[0]).sort(), ["brand", "discountPercent", "highlights", "id", "image", "mrp", "name", "price", "rating", "ratingCount", "slug", "stock"]);
+  assert.equal(featured[0].rating, 4.3);
+  assert.deepEqual(featured[0].highlights, ["a", "b", "c"]);
+  assert.deepEqual(buildFeatured({}), []);
+  assert.equal(buildFeatured({ deals }, 8).length, 8);
 });
