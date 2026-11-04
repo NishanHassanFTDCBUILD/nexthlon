@@ -2,8 +2,15 @@ const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const { HttpError } = require("../utils/http");
+const { STORE } = require("../config/store");
 
 const MAX_PER_PRODUCT = 5;
+
+// Delivery is free from ₹499 (STORE.freeDeliveryMin); below that a flat fee applies. Paise.
+function deliveryFeeFor(subtotal) {
+  if (subtotal <= 0) return 0;
+  return subtotal >= STORE.freeDeliveryMin ? 0 : STORE.deliveryFee;
+}
 
 // Hidden products, and products in hidden categories, count as no longer sold.
 function isSold(product) {
@@ -34,7 +41,10 @@ function quantityProblem(product, quantity) {
 // but are left out of every total.
 function buildCartView(lines = []) {
   const items = [];
-  const summary = { count: 0, itemCount: 0, mrpTotal: 0, subtotal: 0, savings: 0, grandTotal: 0, unavailableCount: 0 };
+  const summary = {
+    count: 0, itemCount: 0, mrpTotal: 0, subtotal: 0, savings: 0,
+    deliveryFee: 0, freeDeliveryGap: 0, grandTotal: 0, unavailableCount: 0
+  };
 
   for (const line of lines) {
     const product = line.product;
@@ -70,7 +80,10 @@ function buildCartView(lines = []) {
   }
   // Everything is in whole paise, so the sums are exact.
   summary.savings = summary.mrpTotal - summary.subtotal;
-  summary.grandTotal = summary.subtotal;
+  summary.deliveryFee = deliveryFeeFor(summary.subtotal);
+  // How much more to spend for free delivery (0 when it is already free).
+  summary.freeDeliveryGap = summary.deliveryFee ? STORE.freeDeliveryMin - summary.subtotal : 0;
+  summary.grandTotal = summary.subtotal + summary.deliveryFee;
   return { items, summary };
 }
 
@@ -173,6 +186,8 @@ async function clearCart(userId) {
 
 module.exports = {
   MAX_PER_PRODUCT,
+  deliveryFeeFor,
+  isSold,
   isAvailable,
   limitFor,
   quantityProblem,

@@ -62,6 +62,7 @@ app.use("/api", require("./routes/productRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
 app.use("/api/addresses", require("./routes/addressRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
+app.use("/api/wishlist", require("./routes/wishlistRoutes"));
 app.use("/api", require("./routes/contactRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 

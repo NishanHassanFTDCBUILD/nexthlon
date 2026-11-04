@@ -9,45 +9,48 @@
   <div class="page-head">
     <div>
       <h1>Your wishlist</h1>
-      <p class="muted" data-wishlist-summary aria-live="polite">Saved on this device.</p>
+      <p class="muted" data-wishlist-summary aria-live="polite"><%= count %> saved <%= count === 1 ? 'item' : 'items' %></p>
     </div>
-    <button type="button" class="btn btn-ghost btn-sm" data-wishlist-clear hidden><%- icon('trash', 'i-sm') %> Clear wishlist</button>
+    <a class="btn btn-ghost btn-sm" href="/cart"><%- icon('cart', 'i-sm') %> Go to cart</a>
   </div>
 
-  <% if (currentUser && currentUser.role === 'admin') { %>
-    <div class="empty-state">
+  <div data-wishlist-page>
+    <ul class="wish-list" data-wishlist-grid <%= items.length ? '' : 'hidden' %>>
+      <% items.forEach(function (item) { %>
+        <li class="wish-item <%= item.available ? '' : 'is-unavailable' %>" data-wish-item="<%= item.productId %>" data-name="<%= item.name %>">
+          <a class="wish-media" href="/products/<%= item.slug %>" tabindex="-1" aria-hidden="true">
+            <img src="<%= item.image %>" alt="" width="160" height="160" loading="lazy">
+          </a>
+          <div class="wish-info">
+            <span class="product-meta"><%= item.brand %></span>
+            <h2 class="wish-name"><a href="/products/<%= item.slug %>"><%= item.name %></a></h2>
+            <% if (item.ratingCount > 0) { %>
+              <p class="product-rating"><span class="rating-chip"><%= item.ratingAverage.toFixed(1) %> <%- icon('star', 'i-xs') %></span> <span class="muted">(<%= item.ratingCount %>)</span></p>
+            <% } %>
+            <div class="price-row">
+              <span class="price"><%= formatPrice(item.price) %></span>
+              <% if (item.mrp > item.price) { %><span class="mrp"><span class="sr-only">M.R.P. </span><s><%= formatPrice(item.mrp) %></s></span><span class="off"><%= item.discountPercent %>% off</span><% } %>
+            </div>
+            <% if (!item.available) { %>
+              <span class="pill pill-red"><%- icon('alert', 'i-xs') %> <%= item.reason %></span>
+            <% } else if (item.stock <= 5) { %>
+              <span class="stock stock-low">Only <%= item.stock %> left</span>
+            <% } %>
+          </div>
+          <div class="wish-actions">
+            <button type="button" class="btn btn-primary btn-sm" data-wish-move <%= item.available ? '' : 'disabled' %>><%- icon('cart', 'i-sm') %> Move to cart</button>
+            <button type="button" class="link-btn cart-remove" data-wish-remove aria-label="Remove <%= item.name %> from your wishlist"><%- icon('trash', 'i-xs') %> Remove</button>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+    <div class="empty-state" data-wishlist-empty <%= items.length ? 'hidden' : '' %>>
       <span class="empty-icon"><%- icon('heart', 'i-xl') %></span>
-      <h2>Wishlists are for shoppers</h2>
-      <p>You are signed in as an administrator.</p>
-      <a class="btn btn-primary" href="/admin">Go to dashboard</a>
+      <h2>Your wishlist is empty</h2>
+      <p>Tap the heart on any product to save it here for later.</p>
+      <a class="btn btn-primary" href="/products">Browse all gear</a>
     </div>
-  <% } else { %>
-    <div data-wishlist-page>
-      <div class="product-grid" data-wishlist-grid aria-busy="true">
-        <% for (let n = 0; n < 4; n++) { %>
-          <div class="skeleton-card" aria-hidden="true"><div class="skeleton skeleton-media"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line is-short"></div></div>
-        <% } %>
-      </div>
-      <div class="empty-state" data-wishlist-empty hidden>
-        <span class="empty-icon"><%- icon('heart', 'i-xl') %></span>
-        <h2>Your wishlist is empty</h2>
-        <p>Tap the heart on any product to save it here for later.</p>
-        <a class="btn btn-primary" href="/products">Browse all gear</a>
-      </div>
-      <div class="empty-state" data-wishlist-error hidden>
-        <span class="empty-icon"><%- icon('alert', 'i-xl') %></span>
-        <h2>We couldn't load your wishlist</h2>
-        <p>Check your connection and try again.</p>
-        <button type="button" class="btn btn-primary" data-wishlist-retry>Try again</button>
-      </div>
-      <noscript>
-        <div class="empty-state">
-          <h2>Turn on JavaScript to see your wishlist</h2>
-          <p>Your wishlist is saved in this browser and needs JavaScript to show.</p>
-        </div>
-      </noscript>
-    </div>
-  <% } %>
+  </div>
 </main>
 
-<%- include('../partials/footer') %>
+<%- include('../partials/footer', { scripts: ['wishlist'] }) %>

@@ -6,7 +6,7 @@ const { customerPage, adminPage, guestOnly } = require("../middleware/auth");
 router.get("/", pages.home);
 router.get("/products", pages.products);
 router.get("/products/:slug", pages.productDetail);
-router.get("/wishlist", pages.wishlist);
+router.get("/wishlist", customerPage, pages.wishlist);
 
 // Store information and the policies Razorpay asks for
 router.get("/about", pages.infoPage("about"));

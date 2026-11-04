@@ -2,6 +2,7 @@
   const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
   const shops = !isAdmin;
   const count = typeof cartCount === 'number' ? cartCount : 0;
+  const savedIds = typeof wishIds !== 'undefined' ? wishIds : [];
   const searchText = typeof query.q === 'string' ? query.q : '';
 %>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -15,7 +16,7 @@
     </span>
   </div>
 </div>
-<header class="site-header" data-site-header data-free-delivery="<%= store.freeDeliveryMin %>">
+<header class="site-header" data-site-header data-free-delivery="<%= store.freeDeliveryMin %>" data-shopper="<%= !currentUser ? 'guest' : currentUser.role %>" data-wish-ids="<%= JSON.stringify(savedIds) %>">
   <div class="mainbar">
     <div class="container mainbar-inner">
       <button type="button" class="header-btn nav-toggle" data-drawer-open="site-drawer" aria-controls="site-drawer" aria-expanded="false">
@@ -108,10 +109,10 @@
         </div>
 
         <% if (shops) { %>
-          <a class="header-link <%= path === '/wishlist' ? 'is-active' : '' %>" href="/wishlist" data-wish-link aria-label="Wishlist, 0 items">
+          <a class="header-link <%= path === '/wishlist' ? 'is-active' : '' %>" href="/wishlist" data-wish-link aria-label="Wishlist, <%= savedIds.length %> <%= savedIds.length === 1 ? 'item' : 'items' %>">
             <span class="header-link-icon">
               <%- icon('heart') %>
-              <span class="count-dot" data-wish-count hidden>0</span>
+              <span class="count-dot" data-wish-count <%= savedIds.length ? '' : 'hidden' %>><%= savedIds.length %></span>
             </span>
             <span class="header-link-text">Wishlist</span>
           </a>

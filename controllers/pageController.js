@@ -5,6 +5,7 @@ const adminProductService = require("../services/adminProductService");
 const cartService = require("../services/cartService");
 const homeService = require("../services/homeService");
 const reviewService = require("../services/reviewService");
+const wishlistService = require("../services/wishlistService");
 const Category = require("../models/Category");
 const { CONTACT_TOPICS } = require("../config/store");
 const { INDIAN_STATES } = require("../config/catalog");
@@ -18,10 +19,10 @@ const home = asyncHandler(async (req, res) => {
   res.render("pages/home", { title: "Nexthlon | Your Next Move Starts Here", ...data });
 });
 
-// The wishlist lives in the browser (localStorage); the page fills itself from /api/products/lookup.
-function wishlist(req, res) {
-  res.render("pages/wishlist", { title: "Your wishlist | Nexthlon" });
-}
+const wishlist = asyncHandler(async (req, res) => {
+  const data = await wishlistService.getWishlist(req.user._id);
+  res.render("pages/wishlist", { title: "Your wishlist | Nexthlon", ...data });
+});
 
 // ---------- Store information and policy pages ----------
 

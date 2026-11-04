@@ -1227,3 +1227,30 @@ a.stat:hover .stat-link .i { transform: translateX(3px); }
   .pdp { grid-template-columns: minmax(0, 1fr); }
   .pdp > * { min-width: 0; }
 }
+
+/* ==========================================================================
+   Phase 3: wishlist page, cart links and badges
+   ========================================================================== */
+.count-dot.is-bumped { animation: cart-bump 0.45s var(--ease); }
+.wish-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); box-shadow: var(--shadow-xs); }
+.wish-item { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; padding: var(--space-2); border-bottom: 1px solid var(--line); transition: opacity var(--duration) var(--ease); }
+.wish-item:last-child { border-bottom: 0; }
+.wish-item.is-busy { opacity: 0.55; }
+.wish-media { display: block; width: 120px; height: 120px; border-radius: var(--radius); overflow: hidden; background: var(--surface-3); }
+.wish-media img { width: 100%; height: 100%; object-fit: cover; }
+.wish-info { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.wish-name { font-size: 16px; font-weight: var(--weight-semibold); line-height: 1.35; }
+.wish-name a { color: var(--ink); }
+.wish-actions { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
+.wish-item.is-unavailable .wish-media img, .cart-item.is-unavailable .cart-item-media img { filter: grayscale(1); opacity: 0.5; }
+.wish-item.is-unavailable .price-row, .cart-item.is-unavailable .cart-item-name { opacity: 0.6; }
+.cart-links { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.free-note { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--brand-soft); color: var(--brand-ink); font-size: 13px; }
+.empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-1); margin-top: var(--space-1); }
+.empty-actions .btn { margin-top: 0; }
+@media (max-width: 720px) {
+  .wish-item { grid-template-columns: 84px minmax(0, 1fr); }
+  .wish-media { width: 84px; height: 84px; }
+  .wish-actions { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
+  .cart-links { flex-direction: row; gap: var(--space-1h); }
+}

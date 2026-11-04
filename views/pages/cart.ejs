@@ -16,12 +16,10 @@
       </div>
 
       <div class="panel panel-flush cart-list-panel" data-cart-list-panel <%= items.length ? '' : 'hidden' %>>
-        <% if (summary.unavailableCount) { %>
-          <div class="alert alert-info cart-alert" role="status" data-cart-unavailable-note>
-            <%- icon('info') %>
-            <span>Some items are unavailable right now. They are not counted in your total.</span>
-          </div>
-        <% } %>
+        <div class="alert alert-info cart-alert" role="status" data-cart-unavailable-note <%= summary.unavailableCount ? '' : 'hidden' %>>
+          <%- icon('info') %>
+          <span>Some items are unavailable right now. They are greyed out and not counted in your total.</span>
+        </div>
         <ul class="cart-list">
           <% items.forEach(function (item) { %>
             <li class="cart-item <%= item.available ? '' : 'is-unavailable' %>" data-cart-item="<%= item.productId %>" data-name="<%= item.name %>">
@@ -48,7 +46,10 @@
                   <button type="button" class="qty-btn" data-cart-step="1" aria-label="One more <%= item.name %>" <%= !item.available || item.quantity >= item.maxQuantity ? 'disabled' : '' %>><%- icon('plus', 'i-sm') %></button>
                 </div>
                 <strong class="cart-line-total" data-cart-line-total><%= item.available ? formatPrice(item.lineTotal) : '—' %></strong>
-                <button type="button" class="link-btn cart-remove" data-cart-remove aria-label="Remove <%= item.name %> from your cart"><%- icon('trash', 'i-xs') %> Remove</button>
+                <div class="cart-links">
+                  <button type="button" class="link-btn" data-cart-save aria-label="Save <%= item.name %> for later"><%- icon('heart', 'i-xs') %> Save for later</button>
+                  <button type="button" class="link-btn cart-remove" data-cart-remove aria-label="Remove <%= item.name %> from your cart"><%- icon('trash', 'i-xs') %> Remove</button>
+                </div>
               </div>
             </li>
           <% }) %>
@@ -59,22 +60,29 @@
         <span class="empty-icon"><%- icon('cart', 'i-xl') %></span>
         <h2>Your cart is empty</h2>
         <p>Find trail shoes, match balls, tents and more. Everything you add shows up here.</p>
-        <a class="btn btn-primary" href="/products">Continue shopping <%- icon('arrow-right', 'i-sm') %></a>
+        <div class="empty-actions">
+          <a class="btn btn-primary" href="/products">Continue shopping <%- icon('arrow-right', 'i-sm') %></a>
+          <a class="btn btn-ghost" href="/wishlist"><%- icon('heart', 'i-sm') %> View your wishlist</a>
+        </div>
       </div>
     </section>
 
     <aside class="cart-summary panel" aria-labelledby="summary-title" data-cart-summary <%= items.length ? '' : 'hidden' %>>
-      <h2 id="summary-title" class="panel-title">Order summary</h2>
+      <h2 id="summary-title" class="panel-title">Price details</h2>
       <dl class="summary-list">
-        <div><dt>M.R.P. total</dt><dd data-summary="mrpTotal"><%= formatPrice(summary.mrpTotal) %></dd></div>
-        <div class="summary-savings"><dt>Total savings</dt><dd data-summary="savings">−<%= formatPrice(summary.savings) %></dd></div>
-        <div><dt>Subtotal (<span data-summary="itemCount"><%= summary.itemCount %></span> <span data-summary-items><%= summary.itemCount === 1 ? 'item' : 'items' %></span>)</dt><dd data-summary="subtotal"><%= formatPrice(summary.subtotal) %></dd></div>
-        <div><dt>Delivery</dt><dd class="muted">Worked out at checkout</dd></div>
+        <div><dt>M.R.P. total (<span data-summary="itemCount"><%= summary.itemCount %></span> <span data-summary-items><%= summary.itemCount === 1 ? 'item' : 'items' %></span>)</dt><dd data-summary="mrpTotal"><%= formatPrice(summary.mrpTotal) %></dd></div>
+        <div class="summary-savings"><dt>Discount on M.R.P.</dt><dd data-summary="savings">−<%= formatPrice(summary.savings) %></dd></div>
+        <div><dt>Delivery fee</dt><dd data-summary="deliveryFee"><%- summary.deliveryFee ? formatPrice(summary.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
         <div class="summary-total"><dt>Grand total</dt><dd data-summary="grandTotal"><%= formatPrice(summary.grandTotal) %></dd></div>
       </dl>
+      <p class="free-note" data-free-note <%= summary.freeDeliveryGap ? '' : 'hidden' %>><%- icon('truck', 'i-xs') %> Add <strong data-summary="freeDeliveryGap"><%= formatPrice(summary.freeDeliveryGap) %></strong> more for free delivery.</p>
       <p class="saving summary-saving-note" data-summary-saving-note <%= summary.savings > 0 ? '' : 'hidden' %>>You save <span data-summary="savings-plain"><%= formatPrice(summary.savings) %></span> on this order.</p>
-      <button class="btn btn-primary btn-block btn-lg" type="button" disabled aria-describedby="checkout-note"><%- icon('lock', 'i-sm') %> Proceed to checkout</button>
-      <p class="hint" id="checkout-note"><%- icon('info', 'i-xs') %> Checkout opens in the next Nexthlon update.</p>
+      <% if (typeof checkoutOpen !== 'undefined' && checkoutOpen) { %>
+        <a class="btn btn-primary btn-block btn-lg" href="/checkout" data-checkout-link <%- summary.itemCount ? '' : 'aria-disabled="true" tabindex="-1"' %>><%- icon('lock', 'i-sm') %> Proceed to checkout</a>
+      <% } else { %>
+        <button class="btn btn-primary btn-block btn-lg" type="button" disabled aria-describedby="checkout-note"><%- icon('lock', 'i-sm') %> Proceed to checkout</button>
+        <p class="hint" id="checkout-note"><%- icon('info', 'i-xs') %> Checkout opens in the next Nexthlon update.</p>
+      <% } %>
       <a class="btn btn-ghost btn-block" href="/products">Continue shopping</a>
     </aside>
   </div>

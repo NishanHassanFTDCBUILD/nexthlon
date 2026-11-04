@@ -28,13 +28,25 @@ test("unlisted, out-of-stock and missing products cannot be added", () => {
   assert.match(quantityProblem(null, 1), /no longer available/);
 });
 
+test("delivery is free from ₹499; below that a flat fee is added", () => {
+  const { deliveryFeeFor } = require("../services/cartService");
+  assert.equal(deliveryFeeFor(0), 0);
+  assert.equal(deliveryFeeFor(49899), 4000);
+  assert.equal(deliveryFeeFor(49900), 0);
+  const { summary } = buildCartView([{ product: { ...shoe, price: 20000, mrp: 25000 }, quantity: 1 }]);
+  assert.equal(summary.deliveryFee, 4000);
+  assert.equal(summary.freeDeliveryGap, 29900);
+  assert.equal(summary.grandTotal, 24000);
+});
+
 test("cart totals use the price from the database", () => {
   const { items, summary } = buildCartView([{ product: shoe, quantity: 2 }]);
   assert.equal(items[0].price, 2999);
   assert.equal(summary.subtotal, 5998);
   assert.equal(summary.mrpTotal, 7998);
   assert.equal(summary.savings, 2000);
-  assert.equal(summary.grandTotal, 5998);
+  // Below the free-delivery amount, so the ₹40 delivery fee is added.
+  assert.equal(summary.grandTotal, 5998 + 4000);
 });
 
 test("unavailable items stay in the cart but are left out of the total", () => {

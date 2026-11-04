@@ -1,6 +1,6 @@
-// Shopper helpers on every store page: the wishlist and "recently viewed" (both saved in this
-// browser), sideways product rails, tabs, and the footer newsletter form.
-// Prices on cards drawn here always come fresh from /api/products/lookup, never from storage.
+// Shopper helpers on every store page: wishlist hearts (saved on the server), "recently viewed"
+// (saved in this browser), sideways product rails, tabs, and the footer newsletter form.
+// Prices on cards drawn here always come fresh from the API, never from storage.
 (function () {
   "use strict";
 
@@ -124,18 +124,33 @@
     });
   }
 
-  // ---------- Wishlist ----------
-  function showWishlist() {
-    const ids = readIds(WISH_KEY);
+  // ---------- Wishlist (saved on the server, for signed-in customers) ----------
+  // The header carries the saved ids, so every heart on the page starts in the right state.
+  const header = document.querySelector("[data-site-header]");
+  const role = header ? header.dataset.shopper : "admin";
+  let savedIds = [];
+  try {
+    savedIds = JSON.parse((header && header.dataset.wishIds) || "[]").filter(id => ID.test(id));
+  } catch {
+    savedIds = [];
+  }
+
+  Nx.setWishCount = function setWishCount(count) {
     document.querySelectorAll("[data-wish-count]").forEach(badge => {
-      badge.textContent = String(ids.length);
-      badge.hidden = ids.length === 0;
+      badge.textContent = String(count);
+      badge.hidden = count === 0;
+      badge.classList.remove("is-bumped");
+      void badge.offsetWidth;
+      badge.classList.add("is-bumped");
     });
     document.querySelectorAll("[data-wish-link]").forEach(link => {
-      link.setAttribute("aria-label", `Wishlist, ${ids.length} ${ids.length === 1 ? "item" : "items"}`);
+      link.setAttribute("aria-label", `Wishlist, ${count} ${count === 1 ? "item" : "items"}`);
     });
+  };
+
+  function showWishlist() {
     document.querySelectorAll("[data-wish-id]").forEach(button => {
-      const saved = ids.includes(button.dataset.wishId);
+      const saved = savedIds.includes(button.dataset.wishId);
       button.hidden = !shopper;
       button.setAttribute("aria-pressed", String(saved));
       const label = button.querySelector("[data-wish-label]");
@@ -143,95 +158,64 @@
     });
   }
 
-  Nx.toggleWish = function toggleWish(id) {
-    if (!ID.test(id)) return null;
-    const ids = readIds(WISH_KEY);
-    const saving = !ids.includes(id);
-    const next = saving ? [id, ...ids].slice(0, WISH_MAX) : ids.filter(other => other !== id);
-    if (!writeIds(WISH_KEY, next)) {
-      Nx.toast("Your browser is blocking saved data, so the wishlist cannot be saved.", "error");
-      return null;
-    }
+  // Server replies carry the whole wishlist; keep the hearts and badge in step with it.
+  Nx.applyWishlist = function applyWishlist(wishlist) {
+    if (!wishlist) return;
+    savedIds = wishlist.items.map(item => item.productId);
+    Nx.setWishCount(wishlist.count);
     showWishlist();
-    return saving;
   };
 
-  document.addEventListener("click", event => {
+  document.addEventListener("click", async event => {
     const button = event.target.closest("[data-wish-id]");
     if (!button) return;
     event.preventDefault();
-    const saved = Nx.toggleWish(button.dataset.wishId);
-    if (saved === null) return;
-    button.classList.remove("is-popped");
-    void button.offsetWidth;
-    button.classList.add("is-popped");
-    if (saved && readIds(WISH_KEY).length === WISH_MAX) Nx.toast(`Your wishlist holds up to ${WISH_MAX} items; the oldest was removed.`);
-    else Nx.toast(saved ? "Saved to your wishlist." : "Removed from your wishlist.");
-    if (!saved) document.dispatchEvent(new CustomEvent("nx:wish-removed", { detail: button.dataset.wishId }));
+    // Guests sign in first and come straight back to this page.
+    if (role === "guest") {
+      const params = new URLSearchParams({ next: window.location.pathname + window.location.search });
+      window.location.assign(`/login?${params}`);
+      return;
+    }
+    const id = button.dataset.wishId;
+    const saving = !savedIds.includes(id);
+    button.disabled = true;
+    try {
+      const reply = saving
+        ? await Nx.api("/api/wishlist", { method: "POST", body: { productId: id } })
+        : await Nx.api(`/api/wishlist/${id}`, { method: "DELETE" });
+      Nx.applyWishlist(reply.wishlist);
+      button.classList.remove("is-popped");
+      void button.offsetWidth;
+      button.classList.add("is-popped");
+      Nx.toast(reply.message);
+    } catch (error) {
+      Nx.toast(error.message, "error");
+    } finally {
+      button.disabled = false;
+    }
   });
-  // Another tab changed the wishlist.
-  window.addEventListener("storage", event => {
-    if (event.key === WISH_KEY) showWishlist();
-  });
 
-  // The wishlist page
-  const wishPage = document.querySelector("[data-wishlist-page]");
-  if (wishPage) {
-    const grid = wishPage.querySelector("[data-wishlist-grid]");
-    const empty = wishPage.querySelector("[data-wishlist-empty]");
-    const failed = wishPage.querySelector("[data-wishlist-error]");
-    const summary = document.querySelector("[data-wishlist-summary]");
-    const clear = document.querySelector("[data-wishlist-clear]");
-
-    const showState = (products) => {
-      grid.hidden = !products.length;
-      empty.hidden = products.length > 0;
-      clear.hidden = products.length === 0;
-      summary.textContent = products.length
-        ? `${products.length} saved ${products.length === 1 ? "item" : "items"}, on this device.`
-        : "Saved on this device.";
-    };
-
-    const load = async () => {
-      failed.hidden = true;
-      empty.hidden = true;
-      grid.hidden = false;
-      grid.setAttribute("aria-busy", "true");
-      const ids = readIds(WISH_KEY);
-      grid.replaceChildren(...skeletons(Math.min(Math.max(ids.length, 1), 8)));
-      try {
-        const products = await Nx.lookupProducts(ids);
-        // Drop saved items that are no longer sold.
-        const live = products.map(p => p.id);
-        if (live.length !== ids.length) writeIds(WISH_KEY, ids.filter(id => live.includes(id)));
-        grid.replaceChildren(...products.map(Nx.productCard));
-        showState(products);
-        showWishlist();
-      } catch {
-        grid.replaceChildren();
-        grid.hidden = true;
-        failed.hidden = false;
-      } finally {
-        grid.removeAttribute("aria-busy");
-      }
-    };
-
-    document.addEventListener("nx:wish-removed", event => {
-      const card = grid.querySelector(`[data-wish-id="${event.detail}"]`);
-      if (card) card.closest(".product-card").remove();
-      showState([...grid.querySelectorAll(".product-card")]);
-    });
-    wishPage.querySelector("[data-wishlist-retry]").addEventListener("click", load);
-    clear.addEventListener("click", async () => {
-      const ok = await Nx.confirm({ title: "Clear your wishlist?", message: "Every saved item will be removed from this device.", confirmLabel: "Clear wishlist" });
-      if (!ok) return;
-      writeIds(WISH_KEY, []);
-      grid.replaceChildren();
-      showState([]);
-      showWishlist();
-      Nx.toast("Your wishlist is now empty.");
-    });
-    load();
+  // Customers who saved items before wishlists moved to their account: bring them across once.
+  if (role === "customer") {
+    const old = readIds(WISH_KEY);
+    if (old.length) {
+      (async () => {
+        let latest = null;
+        for (const productId of old.slice(0, WISH_MAX)) {
+          try {
+            latest = (await Nx.api("/api/wishlist", { method: "POST", body: { productId } })).wishlist;
+          } catch {
+            /* no longer sold: skip it */
+          }
+        }
+        try {
+          localStorage.removeItem(WISH_KEY);
+        } catch {
+          /* storage blocked */
+        }
+        if (latest) Nx.applyWishlist(latest);
+      })();
+    }
   }
 
   // ---------- Recently viewed ----------

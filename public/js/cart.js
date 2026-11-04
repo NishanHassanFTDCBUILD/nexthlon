@@ -111,8 +111,24 @@
     set("mrpTotal", formatPrice(summary.mrpTotal));
     set("savings", `−${formatPrice(summary.savings)}`);
     set("savings-plain", formatPrice(summary.savings));
-    set("subtotal", formatPrice(summary.subtotal));
     set("grandTotal", formatPrice(summary.grandTotal));
+    set("freeDeliveryGap", formatPrice(summary.freeDeliveryGap));
+    page.querySelectorAll('[data-summary="deliveryFee"]').forEach(el => {
+      if (summary.deliveryFee) el.textContent = formatPrice(summary.deliveryFee);
+      else el.innerHTML = '<span class="text-success">Free</span>';
+    });
+    const freeNote = page.querySelector("[data-free-note]");
+    if (freeNote) freeNote.hidden = !summary.freeDeliveryGap;
+    const checkout = page.querySelector("[data-checkout-link]");
+    if (checkout) {
+      if (summary.itemCount) {
+        checkout.removeAttribute("aria-disabled");
+        checkout.removeAttribute("tabindex");
+      } else {
+        checkout.setAttribute("aria-disabled", "true");
+        checkout.setAttribute("tabindex", "-1");
+      }
+    }
     set("itemCount", String(summary.itemCount));
     page.querySelectorAll("[data-summary-items]").forEach(el => { el.textContent = summary.itemCount === 1 ? "item" : "items"; });
     const savingNote = page.querySelector("[data-summary-saving-note]");
@@ -149,7 +165,7 @@
       if (row.isConnected) {
         row.classList.remove("is-busy");
         row.removeAttribute("aria-busy");
-        row.querySelector("[data-cart-remove]").disabled = false;
+        row.querySelectorAll("[data-cart-remove], [data-cart-save]").forEach(button => { button.disabled = false; });
       }
     }
   }
@@ -157,9 +173,19 @@
   page.addEventListener("click", async event => {
     const step = event.target.closest("[data-cart-step]");
     const remove = event.target.closest("[data-cart-remove]");
+    const save = event.target.closest("[data-cart-save]");
     const row = event.target.closest("[data-cart-item]");
-    if (!row || (!step && !remove)) return;
+    if (!row || (!step && !remove && !save)) return;
     const id = encodeURIComponent(row.dataset.cartItem);
+
+    if (save) {
+      await change(row, async () => {
+        const reply = await Nx.api(`/api/cart/items/${id}/save-for-later`, { method: "POST" });
+        if (Nx.applyWishlist) Nx.applyWishlist(reply.wishlist);
+        return reply;
+      });
+      return;
+    }
 
     if (step) {
       const quantity = Number(row.querySelector("[data-cart-qty]").textContent) + Number(step.dataset.cartStep);

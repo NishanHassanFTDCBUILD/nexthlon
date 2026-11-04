@@ -559,8 +559,7 @@ test("home page: carousel, trust badges, deals countdown, rails and brands", asy
 test("policy pages, about, contact and wishlist pages render for everyone", async () => {
   const pages = {
     "/privacy": /Privacy policy/, "/terms": /Terms and conditions/, "/refund-policy": /Cancellation and refund policy/,
-    "/shipping-policy": /Shipping and delivery policy/, "/about": /About Nexthlon/, "/contact": /data-contact-form/,
-    "/wishlist": /data-wishlist-page/
+    "/shipping-policy": /Shipping and delivery policy/, "/about": /About Nexthlon/, "/contact": /data-contact-form/
   };
   for (const [path, pattern] of Object.entries(pages)) {
     const res = await call("GET", path);
@@ -739,4 +738,88 @@ test("old products in rupees with text categories are upgraded once at start-up"
   assert.equal(rope.isListed, true);
   assert.equal(rope.category.name, "Fitness");
   assert.equal(rope.discountPercent, 30);
+});
+
+// ---------- Phase 3: wishlist, save for later and the price summary ----------
+const Wishlist = require("../models/Wishlist");
+
+test("wishlist: customers only, guests are sent to sign in and come back", async () => {
+  assert.equal((await call("GET", "/api/wishlist")).status, 401);
+  assert.equal((await call("GET", "/wishlist")).location, "/login?next=%2Fwishlist");
+  const admin = await call("POST", "/api/admin/login", { body: { email: "admin@nexthlon.test", password: "AdminPass123" } });
+  assert.equal((await call("GET", "/api/wishlist", { cookie: admin.cookie })).status, 403);
+});
+
+test("wishlist: add, no duplicates, newest first, hidden products refused, remove", async () => {
+  const shopper = await call("POST", "/api/signup", { body: { name: "Wish Tester", email: "wish@nexthlon.test", password: "heart2024", confirmPassword: "heart2024" } });
+  const cookie = shopper.cookie;
+  const socks = await Product.findOne({ slug: "trail-socks" });
+  const shoe = await Product.findOne({ slug: "nexthlon-trail-shoe" });
+  const hidden = await Product.findOne({ slug: "old-racket" });
+  assert.equal((await call("POST", "/api/wishlist", { body: { productId: String(socks._id) }, cookie })).status, 201);
+  const second = await call("POST", "/api/wishlist", { body: { productId: String(shoe._id) }, cookie });
+  assert.deepEqual(second.data.wishlist.items.map(i => i.slug), ["nexthlon-trail-shoe", "trail-socks"]);
+  const again = await call("POST", "/api/wishlist", { body: { productId: String(socks._id) }, cookie });
+  assert.deepEqual(again.data.wishlist.items.map(i => i.slug), ["trail-socks", "nexthlon-trail-shoe"]);
+  assert.equal((await call("POST", "/api/wishlist", { body: { productId: String(hidden._id) }, cookie })).status, 404);
+  assert.equal((await call("POST", "/api/wishlist", { body: { productId: { $ne: null } }, cookie })).status, 400);
+
+  const page = await call("GET", "/products", { cookie });
+  assert.match(page.data, /data-wish-count >2</);
+  const list = await call("GET", "/wishlist", { cookie });
+  assert.match(list.data, /2 saved items/);
+
+  const removed = await call("DELETE", `/api/wishlist/${socks._id}`, { cookie });
+  assert.equal(removed.data.wishlist.count, 1);
+  assert.equal((await call("DELETE", `/api/wishlist/${socks._id}`, { cookie })).status, 404);
+  wishCookie = cookie;
+});
+
+let wishCookie;
+
+test("moving to the cart follows every cart rule, and removes the item from the wishlist", async () => {
+  const shoe = await Product.findOne({ slug: "nexthlon-trail-shoe" });
+  const moved = await call("POST", `/api/wishlist/${shoe._id}/move-to-cart`, { cookie: wishCookie });
+  assert.equal(moved.status, 200);
+  assert.equal(moved.data.wishlist.count, 0);
+  assert.equal(moved.data.cart.items[0].productId, String(shoe._id));
+  assert.equal(moved.data.cart.items[0].price, shoe.price);
+  assert.equal((await call("POST", `/api/wishlist/${shoe._id}/move-to-cart`, { cookie: wishCookie })).status, 404);
+
+  // Out of stock: the cart says no, so the product stays on the wishlist.
+  const soldOut = await Product.findOne({ slug: "sold-out-cap" });
+  await Wishlist.updateOne({}, {}, {});
+  const user = await User.findOne({ email: "wish@nexthlon.test" });
+  await Wishlist.updateOne({ user: user._id }, { $push: { products: soldOut._id } });
+  const refused = await call("POST", `/api/wishlist/${soldOut._id}/move-to-cart`, { cookie: wishCookie });
+  assert.equal(refused.status, 400);
+  assert.match(refused.data.message, /out of stock/);
+  assert.equal((await call("GET", "/api/wishlist", { cookie: wishCookie })).data.wishlist.count, 1);
+});
+
+test("save for later moves a cart line to the wishlist", async () => {
+  const shoe = await Product.findOne({ slug: "nexthlon-trail-shoe" });
+  const saved = await call("POST", `/api/cart/items/${shoe._id}/save-for-later`, { cookie: wishCookie });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.data.cart.items.length, 0);
+  assert.equal(saved.data.wishlist.items[0].slug, "nexthlon-trail-shoe");
+  assert.equal((await call("POST", `/api/cart/items/${shoe._id}/save-for-later`, { cookie: wishCookie })).status, 404);
+});
+
+test("cart summary: M.R.P. total, discount, delivery fee below ₹499 and the grand total", async () => {
+  const socks = await Product.findOne({ slug: "trail-socks" });
+  const one = await call("POST", "/api/cart/items", { body: { productId: String(socks._id), quantity: 1 }, cookie: wishCookie });
+  const summary = one.data.cart.summary;
+  assert.equal(summary.subtotal, 39900);
+  assert.equal(summary.mrpTotal, 49900);
+  assert.equal(summary.savings, 10000);
+  assert.equal(summary.deliveryFee, 4000);
+  assert.equal(summary.freeDeliveryGap, 10000);
+  assert.equal(summary.grandTotal, 43900);
+  const two = await call("PATCH", `/api/cart/items/${socks._id}`, { body: { quantity: 2 }, cookie: wishCookie });
+  assert.equal(two.data.cart.summary.deliveryFee, 0);
+  assert.equal(two.data.cart.summary.grandTotal, 79800);
+  const page = await call("GET", "/cart", { cookie: wishCookie });
+  assert.match(page.data, /Save for later/);
+  assert.match(page.data, /Delivery fee/);
 });
