@@ -53,6 +53,7 @@
             <div class="menu-group">
               <% if (currentUser.role === 'admin') { %>
                 <a href="/admin"><%- icon('grid') %> Admin dashboard</a>
+                <a href="/admin/products"><%- icon('box') %> Manage products</a>
                 <a href="/admin/users"><%- icon('users') %> Manage users</a>
               <% } else { %>
                 <a href="/profile"><%- icon('user') %> Your profile</a>

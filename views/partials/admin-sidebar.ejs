@@ -7,8 +7,9 @@
     <span class="admin-nav-label">Manage</span>
     <a href="/admin" class="<%= path === '/admin' ? 'is-active' : '' %>" <%- path === '/admin' ? 'aria-current="page"' : '' %>><%- icon('grid') %> Dashboard</a>
     <a href="/admin/users" class="<%= path === '/admin/users' ? 'is-active' : '' %>" <%- path === '/admin/users' ? 'aria-current="page"' : '' %>><%- icon('users') %> Users</a>
+    <% const onProducts = path.startsWith('/admin/products'); %>
+    <a href="/admin/products" class="<%= onProducts ? 'is-active' : '' %>" <%- onProducts ? 'aria-current="page"' : '' %>><%- icon('box') %> Products</a>
     <span class="admin-nav-label">Next modules</span>
-    <span class="admin-nav-soon"><%- icon('box') %> Products <em>Soon</em></span>
     <span class="admin-nav-soon"><%- icon('truck') %> Orders <em>Soon</em></span>
   </nav>
   <div class="admin-sidebar-foot">

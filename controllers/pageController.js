@@ -1,7 +1,8 @@
 const productService = require("../services/productService");
 const profileService = require("../services/profileService");
 const adminService = require("../services/adminService");
-const { INDIAN_STATES } = require("../config/catalog");
+const adminProductService = require("../services/adminProductService");
+const { INDIAN_STATES, CATEGORIES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
 
@@ -92,6 +93,30 @@ const adminUsers = asyncHandler(async (req, res) => {
   res.render("admin/users", { title: "Users | Nexthlon Admin", link, ...data });
 });
 
+const adminProducts = asyncHandler(async (req, res) => {
+  const data = await adminProductService.listAdminProducts(req.query);
+  const { q, category, status, sort } = data.filters;
+  const link = linkBuilder("/admin/products", {
+    q, category, status: status === "all" ? "" : status, sort: sort === "newest" ? "" : sort
+  });
+  res.render("admin/products", {
+    title: "Products | Nexthlon Admin",
+    link,
+    categories: CATEGORIES,
+    sorts: adminProductService.ADMIN_SORTS,
+    ...data
+  });
+});
+
+function adminProductNew(req, res) {
+  res.render("admin/product-form", { title: "Add product | Nexthlon Admin", product: null, categories: CATEGORIES });
+}
+
+const adminProductEdit = asyncHandler(async (req, res) => {
+  const product = await adminProductService.getAdminProduct(req.params.productId);
+  res.render("admin/product-form", { title: `Edit ${product.name} | Nexthlon Admin`, product, categories: CATEGORIES });
+});
+
 module.exports = {
   home,
   products,
@@ -101,5 +126,8 @@ module.exports = {
   profile,
   adminLogin,
   adminDashboard,
-  adminUsers
+  adminUsers,
+  adminProducts,
+  adminProductNew,
+  adminProductEdit
 };

@@ -263,3 +263,123 @@ test("signed-in pages and the API are never cached, static files still are", asy
   assert.equal(css.status, 200);
   assert.doesNotMatch(css.headers.get("cache-control") || "", /no-store/);
 });
+
+// ---------- Admin product management ----------
+const { deleteImages } = require("../services/imageService");
+
+// A real 1x1 PNG, and a text file pretending to be one.
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+const FAKE_PNG = Buffer.from("this is not an image at all");
+
+async function sendForm(method, path, { fields = {}, files = [], cookie } = {}) {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
+  for (const file of files) form.append("images", new Blob([file.data], { type: file.type || "image/png" }), file.name);
+  const response = await fetch(base + path, { method, headers: { Origin: base, Cookie: cookie, Accept: "application/json" }, body: form });
+  return { status: response.status, data: await response.json() };
+}
+
+const productFields = { name: "Summit Hiking Pole", category: "Hiking", brand: "Nexthlon", price: "1500", mrp: "2000", stock: "8", description: "Light carbon pole." };
+let adminCookieForProducts;
+let createdProduct;
+
+test("admin product APIs are for admins only", async () => {
+  assert.equal((await call("GET", "/api/admin/products")).status, 401);
+  const customer = await call("POST", "/api/login", { body: { email: "ravi@nexthlon.test", password: "pitch2024" } });
+  assert.equal((await call("GET", "/api/admin/products", { cookie: customer.cookie })).status, 403);
+  assert.equal((await sendForm("POST", "/api/admin/products", { fields: productFields, files: [{ name: "a.png", data: PNG }], cookie: customer.cookie })).status, 403);
+  adminCookieForProducts = (await call("POST", "/api/admin/login", { body: { email: "admin@nexthlon.test", password: "AdminPass123" } })).cookie;
+});
+
+test("creating a product checks fields and the real image type", async () => {
+  const bad = await sendForm("POST", "/api/admin/products", {
+    fields: { ...productFields, price: "0", mrp: "abc", stock: "2.5", name: "No" }, cookie: adminCookieForProducts
+  });
+  assert.equal(bad.status, 400);
+  assert.ok(bad.data.errors.price && bad.data.errors.mrp && bad.data.errors.stock && bad.data.errors.name && bad.data.errors.images);
+
+  const fake = await sendForm("POST", "/api/admin/products", { fields: productFields, files: [{ name: "evil.png", data: FAKE_PNG }], cookie: adminCookieForProducts });
+  assert.equal(fake.status, 400);
+  assert.match(fake.data.errors.images, /not a real/);
+
+  const wrongType = await sendForm("POST", "/api/admin/products", { fields: productFields, files: [{ name: "x.gif", data: PNG, type: "image/gif" }], cookie: adminCookieForProducts });
+  assert.equal(wrongType.status, 400);
+
+  const tooBig = await sendForm("POST", "/api/admin/products", { fields: productFields, files: [{ name: "big.png", data: Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)]) }], cookie: adminCookieForProducts });
+  assert.equal(tooBig.status, 400);
+  assert.match(tooBig.data.errors.images, /2 MB/);
+
+  const tooMany = await sendForm("POST", "/api/admin/products", { fields: productFields, files: Array.from({ length: 5 }, (_, i) => ({ name: `${i}.png`, data: PNG })), cookie: adminCookieForProducts });
+  assert.equal(tooMany.status, 400);
+});
+
+test("admin creates a product: slug and discount come from the server", async () => {
+  const res = await sendForm("POST", "/api/admin/products", {
+    fields: { ...productFields, discountPercent: "90", slug: "hacked" },
+    files: [{ name: "a.png", data: PNG }, { name: "b.png", data: PNG }],
+    cookie: adminCookieForProducts
+  });
+  assert.equal(res.status, 201);
+  createdProduct = res.data.product;
+  assert.equal(createdProduct.slug, "summit-hiking-pole");
+  assert.equal(createdProduct.discountPercent, 25);
+  assert.equal(createdProduct.images.length, 2);
+  assert.match(createdProduct.image, /^\/uploads\/products\/[a-f0-9]{32}\.png$/);
+
+  const again = await sendForm("POST", "/api/admin/products", { fields: productFields, files: [{ name: "c.png", data: PNG }], cookie: adminCookieForProducts });
+  assert.equal(again.data.product.slug, "summit-hiking-pole-2");
+  assert.equal((await fetch(base + again.data.product.image)).status, 200);
+  await call("PATCH", `/api/admin/products/${again.data.product.id}/listing`, { body: { isListed: false }, cookie: adminCookieForProducts });
+  await deleteImages(again.data.product.images);
+});
+
+test("admin edits a product: main photo, removing photos and price rules", async () => {
+  const [first, second] = createdProduct.images;
+  const res = await sendForm("PATCH", `/api/admin/products/${createdProduct.id}`, {
+    fields: { ...productFields, price: "1800", keepImages: JSON.stringify([second]), mainImage: second },
+    cookie: adminCookieForProducts
+  });
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.data.product.images, [second]);
+  assert.equal(res.data.product.discountPercent, 10);
+  assert.equal((await fetch(base + first)).status, 404);
+
+  const stranger = await sendForm("PATCH", `/api/admin/products/${createdProduct.id}`, {
+    fields: { ...productFields, keepImages: JSON.stringify(["https://evil.example/x.png"]) }, cookie: adminCookieForProducts
+  });
+  assert.equal(stranger.status, 400);
+  const mrpLow = await sendForm("PATCH", `/api/admin/products/${createdProduct.id}`, {
+    fields: { ...productFields, mrp: "100", keepImages: JSON.stringify([second]) }, cookie: adminCookieForProducts
+  });
+  assert.ok(mrpLow.data.errors.mrp);
+  createdProduct = res.data.product;
+});
+
+test("unlisting hides a product from shoppers but keeps it for admins", async () => {
+  assert.equal((await call("GET", `/api/products/${createdProduct.slug}`)).status, 200);
+  assert.equal((await call("PATCH", `/api/admin/products/${createdProduct.id}/listing`, { body: { isListed: "no" }, cookie: adminCookieForProducts })).status, 400);
+  const off = await call("PATCH", `/api/admin/products/${createdProduct.id}/listing`, { body: { isListed: false }, cookie: adminCookieForProducts });
+  assert.equal(off.data.product.status, "unlisted");
+  assert.equal((await call("GET", `/api/products/${createdProduct.slug}`)).status, 404);
+  assert.equal((await call("GET", `/products/${createdProduct.slug}`)).status, 404);
+  assert.equal((await call("GET", "/api/products?q=summit")).data.products.length, 0);
+  assert.ok(await Product.exists({ _id: createdProduct.id }));
+
+  const unlisted = await call("GET", "/api/admin/products?status=unlisted", { cookie: adminCookieForProducts });
+  assert.equal(unlisted.data.products.length, 2);
+  const search = await call("GET", "/api/admin/products?q=summit&sort=price_desc", { cookie: adminCookieForProducts });
+  assert.equal(search.data.products.length, 2);
+  assert.equal(search.data.pagination.limit, 10);
+
+  await call("PATCH", `/api/admin/products/${createdProduct.id}/listing`, { body: { isListed: true }, cookie: adminCookieForProducts });
+  assert.equal((await call("GET", `/api/products/${createdProduct.slug}`)).status, 200);
+});
+
+test("admin product pages are guarded and render", async () => {
+  assert.equal((await call("GET", "/admin/products")).location, "/admin/login?next=%2Fadmin%2Fproducts");
+  for (const path of ["/admin/products", "/admin/products?status=out&category=Hiking", "/admin/products/new", `/admin/products/${createdProduct.id}/edit`]) {
+    assert.equal((await call("GET", path, { cookie: adminCookieForProducts })).status, 200, path);
+  }
+  assert.equal((await call("GET", "/admin/products/not-an-id/edit", { cookie: adminCookieForProducts })).status, 404);
+  await deleteImages(createdProduct.images);
+});

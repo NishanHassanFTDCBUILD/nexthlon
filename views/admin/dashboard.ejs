@@ -16,6 +16,7 @@
       </div>
       <div class="admin-top-actions">
         <a class="btn btn-ghost btn-sm" href="/"><%- icon('home', 'i-sm') %> View store</a>
+        <a class="btn btn-ghost btn-sm" href="/admin/products"><%- icon('box', 'i-sm') %> Manage products</a>
         <a class="btn btn-primary btn-sm" href="/admin/users"><%- icon('users', 'i-sm') %> Manage users</a>
       </div>
     </header>
@@ -120,7 +121,7 @@
               <li>
                 <img src="<%= p.image %>" alt="" width="48" height="48" loading="lazy">
                 <div class="stock-list-info">
-                  <a href="/products/<%= p.slug %>"><%= p.name %></a>
+                  <a href="/admin/products/<%= p._id %>/edit"><%= p.name %></a>
                   <span><%= p.category %></span>
                   <span class="mini-meter" aria-hidden="true"><span class="<%= p.stock === 0 ? 'is-out' : '' %>" style="--fill: <%= Math.min(p.stock, 5) / 5 %>"></span></span>
                 </div>

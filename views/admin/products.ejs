@@ -1,0 +1,125 @@
+<%- include('../partials/head', { bodyClass: 'admin-body' }) %>
+
+<%
+  const STATUS_LABELS = { active: 'Active', unlisted: 'Unlisted', out: 'Out of stock' };
+  const STATUS_PILLS = { active: 'pill-green', unlisted: 'pill-grey', out: 'pill-red' };
+  const filtered = filters.q || filters.category || filters.status !== 'all';
+%>
+<div class="admin-shell">
+  <%- include('../partials/admin-sidebar') %>
+
+  <main id="main" class="admin-main">
+    <header class="admin-top">
+      <div>
+        <span class="section-kicker">Catalogue</span>
+        <h1>Products</h1>
+        <p class="muted"><%= pagination.total %> <%= pagination.total === 1 ? 'product' : 'products' %> found. Unlisted products are hidden from the store but kept here.</p>
+      </div>
+      <div class="admin-top-actions">
+        <a class="btn btn-primary btn-sm" href="/admin/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
+      </div>
+    </header>
+
+    <form class="toolbar admin-filters" action="/admin/products" method="get" data-admin-filters>
+      <div class="toolbar-search">
+        <label class="sr-only" for="product-search">Search products by name</label>
+        <%- icon('search', 'i-sm') %>
+        <input id="product-search" type="search" name="q" value="<%= filters.q %>" placeholder="Search by product name" maxlength="80">
+        <% if (filters.q) { %>
+          <a class="icon-btn icon-btn-sm" href="<%= link({ q: '', page: '' }) %>" aria-label="Clear search"><%- icon('x', 'i-sm') %></a>
+        <% } %>
+        <button class="btn btn-primary btn-sm" type="submit">Search</button>
+      </div>
+      <div class="admin-filter-selects">
+        <label class="select-wrap">
+          <span class="sr-only">Category</span>
+          <select name="category" data-auto-submit-field>
+            <option value="">All categories</option>
+            <% categories.forEach(function (name) { %>
+              <option value="<%= name %>" <%= filters.category === name ? 'selected' : '' %>><%= name %></option>
+            <% }) %>
+          </select>
+          <%- icon('chevron-down', 'i-xs') %>
+        </label>
+        <label class="select-wrap">
+          <span class="sr-only">Status</span>
+          <select name="status" data-auto-submit-field>
+            <option value="" <%= filters.status === 'all' ? 'selected' : '' %>>Any status</option>
+            <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+            <option value="unlisted" <%= filters.status === 'unlisted' ? 'selected' : '' %>>Unlisted</option>
+            <option value="out" <%= filters.status === 'out' ? 'selected' : '' %>>Out of stock</option>
+          </select>
+          <%- icon('chevron-down', 'i-xs') %>
+        </label>
+        <label class="select-wrap">
+          <span class="sr-only">Sort by</span>
+          <select name="sort" data-auto-submit-field>
+            <% Object.entries(sorts).forEach(function ([key, option]) { %>
+              <option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= option.label %></option>
+            <% }) %>
+          </select>
+          <%- icon('chevron-down', 'i-xs') %>
+        </label>
+      </div>
+    </form>
+
+    <% if (filtered) { %>
+      <p class="filter-note">Filters are on · <a href="/admin/products">Show all products</a></p>
+    <% } %>
+
+    <section class="panel panel-flush" aria-label="Product list" data-results>
+      <span class="loading-bar" aria-hidden="true"></span>
+      <% if (products.length) { %>
+        <div class="table-wrap">
+          <table class="table table-stack product-table">
+            <thead>
+              <tr>
+                <th scope="col">Product</th><th scope="col">Price</th><th scope="col">M.R.P.</th>
+                <th scope="col">Discount</th><th scope="col">Stock</th><th scope="col">Status</th>
+                <th scope="col"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% products.forEach(function (p) { %>
+                <tr data-product-row="<%= p.id %>" class="<%= p.isListed ? '' : 'is-unlisted' %>">
+                  <td>
+                    <div class="person product-person">
+                      <img class="product-thumb" src="<%= p.image %>" alt="" width="48" height="48" loading="lazy">
+                      <div><strong><%= p.name %></strong><span><%= p.category %> · <%= p.brand %></span></div>
+                    </div>
+                  </td>
+                  <td data-label="Price"><strong><%= formatPrice(p.price) %></strong></td>
+                  <td data-label="M.R.P."><%= formatPrice(p.mrp) %></td>
+                  <td data-label="Discount"><%= p.discountPercent ? p.discountPercent + '%' : '—' %></td>
+                  <td data-label="Stock"><span class="<%= p.stock === 0 ? 'text-red' : p.isLowStock ? 'text-amber' : '' %>"><%= p.stock %></span></td>
+                  <td data-label="Status"><span class="pill <%= STATUS_PILLS[p.status] %>" data-status><%= STATUS_LABELS[p.status] %></span></td>
+                  <td class="cell-action"><div class="row-actions">
+                    <a class="btn btn-ghost btn-sm" href="/admin/products/<%= p.id %>/edit" aria-label="Edit <%= p.name %>"><%- icon('edit', 'i-xs') %> Edit</a>
+                    <button type="button" class="btn btn-sm <%= p.isListed ? 'btn-danger-soft' : 'btn-secondary' %>"
+                            data-toggle-listing="<%= p.id %>" data-listed="<%= p.isListed %>" data-name="<%= p.name %>" data-stock="<%= p.stock %>"
+                            aria-label="<%= p.isListed ? 'Unlist' : 'List' %> <%= p.name %>"><%= p.isListed ? 'Unlist' : 'List' %></button>
+                  </div></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state empty-state-flat">
+          <span class="empty-icon"><%- icon('box', 'i-xl') %></span>
+          <h2>No products found</h2>
+          <p><%= filtered ? 'Try a different search or filter.' : 'Add your first product to start selling.' %></p>
+          <% if (filtered) { %>
+            <a class="btn btn-secondary" href="/admin/products">Show all products</a>
+          <% } else { %>
+            <a class="btn btn-primary" href="/admin/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
+
+    <%- include('../partials/pagination', { pagination: pagination, link: link }) %>
+  </main>
+</div>
+
+<%- include('../partials/scripts', { scripts: ['admin-products'] }) %>

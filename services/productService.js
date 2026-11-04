@@ -42,7 +42,7 @@ function readFilters(query = {}) {
 
 async function listProducts(query) {
   const filters = readFilters(query);
-  const filter = { isActive: true };
+  const filter = { ...Product.LISTED };
   if (filters.q) {
     const pattern = new RegExp(escapeRegex(filters.q), "i");
     filter.$or = [{ name: pattern }, { brand: pattern }, { category: pattern }, { description: pattern }];
@@ -73,7 +73,7 @@ async function listProducts(query) {
 
 async function getCategorySummaries() {
   const groups = await Product.aggregate([
-    { $match: { isActive: true } },
+    { $match: { ...Product.LISTED } },
     { $sort: { discountPercent: -1 } },
     { $group: { _id: "$category", count: { $sum: 1 }, fromPrice: { $min: "$price" }, image: { $first: "$image" } } }
   ]);
@@ -89,18 +89,18 @@ async function getProduct(idOrSlug) {
   if (!key || key.length > 120) return null;
   const conditions = [{ slug: key }];
   if (mongoose.isValidObjectId(key)) conditions.push({ _id: key });
-  return Product.findOne({ $or: conditions, isActive: true }).lean();
+  return Product.findOne({ $or: conditions, ...Product.LISTED }).lean();
 }
 
 function getRelatedProducts(product, limit = 4) {
-  return Product.find({ isActive: true, category: product.category, _id: { $ne: product._id } })
+  return Product.find({ ...Product.LISTED, category: product.category, _id: { $ne: product._id } })
     .sort({ discountPercent: -1 }).limit(limit).lean();
 }
 
 async function getHomeSections() {
   const [deals, newest, categories] = await Promise.all([
-    Product.find({ isActive: true, discountPercent: { $gt: 0 } }).sort({ discountPercent: -1 }).limit(8).lean(),
-    Product.find({ isActive: true }).sort({ createdAt: -1, _id: -1 }).limit(8).lean(),
+    Product.find({ ...Product.LISTED, discountPercent: { $gt: 0 } }).sort({ discountPercent: -1 }).limit(8).lean(),
+    Product.find({ ...Product.LISTED }).sort({ createdAt: -1, _id: -1 }).limit(8).lean(),
     getCategorySummaries()
   ]);
   return { deals, newest, categories };

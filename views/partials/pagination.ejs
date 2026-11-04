@@ -1,0 +1,29 @@
+<%
+  // Page numbers to show: first, last, and one either side of the current page, with gaps between.
+  const pageList = [];
+  for (let n = 1; n <= pagination.pages; n++) {
+    if (n === 1 || n === pagination.pages || Math.abs(n - pagination.page) <= 1) pageList.push(n);
+    else if (pageList[pageList.length - 1] !== '…') pageList.push('…');
+  }
+%>
+<% if (pagination.pages > 1) { %>
+  <nav class="pagination" aria-label="Pages">
+    <% if (pagination.page > 1) { %>
+      <a class="page-step" href="<%= link({ page: pagination.page - 1 }) %>" rel="prev"><%- icon('chevron-left', 'i-sm') %> <span>Previous</span></a>
+    <% } else { %>
+      <span class="page-step is-disabled" aria-hidden="true"><%- icon('chevron-left', 'i-sm') %> <span>Previous</span></span>
+    <% } %>
+    <% pageList.forEach(function (n) { %>
+      <% if (n === '…') { %>
+        <span class="page-gap" aria-hidden="true">…</span>
+      <% } else { %>
+        <a href="<%= link({ page: n === 1 ? '' : n }) %>" class="page-num <%= n === pagination.page ? 'is-current' : '' %>" <%- n === pagination.page ? 'aria-current="page"' : '' %> aria-label="Page <%= n %>"><%= n %></a>
+      <% } %>
+    <% }) %>
+    <% if (pagination.page < pagination.pages) { %>
+      <a class="page-step" href="<%= link({ page: pagination.page + 1 }) %>" rel="next"><span>Next</span> <%- icon('chevron-right', 'i-sm') %></a>
+    <% } else { %>
+      <span class="page-step is-disabled" aria-hidden="true"><span>Next</span> <%- icon('chevron-right', 'i-sm') %></span>
+    <% } %>
+  </nav>
+<% } %>

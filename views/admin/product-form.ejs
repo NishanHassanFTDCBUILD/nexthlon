@@ -1,0 +1,120 @@
+<%- include('../partials/head', { bodyClass: 'admin-body' }) %>
+
+<%
+  const isEdit = Boolean(product);
+  const p = product || { name: '', description: '', category: '', brand: '', price: '', mrp: '', stock: '', images: [], isListed: true };
+%>
+<div class="admin-shell">
+  <%- include('../partials/admin-sidebar') %>
+
+  <main id="main" class="admin-main">
+    <nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
+      <a href="/admin/products">Products</a> <%- icon('chevron-right', 'i-xs') %>
+      <span aria-current="page"><%= isEdit ? p.name : 'Add product' %></span>
+    </nav>
+    <header class="admin-top">
+      <div>
+        <span class="section-kicker"><%= isEdit ? 'Edit product' : 'New product' %></span>
+        <h1><%= isEdit ? p.name : 'Add a product' %></h1>
+        <p class="muted">
+          <% if (isEdit) { %>
+            <span class="pill <%= p.isListed ? 'pill-green' : 'pill-grey' %>"><%= p.isListed ? 'Listed in the store' : 'Unlisted' %></span>
+            <% if (p.isListed) { %>· <a href="/products/<%= p.slug %>">View in store <%- icon('chevron-right', 'i-xs') %></a><% } %>
+          <% } else { %>
+            The web address and discount are worked out for you when you save.
+          <% } %>
+        </p>
+      </div>
+    </header>
+
+    <form class="form product-form" data-product-form novalidate
+          data-endpoint="<%= isEdit ? '/api/admin/products/' + p.id : '/api/admin/products' %>"
+          data-method="<%= isEdit ? 'PATCH' : 'POST' %>">
+      <div class="form-alert" data-form-alert aria-live="assertive"></div>
+
+      <div class="product-form-grid">
+        <section class="panel" aria-labelledby="details-title">
+          <h2 id="details-title" class="panel-title">Details</h2>
+          <div class="form-grid form-grid-2">
+            <div class="field field-wide">
+              <label for="p-name">Product name</label>
+              <input id="p-name" name="name" required minlength="3" maxlength="120" value="<%= p.name %>" aria-describedby="p-name-error" placeholder="e.g. TrailFlex 2 Trail Running Shoes">
+              <p class="field-error" id="p-name-error" data-error-for="name"></p>
+            </div>
+            <div class="field">
+              <label for="p-category">Category</label>
+              <div class="select-wrap select-field">
+                <select id="p-category" name="category" required aria-describedby="p-category-error">
+                  <option value="">Choose a category</option>
+                  <% categories.forEach(function (name) { %>
+                    <option value="<%= name %>" <%= p.category === name ? 'selected' : '' %>><%= name %></option>
+                  <% }) %>
+                </select>
+                <%- icon('chevron-down', 'i-xs') %>
+              </div>
+              <p class="field-error" id="p-category-error" data-error-for="category"></p>
+            </div>
+            <div class="field">
+              <label for="p-brand">Brand <span class="optional">(optional)</span></label>
+              <input id="p-brand" name="brand" maxlength="60" value="<%= p.brand %>" placeholder="Nexthlon" aria-describedby="p-brand-error">
+              <p class="field-error" id="p-brand-error" data-error-for="brand"></p>
+            </div>
+            <div class="field field-wide">
+              <label for="p-description">Description <span class="optional">(optional)</span></label>
+              <textarea id="p-description" name="description" rows="6" maxlength="4000" aria-describedby="p-description-error"><%= p.description %></textarea>
+              <p class="field-error" id="p-description-error" data-error-for="description"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="pricing-title">
+          <h2 id="pricing-title" class="panel-title">Price and stock</h2>
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label for="p-price">Selling price (₹)</label>
+              <input id="p-price" name="price" type="number" inputmode="decimal" min="1" step="0.01" required value="<%= p.price %>" aria-describedby="p-price-error" data-price>
+              <p class="field-error" id="p-price-error" data-error-for="price"></p>
+            </div>
+            <div class="field">
+              <label for="p-mrp">M.R.P. (₹)</label>
+              <input id="p-mrp" name="mrp" type="number" inputmode="decimal" min="1" step="0.01" required value="<%= p.mrp %>" aria-describedby="p-mrp-error" data-mrp>
+              <p class="field-error" id="p-mrp-error" data-error-for="mrp"></p>
+            </div>
+            <div class="field">
+              <label for="p-stock">Stock</label>
+              <input id="p-stock" name="stock" type="number" inputmode="numeric" min="0" step="1" required value="<%= p.stock %>" aria-describedby="p-stock-error">
+              <p class="field-error" id="p-stock-error" data-error-for="stock"></p>
+            </div>
+            <div class="field">
+              <span class="field-label">Discount</span>
+              <p class="discount-preview" data-discount-preview aria-live="polite">—</p>
+              <p class="hint">Worked out from the price and M.R.P.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel product-images-panel" aria-labelledby="images-title">
+          <h2 id="images-title" class="panel-title">Photos</h2>
+          <p class="muted">Up to 4 JPG, PNG or WEBP images, 2 MB each. Choose which one is the main photo.</p>
+          <div class="image-manager" data-image-manager data-existing="<%= JSON.stringify(p.images) %>">
+            <ul class="image-tiles" data-image-tiles></ul>
+            <label class="image-add" data-image-add>
+              <input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple class="sr-only" data-image-input aria-describedby="p-images-error">
+              <span class="address-add-icon"><%- icon('plus', 'i-lg') %></span>
+              <strong>Add photos</strong>
+              <span data-image-count></span>
+            </label>
+          </div>
+          <p class="field-error" id="p-images-error" data-error-for="images"></p>
+        </section>
+      </div>
+
+      <div class="form-actions product-form-actions">
+        <a class="btn btn-ghost" href="/admin/products">Cancel</a>
+        <button class="btn btn-primary" type="submit"><%= isEdit ? 'Save changes' : 'Add product' %></button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<%- include('../partials/scripts', { scripts: ['admin-products'] }) %>

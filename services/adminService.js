@@ -17,11 +17,11 @@ async function getDashboardStats() {
     User.countDocuments({ role: "customer" }),
     User.countDocuments({ role: "customer", isBlocked: true }),
     User.countDocuments({ role: "customer", createdAt: { $gte: weekAgo } }),
-    Product.countDocuments({ isActive: true }),
-    Product.countDocuments({ isActive: true, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
-    Product.countDocuments({ isActive: true, stock: 0 }),
+    Product.countDocuments({ ...Product.LISTED }),
+    Product.countDocuments({ ...Product.LISTED, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
+    Product.countDocuments({ ...Product.LISTED, stock: 0 }),
     User.find({ role: "customer" }).sort({ createdAt: -1 }).limit(6).lean(),
-    Product.find({ isActive: true, stock: { $lte: LOW_STOCK_LIMIT } })
+    Product.find({ ...Product.LISTED, stock: { $lte: LOW_STOCK_LIMIT } })
       .sort({ stock: 1, name: 1 }).limit(6).select("name slug stock image category").lean()
   ]);
 

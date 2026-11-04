@@ -1,9 +1,12 @@
-const { INDIAN_STATES } = require("../config/catalog");
+const { INDIAN_STATES, CATEGORIES } = require("../config/catalog");
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^[6-9]\d{9}$/;
 const PINCODE = /^[1-9]\d{5}$/;
 const NAME = /^\p{L}[\p{L} .'-]*$/u;
+const MONEY = /^\d{1,8}(\.\d{1,2})?$/;
+const WHOLE = /^\d{1,6}$/;
+const MAX_PRICE = 10_000_000;
 
 function text(value) {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
@@ -103,11 +106,51 @@ function validateAddress(body = {}) {
   return { errors, value };
 }
 
+// Long text keeps its line breaks; only the ends are trimmed.
+function longText(value) {
+  return typeof value === "string" ? value.replace(/\r\n/g, "\n").trim() : "";
+}
+
+// Form fields arrive as text, so numbers are read from strings like "2999" or "2999.50".
+function readMoney(value) {
+  const raw = typeof value === "number" ? String(value) : text(value);
+  return MONEY.test(raw) ? Number(raw) : null;
+}
+
+// Admin product form. discountPercent and slug are never read from here; the server works them out.
+function validateProduct(body = {}) {
+  const errors = {};
+  const value = {
+    name: text(body.name),
+    description: longText(body.description),
+    category: text(body.category),
+    brand: text(body.brand) || "Nexthlon",
+    price: readMoney(body.price),
+    mrp: readMoney(body.mrp),
+    stock: null
+  };
+  const stockRaw = typeof body.stock === "number" ? String(body.stock) : text(body.stock);
+  if (WHOLE.test(stockRaw)) value.stock = Number(stockRaw);
+
+  if (value.name.length < 3 || value.name.length > 120) errors.name = "Enter a product name of 3 to 120 characters.";
+  if (value.description.length > 4000) errors.description = "Keep the description under 4000 characters.";
+  if (!CATEGORIES.includes(value.category)) errors.category = "Choose a category.";
+  if (value.brand.length > 60) errors.brand = "Keep the brand under 60 characters.";
+  if (value.price === null || value.price <= 0 || value.price > MAX_PRICE) {
+    errors.price = "Enter a price greater than 0 (up to 2 decimal places).";
+  }
+  if (value.mrp === null || value.mrp > MAX_PRICE) errors.mrp = "Enter the M.R.P. as a number.";
+  else if (value.price !== null && value.mrp < value.price) errors.mrp = "M.R.P. must be the same as or higher than the price.";
+  if (value.stock === null) errors.stock = "Enter stock as a whole number, 0 or more.";
+  return { errors, value };
+}
+
 module.exports = {
   hasErrors,
   validateSignup,
   validateLogin,
   validateProfile,
   validatePasswordChange,
-  validateAddress
+  validateAddress,
+  validateProduct
 };

@@ -8,3 +8,6 @@ coverage/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Product photos uploaded from the admin console
+public/uploads/

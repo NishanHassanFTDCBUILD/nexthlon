@@ -19,8 +19,10 @@
   // Calls our JSON API. The login cookie is sent automatically; the token is never readable here.
   Nx.api = async function api(url, options = {}) {
     const { method = "GET", body } = options;
+    // FormData (file uploads) sets its own multipart Content-Type; everything else is sent as JSON.
+    const isForm = typeof FormData !== "undefined" && body instanceof FormData;
     const headers = { Accept: "application/json" };
-    if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
 
     let response;
     try {
@@ -28,7 +30,7 @@
         method,
         headers,
         credentials: "same-origin",
-        body: body === undefined ? undefined : JSON.stringify(body)
+        body: body === undefined || isForm ? body : JSON.stringify(body)
       });
     } catch {
       const offline = new Error("We couldn't reach Nexthlon. Check your connection and try again.");

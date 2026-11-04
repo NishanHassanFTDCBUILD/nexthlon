@@ -10,6 +10,7 @@ const app = require("./app");
 const connectDB = require("./config/db");
 
 connectDB()
+  .then(() => require("./models/Product").migrateListedFlag())
   .then(() => {
     const server = app.listen(config.port, () => {
       console.log(`Nexthlon running at http://localhost:${config.port}`);

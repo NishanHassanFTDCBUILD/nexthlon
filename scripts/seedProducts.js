@@ -14,7 +14,7 @@ async function seedProducts() {
         $setOnInsert: {
           ...item,
           discountPercent: Product.discountFor(item.price, item.mrp),
-          isActive: true
+          isListed: true
         }
       },
       upsert: true
