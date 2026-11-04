@@ -1,0 +1,10 @@
+const mongoose = require("mongoose");
+
+// One wallet per customer. The balance is in paise and only ever changes through
+// services/walletService.js, which writes a WalletTransaction for every change.
+const walletSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+  balance: { type: Number, default: 0, min: 0, validate: Number.isInteger }
+}, { timestamps: true });
+
+module.exports = mongoose.model("Wallet", walletSchema);

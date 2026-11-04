@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const stockService = require("./stockService");
+const couponService = require("./couponService");
+const refundService = require("./refundService");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
 const { STORE } = require("../config/store");
@@ -16,9 +18,8 @@ const LIST_FILTERS = {
 };
 const PERIODS = { all: null, "30d": 30, "6m": 183, "1y": 365 };
 
-// Refunds are paid out by the payments/wallet code, which registers itself here, so the
-// order rules do not depend on how money moves. Unpaid (Cash on Delivery) orders need none.
-let refundHandler = null;
+// Refunds go through refundService (to the wallet, or back to the card/UPI). Tests can swap it.
+let refundHandler = (order, amount, options) => refundService.issueRefund(order, amount, options);
 function setRefundHandler(handler) {
   refundHandler = handler;
 }
@@ -64,9 +65,11 @@ function settleStatus(order, by, note) {
   }
 }
 
-// Cancels these items: stock goes back, and paid money is refunded.
+// Cancels these items: stock goes back, what is left to pay goes down, and money already paid
+// (online or from the wallet) is refunded. A fully cancelled order gives its coupon use back.
 async function cancelItems(order, items, { reason = "", by = "customer", refundMethod = "wallet" } = {}) {
-  const refund = order.paymentStatus === "paid" ? rules.refundFor(order, items.map(item => item._id)) : 0;
+  const { refund, dueReduction } = rules.settlementFor(order, items.map(item => item._id));
+  if (dueReduction > 0) order.total -= dueReduction;
   for (const item of items) {
     item.status = "cancelled";
     item.cancelReason = reason;
@@ -76,10 +79,15 @@ async function cancelItems(order, items, { reason = "", by = "customer", refundM
   }
   settleStatus(order, by, reason);
   if (order.orderStatus === "cancelled") order.cancelReason = reason;
+  // Cash on delivery whose remaining items the wallet already covers: nothing is left to collect.
+  if (order.paymentMethod === "cod" && order.paymentStatus === "pending" && order.total === 0 && order.orderStatus !== "cancelled") {
+    order.paymentStatus = "paid";
+  }
   if (order.stockReserved) {
     await stockService.returnStock(items.map(item => ({ product: item.product, quantity: item.quantity })));
   }
   await order.save();
+  if (order.orderStatus === "cancelled" && order.couponCode) await couponService.release(order._id);
   if (refund > 0 && refundHandler) await refundHandler(order, refund, { method: refundMethod, reason: `Cancelled: ${reason || "by request"}` });
   return order;
 }
@@ -96,6 +104,9 @@ async function cancelItem(userId, orderId, itemId, { reason, refundMethod } = {}
   const item = mongoose.isValidObjectId(itemId) ? order.items.id(itemId) : null;
   if (!item) throw new HttpError(404, "That item is not in this order.");
   if (!rules.canCancelItem(item)) throw new HttpError(400, `${item.name} can no longer be cancelled.`);
+  const unpaidOnline = order.paymentMethod === "razorpay" && !rules.PAID_STATUSES.includes(order.paymentStatus);
+  const others = order.items.filter(line => line !== item && line.status !== "cancelled");
+  if (unpaidOnline && others.length) throw new HttpError(400, "This order is not paid yet. Pay for it, or cancel the whole order.");
   return cancelItems(order, [item], { reason, by: "customer", refundMethod });
 }
 

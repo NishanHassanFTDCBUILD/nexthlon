@@ -9,7 +9,9 @@ const cartItemSchema = new mongoose.Schema({
 
 const cartSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
-  items: { type: [cartItemSchema], default: [] }
+  items: { type: [cartItemSchema], default: [] },
+  // The coupon chosen at checkout. It is checked again every time the totals are worked out.
+  couponCode: { type: String, default: "" }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Cart", cartSchema);

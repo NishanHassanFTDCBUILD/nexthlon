@@ -50,6 +50,12 @@
           <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required maxlength="64" aria-describedby="confirmPassword-error">
           <p class="field-error" id="confirmPassword-error" data-error-for="confirmPassword"></p>
         </div>
+        <div class="field">
+          <label for="referralCode">Referral code <span class="muted">(optional)</span></label>
+          <input id="referralCode" name="referralCode" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" value="<%= referralCode %>" aria-describedby="referralCode-hint referralCode-error" placeholder="e.g. ASHA7K2P">
+          <p class="hint" id="referralCode-hint"><%- icon('gift', 'i-xs') %> <%= referralReward > 0 ? 'Got a code from a friend? You both get ' + formatPrice(referralReward) + ' in your wallets.' : 'Got a code from a friend? Enter it here.' %></p>
+          <p class="field-error" id="referralCode-error" data-error-for="referralCode"></p>
+        </div>
         <button class="btn btn-primary btn-block btn-lg" type="submit">Create account</button>
       </form>
 

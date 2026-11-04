@@ -65,10 +65,11 @@ function nextStatuses(current) {
   return FLOW.slice(at + 1);
 }
 
-// The money to give back when these items are cancelled or returned. Each item gives back
-// what was paid for it: its line total, less its fair share of any coupon. When the last
-// active items go, the delivery fee goes back too.
-function refundFor(order, itemIds) {
+const PAID_STATUSES = ["paid", "partially_refunded", "refunded"];
+
+// What these items are worth on this order: each item's line total, less its fair share of
+// any coupon. When the last active items go, the delivery fee goes with them.
+function itemsValue(order, itemIds) {
   const ids = itemIds.map(String);
   const chosen = order.items.filter(item => ids.includes(String(item._id)));
   const subtotal = order.subtotal || 1;
@@ -79,9 +80,28 @@ function refundFor(order, itemIds) {
   }
   const stillActive = order.items.filter(item => !["cancelled", "returned"].includes(item.status) && !ids.includes(String(item._id)));
   if (!stillActive.length) amount += order.deliveryFee || 0;
-  // Never more than what is left of the amount actually paid.
+  return amount;
+}
+
+// The money to give back when these items of a PAID order are cancelled or returned.
+// Never more than what is left of the amount actually paid.
+function refundFor(order, itemIds) {
   const paid = (order.total || 0) + (order.walletUsed || 0);
-  return Math.max(0, Math.min(amount, paid - (order.refundedAmount || 0)));
+  return Math.max(0, Math.min(itemsValue(order, itemIds), paid - (order.refundedAmount || 0)));
+}
+
+// What cancelling these items settles, for any order:
+//   dueReduction  how much less is left to collect (cash on delivery not paid yet)
+//   refund        money back to the customer, for what was already paid (online or wallet)
+// An unpaid order first lowers what is still to pay; only what the wallet already covered
+// beyond that comes back.
+function settlementFor(order, itemIds) {
+  const value = itemsValue(order, itemIds);
+  const paidAll = PAID_STATUSES.includes(order.paymentStatus);
+  const paidSoFar = (order.walletUsed || 0) + (paidAll ? order.total || 0 : 0);
+  const dueReduction = paidAll ? 0 : Math.min(value, order.total || 0);
+  const refund = Math.max(0, Math.min(value - dueReduction, paidSoFar - (order.refundedAmount || 0)));
+  return { refund, dueReduction };
 }
 
 module.exports = {
@@ -90,6 +110,7 @@ module.exports = {
   CANCELLABLE,
   PAYMENT_STATUSES,
   COD_LIMIT,
+  PAID_STATUSES,
   STATUS_LABELS,
   RETURN_REASONS,
   CANCEL_REASONS,
@@ -97,5 +118,7 @@ module.exports = {
   deriveOrderStatus,
   canRequestReturn,
   nextStatuses,
-  refundFor
+  itemsValue,
+  refundFor,
+  settlementFor
 };

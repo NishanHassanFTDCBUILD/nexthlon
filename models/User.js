@@ -9,8 +9,13 @@ const userSchema = new mongoose.Schema({
   isBlocked: { type: Boolean, default: false, index: true },
   // Copied into every token. Changing the password adds 1, so all older tokens stop working.
   tokenVersion: { type: Number, default: 0 },
-  lastLoginAt: { type: Date, default: null }
+  lastLoginAt: { type: Date, default: null },
+  // Every customer has a code to invite friends; referredBy is set once, at sign-up.
+  referralCode: { type: String, uppercase: true, trim: true },
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }
 }, { timestamps: true });
+
+userSchema.index({ referralCode: 1 }, { unique: true, sparse: true });
 
 // The only user fields that are ever sent to the browser.
 userSchema.methods.toSafeJSON = function toSafeJSON() {
@@ -21,6 +26,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     phone: this.phone,
     role: this.role,
     isBlocked: this.isBlocked,
+    referralCode: this.referralCode || "",
     createdAt: this.createdAt
   };
 };

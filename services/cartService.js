@@ -3,14 +3,9 @@ const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const { HttpError } = require("../utils/http");
 const { STORE } = require("../config/store");
+const { deliveryFeeFor } = require("../utils/pricing");
 
 const MAX_PER_PRODUCT = 5;
-
-// Delivery is free from ₹499 (STORE.freeDeliveryMin); below that a flat fee applies. Paise.
-function deliveryFeeFor(subtotal) {
-  if (subtotal <= 0) return 0;
-  return subtotal >= STORE.freeDeliveryMin ? 0 : STORE.deliveryFee;
-}
 
 // Hidden products, and products in hidden categories, count as no longer sold.
 function isSold(product) {
@@ -108,9 +103,10 @@ async function findOrCreateCart(userId) {
 
 // Loads the cart with live product data. Deleted products are dropped, and quantities above
 // the current stock are lowered, so the stored cart always follows the rules.
+// couponCode is the coupon chosen at checkout (checked again by checkoutService).
 async function getCart(userId) {
   const cart = await Cart.findOne({ user: userId }).populate("items.product");
-  if (!cart) return buildCartView([]);
+  if (!cart) return { ...buildCartView([]), couponCode: "" };
 
   let changed = false;
   const kept = cart.items.filter(item => item.product);
@@ -125,7 +121,7 @@ async function getCart(userId) {
     cart.items = kept;
     await cart.save();
   }
-  return buildCartView(cart.items);
+  return { ...buildCartView(cart.items), couponCode: cart.couponCode || "" };
 }
 
 // The number shown on the header cart icon.
@@ -180,7 +176,7 @@ async function removeItem(userId, productId) {
 }
 
 async function clearCart(userId) {
-  await Cart.updateOne({ user: userId }, { $set: { items: [] } });
+  await Cart.updateOne({ user: userId }, { $set: { items: [], couponCode: "" } });
   return buildCartView([]);
 }
 

@@ -100,3 +100,11 @@
   .js-motion img.is-loading { opacity: 0; }
   .js-motion img.is-loaded { transition: opacity 0.6s var(--motion-ease), transform 0.5s var(--ease); }
 }
+
+/* ---------- Checkout step transition and coupon pop ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .js-motion .step-body.step-enter { animation: nx-step-in 0.42s var(--motion-ease) both; }
+  @keyframes nx-step-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+  .js-motion .coupon-applied.is-popped { animation: nx-coupon-pop 0.5s var(--motion-spring); }
+  @keyframes nx-coupon-pop { 0% { transform: scale(0.94); opacity: 0.4; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: none; } }
+}

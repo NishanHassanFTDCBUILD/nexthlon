@@ -12,20 +12,13 @@ function readIds(body = {}) {
   return { razorpayOrderId, razorpayPaymentId, signature };
 }
 
-// Extras such as a coupon or the wallet are read by the checkout service (added with Phase 6).
-function readExtras(body = {}) {
-  return {
-    couponCode: typeof body.couponCode === "string" ? body.couponCode : "",
-    useWallet: body.useWallet === true || body.useWallet === "true"
-  };
-}
-
-// POST /api/payments/razorpay/order   body: { addressId }
-// Returns ONLY key_id, the Razorpay order id, the amount (paise) and the currency.
+// POST /api/payments/razorpay/order   body: { addressId, useWallet? }
+// The coupon is the one chosen on the cart. Returns ONLY key_id, the Razorpay order id,
+// the amount (paise) and the currency.
 const createOrder = asyncHandler(async (req, res) => {
   const { errors, value } = validatePlaceOrder({ ...req.body, paymentMethod: "razorpay" });
   if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);
-  const { checkout } = await paymentService.createPaymentOrder(req.user._id, { addressId: value.addressId, extras: readExtras(req.body) });
+  const { checkout } = await paymentService.createPaymentOrder(req.user._id, { addressId: value.addressId, useWallet: value.useWallet });
   res.status(201).json(checkout);
 });
 

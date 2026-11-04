@@ -1,25 +1,11 @@
-const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const { HttpError } = require("../utils/http");
+const { supportsTransactions, inTransaction } = require("../utils/transaction");
 
 // Taking stock is ATOMIC per product: "$inc stock by -qty, but only if stock >= qty" is one
 // database operation, so two shoppers can never both buy the last item and stock never goes
 // below 0. Several products are taken inside a MongoDB transaction when the server supports it
 // (a replica set); on a single server, the ones already taken are put back if a later one fails.
-
-let transactionSupport = null;
-
-async function supportsTransactions() {
-  if (transactionSupport === null) {
-    try {
-      const hello = await mongoose.connection.db.admin().command({ hello: 1 });
-      transactionSupport = Boolean(hello.setName || hello.msg === "isdbgrid");
-    } catch {
-      transactionSupport = false;
-    }
-  }
-  return transactionSupport;
-}
 
 // lines: [{ product: id, quantity, name }]
 async function takeStock(lines, session = null) {
@@ -50,29 +36,14 @@ async function returnStock(lines, session = null) {
   }
 }
 
-// Takes the stock, then runs work(session). If work fails, the stock is given back:
-// by the transaction rolling back, or by hand on a single server.
+// Takes the stock, then runs work(session, undo). If work fails, the stock is given back:
+// by the transaction rolling back, or by the undo step on a single server.
 async function withStock(lines, work) {
-  if (await supportsTransactions()) {
-    const session = await mongoose.startSession();
-    try {
-      let result;
-      await session.withTransaction(async () => {
-        await takeStock(lines, session);
-        result = await work(session);
-      });
-      return result;
-    } finally {
-      await session.endSession();
-    }
-  }
-  await takeStock(lines);
-  try {
-    return await work(null);
-  } catch (error) {
-    await returnStock(lines);
-    throw error;
-  }
+  return inTransaction(async (session, undo) => {
+    await takeStock(lines, session);
+    undo(() => returnStock(lines));
+    return work(session, undo);
+  });
 }
 
 module.exports = { supportsTransactions, takeStock, returnStock, withStock };

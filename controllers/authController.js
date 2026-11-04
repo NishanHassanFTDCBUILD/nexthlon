@@ -2,6 +2,7 @@ const authService = require("../services/authService");
 const { signToken, setAuthCookie, clearAuthCookie } = require("../services/tokenService");
 const { validateSignup, validateLogin, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
+const { formatPaise } = require("../utils/money");
 
 // Issues the JWT, stores it in the httpOnly cookie, and also returns it for API tools like Postman.
 function sendSignedIn(res, user, status, message) {
@@ -15,7 +16,8 @@ const signup = asyncHandler(async (req, res) => {
   const { errors, value } = validateSignup(req.body);
   if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
   const user = await authService.registerCustomer(value);
-  sendSignedIn(res, user, 201, "Welcome to Nexthlon! Your account is ready.");
+  const bonus = user.referralReward ? ` ${formatPaise(user.referralReward)} has been added to your wallet.` : "";
+  sendSignedIn(res, user, 201, `Welcome to Nexthlon! Your account is ready.${bonus}`);
 });
 
 // POST /api/login

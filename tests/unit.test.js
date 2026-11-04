@@ -16,7 +16,9 @@ test("signup validation catches every bad field", () => {
 test("signup validation cleans good input", () => {
   const { errors, value } = v.validateSignup({ name: "  Asha   Nair ", email: " ASHA@Example.com ", password: "trail2024", confirmPassword: "trail2024" });
   assert.equal(v.hasErrors(errors), false);
-  assert.deepEqual(value, { name: "Asha Nair", email: "asha@example.com", password: "trail2024" });
+  assert.deepEqual(value, { name: "Asha Nair", email: "asha@example.com", password: "trail2024", referralCode: "" });
+  assert.equal(v.validateSignup({ name: "Asha", email: "a@b.co", password: "trail2024", referralCode: " asha 7k2p " }).value.referralCode, "ASHA7K2P");
+  assert.ok(v.validateSignup({ name: "Asha", email: "a@b.co", password: "trail2024", referralCode: "x!" }).errors.referralCode);
 });
 
 test("passwords need a letter and a number", () => {

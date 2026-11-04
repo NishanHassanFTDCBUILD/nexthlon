@@ -49,7 +49,10 @@ function validateSignup(body = {}) {
   if (body.confirmPassword !== undefined && body.confirmPassword !== password) {
     errors.confirmPassword = "Passwords do not match.";
   }
-  return { errors, value: { name, email, password } };
+  // Optional: a friend's referral code. Whether it exists is checked by the referral service.
+  const referralCode = text(body.referralCode).replace(/\s+/g, "").toUpperCase();
+  if (referralCode && !/^[A-Z0-9]{6,12}$/.test(referralCode)) errors.referralCode = "A referral code has 6 to 12 letters and numbers.";
+  return { errors, value: { name, email, password, referralCode } };
 }
 
 function validateLogin(body = {}) {
@@ -233,10 +236,15 @@ function readIdList(raw, max = 50) {
   return ids;
 }
 
-// Checkout: only which address and how to pay. Prices and totals are worked out on the server.
+function readFlag(value) {
+  return value === true || value === "true" || value === "1" || value === 1;
+}
+
+// Checkout: which address, how to pay and whether to use the wallet. Prices, the coupon and
+// every total are worked out on the server.
 function validatePlaceOrder(body = {}) {
   const errors = {};
-  const value = { addressId: text(body.addressId), paymentMethod: text(body.paymentMethod) };
+  const value = { addressId: text(body.addressId), paymentMethod: text(body.paymentMethod), useWallet: readFlag(body.useWallet) };
   if (!OBJECT_ID.test(value.addressId)) errors.addressId = "Choose a delivery address.";
   if (!value.paymentMethod) errors.paymentMethod = "Choose a payment method.";
   return { errors, value };
@@ -256,8 +264,19 @@ function validateReturn(body = {}) {
   return { errors, value };
 }
 
+// Admin: the referral reward in rupees (0 turns referrals off).
+function validateReferralSetting(body = {}) {
+  const errors = {};
+  const raw = typeof body.referralReward === "number" ? String(body.referralReward) : text(body.referralReward);
+  const referralReward = /^\d{1,4}$/.test(raw) ? rupeesToPaise(raw) : NaN;
+  if (!Number.isInteger(referralReward) || referralReward > 100000) errors.referralReward = "Enter a whole amount from ₹0 to ₹1,000.";
+  return { errors, value: { referralReward } };
+}
+
 module.exports = {
   hasErrors,
+  readFlag,
+  validateReferralSetting,
   validatePlaceOrder,
   validateCancel,
   validateReturn,

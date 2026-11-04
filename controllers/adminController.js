@@ -1,4 +1,6 @@
 const adminService = require("../services/adminService");
+const settingsService = require("../services/settingsService");
+const { validateReferralSetting, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 
 // GET /api/admin/dashboard
@@ -26,4 +28,17 @@ const setCustomerBlocked = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { dashboard, listCustomers, setCustomerBlocked };
+// GET /api/admin/settings   Store settings (amounts in paise).
+const getSettings = asyncHandler(async (req, res) => {
+  res.json({ settings: await settingsService.getAll() });
+});
+
+// PATCH /api/admin/settings/referral   body: { referralReward } in rupees, 0 to 1000.
+const updateReferral = asyncHandler(async (req, res) => {
+  const { errors, value } = validateReferralSetting(req.body);
+  if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);
+  const settings = await settingsService.set("referralReward", value.referralReward);
+  res.json({ message: value.referralReward ? "Referral reward saved." : "Referral rewards are turned off.", settings });
+});
+
+module.exports = { dashboard, listCustomers, setCustomerBlocked, getSettings, updateReferral };

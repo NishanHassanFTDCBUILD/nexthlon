@@ -1,6 +1,6 @@
 const checkoutService = require("../services/checkoutService");
 const orderService = require("../services/orderService");
-const { validatePlaceOrder, validateCancel, validateReturn, hasErrors } = require("../utils/validators");
+const { validatePlaceOrder, validateCancel, validateReturn, readFlag, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { STATUS_LABELS } = require("../utils/orderRules");
 
@@ -44,13 +44,14 @@ function toPublicOrder(order) {
   };
 }
 
-// POST /api/checkout/quote   The order as it would be placed now, from live prices.
+// POST /api/checkout/quote   body: { useWallet? }
+// The order as it would be placed now: live prices, the cart's coupon and the wallet balance.
 const quote = asyncHandler(async (req, res) => {
-  const result = await checkoutService.buildQuote(req.user._id);
-  res.json({ quote: { totals: result.totals, problems: result.problems, codAllowed: result.codAllowed, codLimit: result.codLimit, itemCount: result.lines.length } });
+  const result = await checkoutService.buildQuote(req.user._id, { useWallet: readFlag(req.body && req.body.useWallet) });
+  res.json({ quote: checkoutService.publicQuote(result) });
 });
 
-// POST /api/orders   body: { addressId, paymentMethod: "cod" }
+// POST /api/orders   body: { addressId, paymentMethod: "cod" | "wallet", useWallet? }
 const placeOrder = asyncHandler(async (req, res) => {
   const value = checked(validatePlaceOrder, req.body);
   const order = await checkoutService.placeOrder(req.user._id, value);

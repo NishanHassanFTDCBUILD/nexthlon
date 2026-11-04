@@ -84,6 +84,23 @@
       <% } %>
     </section>
 
+    <section class="panel settings-panel" data-reveal aria-labelledby="referral-title">
+      <div class="panel-head panel-head-row">
+        <h2 id="referral-title"><%- icon('gift', 'i-sm') %> Referral reward</h2>
+        <span class="muted">Credited to both wallets when a new customer signs up with a code</span>
+      </div>
+      <form class="form settings-form" data-referral-form novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <div class="field">
+          <label for="referralReward">Reward for each person (₹)</label>
+          <input id="referralReward" name="referralReward" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.referralReward / 100 %>" aria-describedby="referralReward-hint referralReward-error">
+          <p class="hint" id="referralReward-hint">0 turns referral rewards off. Each new customer can be rewarded only once.</p>
+          <p class="field-error" id="referralReward-error" data-error-for="referralReward"></p>
+        </div>
+        <button class="btn btn-primary" type="submit">Save reward</button>
+      </form>
+    </section>
+
     <div class="admin-panels">
       <section class="panel panel-flush" data-reveal aria-labelledby="newest-title">
         <div class="panel-head panel-head-row">
@@ -137,4 +154,4 @@
   </main>
 </div>
 
-<%- include('../partials/scripts') %>
+<%- include('../partials/scripts', { scripts: ['admin-settings'] }) %>

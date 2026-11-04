@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { dashboard, listCustomers, setCustomerBlocked } = require("../controllers/adminController");
+const { dashboard, listCustomers, setCustomerBlocked, getSettings, updateReferral } = require("../controllers/adminController");
 const products = require("../controllers/adminProductController");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { productImages } = require("../middleware/upload");
@@ -9,6 +9,8 @@ router.use(requireAuth, requireRole("admin"));
 router.get("/dashboard", dashboard);
 router.get("/customers", listCustomers);
 router.patch("/customers/:userId/block", setCustomerBlocked);
+router.get("/settings", getSettings);
+router.patch("/settings/referral", updateReferral);
 
 // Products. Uploads are read only after the admin check above, so guests cannot send files.
 router.get("/products", products.listProducts);

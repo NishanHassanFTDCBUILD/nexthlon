@@ -10,6 +10,9 @@ const checkoutService = require("../services/checkoutService");
 const orderService = require("../services/orderService");
 const invoiceService = require("../services/invoiceService");
 const razorpayService = require("../services/razorpayService");
+const walletService = require("../services/walletService");
+const referralService = require("../services/referralService");
+const settingsService = require("../services/settingsService");
 const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
 const { CONTACT_TOPICS, STORE } = require("../config/store");
@@ -123,9 +126,25 @@ function login(req, res) {
   });
 }
 
-function signup(req, res) {
-  res.render("pages/signup", { title: "Create your account | Nexthlon", next: safeNextPath(req.query.next, "/") });
-}
+// /signup?ref=CODE fills in a friend's referral code.
+const signup = asyncHandler(async (req, res) => {
+  const ref = referralService.normaliseCode(req.query.ref);
+  res.render("pages/signup", {
+    title: "Create your account | Nexthlon",
+    next: safeNextPath(req.query.next, "/"),
+    referralCode: referralService.CODE.test(ref) ? ref : "",
+    referralReward: await settingsService.get("referralReward")
+  });
+});
+
+const wallet = asyncHandler(async (req, res) => {
+  const [data, referral] = await Promise.all([
+    walletService.getWallet(req.user._id, req.query),
+    referralService.getReferral(req.user, `${req.protocol}://${req.get("host")}`)
+  ]);
+  const link = linkBuilder("/wallet", { type: data.filters.type === "all" ? "" : data.filters.type });
+  res.render("pages/wallet", { title: "Your wallet | Nexthlon", ...data, referral, link });
+});
 
 const profile = asyncHandler(async (req, res) => {
   const addresses = await profileService.listAddresses(req.user._id);
@@ -194,8 +213,8 @@ function adminLogin(req, res) {
 }
 
 const adminDashboard = asyncHandler(async (req, res) => {
-  const data = await adminService.getDashboardStats();
-  res.render("admin/dashboard", { title: "Dashboard | Nexthlon Admin", ...data });
+  const [data, settings] = await Promise.all([adminService.getDashboardStats(), settingsService.getAll()]);
+  res.render("admin/dashboard", { title: "Dashboard | Nexthlon Admin", ...data, settings });
 });
 
 const adminUsers = asyncHandler(async (req, res) => {
@@ -245,6 +264,7 @@ module.exports = {
   cart,
   checkout,
   orders,
+  wallet,
   orderDetail,
   orderSuccess,
   orderInvoice,

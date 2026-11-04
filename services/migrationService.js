@@ -3,6 +3,7 @@
 const Product = require("../models/Product");
 const Cart = require("../models/Cart");
 const categoryService = require("./categoryService");
+const referralService = require("./referralService");
 
 async function runMigrations() {
   await Product.migrateListedFlag();
@@ -11,6 +12,8 @@ async function runMigrations() {
   // Carts no longer keep the price at the time of adding; prices always come from the product.
   await Cart.collection.updateMany({ "items.priceAtAdd": { $exists: true } }, { $unset: { "items.$[].priceAtAdd": "" } });
   await Product.syncIndexes();
+  // Customers who joined before referrals existed get their own code.
+  await referralService.migrateCodes();
 }
 
 module.exports = { runMigrations };

@@ -12,13 +12,12 @@ const Product = require("../models/Product");
 const config = require("../config/env");
 const checkoutService = require("./checkoutService");
 const stockService = require("./stockService");
-const refundService = require("./refundService");
 const orderService = require("./orderService");
+const couponService = require("./couponService");
+const walletService = require("./walletService");
 const razorpay = require("./razorpayService");
 const { HttpError } = require("../utils/http");
-
-// Refunds for cancelled or returned items of paid orders go through refundService.
-orderService.setRefundHandler((order, amount, options) => refundService.issueRefund(order, amount, options));
+const { inTransaction } = require("../utils/transaction");
 
 function checkoutPayload(order, razorpayOrder) {
   // ONLY what Razorpay Checkout needs. Never the key secret.
@@ -41,31 +40,41 @@ async function attachRazorpayOrder(order) {
   return checkoutPayload(order, razorpayOrder);
 }
 
-// Step 1. Builds the order from the cart with server prices and saves it unpaid.
+// Undoes an order that never reached Razorpay: the coupon use and any wallet amount go back,
+// and the order is removed so it does not clutter the list.
+async function discardUnpaidOrder(order) {
+  const removed = await Order.deleteOne({ _id: order._id, paymentStatus: "pending", "razorpay.orderId": "" });
+  if (!removed.deletedCount) return;
+  await couponService.release(order._id);
+  if (order.walletUsed > 0) {
+    await walletService.credit(order.user, order.walletUsed, { kind: "refund", reason: `Order ${order.orderId} was not placed`, orderId: order.orderId, key: `unplaced:${order._id}` });
+  }
+}
+
+// Step 1. Builds the order from the cart with server prices and saves it unpaid. The coupon use
+// and any wallet part are taken now (inside one transaction), and the rest is paid online.
 // Stock is taken only when the payment succeeds; the cart stays until then.
-async function createPaymentOrder(userId, { addressId, extras = null }) {
+async function createPaymentOrder(userId, { addressId, useWallet = false }) {
   if (!razorpay.isEnabled()) throw new HttpError(503, "Online payment is not available right now. Please choose Cash on Delivery.");
   const address = await checkoutService.findAddress(userId, addressId);
-  const quote = await checkoutService.buildQuote(userId, extras || {});
+  const quote = await checkoutService.buildQuote(userId, { useWallet });
   checkoutService.assertOrderable(quote);
-  if (quote.totals.total <= 0) throw new HttpError(400, "Nothing is left to pay online. Choose another payment method.");
-  const order = await Order.create({
-    orderId: await checkoutService.nextOrderId(),
-    user: userId,
-    items: checkoutService.itemSnapshots(quote.lines),
-    address: checkoutService.addressSnapshot(address),
-    ...quote.totals,
+  if (quote.totals.total <= 0) throw new HttpError(400, "Your wallet covers this order, so there is nothing to pay online. Choose \"Pay with wallet\".");
+  const orderId = await checkoutService.nextOrderId();
+  const order = await inTransaction((session, undo) => checkoutService.saveOrder({
+    userId,
+    orderId,
+    quote,
+    address,
     paymentMethod: "razorpay",
     paymentStatus: "pending",
-    orderStatus: "placed",
     stockReserved: false,
-    statusHistory: [{ status: "placed", by: "customer", note: "Waiting for online payment" }]
-  });
+    note: quote.totals.walletUsed ? "Part paid from the wallet, waiting for online payment" : "Waiting for online payment"
+  }, session, undo));
   try {
     return { order, checkout: await attachRazorpayOrder(order) };
   } catch (error) {
-    // Nothing was paid or reserved: drop the unpaid order so it does not clutter the list.
-    await Order.deleteOne({ _id: order._id, paymentStatus: "pending", "razorpay.orderId": "" });
+    await discardUnpaidOrder(order);
     throw error;
   }
 }
@@ -112,7 +121,9 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
     return Order.findById(claimed._id);
   }
   const productIds = lines.map(line => line.product);
-  await Cart.updateOne({ user: claimed.user }, { $pull: { items: { product: { $in: productIds } } } });
+  const cartChange = { $pull: { items: { product: { $in: productIds } } } };
+  if (claimed.couponCode) cartChange.$set = { couponCode: "" };
+  await Cart.updateOne({ user: claimed.user }, cartChange);
   return Order.findById(claimed._id);
 }
 

@@ -10,6 +10,7 @@
     "stop": "taskkill /F /IM node.exe",
     "seed:admin": "node scripts/seedAdmin.js",
     "seed:products": "node scripts/seedProducts.js",
+    "seed:coupons": "node scripts/seedCoupons.js",
     "test": "node --test"
   },
   "engines": {

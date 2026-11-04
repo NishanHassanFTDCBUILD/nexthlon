@@ -1148,3 +1148,301 @@ test("a payment gateway error gives a clear message and leaves no stray order", 
   assert.match(res.data.message, /Cash on Delivery/);
   assert.equal(await Order.countDocuments({ user: payer.user._id }), before);
 });
+
+
+// ---------- Phase 6: wallet, coupons and referrals ----------
+const Coupon = require("../models/Coupon");
+const CouponRedemption = require("../models/CouponRedemption");
+const Wallet = require("../models/Wallet");
+const WalletTransaction = require("../models/WalletTransaction");
+const walletService = require("../services/walletService");
+const referralService = require("../services/referralService");
+
+const balanceOf = async user => walletService.getBalance(user._id);
+async function adminCookie() {
+  return (await call("POST", "/api/admin/login", { body: { email: "admin@nexthlon.test", password: "AdminPass123" } })).cookie;
+}
+async function emptyCart(customer) {
+  await Cart.updateOne({ user: customer.user._id }, { $set: { items: [], couponCode: "" } });
+}
+
+test("referrals: a code for everyone, both wallets credited once, bad codes refused, reward set by the admin", async () => {
+  const inviter = await newCustomer("Riya Kapoor", "riya.ref@nexthlon.test");
+  const wallet = await call("GET", "/api/wallet", { cookie: inviter.cookie });
+  assert.equal(wallet.status, 200);
+  const code = wallet.data.referral.code;
+  assert.match(code, /^RIYA[A-Z2-9]{4}$/);
+  assert.match(wallet.data.referral.link, new RegExp(`/signup\\?ref=${code}$`));
+  assert.equal(wallet.data.balance, 0);
+
+  const bad = await call("POST", "/api/signup", { body: { name: "Nope", email: "nope-ref@nexthlon.test", password: "order2024", referralCode: "ZZZZZZZZ" } });
+  assert.equal(bad.status, 400);
+  assert.ok(bad.data.errors.referralCode);
+  assert.equal(await User.countDocuments({ email: "nope-ref@nexthlon.test" }), 0);
+
+  // The sign-up page fills the code in from the invite link.
+  assert.match((await call("GET", `/signup?ref=${code.toLowerCase()}`)).data, new RegExp(`value="${code}"`));
+
+  const joined = await call("POST", "/api/signup", { body: { name: "Kabir Rao", email: "kabir.ref@nexthlon.test", password: "order2024", referralCode: code.toLowerCase() } });
+  assert.equal(joined.status, 201);
+  assert.match(joined.data.message, /₹100 has been added to your wallet/);
+  const kabir = await User.findOne({ email: "kabir.ref@nexthlon.test" });
+  assert.equal(String(kabir.referredBy), String(inviter.user._id));
+  assert.equal(await balanceOf(kabir), 10000);
+  assert.equal(await balanceOf(inviter.user), 10000);
+
+  // Running the reward again (a retry, a double click) never pays twice.
+  await referralService.rewardSignup(kabir, inviter.user);
+  assert.equal(await balanceOf(kabir), 10000);
+  assert.equal(await balanceOf(inviter.user), 10000);
+  const history = await call("GET", "/api/wallet", { cookie: inviter.cookie });
+  assert.equal(history.data.transactions.length, 1);
+  assert.equal(history.data.transactions[0].kind, "referral");
+  assert.equal(history.data.transactions[0].balanceAfter, 10000);
+  assert.equal(history.data.referral.joined, 1);
+
+  // Only admins change the reward.
+  assert.equal((await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 50 }, cookie: inviter.cookie })).status, 403);
+  const admin = await adminCookie();
+  assert.equal((await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 5000 }, cookie: admin })).status, 400);
+  const saved = await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: "50" }, cookie: admin });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.data.settings.referralReward, 5000);
+  const meera = await call("POST", "/api/signup", { body: { name: "Meera Iyer", email: "meera.ref@nexthlon.test", password: "order2024", referralCode: code } });
+  assert.equal(meera.status, 201, JSON.stringify(meera.data));
+  assert.equal(await balanceOf(inviter.user), 15000);
+  assert.equal(await balanceOf(await User.findOne({ email: "meera.ref@nexthlon.test" })), 5000);
+  // 0 turns rewards off.
+  await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 0 }, cookie: admin });
+  await call("POST", "/api/signup", { body: { name: "Dev Shah", email: "dev.ref@nexthlon.test", password: "order2024", referralCode: code } });
+  assert.equal(await balanceOf(inviter.user), 15000);
+  await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 100 }, cookie: admin });
+
+  // The wallet page renders the balance, the code and the history, with an empty state for filters.
+  const page = await call("GET", "/wallet", { cookie: inviter.cookie });
+  assert.equal(page.status, 200);
+  assert.match(page.data, /₹150/);
+  assert.match(page.data, new RegExp(code));
+  assert.match((await call("GET", "/wallet?type=debit", { cookie: inviter.cookie })).data, /Nothing here yet/);
+  assert.equal((await call("GET", "/wallet")).location, "/login?next=%2Fwallet");
+});
+
+let shopper;
+let ball;
+
+test("coupons: server checks, listing, applying, and the discount in the order", async () => {
+  shopper = await newCustomer("Coupon Shopper", "coupons@nexthlon.test");
+  ball = await makeProduct({ name: "Match Ball", slug: "match-ball", category: "Football", price: 1500, mrp: 2000, stock: 10, image: "/img/favicon.svg" });
+  const day = 24 * 60 * 60 * 1000;
+  await Coupon.create([
+    { code: "SAVE10", type: "percent", value: 10, maxDiscount: 10000, minOrder: 100000, perUserLimit: 1, endsAt: new Date(Date.now() + day) },
+    { code: "BIGSPEND", type: "flat", value: 50000, minOrder: 1000000 },
+    { code: "OLDONE", type: "flat", value: 10000, endsAt: new Date(Date.now() - day) },
+    { code: "LATER", type: "flat", value: 10000, startsAt: new Date(Date.now() + day) },
+    { code: "SLEEPY", type: "flat", value: 10000, isActive: false }
+  ]);
+  await call("POST", "/api/cart/items", { body: { productId: String(ball._id), quantity: 1 }, cookie: shopper.cookie });
+
+  assert.equal((await call("POST", "/api/checkout/coupon", { body: { code: "SAVE10" } })).status, 401);
+  const bad = await call("POST", "/api/checkout/coupon", { body: { code: "no way!" }, cookie: shopper.cookie });
+  assert.equal(bad.status, 400);
+  assert.ok(bad.data.errors.code);
+  assert.match((await call("POST", "/api/checkout/coupon", { body: { code: "NOSUCH" }, cookie: shopper.cookie })).data.message, /not valid/);
+  assert.match((await call("POST", "/api/checkout/coupon", { body: { code: "OLDONE" }, cookie: shopper.cookie })).data.message, /expired/);
+  assert.match((await call("POST", "/api/checkout/coupon", { body: { code: "LATER" }, cookie: shopper.cookie })).data.message, /not active yet/);
+  assert.match((await call("POST", "/api/checkout/coupon", { body: { code: "SLEEPY" }, cookie: shopper.cookie })).data.message, /not valid/);
+  assert.match((await call("POST", "/api/checkout/coupon", { body: { code: "BIGSPEND" }, cookie: shopper.cookie })).data.message, /Add items worth ₹8,500 more/);
+
+  const listed = await call("GET", "/api/coupons", { cookie: shopper.cookie });
+  const codes = listed.data.coupons.map(coupon => coupon.code);
+  assert.deepEqual(codes.filter(c => ["SAVE10", "BIGSPEND"].includes(c)), ["SAVE10", "BIGSPEND"]);
+  assert.ok(!codes.includes("OLDONE") && !codes.includes("LATER") && !codes.includes("SLEEPY"));
+  const save10 = listed.data.coupons.find(coupon => coupon.code === "SAVE10");
+  assert.equal(save10.eligible, true);
+  assert.equal(save10.saving, 10000);
+  assert.equal(listed.data.coupons.find(coupon => coupon.code === "BIGSPEND").eligible, false);
+
+  const applied = await call("POST", "/api/checkout/coupon", { body: { code: " save10 " }, cookie: shopper.cookie });
+  assert.equal(applied.status, 200);
+  assert.equal(applied.data.coupon.code, "SAVE10");
+  const quote = (await call("POST", "/api/checkout/quote", { body: {}, cookie: shopper.cookie })).data.quote;
+  assert.equal(quote.totals.couponDiscount, 10000);
+  assert.equal(quote.totals.couponCode, "SAVE10");
+  assert.equal(quote.totals.total, 140000);
+  assert.match((await call("GET", "/checkout", { cookie: shopper.cookie })).data, /SAVE10/);
+
+  // Whatever the browser claims, the discount comes from the coupon in the database.
+  const res = await call("POST", "/api/orders", { body: { addressId: shopper.addressId, paymentMethod: "cod", couponDiscount: 999999, total: 1 }, cookie: shopper.cookie });
+  assert.equal(res.status, 201);
+  assert.equal(res.data.order.couponCode, "SAVE10");
+  assert.equal(res.data.order.couponDiscount, 10000);
+  assert.equal(res.data.order.total, 140000);
+  shopper.orderId = res.data.order.orderId;
+  assert.equal((await Coupon.findOne({ code: "SAVE10" })).usedCount, 1);
+  assert.equal(await CouponRedemption.countDocuments({ code: "SAVE10", user: shopper.user._id }), 1);
+  assert.equal((await Cart.findOne({ user: shopper.user._id })).couponCode, "");
+});
+
+test("coupons: once per customer, a removed coupon stops counting, cancelling gives the use back", async () => {
+  await call("POST", "/api/cart/items", { body: { productId: String(ball._id), quantity: 1 }, cookie: shopper.cookie });
+  assert.match((await call("POST", "/api/checkout/coupon", { body: { code: "SAVE10" }, cookie: shopper.cookie })).data.message, /already used/);
+  assert.ok(!(await call("GET", "/api/coupons", { cookie: shopper.cookie })).data.coupons.some(coupon => coupon.code === "SAVE10"));
+
+  const cancel = await call("POST", `/api/orders/${shopper.orderId}/cancel`, { body: { reason: "Ordered by mistake" }, cookie: shopper.cookie });
+  assert.equal(cancel.status, 200);
+  assert.equal((await Coupon.findOne({ code: "SAVE10" })).usedCount, 0);
+  assert.equal(await CouponRedemption.countDocuments({ code: "SAVE10" }), 0);
+
+  assert.equal((await call("POST", "/api/checkout/coupon", { body: { code: "SAVE10" }, cookie: shopper.cookie })).status, 200);
+  assert.equal((await call("DELETE", "/api/checkout/coupon", { cookie: shopper.cookie })).status, 200);
+  assert.equal((await call("POST", "/api/checkout/quote", { body: {}, cookie: shopper.cookie })).data.quote.totals.couponDiscount, 0);
+  await emptyCart(shopper);
+});
+
+test("coupons: the total limit is claimed atomically, and an order that loses the race changes nothing", async () => {
+  await Coupon.create({ code: "ONLYONE", type: "flat", value: 20000, usageLimit: 1, perUserLimit: 0 });
+  const rival = await newCustomer("Coupon Rival", "rival@nexthlon.test");
+  for (const customer of [shopper, rival]) {
+    await call("POST", "/api/cart/items", { body: { productId: String(ball._id), quantity: 1 }, cookie: customer.cookie });
+    assert.equal((await call("POST", "/api/checkout/coupon", { body: { code: "ONLYONE" }, cookie: customer.cookie })).status, 200);
+  }
+  const stockBefore = (await Product.findById(ball._id)).stock;
+  const ordersBefore = await Order.countDocuments({ user: shopper.user._id });
+  assert.equal((await call("POST", "/api/orders", { body: { addressId: rival.addressId, paymentMethod: "cod" }, cookie: rival.cookie })).status, 201);
+  const lost = await call("POST", "/api/orders", { body: { addressId: shopper.addressId, paymentMethod: "cod" }, cookie: shopper.cookie });
+  assert.equal(lost.status, 409);
+  assert.match(lost.data.message, /ONLYONE/);
+  assert.equal((await Product.findById(ball._id)).stock, stockBefore - 1);
+  assert.equal(await Order.countDocuments({ user: shopper.user._id }), ordersBefore);
+  assert.equal((await Coupon.findOne({ code: "ONLYONE" })).usedCount, 1);
+  await emptyCart(shopper);
+});
+
+let saver;
+let shoe;
+
+test("wallet: pay for the whole order from the wallet", async () => {
+  saver = await newCustomer("Wallet Saver", "wallet@nexthlon.test");
+  shoe = await makeProduct({ name: "Court Shoe", slug: "court-shoe", category: "Tennis", price: 1200, mrp: 1500, stock: 6, image: "/img/favicon.svg" });
+  await walletService.credit(saver.user._id, 200000, { kind: "admin", reason: "Test credit" });
+  await call("POST", "/api/cart/items", { body: { productId: String(shoe._id), quantity: 1 }, cookie: saver.cookie });
+
+  const without = (await call("POST", "/api/checkout/quote", { body: {}, cookie: saver.cookie })).data.quote;
+  assert.equal(without.walletBalance, 200000);
+  assert.equal(without.totals.walletUsed, 0);
+  const withWallet = (await call("POST", "/api/checkout/quote", { body: { useWallet: true }, cookie: saver.cookie })).data.quote;
+  assert.equal(withWallet.totals.walletUsed, 120000);
+  assert.equal(withWallet.totals.total, 0);
+  assert.equal(withWallet.coveredByWallet, true);
+  assert.equal(withWallet.codAllowed, false);
+
+  // "wallet" is refused when the wallet is not used; nothing changes.
+  assert.equal((await call("POST", "/api/orders", { body: { addressId: saver.addressId, paymentMethod: "wallet" }, cookie: saver.cookie })).status, 400);
+  assert.equal(await balanceOf(saver.user), 200000);
+
+  const res = await call("POST", "/api/orders", { body: { addressId: saver.addressId, paymentMethod: "cod", useWallet: true }, cookie: saver.cookie });
+  assert.equal(res.status, 201);
+  assert.equal(res.data.order.paymentMethod, "wallet");
+  assert.equal(res.data.order.paymentStatus, "paid");
+  assert.equal(res.data.order.walletUsed, 120000);
+  assert.equal(res.data.order.total, 0);
+  saver.walletOrder = res.data.order.orderId;
+  assert.equal(await balanceOf(saver.user), 80000);
+  assert.equal((await Product.findById(shoe._id)).stock, 5);
+  const debit = await WalletTransaction.findOne({ user: saver.user._id, type: "debit" }).lean();
+  assert.equal(debit.amount, 120000);
+  assert.equal(debit.orderId, saver.walletOrder);
+  assert.equal(debit.balanceAfter, 80000);
+});
+
+test("wallet: part paid from the wallet, the rest on delivery; cancelling gives the wallet part back", async () => {
+  await call("POST", "/api/cart/items", { body: { productId: String(shoe._id), quantity: 1 }, cookie: saver.cookie });
+  const res = await call("POST", "/api/orders", { body: { addressId: saver.addressId, paymentMethod: "cod", useWallet: true }, cookie: saver.cookie });
+  assert.equal(res.status, 201);
+  assert.equal(res.data.order.paymentMethod, "cod");
+  assert.equal(res.data.order.walletUsed, 80000);
+  assert.equal(res.data.order.total, 40000);
+  assert.equal(await balanceOf(saver.user), 0);
+
+  const cancel = await call("POST", `/api/orders/${res.data.order.orderId}/cancel`, { body: { refundMethod: "original" }, cookie: saver.cookie });
+  assert.equal(cancel.status, 200);
+  assert.equal(cancel.data.order.total, 0);
+  assert.equal(cancel.data.order.refundedAmount, 80000);
+  assert.equal(cancel.data.order.paymentStatus, "refunded");
+  assert.equal(await balanceOf(saver.user), 80000);
+  const refund = await WalletTransaction.findOne({ user: saver.user._id, kind: "refund" }).lean();
+  assert.equal(refund.orderId, res.data.order.orderId);
+
+  // Cancelling the fully wallet-paid order refunds it to the wallet too.
+  await call("POST", `/api/orders/${saver.walletOrder}/cancel`, { body: {}, cookie: saver.cookie });
+  assert.equal(await balanceOf(saver.user), 200000);
+  const page = await call("GET", "/api/wallet?type=credit", { cookie: saver.cookie });
+  assert.equal(page.data.transactions.length, 3);
+  assert.equal(page.data.totals.debited, 200000);
+});
+
+test("wallet: the balance can never go below zero, even with two debits at once", async () => {
+  const before = await balanceOf(saver.user);
+  const results = await Promise.allSettled([
+    walletService.debit(saver.user._id, 150000, { reason: "Test A" }),
+    walletService.debit(saver.user._id, 150000, { reason: "Test B" })
+  ]);
+  assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
+  assert.equal(results.find(result => result.status === "rejected").reason.status, 409);
+  assert.equal(await balanceOf(saver.user), before - 150000);
+  assert.ok((await Wallet.findOne({ user: saver.user._id })).balance >= 0);
+  await walletService.credit(saver.user._id, 150000, { kind: "admin", reason: "Test top-up" });
+  await emptyCart(saver);
+});
+
+test("wallet with Razorpay: the wallet pays part, Razorpay the rest; refunds split by how it was paid", async () => {
+  razorpayService.setClient({
+    orders: { create: async params => ({ id: `order_MIX${String(Date.now()).slice(-8)}`, amount: params.amount, currency: "INR" }) },
+    payments: { refund: async (paymentId, params) => ({ id: `rfnd_MIX${params.amount}`, status: "processed", amount: params.amount }) }
+  });
+  const mixer = await newCustomer("Mixed Payer", "mixed@nexthlon.test");
+  const bat = await makeProduct({ name: "Willow Bat", slug: "willow-bat", category: "Cricket", price: 3000, mrp: 3500, stock: 4, image: "/img/favicon.svg" });
+  await walletService.credit(mixer.user._id, 100000, { kind: "admin", reason: "Test credit" });
+  await call("POST", "/api/cart/items", { body: { productId: String(bat._id), quantity: 1 }, cookie: mixer.cookie });
+
+  const created = await call("POST", "/api/payments/razorpay/order", { body: { addressId: mixer.addressId, useWallet: true }, cookie: mixer.cookie });
+  assert.equal(created.status, 201);
+  assert.equal(created.data.amount, 200000);
+  assert.equal(await balanceOf(mixer.user), 0);
+  const order = await Order.findOne({ "razorpay.orderId": created.data.razorpay_order_id }).lean();
+  assert.equal(order.walletUsed, 100000);
+  assert.equal(order.total, 200000);
+
+  const ids = { razorpay_order_id: created.data.razorpay_order_id, razorpay_payment_id: "pay_MIXPAID001" };
+  const verified = await call("POST", "/api/payments/razorpay/verify", { body: { ...ids, razorpay_signature: checkoutSignature(ids.razorpay_order_id, ids.razorpay_payment_id) }, cookie: mixer.cookie });
+  assert.equal(verified.status, 200);
+  assert.equal((await Product.findById(bat._id)).stock, 3);
+
+  // "Original method" sends back only the ₹2,000 paid online; the ₹1,000 from the wallet goes to the wallet.
+  await call("POST", `/api/orders/${order.orderId}/cancel`, { body: { refundMethod: "original" }, cookie: mixer.cookie });
+  const cancelled = await Order.findById(order._id).lean();
+  assert.deepEqual(cancelled.refunds.map(refund => [refund.method, refund.amount]), [["original", 200000], ["wallet", 100000]]);
+  assert.equal(cancelled.paymentStatus, "refunded");
+  assert.equal(await balanceOf(mixer.user), 100000);
+});
+
+test("wallet with Razorpay: a gateway error puts the wallet amount and the coupon use back", async () => {
+  const mixer = { user: await User.findOne({ email: "mixed@nexthlon.test" }) };
+  mixer.cookie = (await call("POST", "/api/login", { body: { email: "mixed@nexthlon.test", password: "order2024" } })).cookie;
+  mixer.addressId = String((await Address.findOne({ user: mixer.user._id }))._id);
+  await Coupon.create({ code: "GATEWAY", type: "flat", value: 10000, perUserLimit: 1 });
+  const bat = await Product.findOne({ slug: "willow-bat" });
+  await call("POST", "/api/cart/items", { body: { productId: String(bat._id), quantity: 1 }, cookie: mixer.cookie });
+  await call("POST", "/api/checkout/coupon", { body: { code: "GATEWAY" }, cookie: mixer.cookie });
+  razorpayService.setClient({ orders: { create: async () => { throw Object.assign(new Error("down"), { statusCode: 500 }); } }, payments: { refund: async () => ({}) } });
+
+  const ordersBefore = await Order.countDocuments({ user: mixer.user._id });
+  const res = await call("POST", "/api/payments/razorpay/order", { body: { addressId: mixer.addressId, useWallet: true }, cookie: mixer.cookie });
+  assert.equal(res.status, 502);
+  assert.equal(await balanceOf(mixer.user), 100000);
+  assert.equal(await Order.countDocuments({ user: mixer.user._id }), ordersBefore);
+  assert.equal((await Coupon.findOne({ code: "GATEWAY" })).usedCount, 0);
+  assert.equal(await CouponRedemption.countDocuments({ code: "GATEWAY" }), 0);
+  // The coupon stays chosen on the cart for the next try.
+  assert.equal((await Cart.findOne({ user: mixer.user._id })).couponCode, "GATEWAY");
+});

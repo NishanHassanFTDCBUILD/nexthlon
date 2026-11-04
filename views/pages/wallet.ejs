@@ -1,0 +1,106 @@
+<%- include('../partials/head') %>
+<%- include('../partials/header') %>
+
+<%
+  const tabs = [['all', 'All'], ['credit', 'Money in'], ['debit', 'Money out']];
+  const kindIcon = { refund: 'rotate-ccw', order: 'cart', referral: 'gift', admin: 'shield' };
+  const when = function (date) {
+    return new Date(date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+  };
+%>
+<main id="main" class="container page wallet-page">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <a href="/profile">Your account</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page">Wallet</span>
+  </nav>
+  <div class="page-head">
+    <div>
+      <h1>Your wallet</h1>
+      <p class="muted">Refunds and rewards land here instantly. Use them at checkout, on their own or with any other payment.</p>
+    </div>
+  </div>
+
+  <div class="wallet-top">
+    <section class="wallet-card" data-reveal aria-labelledby="balance-title">
+      <span class="wallet-card-icon"><%- icon('wallet') %></span>
+      <h2 id="balance-title" class="wallet-card-label">Available balance</h2>
+      <strong class="wallet-balance"><%= formatPrice(balance) %></strong>
+      <dl class="wallet-sums">
+        <div><dt>Money in</dt><dd><%= formatPrice(totals.credited) %></dd></div>
+        <div><dt>Money out</dt><dd><%= formatPrice(totals.debited) %></dd></div>
+      </dl>
+      <a class="btn btn-light btn-sm" href="/products"><%- icon('cart', 'i-sm') %> Shop now</a>
+    </section>
+
+    <section class="panel referral-card" data-reveal aria-labelledby="refer-title" data-referral>
+      <div class="referral-head">
+        <span class="referral-icon"><%- icon('gift') %></span>
+        <div>
+          <h2 id="refer-title">Invite friends, earn together</h2>
+          <p class="muted">
+            <% if (referral.reward > 0) { %>
+              When a friend signs up with your code, you both get <strong><%= formatPrice(referral.reward) %></strong> in your wallets.
+            <% } else { %>
+              Share your code with friends. Referral rewards are paused right now.
+            <% } %>
+          </p>
+        </div>
+      </div>
+      <div class="referral-code">
+        <span class="sr-only">Your referral code</span>
+        <code data-referral-code><%= referral.code %></code>
+        <button type="button" class="btn btn-ghost btn-sm" data-copy="<%= referral.code %>" data-copy-label="Code copied"><%- icon('copy', 'i-sm') %> Copy code</button>
+      </div>
+      <div class="referral-actions">
+        <button type="button" class="btn btn-primary btn-sm" data-share-link="<%= referral.link %>"><%- icon('send', 'i-sm') %> Share invite link</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-copy="<%= referral.link %>" data-copy-label="Link copied"><%- icon('copy', 'i-sm') %> Copy link</button>
+      </div>
+      <p class="hint"><%- icon('users', 'i-xs') %> <%= referral.joined %> <%= referral.joined === 1 ? 'friend has' : 'friends have' %> joined with your code.</p>
+    </section>
+  </div>
+
+  <section class="panel wallet-history" aria-labelledby="history-title" data-reveal>
+    <div class="panel-head panel-head-row">
+      <h2 id="history-title">History</h2>
+      <nav class="segmented" aria-label="Show">
+        <% tabs.forEach(function ([key, label]) { %>
+          <a href="<%= link({ type: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.type === key ? 'is-active' : '' %>" <%- filters.type === key ? 'aria-current="page"' : '' %>><%= label %></a>
+        <% }) %>
+      </nav>
+    </div>
+
+    <% if (transactions.length) { %>
+      <ul class="txn-list">
+        <% transactions.forEach(function (t) { %>
+          <li class="txn" data-reveal>
+            <span class="txn-icon <%= t.type === 'credit' ? 'is-in' : 'is-out' %>"><%- icon(kindIcon[t.kind] || 'wallet', 'i-sm') %></span>
+            <div class="txn-body">
+              <strong><%= t.reason %></strong>
+              <span class="muted">
+                <%= when(t.createdAt) %>
+                <% if (t.orderId) { %> · <a href="/orders/<%= t.orderId %>"><%= t.orderId %></a><% } %>
+              </span>
+            </div>
+            <div class="txn-amount">
+              <strong class="<%= t.type === 'credit' ? 'text-success' : '' %>"><%= t.type === 'credit' ? '+' : '−' %><%= formatPrice(t.amount) %></strong>
+              <span class="muted">Balance <%= formatPrice(t.balanceAfter) %></span>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+      <%- include('../partials/pagination', { pagination, link }) %>
+    <% } else { %>
+      <div class="empty-state">
+        <span class="empty-icon"><%- icon('wallet', 'i-xl') %></span>
+        <h2><%= filters.type === 'all' ? 'No wallet activity yet' : 'Nothing here yet' %></h2>
+        <p><%= filters.type === 'all' ? 'Refunds and referral rewards will show up here. Invite a friend to get started.' : 'Try showing all activity.' %></p>
+        <% if (filters.type === 'all') { %>
+          <button type="button" class="btn btn-primary" data-share-link="<%= referral.link %>"><%- icon('gift', 'i-sm') %> Invite a friend</button>
+        <% } else { %>
+          <a class="btn btn-primary" href="/wallet">Show all activity</a>
+        <% } %>
+      </div>
+    <% } %>
+  </section>
+</main>
+
+<%- include('../partials/footer', { scripts: ['wallet'] }) %>

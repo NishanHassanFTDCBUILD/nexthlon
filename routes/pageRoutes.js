@@ -23,6 +23,7 @@ router.get("/profile", customerPage, pages.profile);
 router.get("/cart", customerPage, pages.cart);
 router.get("/checkout", customerPage, pages.checkout);
 router.get("/orders", customerPage, pages.orders);
+router.get("/wallet", customerPage, pages.wallet);
 router.get("/orders/:orderId", customerPage, pages.orderDetail);
 router.get("/orders/:orderId/success", customerPage, pages.orderSuccess);
 router.get("/orders/:orderId/invoice", customerPage, pages.orderInvoice);

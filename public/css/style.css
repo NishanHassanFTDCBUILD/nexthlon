@@ -1373,3 +1373,96 @@ a.stat:hover .stat-link .i { transform: translateX(3px); }
   .orders-search { flex: 1 1 100%; justify-content: stretch; }
   .orders-search .toolbar-search { flex: 1 1 260px; max-width: none; }
 }
+
+/* ==========================================================================
+   Phase 6: wallet, referrals and coupons
+   ========================================================================== */
+.checkout-side { position: sticky; top: calc(var(--header-h) + var(--space-2)); display: flex; flex-direction: column; gap: var(--space-2); }
+.checkout-side .checkout-summary { position: static; }
+.checkout-summary .summary-list { transition: opacity var(--duration) var(--ease); }
+.checkout-summary.is-updating .summary-list { opacity: 0.55; }
+
+.wallet-use { display: flex; gap: var(--space-1h); align-items: flex-start; padding: var(--space-2); margin-bottom: var(--space-1h); border: 1.5px dashed var(--line-strong); border-radius: var(--radius); cursor: pointer; }
+.wallet-use:has(input:checked) { border-style: solid; border-color: var(--success); background: var(--success-soft); }
+.wallet-use input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--success); flex: none; }
+.wallet-use-body { display: flex; flex-direction: column; gap: 2px; font-size: 14px; min-width: 0; }
+.wallet-use-body strong { display: inline-flex; align-items: center; gap: 6px; }
+
+.coupon-panel .panel-title { display: flex; align-items: center; gap: var(--space-1); }
+.coupon-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1); }
+.coupon-form input { text-transform: uppercase; letter-spacing: 0.04em; }
+.coupon-form input::placeholder { text-transform: none; letter-spacing: 0; }
+.coupon-form .field-error { grid-column: 1 / -1; margin: 0; }
+.coupon-applied { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); padding: var(--space-1h); border: 1.5px dashed var(--success); border-radius: var(--radius); background: var(--success-soft); }
+.coupon-chip { display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-size: var(--text-sm); letter-spacing: 0.04em; }
+.coupon-applied-text { font-size: var(--text-sm); color: var(--ink-2); flex: 1 1 auto; }
+.coupon-notice { display: flex; gap: 6px; align-items: flex-start; margin: var(--space-1h) 0 0; padding: var(--space-1) var(--space-1h); border-radius: var(--radius-sm); background: var(--warning-soft); color: var(--warning); font-size: var(--text-sm); }
+.coupon-toggle { margin-top: var(--space-1h); }
+.coupon-toggle .i { transition: transform var(--duration) var(--ease); }
+.coupon-toggle.is-open .i { transform: rotate(180deg); }
+.coupon-list-wrap { margin-top: var(--space-1); }
+.coupon-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.coupon-item { display: flex; justify-content: space-between; align-items: center; gap: var(--space-1h); padding: var(--space-1h); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.coupon-item > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: var(--text-sm); }
+.coupon-item.is-off { background: var(--surface); }
+.coupon-item.is-off .coupon-tag { border-color: var(--line-strong); color: var(--muted); }
+.coupon-tag { align-self: flex-start; padding: 2px var(--space-1); border: 1.5px dashed var(--brand); border-radius: var(--radius-xs); color: var(--brand-ink); font-size: var(--text-xs); letter-spacing: 0.06em; }
+.coupon-title { font-weight: var(--weight-semibold); color: var(--ink); }
+.coupon-empty { margin: 0; font-size: var(--text-sm); }
+.coupon-skeleton { display: flex; flex-direction: column; gap: var(--space-1); }
+.coupon-skeleton .skeleton { display: block; height: 58px; border-radius: var(--radius); }
+
+.wallet-top { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-3); margin-bottom: var(--space-3); }
+.wallet-card { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); padding: var(--space-3); border-radius: var(--radius-lg); color: #fff; background: radial-gradient(120% 140% at 100% 0%, var(--navy-600), var(--navy-900) 60%); box-shadow: var(--shadow-md); }
+.wallet-card::after { content: ""; position: absolute; right: -60px; bottom: -80px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(var(--brand-rgb), 0.45), transparent 70%); pointer-events: none; }
+.wallet-card-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius); background: rgba(255, 255, 255, 0.12); color: var(--accent); }
+.wallet-card-label { margin: var(--space-1) 0 0; font-family: var(--font); font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--on-dark); letter-spacing: 0; text-transform: none; }
+.wallet-balance { font-family: var(--display); font-size: var(--text-4xl); line-height: 1; letter-spacing: 0.01em; }
+.wallet-sums { display: flex; gap: var(--space-3); margin: var(--space-1) 0 var(--space-2); }
+.wallet-sums dt { font-size: var(--text-xs); color: var(--on-dark-muted); }
+.wallet-sums dd { margin: 0; font-weight: var(--weight-semibold); }
+.wallet-card .btn { position: relative; z-index: 1; margin-top: auto; }
+
+.referral-card { display: flex; flex-direction: column; gap: var(--space-2); }
+.referral-head { display: flex; gap: var(--space-2); align-items: flex-start; }
+.referral-head h2 { font-size: var(--text-lg); margin: 0 0 4px; }
+.referral-head p { margin: 0; }
+.referral-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--radius); background: var(--brand-soft); color: var(--brand-ink); }
+.referral-code { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1); padding: var(--space-1h) var(--space-2); border: 2px dashed var(--brand); border-radius: var(--radius); background: var(--brand-soft); }
+.referral-code code { font-family: var(--display); font-size: var(--text-2xl); letter-spacing: 0.12em; color: var(--brand-ink); background: none; }
+.referral-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.referral-card .hint { margin: 0; }
+
+.wallet-history .panel-head { margin-bottom: var(--space-2); flex-wrap: wrap; gap: var(--space-1h); }
+.txn-list { list-style: none; margin: 0; padding: 0; }
+.txn { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: var(--space-1h); align-items: center; padding: var(--space-1h) 0; border-bottom: 1px solid var(--line); }
+.txn:last-child { border-bottom: 0; }
+.txn-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; }
+.txn-icon.is-in { background: var(--success-soft); color: var(--success); }
+.txn-icon.is-out { background: var(--surface-3); color: var(--ink-2); }
+.txn-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; }
+.txn-body strong { overflow-wrap: anywhere; }
+.txn-body .muted, .txn-amount .muted { font-size: var(--text-xs); }
+.txn-amount { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+
+.settings-panel { margin-bottom: var(--space-3); }
+.settings-panel h2 { display: flex; align-items: center; gap: var(--space-1); }
+.settings-form { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-2); }
+.settings-form .form-alert { flex: 1 1 100%; }
+.settings-form .field { flex: 0 1 320px; margin: 0; }
+.settings-form .btn { margin-top: 26px; }
+
+@media (max-width: 1024px) {
+  .checkout-side { position: static; order: -1; }
+  .wallet-top { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .wallet-balance { font-size: var(--text-3xl); }
+  .referral-code code { font-size: var(--text-xl); }
+  .referral-actions .btn { flex: 1 1 auto; }
+  .txn { grid-template-columns: 36px minmax(0, 1fr); }
+  .txn-icon { width: 36px; height: 36px; }
+  .txn-amount { grid-column: 2; flex-direction: row; justify-content: space-between; align-items: baseline; text-align: left; }
+  .settings-form .field { flex: 1 1 100%; }
+  .settings-form .btn { margin-top: 0; width: 100%; }
+}

@@ -53,7 +53,7 @@ test("refunds: each item's price less its share of the coupon, plus delivery whe
 test("checkout input: only the address and payment method are read", () => {
   const { errors, value } = validatePlaceOrder({ addressId: "64b0000000000000000000a1", paymentMethod: "cod", total: 1, items: [] });
   assert.deepEqual(errors, {});
-  assert.deepEqual(value, { addressId: "64b0000000000000000000a1", paymentMethod: "cod" });
+  assert.deepEqual(value, { addressId: "64b0000000000000000000a1", paymentMethod: "cod", useWallet: false });
   assert.ok(validatePlaceOrder({ addressId: "nope" }).errors.addressId);
   assert.ok(validatePlaceOrder({ addressId: "64b0000000000000000000a1" }).errors.paymentMethod);
   assert.deepEqual(validateCancel({ reason: "<script>", refundMethod: "bank" }).value, { reason: "", refundMethod: "wallet" });

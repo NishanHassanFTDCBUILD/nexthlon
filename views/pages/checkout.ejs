@@ -98,17 +98,33 @@
         <div class="step-body" hidden>
           <form class="form" data-place-order novalidate>
             <div class="form-alert" data-form-alert aria-live="assertive"></div>
-            <fieldset class="pay-options">
-              <legend class="sr-only">Choose how to pay</legend>
-              <label class="pay-option">
-                <input type="radio" name="paymentMethod" value="cod" <%= quote.codAllowed ? 'checked' : 'disabled' %>>
-                <span class="pay-option-body">
-                  <strong><%- icon('wallet', 'i-sm') %> Cash on Delivery</strong>
-                  <span class="muted"><%= quote.codAllowed ? 'Pay in cash or UPI when your order arrives.' : 'Available for orders up to ' + formatPrice(quote.codLimit) + '.' %></span>
+            <% if (quote.walletBalance > 0) { %>
+              <label class="wallet-use">
+                <input type="checkbox" name="useWallet" data-use-wallet>
+                <span class="wallet-use-body">
+                  <strong><%- icon('wallet', 'i-sm') %> Use my wallet balance</strong>
+                  <span class="muted">You have <b><%= formatPrice(quote.walletBalance) %></b> in your Nexthlon wallet. <span data-wallet-note></span></span>
                 </span>
               </label>
-              <label class="pay-option <%= razorpayEnabled ? '' : 'is-soon' %>">
-                <input type="radio" name="paymentMethod" value="razorpay" <%= razorpayEnabled ? (quote.codAllowed ? '' : 'checked') : 'disabled' %>>
+            <% } %>
+            <fieldset class="pay-options">
+              <legend class="sr-only">Choose how to pay</legend>
+              <label class="pay-option" data-pay-wallet hidden>
+                <input type="radio" name="paymentMethod" value="wallet" disabled>
+                <span class="pay-option-body">
+                  <strong><%- icon('wallet', 'i-sm') %> Pay with wallet</strong>
+                  <span class="muted">Your wallet covers the full amount. Nothing more to pay.</span>
+                </span>
+              </label>
+              <label class="pay-option" data-pay-cod>
+                <input type="radio" name="paymentMethod" value="cod" <%= quote.codAllowed ? 'checked' : 'disabled' %>>
+                <span class="pay-option-body">
+                  <strong><%- icon('truck', 'i-sm') %> Cash on Delivery</strong>
+                  <span class="muted" data-cod-note data-ok="Pay in cash or UPI when your order arrives." data-off="Available for orders up to <%= formatPrice(quote.codLimit) %>."><%= quote.codAllowed ? 'Pay in cash or UPI when your order arrives.' : 'Available for orders up to ' + formatPrice(quote.codLimit) + '.' %></span>
+                </span>
+              </label>
+              <label class="pay-option <%= razorpayEnabled ? '' : 'is-soon' %>" data-pay-online>
+                <input type="radio" name="paymentMethod" value="razorpay" <%= razorpayEnabled ? (quote.codAllowed ? '' : 'checked') : 'disabled' %> data-online-ready="<%= razorpayEnabled ? 'true' : 'false' %>">
                 <span class="pay-option-body">
                   <strong><%- icon('credit-card', 'i-sm') %> UPI, cards and net banking</strong>
                   <span class="muted"><%= razorpayEnabled ? 'Pay securely with Razorpay. Test mode: no real money moves.' : 'Online payment is not set up yet.' %></span>
@@ -116,24 +132,46 @@
               </label>
             </fieldset>
             <p class="field-error" data-error-for="paymentMethod"></p>
-            <button class="btn btn-primary btn-lg btn-block" type="submit" data-place-label <%= (quote.codAllowed || razorpayEnabled) && !quote.problems.length ? '' : 'disabled' %>><%- icon('lock', 'i-sm') %> <span data-place-text><%= quote.codAllowed ? 'Place order' : 'Pay securely' %></span> · <%= formatPrice(t.total) %></button>
+            <button class="btn btn-primary btn-lg btn-block" type="submit" data-place-label <%= (quote.codAllowed || razorpayEnabled) && !quote.problems.length ? '' : 'disabled' %>><%- icon('lock', 'i-sm') %> <span data-place-text><%= quote.codAllowed ? 'Place order' : 'Pay securely' %></span> · <span data-sum="total"><%= formatPrice(t.total) %></span></button>
             <p class="hint"><%- icon('shield', 'i-xs') %> By placing your order you agree to our <a href="/terms">terms</a> and <a href="/refund-policy">refund policy</a>.</p>
           </form>
         </div>
       </section>
     </div>
 
-    <aside class="cart-summary panel checkout-summary" aria-labelledby="price-title">
-      <h2 id="price-title" class="panel-title">Price details</h2>
-      <dl class="summary-list">
-        <div><dt>M.R.P. total (<%= t.itemCount %> <%= t.itemCount === 1 ? 'item' : 'items' %>)</dt><dd><%= formatPrice(t.mrpTotal) %></dd></div>
-        <div class="summary-savings"><dt>Discount on M.R.P.</dt><dd>−<%= formatPrice(t.discount) %></dd></div>
-        <div><dt>Delivery fee</dt><dd><%- t.deliveryFee ? formatPrice(t.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
-        <div class="summary-total"><dt>Amount to pay</dt><dd><%= formatPrice(t.total) %></dd></div>
-      </dl>
-      <% if (t.discount > 0) { %><p class="saving summary-saving-note">You save <%= formatPrice(t.discount) %> on this order.</p><% } %>
-      <p class="hint"><%- icon('shield', 'i-xs') %> Prices are checked again when you place the order.</p>
-    </aside>
+    <div class="checkout-side">
+      <aside class="cart-summary panel checkout-summary" aria-labelledby="price-title" data-summary>
+        <h2 id="price-title" class="panel-title">Price details</h2>
+        <dl class="summary-list" aria-live="polite">
+          <div><dt>M.R.P. total (<%= t.itemCount %> <%= t.itemCount === 1 ? 'item' : 'items' %>)</dt><dd data-sum="mrpTotal"><%= formatPrice(t.mrpTotal) %></dd></div>
+          <div class="summary-savings"><dt>Discount on M.R.P.</dt><dd data-sum="discount" data-minus>−<%= formatPrice(t.discount) %></dd></div>
+          <div class="summary-savings" data-sum-row="couponDiscount" <%= t.couponDiscount ? '' : 'hidden' %>><dt>Coupon <span data-sum-text="couponCode"><%= t.couponCode %></span></dt><dd data-sum="couponDiscount" data-minus>−<%= formatPrice(t.couponDiscount) %></dd></div>
+          <div><dt>Delivery fee</dt><dd data-sum="deliveryFee" data-free><%- t.deliveryFee ? formatPrice(t.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
+          <div data-sum-row="walletUsed" <%= t.walletUsed ? '' : 'hidden' %>><dt>Paid from wallet</dt><dd data-sum="walletUsed" data-minus>−<%= formatPrice(t.walletUsed) %></dd></div>
+          <div class="summary-total"><dt>Amount to pay</dt><dd data-sum="total"><%= formatPrice(t.total) %></dd></div>
+        </dl>
+        <p class="saving summary-saving-note" data-saving <%= t.discount + t.couponDiscount > 0 ? '' : 'hidden' %>>You save <span data-sum="savings"><%= formatPrice(t.discount + t.couponDiscount) %></span> on this order.</p>
+        <p class="hint"><%- icon('shield', 'i-xs') %> Prices are checked again when you place the order.</p>
+      </aside>
+
+      <section class="panel coupon-panel" aria-labelledby="coupon-title" data-coupon>
+        <h2 id="coupon-title" class="panel-title"><%- icon('ticket', 'i-sm') %> Coupons</h2>
+        <div class="coupon-applied" data-coupon-applied <%= quote.coupon ? '' : 'hidden' %>>
+          <span class="coupon-chip"><%- icon('tag', 'i-sm') %> <strong data-coupon-code><%= quote.coupon ? quote.coupon.code : '' %></strong></span>
+          <span class="coupon-applied-text" data-coupon-saving><%= quote.coupon ? 'You save ' + formatPrice(quote.coupon.saving) : '' %></span>
+          <button type="button" class="btn btn-ghost btn-sm" data-coupon-remove>Remove</button>
+        </div>
+        <form class="coupon-form" data-coupon-form novalidate <%= quote.coupon ? 'hidden' : '' %>>
+          <label class="sr-only" for="coupon-code">Coupon code</label>
+          <input id="coupon-code" name="code" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter coupon code" aria-describedby="code-error">
+          <button class="btn btn-secondary" type="submit">Apply</button>
+          <p class="field-error" id="code-error" data-error-for="code"></p>
+        </form>
+        <p class="coupon-notice" data-coupon-notice role="status" <%= quote.couponNotice ? '' : 'hidden' %>><%- icon('alert', 'i-xs') %> <span><%= quote.couponNotice %></span></p>
+        <button type="button" class="link-btn coupon-toggle" data-coupon-toggle aria-expanded="false" aria-controls="coupon-list">View available coupons <%- icon('chevron-down', 'i-xs') %></button>
+        <div id="coupon-list" class="coupon-list-wrap" data-coupon-list hidden></div>
+      </section>
+    </div>
   </div>
 </main>
 

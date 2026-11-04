@@ -14,7 +14,7 @@
   const paymentLabels = { pending: order.paymentMethod === 'cod' ? 'Pay on delivery' : 'Awaiting payment', paid: 'Paid', failed: 'Payment failed', refunded: 'Refunded', partially_refunded: 'Partly refunded' };
   const timeText = function (value) { return value ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).format(new Date(value)) : ''; };
 %>
-<main id="main" class="container page" data-order data-order-id="<%= order.orderId %>" data-paid="<%= order.paymentStatus === 'paid' ? 'true' : 'false' %>" data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || order.address.phone %>">
+<main id="main" class="container page" data-order data-order-id="<%= order.orderId %>" data-paid="<%= ['paid', 'partially_refunded'].includes(order.paymentStatus) || order.walletUsed > 0 ? 'true' : 'false' %>" data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || order.address.phone %>">
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <a href="/orders">Your orders</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page"><%= order.orderId %></span>
   </nav>
@@ -116,7 +116,7 @@
         <label for="cancel-reason">Reason (optional)</label>
         <%- icon('chevron-down', 'i-sm select-caret') %>
       </div>
-      <% if (order.paymentStatus === 'paid') { %>
+      <% if (order.paymentMethod === 'razorpay' && ['paid', 'partially_refunded'].includes(order.paymentStatus)) { %>
         <fieldset class="refund-choice">
           <legend>Refund to</legend>
           <label class="choice"><input type="radio" name="refundMethod" value="wallet" checked><span>Nexthlon wallet (instant)</span></label>
