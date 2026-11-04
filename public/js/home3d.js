@@ -3,7 +3,7 @@
 //      athlete as you scroll, over an animated orange and navy fog. The mouse moves the camera.
 //      This is the page's only WebGL canvas.
 //   2. Product galaxy: product cards on a CSS 3D ring. Drag, swipe or arrow keys spin it.
-//   3. Journey: scrolling flies through a CSS 3D tunnel of sports.
+//   3. Pick your sport: six sport cards on a CSS 3D ring, turned by scroll, drag, tabs, keys and a timer.
 //   4. Showcase: a product on a turning podium, lit by the mouse.
 // Everything is decoration over real links and text: without JavaScript, WebGL or motion, the
 // page shows the same content as flat sections.
@@ -204,35 +204,367 @@ if (galaxy && !reduced && "IntersectionObserver" in window) {
   });
 }
 
-// ---------- 3. Journey through the sports ----------
-const journey = document.querySelector("[data-journey]");
-if (journey && !reduced) {
-  const track = journey.querySelector("[data-journey-track]");
-  const cards = [...journey.querySelectorAll("[data-journey-card]")];
-  const dots = [...journey.querySelectorAll("[data-journey-dot]")];
-  const GAP = 900;
-  journey.classList.add("is-3d");
-  let frame = 0;
-  const update = () => {
-    frame = 0;
-    const progress = scrollProgress(journey);
-    const z = progress * ((cards.length - 1) * GAP + 260);
-    track.style.transform = `translateZ(${z.toFixed(1)}px)`;
-    cards.forEach((card, i) => {
-      const d = z - i * GAP;
-      let opacity = 1;
-      if (d > 120) opacity = clamp(1 - (d - 120) / 260, 0, 1);
-      else if (d < -GAP * 1.6) opacity = clamp((d + GAP * 2.6) / GAP, 0, 1);
-      card.style.opacity = opacity.toFixed(3);
-      card.style.pointerEvents = Math.abs(d) < 360 ? "auto" : "none";
-      card.tabIndex = Math.abs(d) < 360 ? 0 : -1;
-    });
-    const active = Math.round(progress * (cards.length - 1));
-    dots.forEach((dot, i) => dot.classList.toggle("is-active", i === active));
+// ---------- 3. Pick your sport: the 3D sport carousel ring ----------
+// Six sport cards stand on a CSS 3D ring. On wide screens the section is pinned and scrolling turns
+// the ring one sport at a time; drag or swipe (with inertia, then a snap), the tabs, the dots, the
+// arrow keys and a 4-second timer turn it too. The card facing the front is the active one.
+// With reduced motion it becomes a plain swipe row; without JavaScript it is a grid of links.
+const sportRing = document.querySelector("[data-sport-ring]");
+if (sportRing) setUpSportRing(sportRing);
+
+function setUpSportRing(section) {
+  const stage = section.querySelector("[data-ring-stage]");
+  const track = section.querySelector("[data-ring-track]");
+  const cards = [...section.querySelectorAll("[data-ring-card]")];
+  const tabs = [...section.querySelectorAll("[data-ring-tab]")];
+  const dots = [...section.querySelectorAll("[data-ring-dot]")];
+  const glows = [...section.querySelectorAll("[data-ring-glow]")];
+  const words = [...section.querySelectorAll("[data-ring-word]")];
+  const tabList = section.querySelector("[data-ring-tabs]");
+  const line = section.querySelector("[data-ring-line]");
+  const counter = section.querySelector("[data-ring-current]");
+  const count = cards.length;
+  const step = 360 / count;
+  const mod = n => ((n % count) + count) % count;
+  // The shortest signed way round the ring from a to b (-3 to 3 for six cards).
+  const offsetBetween = (a, b) => {
+    let d = mod(b - a);
+    if (d > count / 2) d -= count;
+    return d;
   };
-  window.addEventListener("scroll", () => { if (!frame) frame = requestAnimationFrame(update); }, { passive: true });
-  window.addEventListener("resize", update);
-  update();
+
+  tabList.hidden = false;
+  section.querySelector("[data-ring-foot]").hidden = false;
+
+  let active = -1;
+  // Everything that follows the active sport: tabs, underline, dots, counter, word and glow.
+  const paint = index => {
+    if (index === active) return;
+    active = index;
+    tabs.forEach((tab, i) => {
+      tab.setAttribute("aria-selected", String(i === index));
+      tab.tabIndex = i === index ? 0 : -1;
+    });
+    dots.forEach((dot, i) => dot.setAttribute("aria-pressed", String(i === index)));
+    glows.forEach((glow, i) => glow.classList.toggle("is-active", i === index));
+    words.forEach((word, i) => {
+      word.classList.toggle("is-active", i === index);
+      word.classList.toggle("is-before", offsetBetween(index, i) < 0);
+    });
+    counter.textContent = String(index + 1).padStart(2, "0");
+    moveLine();
+  };
+  const moveLine = () => {
+    const tab = tabs[active];
+    if (!tab) return;
+    line.style.setProperty("--line-x", `${tab.offsetLeft + 10}px`);
+    line.style.setProperty("--line-w", ((tab.offsetWidth - 20) / 100).toFixed(3));
+    // On a phone the tabs scroll sideways: keep the active one in view.
+    const left = tab.offsetLeft - (tabList.clientWidth - tab.offsetWidth) / 2;
+    if (Math.abs(tabList.scrollLeft - left) > 4) tabList.scrollTo({ left, behavior: reduced ? "auto" : "smooth" });
+  };
+
+  // Tabs follow the ARIA tabs pattern: the arrow keys move between them and choose one.
+  const tabKeys = (event, choose) => {
+    const at = tabs.indexOf(event.currentTarget);
+    let next = null;
+    if (event.key === "ArrowRight") next = mod(at + 1);
+    else if (event.key === "ArrowLeft") next = mod(at - 1);
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = count - 1;
+    if (next === null) return;
+    event.preventDefault();
+    tabs[next].focus();
+    choose(next);
+  };
+
+  // ----- Reduced motion: a swipe row. Tabs and dots scroll to a card; no ring, no timer. -----
+  if (reduced) {
+    section.classList.add("is-row");
+    // A chosen card is active straight away, even when the row cannot scroll it to the middle.
+    let chosenAt = 0;
+    const show = i => {
+      paint(i);
+      chosenAt = performance.now();
+      cards[i].scrollIntoView({ behavior: "auto", block: "nearest", inline: "center" });
+    };
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => show(i));
+      tab.addEventListener("keydown", event => tabKeys(event, show));
+    });
+    dots.forEach((dot, i) => dot.addEventListener("click", () => show(i)));
+    let frame = 0;
+    track.addEventListener("scroll", () => {
+      if (frame || performance.now() - chosenAt < 500) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const middle = track.getBoundingClientRect().left + track.clientWidth / 2;
+        let best = 0;
+        let bestGap = Infinity;
+        cards.forEach((card, i) => {
+          const box = card.getBoundingClientRect();
+          const gap = Math.abs(box.left + box.width / 2 - middle);
+          if (gap < bestGap) { bestGap = gap; best = i; }
+        });
+        paint(best);
+      });
+    }, { passive: true });
+    paint(0);
+    window.addEventListener("resize", moveLine);
+    return;
+  }
+
+  // ----- The 3D ring -----
+  const phone = window.matchMedia("(max-width: 767px)");
+  const mouse = finePointer();
+  section.classList.add("is-ring");
+  stage.tabIndex = 0;
+  stage.setAttribute("role", "region");
+  stage.setAttribute("aria-roledescription", "carousel");
+  stage.setAttribute("aria-label", "Sports. Use the left and right arrow keys to turn, Enter to open the sport in front.");
+
+  // A faint mirrored copy of the ring makes the reflective floor (hidden on phones by CSS).
+  const mirror = document.createElement("div");
+  mirror.className = "sport-ring-mirror";
+  mirror.setAttribute("aria-hidden", "true");
+  mirror.inert = true;
+  const mirrorTrack = track.cloneNode(true);
+  mirrorTrack.removeAttribute("data-ring-track");
+  mirrorTrack.querySelectorAll("a").forEach(link => {
+    const copy = document.createElement("span");
+    copy.className = link.className;
+    copy.setAttribute("style", link.getAttribute("style"));
+    copy.innerHTML = link.innerHTML;
+    link.replaceWith(copy);
+  });
+  const mirrorCards = [...mirrorTrack.children];
+  mirror.append(mirrorTrack);
+  stage.prepend(mirror);
+
+  // The radius comes from the card width, so neighbouring cards never overlap.
+  let cardWidth = 300;
+  const measure = () => {
+    cardWidth = track.offsetWidth || 300;
+    const radius = Math.round((cardWidth / 2 / Math.tan(Math.PI / count)) * 1.32 + 24);
+    section.style.setProperty("--r", `${radius}px`);
+    moveLine();
+  };
+
+  let index = 0;        // which card faces the front; can go past 5 or below 0 (the ring wraps)
+  let scrollIndex = 0;  // the part chosen by scrolling through the pinned section
+  let offset = 0;       // what drag, tabs, keys and the timer have added on top of scrolling
+  let lastTouch = 0;    // the last time the visitor did anything with the ring
+  let lastAuto = 0;
+
+  const setAngle = angle => {
+    section.style.setProperty("--angle", `${angle.toFixed(2)}deg`);
+    const front = mod(Math.round(-angle / step));
+    cards.forEach((card, i) => {
+      const pos = String(offsetBetween(front, i));
+      if (card.dataset.pos !== pos) {
+        card.dataset.pos = pos;
+        mirrorCards[i].dataset.pos = pos;
+        card.tabIndex = pos === "0" ? 0 : -1;
+        if (pos !== "0") resetTilt(card);
+      }
+    });
+    paint(front);
+  };
+  const go = next => {
+    index = next;
+    offset = index - scrollIndex;
+    setAngle(-index * step);
+  };
+  const goTo = sport => go(index + offsetBetween(mod(index), sport));
+  const touched = () => { lastTouch = performance.now(); };
+
+  // Scrolling through the pinned section turns the ring one sport at a time.
+  const pinned = () => !phone.matches;
+  const readScroll = () => {
+    if (!pinned()) return 0;
+    return Math.round(scrollProgress(section) * (count - 1));
+  };
+  let scrollFrame = 0;
+  window.addEventListener("scroll", () => {
+    if (scrollFrame) return;
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0;
+      const next = readScroll();
+      if (next === scrollIndex) return;
+      scrollIndex = next;
+      touched();
+      go(scrollIndex + offset);
+    });
+  }, { passive: true });
+  const layout = () => {
+    section.classList.toggle("is-pinned", pinned());
+    scrollIndex = readScroll();
+    offset = index - scrollIndex;
+    measure();
+  };
+  phone.addEventListener("change", layout);
+  let resizeFrame = 0;
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(measure);
+  });
+
+  // Tabs, dots and keys.
+  tabs.forEach((tab, i) => {
+    tab.addEventListener("click", () => { touched(); goTo(i); });
+    tab.addEventListener("keydown", event => tabKeys(event, i2 => { touched(); goTo(i2); }));
+  });
+  dots.forEach((dot, i) => dot.addEventListener("click", () => { touched(); goTo(i); }));
+  stage.addEventListener("keydown", event => {
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      touched();
+      go(index + (event.key === "ArrowRight" ? 1 : -1));
+    } else if (event.key === "Enter" && event.target === stage) {
+      window.location.assign(cards[mod(index)].href);
+    }
+  });
+
+  // Drag or swipe: the ring follows the finger, keeps some speed after letting go, then snaps.
+  const drag = { down: false, moved: 0, startX: 0, startAngle: 0, angle: 0, samples: [], frame: 0 };
+  stage.addEventListener("pointerdown", event => {
+    if (event.button !== 0) return;
+    drag.down = true;
+    drag.moved = 0;
+    drag.startX = event.clientX;
+    drag.startAngle = -index * step;
+    drag.angle = drag.startAngle;
+    drag.samples = [{ x: event.clientX, t: event.timeStamp }];
+  });
+  stage.addEventListener("pointermove", event => {
+    if (!drag.down) return;
+    const dx = event.clientX - drag.startX;
+    drag.moved = Math.max(drag.moved, Math.abs(dx));
+    if (drag.moved < 6) return;
+    if (!section.classList.contains("is-dragging")) {
+      section.classList.add("is-dragging");
+      stage.setPointerCapture(event.pointerId);
+      resetTilt(cards[mod(index)]);
+    }
+    // Dragging one card's width turns the ring by one card.
+    drag.angle = drag.startAngle + (dx / (cardWidth * 1.1)) * step;
+    drag.samples.push({ x: event.clientX, t: event.timeStamp });
+    if (drag.samples.length > 6) drag.samples.shift();
+    if (!drag.frame) {
+      drag.frame = requestAnimationFrame(() => {
+        drag.frame = 0;
+        setAngle(drag.angle);
+      });
+    }
+  });
+  const release = () => {
+    if (!drag.down) return;
+    drag.down = false;
+    if (!section.classList.contains("is-dragging")) return;
+    touched();
+    const first = drag.samples[0];
+    const last = drag.samples[drag.samples.length - 1];
+    const seconds = Math.max(0.016, (last.t - first.t) / 1000);
+    const speed = ((last.x - first.x) / seconds / (cardWidth * 1.1)) * step; // degrees per second
+    const projected = drag.angle + clamp(speed * 0.18, -step * 2, step * 2);
+    cancelAnimationFrame(drag.frame);
+    drag.frame = 0;
+    section.classList.remove("is-dragging");
+    go(Math.round(-projected / step));
+  };
+  stage.addEventListener("pointerup", release);
+  stage.addEventListener("pointercancel", release);
+  // After a real drag the click must not open a link. A side card turns to the front instead.
+  stage.addEventListener("click", event => {
+    if (drag.moved >= 6) {
+      event.preventDefault();
+      event.stopPropagation();
+      drag.moved = 0;
+      return;
+    }
+    const card = event.target.closest("[data-ring-card]");
+    if (!card || card.dataset.pos === "0") return;
+    event.preventDefault();
+    touched();
+    go(index + Number(card.dataset.pos));
+  }, true);
+
+  // The front card tilts towards the mouse, with a glare, and its photo and text sit at different
+  // depths (photo 20px, text 60px) so they move apart.
+  function resetTilt(card) {
+    if (!card.classList.contains("is-tilting")) return;
+    card.classList.remove("is-tilting");
+    ["--tx", "--ty", "--mx", "--my"].forEach(name => card.style.removeProperty(name));
+  }
+  if (mouse) {
+    let tiltFrame = 0;
+    stage.addEventListener("pointermove", event => {
+      if (drag.down || phone.matches) return;
+      const { clientX, clientY } = event;
+      cancelAnimationFrame(tiltFrame);
+      tiltFrame = requestAnimationFrame(() => {
+        const card = cards[mod(index)];
+        const box = card.getBoundingClientRect();
+        const x = (clientX - box.left) / box.width - 0.5;
+        const y = (clientY - box.top) / box.height - 0.5;
+        if (Math.abs(x) > 0.5 || Math.abs(y) > 0.5) {
+          resetTilt(card);
+          return;
+        }
+        card.classList.add("is-tilting");
+        card.style.setProperty("--ty", `${(x * 16).toFixed(2)}deg`);
+        card.style.setProperty("--tx", `${(-y * 12).toFixed(2)}deg`);
+        card.style.setProperty("--mx", `${(-x * 18).toFixed(1)}px`);
+        card.style.setProperty("--my", `${(-y * 18).toFixed(1)}px`);
+        card.style.setProperty("--gx", `${(x * box.width).toFixed(1)}px`);
+        card.style.setProperty("--gy", `${(y * box.height).toFixed(1)}px`);
+      });
+    });
+    stage.addEventListener("pointerleave", () => resetTilt(cards[mod(index)]));
+  }
+
+  // Turn by itself every 4 seconds while the ring is on screen and nobody is using it.
+  let visible = false;
+  let hovering = false;
+  stage.addEventListener("pointerenter", () => { hovering = true; });
+  stage.addEventListener("pointerleave", () => { hovering = false; });
+  setInterval(() => {
+    const now = performance.now();
+    if (!visible || hovering || drag.down || document.hidden || section.contains(document.activeElement)) return;
+    if (now - Math.max(lastTouch, lastAuto) < 4000) return;
+    lastAuto = now;
+    go(index + 1);
+  }, 250);
+
+  // The first time the ring is seen, the cards fade and rise in from depth, front card first.
+  const rise = () => {
+    section.classList.remove("is-waiting");
+    section.querySelectorAll(".sport-card-float").forEach(float => {
+      const card = float.parentElement;
+      const order = Math.abs(Number(card.dataset.pos) || 0);
+      float.animate(
+        [{ opacity: 0, transform: "translate3d(0, 90px, -160px)" }, { opacity: 1, transform: "none" }],
+        { duration: 900, delay: order * 110, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "backwards" }
+      );
+    });
+  };
+  if ("IntersectionObserver" in window) {
+    section.classList.add("is-waiting");
+    let risen = false;
+    new IntersectionObserver(entries => {
+      visible = entries.some(entry => entry.isIntersecting);
+      if (visible && !risen) {
+        risen = true;
+        rise();
+        lastAuto = performance.now();
+      }
+    }, { threshold: 0.25 }).observe(stage);
+  } else {
+    visible = true;
+  }
+
+  layout();
+  go(scrollIndex);
 }
 
 // ---------- 4. Showcase light ----------

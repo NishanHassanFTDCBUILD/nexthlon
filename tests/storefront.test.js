@@ -2,7 +2,7 @@
 require("./helpers");
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { dealEndsAt, buildHeroSlides } = require("../services/homeService");
+const { dealEndsAt, buildSportRing, portraitImage } = require("../services/homeService");
 const { validateContact, validateNewsletter, readIdList, hasErrors } = require("../utils/validators");
 const { CONTACT_TOPICS } = require("../config/store");
 
@@ -15,29 +15,54 @@ test("deals end at the next midnight in India, whatever the server's time zone",
   assert.equal(dealEndsAt(new Date("2026-11-04T18:30:00Z")).toISOString(), "2026-11-05T18:30:00.000Z");
 });
 
-test("hero slides: the top deal first, then the biggest sports, never more than 4", () => {
+test("sport ring: the six headline sports first, in order, with DB counts, prices and colours", () => {
   const categories = [
-    { name: "Tennis", slug: "tennis", count: 2, fromPrice: 149900, image: "/t.jpg" },
-    { name: "Running", slug: "running", count: 9, fromPrice: 79900, image: "/r.jpg" },
-    { name: "Hiking", slug: "hiking", count: 5, fromPrice: 299900, image: "/h.jpg" },
-    { name: "Cricket", slug: "cricket", count: 5, fromPrice: 119900, image: "/c.jpg" },
-    { name: "Football", slug: "football", count: 1, fromPrice: 59900, image: "/f.jpg" }
+    { name: "Tennis", slug: "tennis", count: 9, fromPrice: 149900, image: "/t.jpg" },
+    { name: "Outdoor", slug: "outdoor", count: 2, fromPrice: 299900, image: "" },
+    { name: "Running", slug: "running", count: 3, fromPrice: 199900, image: "https://images.unsplash.com/photo-1?auto=format&fit=crop&w=800&q=80" },
+    { name: "Cricket", slug: "cricket", count: 1, fromPrice: 119900, image: "/c.jpg" },
+    { name: "Empty", slug: "empty", count: 0, fromPrice: 0, image: "" },
+    { name: "Football", slug: "football", count: 4, fromPrice: 59900, image: "/f.jpg" },
+    { name: "Swimming", slug: "swimming", count: 2, fromPrice: 49900, image: "/s.jpg" },
+    { name: "Fitness", slug: "fitness", count: 5, fromPrice: 89900, image: "/fit.jpg" }
   ];
-  const slides = buildHeroSlides({ deals: [{ discountPercent: 40, image: "/deal.jpg" }], categories });
-  assert.equal(slides.length, 4);
-  assert.equal(slides[0].title, "Up to 40% off top gear");
-  assert.equal(slides[0].href, "/products?sort=discount");
-  assert.deepEqual(slides.slice(1).map(s => s.href), [
-    "/products?category=running", "/products?category=cricket", "/products?category=hiking"
-  ]);
-  assert.match(slides[1].kicker, /from ₹799/);
-  assert.equal(buildHeroSlides({ categories: [{ name: "Running", slug: "running", count: 1, fromPrice: 123400, image: "" }] })[0].kicker, "Running · from ₹1,234");
+  const ring = buildSportRing(categories);
+  assert.equal(ring.length, 6);
+  // Headline sports in their fixed order, then the biggest other sport fills the last place.
+  assert.deepEqual(ring.map(s => s.name), ["Running", "Football", "Fitness", "Cricket", "Outdoor", "Tennis"]);
+  assert.deepEqual(ring.map(s => s.number), ["01", "02", "03", "04", "05", "06"]);
+  assert.equal(ring[0].href, "/products?category=running");
+  assert.equal(ring[0].count, 3);
+  assert.equal(ring[0].fromPrice, 199900);
+  assert.equal(ring[0].color, "#ff7a1a");
+  assert.equal(ring[1].color, "#22c55e");
+  // Unsplash photos are cropped to the tall card. A known sport without key gear in the catalogue
+  // gets its matching photo rather than the category's cover image.
+  assert.match(ring[1].image, /photo-1614632537190.*w=640/);
+  assert.match(ring[1].image, /h=900/);
+  assert.match(ring[5].image, /photo-1595435934249/);
+  // A sport without an image gets a matching photo.
+  assert.match(ring[4].image, /^https:\/\/images\.unsplash\.com\/photo-1553062407/);
 });
 
-test("hero slides: an empty store still gets one slide", () => {
-  const slides = buildHeroSlides({});
-  assert.equal(slides.length, 1);
-  assert.equal(slides[0].href, "/products");
+test("sport ring photo: the sport's key gear first, then a matching photo, then the category image", () => {
+  const categories = [
+    { id: "c1", name: "Football", slug: "football", count: 2, fromPrice: 100, image: "/jersey.jpg" },
+    { id: "c2", name: "Cycling", slug: "cycling", count: 1, fromPrice: 100, image: "/helmet.jpg" },
+    { id: "c3", name: "Kabaddi", slug: "kabaddi", count: 1, fromPrice: 100, image: "/mat.jpg" }
+  ];
+  const [football, cycling, kabaddi] = buildSportRing(categories, { c1: "/uploads/ball.webp" });
+  assert.equal(football.image, "/uploads/ball.webp");
+  assert.match(cycling.image, /^https:\/\/images\.unsplash\.com\/photo-1485965120184/);
+  assert.equal(kabaddi.image, "/mat.jpg");
+});
+
+test("sport ring: an empty store has no ring, and odd image paths are kept", () => {
+  assert.deepEqual(buildSportRing([]), []);
+  assert.deepEqual(buildSportRing(), []);
+  assert.equal(portraitImage("/uploads/products/a.webp"), "/uploads/products/a.webp");
+  assert.equal(portraitImage(""), "");
+  assert.equal(buildSportRing([{ name: "Kabaddi", slug: "kabaddi", count: 1, fromPrice: 100, image: "" }])[0].image, "");
 });
 
 test("id lists from the browser keep only real ids, without repeats, up to the limit", () => {

@@ -538,7 +538,7 @@ test("product lookup returns listed products in the order asked, and skips the r
   assert.deepEqual((await call("GET", "/api/products/lookup?ids[$ne]=x")).data.products, []);
 });
 
-test("home page: 3D hero, trust badges, flip deals and countdown, journey, rails and brands", async () => {
+test("home page: 3D hero, trust badges, flip deals and countdown, sport ring, rails and brands", async () => {
   // Best sellers are the in-stock items that are not already in the deals row.
   await makeProduct({ name: "Plain Training Tee", slug: "plain-training-tee", category: "Fitness", price: 499, mrp: 499, stock: 8, image: "/img/favicon.svg" });
   const res = await call("GET", "/");
@@ -550,7 +550,12 @@ test("home page: 3D hero, trust badges, flip deals and countdown, journey, rails
   assert.match(res.data, /<span class="char" style="--i: 0">B<\/span>/);
   assert.match(res.data, /type="module" src="\/js\/home3d\.js"/);
   assert.match(res.data, /data-flip-card/);
-  assert.match(res.data, /data-journey/);
+  // The sport ring: a grid of linked cards without JavaScript, with the count and lowest price from the database.
+  assert.match(res.data, /data-sport-ring/);
+  assert.match(res.data, /class="sport-card" id="sport-card-0" href="\/products\?category=/);
+  assert.match(res.data, /class="sport-card-meta">\d+ items? · from ₹/);
+  assert.match(res.data, /data-ring-tabs hidden/);
+  assert.doesNotMatch(res.data, /data-journey/);
   assert.match(res.data, /Free delivery/);
   assert.match(res.data, /Deals of the day/);
   assert.match(res.data, /data-countdown data-left="\d+"/);

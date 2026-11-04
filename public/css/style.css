@@ -1427,7 +1427,7 @@ html.is-pay-locked, html.is-pay-locked body { overflow: hidden; }
 .segmented button[aria-pressed="true"] { background: var(--navy-900); color: #fff; }
 
 /* ==========================================================================
-   3D home: particle hero, product galaxy, sports journey, showcase podium,
+   3D home: particle hero, product galaxy, sport ring, showcase podium,
    flip deals, depth tiles, 3D stats. Motion lives in motion.css.
    Without JavaScript or WebGL every section is a normal, readable layout.
    ========================================================================== */
@@ -1487,29 +1487,131 @@ html.is-pay-locked, html.is-pay-locked body { overflow: hidden; }
 .galaxy.is-3d .galaxy-floor { display: block; position: absolute; left: 50%; bottom: 6%; width: 70%; height: 90px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(var(--brand-rgb), 0.35), transparent); pointer-events: none; }
 .galaxy.is-zooming .galaxy-stage { transform: scale(1.08); opacity: 0.85; }
 
-/* ---------- Sports journey ---------- */
-.journey { margin-top: var(--space-5); }
-.journey-head { margin-bottom: var(--space-2); }
-.journey-head h2 { font-size: var(--text-3xl); }
-.journey-progress { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 16px; margin: var(--space-1h) 0 0; padding: 0; font-size: var(--text-xs); font-weight: var(--weight-bold); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-.journey-track { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-2); }
-.journey-card { position: relative; display: block; overflow: hidden; aspect-ratio: 3 / 2; border-radius: var(--radius-lg); background: var(--navy-800); color: #fff; box-shadow: var(--shadow-md); text-decoration: none; }
-.journey-card:hover { color: #fff; text-decoration: none; }
-.journey-card img { width: 100%; height: 100%; object-fit: cover; }
-.journey-card-text { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; padding: var(--space-3); background: linear-gradient(rgba(5, 11, 22, 0) 30%, rgba(5, 11, 22, 0.88)); }
-.journey-num { font-family: var(--display); font-size: var(--text-2xl); color: var(--accent); line-height: 1; }
-.journey-card strong { font-family: var(--display); font-size: var(--text-3xl); text-transform: uppercase; line-height: 1; }
-.journey-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: var(--weight-semibold); color: var(--accent); }
-.journey.is-3d { height: calc(var(--cards) * 80vh + 100vh); margin-top: var(--space-5); }
-.journey.is-3d .journey-sticky { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; display: flex; flex-direction: column; padding-top: calc(var(--space-4) + 20px); background: radial-gradient(70% 60% at 50% 55%, rgba(var(--brand-rgb), 0.18), transparent 70%), var(--navy-950); color: #fff; --focus: var(--accent); }
-.journey.is-3d .journey-head h2 { color: #fff; }
-.journey.is-3d .journey-progress { color: var(--on-dark-muted); }
-.journey-progress li { transition: color var(--duration) var(--ease); }
-.journey-progress li.is-active { color: var(--accent); }
-.journey.is-3d .journey-view { position: relative; flex: 1; perspective: 900px; perspective-origin: 50% 40%; }
-.journey.is-3d .journey-track { position: absolute; inset: 0; display: block; transform-style: preserve-3d; will-change: transform; }
-.journey.is-3d .journey-card { --w: min(520px, 80vw); --side: -1; position: absolute; left: 50%; top: 42%; width: var(--w); margin: calc(var(--w) * -0.33) 0 0 calc(var(--w) / -2); transform: translate3d(calc(var(--side) * 14vw), 0, calc(var(--i) * -900px)); }
-.journey.is-3d .journey-card:nth-child(even) { --side: 1; }
+/* ---------- Pick your sport: the 3D sport carousel ring ----------
+   Three modes. No JavaScript: a plain grid of linked cards. .is-row (reduced motion): a swipe row.
+   .is-ring: six cards on a CSS 3D ring, turned by scroll (.is-pinned), drag, tabs, keys and a timer.
+   Turning only ever changes transform and opacity. */
+.sport-ring { --card-w: 300px; --card-h: 420px; --step: calc(360deg / var(--count)); position: relative; margin-top: var(--space-5); }
+.sport-ring-pin { position: relative; }
+.sport-ring-head { position: relative; z-index: 2; margin-bottom: var(--space-3); }
+.sport-ring-head h2 { font-size: var(--text-3xl); }
+.sport-ring-bg, .sport-ring-floor { display: none; }
+.sport-ring:not(.is-ring) .sport-ring-stage { max-width: 1440px; margin: 0 auto; padding-left: max(var(--space-2), env(safe-area-inset-left)); padding-right: max(var(--space-2), env(safe-area-inset-right)); }
+
+/* Plain grid (no JavaScript) */
+.sport-ring-track { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-2); }
+.sport-card { position: relative; display: block; aspect-ratio: 5 / 7; color: #fff; text-decoration: none; border-radius: var(--radius-lg); }
+.sport-card:hover, .sport-card:focus-visible { color: #fff; text-decoration: none; }
+.sport-card-float, .sport-card-tilt { position: absolute; inset: 0; display: block; }
+.sport-card-media { position: absolute; inset: 0; display: block; overflow: hidden; border-radius: var(--radius-lg); background: radial-gradient(120% 80% at 50% 0%, var(--sport), var(--navy-900) 70%); box-shadow: var(--shadow-md); }
+.sport-card-media img { width: 100%; height: 100%; object-fit: cover; }
+.sport-card-shade { position: absolute; inset: 0; background: linear-gradient(rgba(5, 11, 22, 0) 35%, rgba(5, 11, 22, 0.9)); }
+.sport-card-glare { display: none; }
+.sport-card-text { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: var(--space-3); }
+.sport-card-num { font-family: var(--display); font-size: var(--text-2xl); font-weight: var(--weight-bold); line-height: 1; color: var(--sport); text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
+.sport-card-name { font-family: var(--display); font-size: var(--text-3xl); font-weight: var(--weight-black); line-height: 0.95; text-transform: uppercase; letter-spacing: 0.01em; }
+.sport-card-meta { font-size: var(--text-sm); color: var(--on-dark); font-variant-numeric: tabular-nums; }
+.sport-card-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: var(--space-1); padding: 9px 16px; border-radius: var(--radius-pill); background: var(--brand); color: #fff; font-size: var(--text-sm); font-weight: var(--weight-bold); box-shadow: 0 8px 24px rgba(var(--brand-rgb), 0.4); }
+.sport-card-back { display: none; }
+.sport-card:focus-visible { outline: 3px solid var(--focus, var(--brand)); outline-offset: 4px; }
+
+/* Tabs with a sliding underline, dots and the 01 / 06 counter (JavaScript only) */
+.sport-tabs { position: relative; display: flex; gap: 4px; margin-top: var(--space-2); overflow-x: auto; scrollbar-width: none; }
+.sport-tabs[hidden], .sport-ring-foot[hidden] { display: none; }
+.sport-tabs::-webkit-scrollbar { display: none; }
+.sport-tab { flex: none; padding: 10px 14px 12px; border: 0; background: none; color: var(--muted); font: inherit; font-size: var(--text-sm); font-weight: var(--weight-bold); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: color var(--duration) var(--ease); }
+.sport-tab:hover, .sport-tab[aria-selected="true"] { color: var(--ink); }
+.sport-tabs-line { position: absolute; left: 0; bottom: 2px; width: 100px; height: 3px; border-radius: 3px; background: var(--brand); box-shadow: 0 0 12px rgba(var(--brand-rgb), 0.7); transform-origin: 0 50%; transform: translateX(var(--line-x, 0)) scaleX(var(--line-w, 0)); transition: transform 0.5s var(--ease-out); pointer-events: none; }
+.sport-ring-foot { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }
+.sport-dots { display: flex; gap: 2px; }
+.sport-dot { position: relative; width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; }
+.sport-dot::before { content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--line-strong); transition: transform 0.4s var(--ease-out), background-color 0.4s var(--ease); }
+.sport-dot[aria-pressed="true"]::before { background: var(--brand); transform: scale(1.5); }
+.sport-count { margin: 0; font-family: var(--display); font-size: var(--text-lg); font-weight: var(--weight-bold); letter-spacing: 0.08em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sport-count strong { color: var(--ink); }
+
+/* Reduced motion: a horizontal swipe row, no ring and no timer */
+.sport-ring.is-row .sport-ring-track { display: flex; gap: var(--space-2); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: var(--space-2); scrollbar-width: thin; }
+.sport-ring.is-row .sport-card { flex: 0 0 min(260px, 72vw); scroll-snap-align: center; }
+
+/* ----- The 3D ring ----- */
+.sport-ring.is-ring { --scene-h: clamp(520px, 70vh, 700px); }
+.sport-ring.is-ring .sport-ring-pin { overflow: hidden; padding: var(--space-4) 0 var(--space-3); }
+.sport-ring.is-ring .sport-ring-bg { display: block; position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.sport-ring-glow { position: absolute; left: 50%; top: 58%; width: min(1100px, 150vw); aspect-ratio: 1.6; transform: translate(-50%, -50%); background: radial-gradient(closest-side, color-mix(in srgb, var(--sport) 40%, transparent), transparent); opacity: 0; transition: opacity 0.9s var(--ease); }
+.sport-ring-glow.is-active { opacity: 1; }
+.sport-ring-word { position: absolute; left: 0; right: 0; top: 54%; text-align: center; font-family: var(--display); font-size: clamp(88px, 19vw, 300px); font-weight: var(--weight-black); line-height: 1; letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap; color: transparent; -webkit-text-stroke: 2px rgba(15, 26, 43, 0.13); opacity: 0; transform: translate3d(var(--word-x, 12%), -50%, 0); transition: transform 0.9s var(--ease-out), opacity 0.6s var(--ease); }
+.sport-ring-word.is-before { --word-x: -12%; }
+.sport-ring-word.is-active { --word-x: 0%; opacity: 1; }
+
+.sport-ring.is-ring .sport-ring-track { position: absolute; left: 50%; top: 46%; display: block; width: var(--card-w); height: var(--card-h); margin: calc(var(--card-h) / -2) 0 0 calc(var(--card-w) / -2); transform-style: preserve-3d; transform: translateZ(calc(var(--r, 400px) * -1)) rotateY(var(--angle, 0deg)); transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.sport-ring.is-ring .sport-ring-stage { position: relative; height: var(--scene-h); cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.sport-ring.is-ring .sport-ring-stage:active { cursor: grabbing; }
+.sport-ring.is-ring .sport-ring-stage:focus-visible { outline: 3px solid var(--focus, var(--brand)); outline-offset: -6px; border-radius: var(--radius-lg); }
+.sport-ring.is-ring .sport-ring-scene { position: absolute; inset: 0; perspective: 1600px; perspective-origin: 50% 40%; }
+.sport-ring.is-dragging .sport-ring-track { transition: none; }
+.sport-ring.is-ring .sport-card { --s: 0.9; position: absolute; inset: 0; aspect-ratio: auto; transform-style: preserve-3d; transform: rotateY(calc(var(--i) * var(--step))) translateZ(var(--r, 400px)) scale(var(--s)); transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); -webkit-user-drag: none; }
+.sport-ring.is-ring .sport-card[data-pos="0"] { --s: 1.1; }
+.sport-ring.is-ring .sport-card img { pointer-events: none; -webkit-user-drag: none; }
+.sport-ring.is-ring .sport-card-float, .sport-ring.is-ring .sport-card-tilt { transform-style: preserve-3d; }
+.sport-ring.is-ring .sport-card-tilt { transform: rotateX(var(--tx, 0deg)) rotateY(var(--ty, 0deg)); transition: transform 0.5s var(--ease-out); }
+.sport-ring.is-ring .sport-card.is-tilting .sport-card-tilt { transition-duration: 0.12s; }
+.sport-ring.is-ring .sport-card-media { transform: translateZ(20px); backface-visibility: hidden; box-shadow: 0 30px 60px rgba(5, 11, 22, 0.35); }
+.sport-ring.is-ring .sport-card-media img { transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(1.14); transition: transform 0.5s var(--ease-out); }
+/* Side cards are darker (a black layer, so only opacity animates) and only show the name. */
+.sport-ring.is-ring .sport-card-media::after { content: ""; position: absolute; inset: 0; background: #050b16; opacity: 0.5; transition: opacity 0.7s var(--ease); }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-media::after { opacity: 0; }
+/* The active card's orange glow border, and a glow behind it */
+.sport-ring.is-ring .sport-card-media::before { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--brand), inset 0 0 30px rgba(var(--brand-rgb), 0.35); opacity: 0; transition: opacity 0.7s var(--ease); pointer-events: none; }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-media::before { opacity: 1; }
+.sport-ring.is-ring .sport-card-float::before { content: ""; position: absolute; inset: -18px; background: radial-gradient(closest-side, rgba(var(--brand-rgb), 0.5), transparent); opacity: 0; transition: opacity 0.7s var(--ease); }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-float::before { opacity: 0.85; }
+.sport-ring.is-ring .sport-card-text { transform: translateZ(22px); backface-visibility: hidden; transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-text { transform: translateZ(60px); }
+.sport-ring.is-ring :is(.sport-card-num, .sport-card-meta, .sport-card-cta) { opacity: 0; transform: translateY(10px); transition: opacity 0.4s var(--ease), transform 0.5s var(--ease-out); }
+.sport-ring.is-ring .sport-card[data-pos="0"] :is(.sport-card-num, .sport-card-meta, .sport-card-cta) { opacity: 1; transform: none; transition-delay: 0.25s; }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-meta { transition-delay: 0.32s; }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-cta { transition-delay: 0.4s; }
+.sport-ring.is-ring .sport-card-glare { display: block; position: absolute; left: -50%; top: -50%; width: 200%; height: 200%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.28), transparent 70%); opacity: 0; transform: translate(var(--gx, 0px), var(--gy, 0px)); transition: opacity 0.3s var(--ease); pointer-events: none; }
+.sport-ring.is-ring .sport-card.is-tilting .sport-card-glare { opacity: 1; }
+/* Cards turned away show a plain back with the name the right way round. */
+.sport-ring.is-ring .sport-card-back { display: grid; place-items: center; position: absolute; inset: 0; border-radius: var(--radius-lg); background: linear-gradient(160deg, color-mix(in srgb, var(--sport) 30%, var(--navy-900)), var(--navy-950)); border: 1px solid rgba(255, 255, 255, 0.08); transform: rotateY(180deg) translateZ(1px); backface-visibility: hidden; }
+.sport-ring.is-ring .sport-card-back span { font-family: var(--display); font-size: var(--text-2xl); font-weight: var(--weight-black); text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.55); }
+/* Far cards take no clicks and blur slightly with distance (wide screens only). */
+.sport-ring.is-ring .sport-card:not([data-pos="0"]):not([data-pos="1"]):not([data-pos="-1"]) { pointer-events: none; }
+.sport-ring.is-ring .sport-card:is([data-pos="1"], [data-pos="-1"]) .sport-card-media { filter: blur(0.6px); }
+.sport-ring.is-ring .sport-card:is([data-pos="2"], [data-pos="-2"]) .sport-card-media { filter: blur(1.6px); }
+.sport-ring.is-ring .sport-card:is([data-pos="3"], [data-pos="-3"]) .sport-card-media { filter: blur(2.6px); }
+
+/* The floor: a soft shadow under the active card, and a faint mirrored reflection of the ring. */
+.sport-ring.is-ring .sport-ring-floor { display: block; position: absolute; left: 50%; top: calc(46% + var(--card-h) * 0.57); width: calc(var(--card-w) * 1.6); height: 56px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(5, 11, 22, 0.4), transparent); pointer-events: none; }
+.sport-ring-mirror { position: absolute; inset: 0; perspective: 1600px; perspective-origin: 50% 40%; opacity: 0.2; pointer-events: none; transform-origin: 50% calc(46% + var(--card-h) * 0.55); transform: scaleY(-1); -webkit-mask-image: linear-gradient(transparent calc(46% + var(--card-h) * 0.1), #000 calc(46% + var(--card-h) * 0.55)); mask-image: linear-gradient(transparent calc(46% + var(--card-h) * 0.1), #000 calc(46% + var(--card-h) * 0.55)); }
+.sport-ring-mirror .sport-card-text, .sport-ring-mirror .sport-card-glare, .sport-ring-mirror .sport-card-float::before { display: none; }
+
+/* Cards fade and rise in the first time the ring is seen (the Web Animations API plays it). */
+.sport-ring.is-waiting .sport-card-float { opacity: 0; }
+
+/* Scroll-pinned (wide screens): the section is tall and the ring stays on screen while it turns. */
+.sport-ring.is-pinned { height: calc(100vh + (var(--count) - 1) * 55vh); }
+.sport-ring.is-pinned .sport-ring-pin { position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: calc(var(--header-h) + var(--space-2)) 0 var(--space-2); }
+.sport-ring.is-pinned .sport-ring-stage { flex: 0 1 var(--scene-h); min-height: 470px; }
+.sport-ring.is-pinned .sport-ring-head { margin-bottom: var(--space-1); }
+
+@media (max-width: 767px) {
+  .sport-ring { --card-w: 220px; --card-h: 310px; }
+  .sport-ring.is-ring { --scene-h: 430px; }
+  .sport-ring.is-ring .sport-card-media img { transform: scale(1.06); }
+  .sport-ring.is-ring .sport-card-text { padding: var(--space-2); }
+  .sport-ring.is-ring .sport-card-name { font-size: var(--text-2xl); }
+  .sport-ring.is-ring .sport-card .sport-card-media { filter: none; box-shadow: 0 18px 36px rgba(5, 11, 22, 0.3); }
+  .sport-ring-mirror { display: none; }
+  .sport-ring-word { -webkit-text-stroke-width: 1.5px; }
+}
+
+:root[data-theme="dark"] .sport-ring-word { -webkit-text-stroke-color: rgba(255, 255, 255, 0.12); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sport-ring-word { -webkit-text-stroke-color: rgba(255, 255, 255, 0.12); }
+}
 
 /* ---------- Showcase ---------- */
 .showcase { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: var(--space-5); align-items: center; }
@@ -1593,9 +1695,6 @@ html.is-pay-locked, html.is-pay-locked body { overflow: hidden; }
   .hf-card-1 { display: block; left: 58%; top: 10%; }
   .galaxy.is-3d .galaxy-ring { width: 160px; height: 240px; }
   .galaxy.is-3d .galaxy-stage { height: 360px; }
-  .journey.is-3d { height: calc(var(--cards) * 70vh + 100vh); }
-  .journey.is-3d .journey-card { --w: 82vw; }
-  .journey.is-3d .journey-card:nth-child(n) { --side: 0; }
   .flip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1h); }
   .flip-inner { min-height: 290px; }
   .flip-face { padding: var(--space-1h); }

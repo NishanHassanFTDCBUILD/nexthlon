@@ -1,5 +1,5 @@
 const productService = require("./productService");
-const { formatPaise } = require("../utils/money");
+const Product = require("../models/Product");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -11,57 +11,98 @@ function dealEndsAt(now = new Date()) {
   return new Date(nextIstMidnight - IST_OFFSET_MS);
 }
 
-// Short lines for the hero carousel, by sport. Sports without a line get the general one.
-const SPORT_LINES = {
-  Running: { title: "Run further, recover faster", text: "Cushioned trainers, trail shoes and race-day kit." },
-  Football: { title: "Own every match day", text: "Match balls, boots and training gear for the season." },
-  Fitness: { title: "Train at home, train hard", text: "Dumbbells, mats and bands to build your routine." },
-  Cricket: { title: "Built for the long innings", text: "Bats, balls and protective gear for every format." },
-  Cycling: { title: "Ride every road", text: "Helmets, lights and kit for commutes and long rides." },
-  Outdoor: { title: "Made for the outdoors", text: "Gear that handles weather, dust and distance." },
-  Swimming: { title: "Make every lap count", text: "Goggles, caps and swimwear for pool and open water." },
-  Tennis: { title: "Serve with confidence", text: "Rackets, balls and court shoes for every level." },
-  Hiking: { title: "Find your next summit", text: "Packs, poles and boots for day hikes and treks." },
-  Camping: { title: "Sleep under the stars", text: "Tents, sleeping bags and camp kitchen essentials." }
-};
-const GENERAL_LINE = { title: "Gear for your next move", text: "Performance sports gear, picked for athletes who use it." };
+// ---------- "Pick your sport": the 3D sport carousel ring ----------
 
-// Builds up to 4 slides from live data: the top deal first, then the sports with the most products.
-function buildHeroSlides({ deals = [], categories = [] } = {}) {
-  const slides = [];
-  if (deals.length && deals[0].discountPercent > 0) {
-    slides.push({
-      kicker: "Deals of the day",
-      title: `Up to ${deals[0].discountPercent}% off top gear`,
-      text: "Fresh savings every day, while stock lasts. Prices end at midnight.",
-      cta: "Shop today's deals",
-      href: "/products?sort=discount",
-      image: deals[0].image
-    });
+const RING_SIZE = 6;
+
+// The six headline sports come first, in this order. Other sports fill any gaps.
+const RING_ORDER = ["Running", "Football", "Fitness", "Cricket", "Cycling", "Outdoor"];
+
+// Each sport's glow colour behind the ring, the words that name its key gear (the card shows a
+// listed product of that kind when there is one), and a matching photo for when there is not.
+// The photos are Unsplash images (allowed by the CSP), cropped to the tall card.
+const SPORT_LOOKS = {
+  Running: { color: "#ff7a1a", gear: "shoe|trainer|sneaker", photo: "photo-1542291026-7eec264c27ff" },
+  Football: { color: "#22c55e", gear: "football|ball", photo: "photo-1614632537190-23e4146777db" },
+  Fitness: { color: "#ef4444", gear: "dumbbell|kettlebell|barbell", photo: "photo-1583454110551-21f2fa2afe61" },
+  Cricket: { color: "#3b82f6", gear: "\\bbat\\b", photo: "photo-1531415074968-036ba1b575da" },
+  Cycling: { color: "#facc15", gear: "bicycle|\\bbike", photo: "photo-1485965120184-e220f721d03e" },
+  Outdoor: { color: "#14b8a6", gear: "backpack|rucksack|tent", photo: "photo-1553062407-98eeb64c6a62" },
+  Swimming: { color: "#06b6d4", gear: "goggle", photo: "photo-1530549387789-4c1017266635" },
+  Tennis: { color: "#a3e635", gear: "racket|racquet", photo: "photo-1595435934249-5df7ed86e1c0" },
+  Hiking: { color: "#f59e0b", gear: "boot|shoe", photo: "photo-1551107696-a4b0c5a0d9a2" },
+  Camping: { color: "#a855f7", gear: "tent", photo: "photo-1510312305653-8ed496efae75" }
+};
+// Clothing and small accessories never stand for a sport ("Football Training Jersey" is not a ball).
+const NOT_GEAR = /jersey|shirt|tee\b|jacket|glove|sock|short|cap\b|bottle|bag\b/i;
+const DEFAULT_COLOR = "#ff7a1a";
+
+// Unsplash images are cropped to the tall card shape at twice the card's size; other images are kept.
+function portraitImage(url) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "images.unsplash.com") return url;
+    parsed.searchParams.set("auto", "format");
+    parsed.searchParams.set("fit", "crop");
+    parsed.searchParams.set("w", "640");
+    parsed.searchParams.set("h", "900");
+    parsed.searchParams.set("q", "75");
+    return parsed.toString();
+  } catch {
+    return url; // a local path such as /uploads/...
   }
-  [...categories]
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, 4 - slides.length)
-    .forEach(category => {
-      const line = SPORT_LINES[category.name] || GENERAL_LINE;
-      slides.push({
-        kicker: `${category.name} · from ${formatPaise(category.fromPrice || 0)}`,
-        title: line.title,
-        text: line.text,
-        cta: `Shop ${category.name}`,
+}
+
+// Up to 6 sports for the ring, from the live category summaries (item count and lowest price
+// come from the database). gearImages maps a category id to the photo of its key gear.
+// The photo is: the sport's key gear from the catalogue, else a matching photo, else the category image.
+function buildSportRing(categories = [], gearImages = {}) {
+  const rank = name => {
+    const at = RING_ORDER.indexOf(name);
+    return at === -1 ? RING_ORDER.length : at;
+  };
+  return [...categories]
+    .filter(category => category.count > 0)
+    .sort((a, b) => rank(a.name) - rank(b.name) || b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, RING_SIZE)
+    .map((category, i) => {
+      const look = SPORT_LOOKS[category.name] || {};
+      const photo = look.photo ? `https://images.unsplash.com/${look.photo}?auto=format&fit=crop&w=800&q=80` : "";
+      return {
+        number: String(i + 1).padStart(2, "0"),
+        name: category.name,
+        slug: category.slug,
         href: `/products?category=${encodeURIComponent(category.slug)}`,
-        image: category.image
-      });
+        count: category.count,
+        fromPrice: category.fromPrice || 0,
+        color: look.color || DEFAULT_COLOR,
+        image: portraitImage(gearImages[category.id] || photo || category.image)
+      };
     });
-  if (!slides.length) {
-    slides.push({ kicker: "Nexthlon", ...GENERAL_LINE, cta: "Browse all gear", href: "/products", image: "" });
-  }
-  return slides;
+}
+
+// For each ring sport, the photo of one listed product that is its key gear (best rated first).
+async function findGearImages(sports, categories) {
+  const byName = new Map(categories.map(category => [category.name, category]));
+  const pairs = await Promise.all(sports.map(async sport => {
+    const look = SPORT_LOOKS[sport.name];
+    const category = byName.get(sport.name);
+    if (!look || !look.gear || !category) return null;
+    const product = await Product.findOne({
+      ...Product.LISTED,
+      category: category.id,
+      $and: [{ name: { $regex: look.gear, $options: "i" } }, { name: { $not: NOT_GEAR } }]
+    }).sort({ ratingCount: -1, ratingAverage: -1, _id: 1 }).select("image").lean();
+    return product && product.image ? [category.id, product.image] : null;
+  }));
+  return Object.fromEntries(pairs.filter(Boolean));
 }
 
 async function getHomePage(now = new Date()) {
   const sections = await productService.getHomeSections();
-  return { ...sections, slides: buildHeroSlides(sections), dealEndsAt: dealEndsAt(now) };
+  const gearImages = await findGearImages(buildSportRing(sections.categories), sections.categories);
+  return { ...sections, sports: buildSportRing(sections.categories, gearImages), dealEndsAt: dealEndsAt(now) };
 }
 
-module.exports = { dealEndsAt, buildHeroSlides, getHomePage };
+module.exports = { dealEndsAt, buildSportRing, portraitImage, getHomePage };
