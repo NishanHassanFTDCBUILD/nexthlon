@@ -12,6 +12,7 @@
   </form>
 </dialog>
 
+<% if (typeof razorpay !== 'undefined' && razorpay) { %><script src="https://checkout.razorpay.com/v1/checkout.js" defer></script><% } %>
 <script src="/js/app.js" defer></script>
 <script src="/js/header.js" defer></script>
 <script src="/js/store.js" defer></script>

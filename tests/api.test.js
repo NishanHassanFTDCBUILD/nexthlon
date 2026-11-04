@@ -983,3 +983,168 @@ test("statuses move forward only; delivery marks COD paid and opens returns", as
   assert.equal(ret.data.order.status, "return_requested");
   assert.equal((await call("POST", `/api/orders/${placed.orderId}/return`, { body: { reason: "Wrong size or fit" }, cookie: buyer.cookie })).status, 400);
 });
+
+// ---------- Phase 5: Razorpay online payment (with a fake Razorpay client) ----------
+const crypto = require("crypto");
+const razorpayService = require("../services/razorpayService");
+
+const razorpayCalls = { orders: [], refunds: [] };
+razorpayService.setClient({
+  orders: {
+    create: async params => {
+      razorpayCalls.orders.push(params);
+      return { id: `order_TEST${String(razorpayCalls.orders.length).padStart(6, "0")}`, amount: params.amount, currency: params.currency };
+    }
+  },
+  payments: {
+    refund: async (paymentId, params) => {
+      razorpayCalls.refunds.push({ paymentId, ...params });
+      return { id: `rfnd_TEST${razorpayCalls.refunds.length}`, status: "pending", amount: params.amount };
+    }
+  }
+});
+const checkoutSignature = (orderId, paymentId) => crypto.createHmac("sha256", "test-key-secret").update(`${orderId}|${paymentId}`).digest("hex");
+async function sendWebhook(event, { signature } = {}) {
+  const raw = JSON.stringify(event);
+  const sig = signature || crypto.createHmac("sha256", "test-webhook-secret").update(raw).digest("hex");
+  const response = await fetch(`${base}/api/payments/razorpay/webhook`, { method: "POST", headers: { "Content-Type": "application/json", "X-Razorpay-Signature": sig }, body: raw });
+  return response.status;
+}
+
+let payer;
+let racket;
+
+test("CSP allows only what Razorpay Checkout needs", async () => {
+  const response = await fetch(`${base}/`);
+  const csp = response.headers.get("content-security-policy");
+  assert.match(csp, /script-src 'self' https:\/\/checkout\.razorpay\.com;/);
+  assert.match(csp, /frame-src https:\/\/api\.razorpay\.com https:\/\/checkout\.razorpay\.com;/);
+  assert.match(csp, /connect-src 'self' https:\/\/api\.razorpay\.com https:\/\/lumberjack\.razorpay\.com(;|$)/);
+});
+
+test("creating a payment: server prices, a pending order, and only four fields for the browser", async () => {
+  payer = await newCustomer("Online Payer", "payer@nexthlon.test");
+  racket = await makeProduct({ name: "Pro Racket", slug: "pro-racket", category: "Tennis", price: 4500, mrp: 6000, stock: 3, image: "/img/favicon.svg" });
+  await call("POST", "/api/cart/items", { body: { productId: String(racket._id), quantity: 2 }, cookie: payer.cookie });
+  assert.equal((await call("POST", "/api/payments/razorpay/order", { body: { addressId: payer.addressId } })).status, 401);
+
+  const res = await call("POST", "/api/payments/razorpay/order", { body: { addressId: payer.addressId, amount: 100 }, cookie: payer.cookie });
+  assert.equal(res.status, 201);
+  assert.deepEqual(Object.keys(res.data).sort(), ["amount", "currency", "key_id", "razorpay_order_id"]);
+  assert.equal(res.data.amount, 900000);
+  assert.equal(res.data.currency, "INR");
+  assert.equal(res.data.key_id, "rzp_test_dummykey");
+  assert.doesNotMatch(JSON.stringify(res.data), /test-key-secret/);
+  const sent = razorpayCalls.orders[razorpayCalls.orders.length - 1];
+  assert.equal(sent.amount, 900000);
+  assert.match(sent.receipt, /^NX-\d{4}-\d{6}$/);
+
+  const order = await Order.findOne({ "razorpay.orderId": res.data.razorpay_order_id }).lean();
+  assert.equal(order.paymentStatus, "pending");
+  assert.equal(order.stockReserved, false);
+  // Nothing is taken until the payment succeeds, and the cart is kept.
+  assert.equal((await Product.findById(racket._id)).stock, 3);
+  assert.equal((await call("GET", "/api/cart", { cookie: payer.cookie })).data.cart.items.length, 1);
+  payer.razorpayOrderId = res.data.razorpay_order_id;
+  payer.orderId = order.orderId;
+});
+
+test("verify: a wrong signature changes nothing; a good one pays, takes stock and clears the cart, once", async () => {
+  const body = { razorpay_order_id: payer.razorpayOrderId, razorpay_payment_id: "pay_TESTGOOD01", razorpay_signature: "a".repeat(64) };
+  const bad = await call("POST", "/api/payments/razorpay/verify", { body, cookie: payer.cookie });
+  assert.equal(bad.status, 400);
+  assert.equal((await Order.findOne({ orderId: payer.orderId })).paymentStatus, "pending");
+
+  // Someone else cannot confirm this order, even with a valid signature.
+  const other = await call("POST", "/api/login", { body: { email: "other-orders@nexthlon.test", password: "order2024" } });
+  body.razorpay_signature = checkoutSignature(payer.razorpayOrderId, "pay_TESTGOOD01");
+  assert.equal((await call("POST", "/api/payments/razorpay/verify", { body, cookie: other.cookie })).status, 404);
+
+  const good = await call("POST", "/api/payments/razorpay/verify", { body, cookie: payer.cookie });
+  assert.equal(good.status, 200);
+  assert.equal(good.data.paid, true);
+  assert.equal(good.data.redirect, `/orders/${payer.orderId}/success`);
+  assert.equal((await Product.findById(racket._id)).stock, 1);
+  assert.equal((await call("GET", "/api/cart", { cookie: payer.cookie })).data.cart.items.length, 0);
+
+  // The same proof again, and the webhook for the same payment: no second stock change.
+  assert.equal((await call("POST", "/api/payments/razorpay/verify", { body, cookie: payer.cookie })).status, 200);
+  assert.equal(await sendWebhook({ event: "payment.captured", payload: { payment: { entity: { id: "pay_TESTGOOD01", order_id: payer.razorpayOrderId, amount: 900000 } } } }), 200);
+  assert.equal((await Product.findById(racket._id)).stock, 1);
+  const order = await Order.findOne({ orderId: payer.orderId }).lean();
+  assert.equal(order.paymentStatus, "paid");
+  assert.equal(order.razorpay.paymentId, "pay_TESTGOOD01");
+  assert.equal(order.statusHistory.filter(h => h.status === "payment_received").length, 1);
+});
+
+test("webhook: the backup when the browser never comes back, with signature and amount checks", async () => {
+  await Product.updateOne({ _id: racket._id }, { $set: { stock: 3 } });
+  await call("POST", "/api/cart/items", { body: { productId: String(racket._id), quantity: 1 }, cookie: payer.cookie });
+  const created = await call("POST", "/api/payments/razorpay/order", { body: { addressId: payer.addressId }, cookie: payer.cookie });
+  const event = { event: "payment.captured", payload: { payment: { entity: { id: "pay_TESTHOOK01", order_id: created.data.razorpay_order_id, amount: 450000 } } } };
+
+  assert.equal(await sendWebhook(event, { signature: "b".repeat(64) }), 400);
+  assert.equal(await sendWebhook({ ...event, payload: { payment: { entity: { ...event.payload.payment.entity, amount: 1 } } } }), 200);
+  assert.equal((await Order.findOne({ "razorpay.orderId": created.data.razorpay_order_id })).paymentStatus, "pending");
+
+  assert.equal(await sendWebhook(event), 200);
+  assert.equal(await sendWebhook(event), 200);
+  assert.equal((await Order.findOne({ "razorpay.orderId": created.data.razorpay_order_id })).paymentStatus, "paid");
+  assert.equal((await Product.findById(racket._id)).stock, 2);
+  assert.equal(await sendWebhook({ event: "order.paid", payload: {} }), 200);
+});
+
+test("a closed or failed payment keeps the cart, and the order offers Retry payment", async () => {
+  await call("POST", "/api/cart/items", { body: { productId: String(racket._id), quantity: 1 }, cookie: payer.cookie });
+  const created = await call("POST", "/api/payments/razorpay/order", { body: { addressId: payer.addressId }, cookie: payer.cookie });
+  const failed = await call("POST", "/api/payments/razorpay/failed", { body: { razorpay_order_id: created.data.razorpay_order_id, reason: "Closed the payment window" }, cookie: payer.cookie });
+  assert.equal(failed.status, 200);
+  const order = await Order.findOne({ "razorpay.orderId": created.data.razorpay_order_id }).lean();
+  assert.equal(order.paymentStatus, "failed");
+  assert.equal(failed.data.redirect, `/orders/${order.orderId}`);
+  assert.equal((await call("GET", "/api/cart", { cookie: payer.cookie })).data.cart.items.length, 1);
+  const page = await call("GET", `/orders/${order.orderId}`, { cookie: payer.cookie });
+  assert.match(page.data, /data-retry-payment/);
+  assert.match(page.data, /checkout\.razorpay\.com\/v1\/checkout\.js/);
+
+  const retry = await call("POST", `/api/payments/razorpay/retry/${order.orderId}`, { body: {}, cookie: payer.cookie });
+  assert.equal(retry.status, 200);
+  assert.notEqual(retry.data.razorpay_order_id, created.data.razorpay_order_id);
+  assert.equal(retry.data.amount, order.total);
+
+  // A late webhook saying the first attempt failed does not touch a paid order.
+  const pid = "pay_TESTRETRY1";
+  await call("POST", "/api/payments/razorpay/verify", { body: { razorpay_order_id: retry.data.razorpay_order_id, razorpay_payment_id: pid, razorpay_signature: checkoutSignature(retry.data.razorpay_order_id, pid) }, cookie: payer.cookie });
+  assert.equal(await sendWebhook({ event: "payment.failed", payload: { payment: { entity: { id: "pay_X", order_id: retry.data.razorpay_order_id, error_description: "Bank declined" } } } }), 200);
+  assert.equal((await Order.findOne({ orderId: order.orderId })).paymentStatus, "paid");
+  assert.equal((await call("POST", `/api/payments/razorpay/retry/${order.orderId}`, { body: {}, cookie: payer.cookie })).status, 400);
+});
+
+test("cancelling a paid order refunds to the original method through Razorpay, and puts stock back", async () => {
+  const before = (await Product.findById(racket._id)).stock;
+  const cancel = await call("POST", `/api/orders/${payer.orderId}/cancel`, { body: { reason: "Ordered by mistake", refundMethod: "original" }, cookie: payer.cookie });
+  assert.equal(cancel.status, 200);
+  const refund = razorpayCalls.refunds[razorpayCalls.refunds.length - 1];
+  assert.equal(refund.paymentId, "pay_TESTGOOD01");
+  assert.equal(refund.amount, 900000);
+  const order = await Order.findOne({ orderId: payer.orderId }).lean();
+  assert.equal(order.refundedAmount, 900000);
+  assert.equal(order.paymentStatus, "refunded");
+  assert.equal(order.refunds[0].method, "original");
+  assert.equal(order.refunds[0].status, "pending");
+  assert.equal((await Product.findById(racket._id)).stock, before + 2);
+
+  assert.equal(await sendWebhook({ event: "refund.processed", payload: { refund: { entity: { id: refund.id || "rfnd_TEST1", payment_id: "pay_TESTGOOD01", amount: 900000 } } } }), 200);
+  assert.equal((await Order.findOne({ orderId: payer.orderId }).lean()).refunds[0].status, "processed");
+});
+
+test("a payment gateway error gives a clear message and leaves no stray order", async () => {
+  const fake = { orders: { create: async () => { const error = new Error("auth"); error.statusCode = 401; throw error; } }, payments: { refund: async () => ({}) } };
+  razorpayService.setClient(fake);
+  const before = await Order.countDocuments({ user: payer.user._id });
+  await call("POST", "/api/cart/items", { body: { productId: String(racket._id), quantity: 1 }, cookie: payer.cookie });
+  const res = await call("POST", "/api/payments/razorpay/order", { body: { addressId: payer.addressId }, cookie: payer.cookie });
+  assert.equal(res.status, 502);
+  assert.match(res.data.message, /Cash on Delivery/);
+  assert.equal(await Order.countDocuments({ user: payer.user._id }), before);
+});

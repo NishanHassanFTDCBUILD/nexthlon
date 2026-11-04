@@ -114,4 +114,4 @@
     </div>
   </div>
 </footer>
-<%- include('scripts') %>
+<%- include('scripts', { razorpay: typeof razorpay !== 'undefined' && razorpay }) %>

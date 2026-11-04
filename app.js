@@ -19,19 +19,21 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 // Security headers. The Content Security Policy only allows our own scripts and styles,
-// Google Fonts, and product photos from Unsplash.
+// Google Fonts, product photos from Unsplash, and exactly what Razorpay Checkout needs.
 app.use(helmet({
   //enables CSP configuration
   contentSecurityPolicy: {
     //contains rules that control where different resources can come from.
     directives: {
       "default-src": ["'self'"],
-      "script-src": ["'self'"],
+      "script-src": ["'self'", "https://checkout.razorpay.com"],
+      // Razorpay Checkout opens in its own frame.
+      "frame-src": ["https://api.razorpay.com", "https://checkout.razorpay.com"],
       "style-src": ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
       "img-src": ["'self'", "data:", "https://images.unsplash.com"],
       //Controls where JavaScript can connect to fetch data.
-      "connect-src": ["'self'"],
+      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
       //Controls where HTML forms are allowed to submit data.
       "form-action": ["'self'"],
       //Controls whether another website can embed Nexthlon inside an iframe.
@@ -46,6 +48,10 @@ app.use(express.static(path.join(__dirname, "public"), { maxAge: config.isProduc
 // Everything after the static files (API replies, EJS pages, error pages) is never cached.
 // Static files are served above, so CSS, JS and images keep their normal caching.
 app.use(noCache);
+// The Razorpay webhook needs the exact raw body to check its signature, so it is mounted before
+// the JSON parser. It is also before the origin check: Razorpay's servers send no Origin header,
+// and the signature is the proof it really came from Razorpay.
+app.post("/api/payments/razorpay/webhook", express.raw({ type: "application/json", limit: "1mb" }), require("./controllers/paymentController").webhook);
 app.use(express.json({ limit: "20kb" }));
 app.use(express.urlencoded({ extended: false, limit: "20kb" }));
 app.use(cookieParser());
@@ -64,6 +70,7 @@ app.use("/api/addresses", require("./routes/addressRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/wishlist", require("./routes/wishlistRoutes"));
 app.use("/api", require("./routes/orderRoutes"));
+app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api", require("./routes/contactRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 

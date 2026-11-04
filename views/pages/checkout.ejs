@@ -5,7 +5,7 @@
   const t = quote.totals;
   const chosen = addresses.find(function (a) { return a.isDefault; }) || addresses[0];
 %>
-<main id="main" class="container page checkout" data-checkout>
+<main id="main" class="container page checkout" data-checkout data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || (chosen ? chosen.phone : '') %>">
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <a href="/cart">Cart</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page">Checkout</span>
   </nav>
@@ -107,16 +107,16 @@
                   <span class="muted"><%= quote.codAllowed ? 'Pay in cash or UPI when your order arrives.' : 'Available for orders up to ' + formatPrice(quote.codLimit) + '.' %></span>
                 </span>
               </label>
-              <label class="pay-option is-soon">
-                <input type="radio" name="paymentMethod" value="razorpay" disabled>
+              <label class="pay-option <%= razorpayEnabled ? '' : 'is-soon' %>">
+                <input type="radio" name="paymentMethod" value="razorpay" <%= razorpayEnabled ? (quote.codAllowed ? '' : 'checked') : 'disabled' %>>
                 <span class="pay-option-body">
                   <strong><%- icon('credit-card', 'i-sm') %> UPI, cards and net banking</strong>
-                  <span class="muted">Secure online payment. Coming soon.</span>
+                  <span class="muted"><%= razorpayEnabled ? 'Pay securely with Razorpay. Test mode: no real money moves.' : 'Online payment is not set up yet.' %></span>
                 </span>
               </label>
             </fieldset>
             <p class="field-error" data-error-for="paymentMethod"></p>
-            <button class="btn btn-primary btn-lg btn-block" type="submit" <%= quote.codAllowed && !quote.problems.length ? '' : 'disabled' %>><%- icon('lock', 'i-sm') %> Place order · <%= formatPrice(t.total) %></button>
+            <button class="btn btn-primary btn-lg btn-block" type="submit" data-place-label <%= (quote.codAllowed || razorpayEnabled) && !quote.problems.length ? '' : 'disabled' %>><%- icon('lock', 'i-sm') %> <span data-place-text><%= quote.codAllowed ? 'Place order' : 'Pay securely' %></span> · <%= formatPrice(t.total) %></button>
             <p class="hint"><%- icon('shield', 'i-xs') %> By placing your order you agree to our <a href="/terms">terms</a> and <a href="/refund-policy">refund policy</a>.</p>
           </form>
         </div>
@@ -138,4 +138,4 @@
 </main>
 
 <%- include('../partials/address-dialog') %>
-<%- include('../partials/footer', { scripts: ['profile', 'checkout'] }) %>
+<%- include('../partials/footer', { scripts: ['profile', 'payment', 'checkout'], razorpay: razorpayEnabled }) %>

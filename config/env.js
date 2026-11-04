@@ -34,8 +34,18 @@ function readConfig() {
     jwtExpiresIn,
     jwtExpiresInMs: durationToMs(jwtExpiresIn),
     // Browsers only send Secure cookies over HTTPS, so this stays off for http://localhost.
-    cookieSecure: isProduction || process.env.COOKIE_SECURE === "true"
+    cookieSecure: isProduction || process.env.COOKIE_SECURE === "true",
+    // Online payments (Razorpay). Optional: without the keys the store still runs, and the
+    // online payment option shows as unavailable. The secrets never leave the server.
+    razorpay: readRazorpay()
   };
+}
+
+function readRazorpay() {
+  const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
+  const webhookSecret = (process.env.RAZORPAY_WEBHOOK_SECRET || "").trim();
+  return { keyId, keySecret, webhookSecret, enabled: Boolean(keyId && keySecret) };
 }
 
 module.exports = readConfig();

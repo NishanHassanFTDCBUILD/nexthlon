@@ -73,12 +73,29 @@
 
   // Place the order.
   const form = page.querySelector("[data-place-order]");
+  const placeText = form.querySelector("[data-place-text]");
+  form.addEventListener("change", event => {
+    if (event.target.name === "paymentMethod" && placeText) {
+      placeText.textContent = event.target.value === "razorpay" ? "Pay securely" : "Place order";
+    }
+  });
   form.addEventListener("submit", async event => {
     event.preventDefault();
     const address = chosenAddress();
     const method = form.querySelector('input[name="paymentMethod"]:checked');
     if (!address) {
       open(1);
+      return;
+    }
+    // Online payment: the server saves the order unpaid and creates a Razorpay order,
+    // then Razorpay Checkout takes the payment.
+    if (method && method.value === "razorpay") {
+      const checkout = await Nx.submitForm(form, {
+        url: "/api/payments/razorpay/order",
+        body: { addressId: address.value },
+        busyLabel: "Opening payment…"
+      });
+      if (checkout && Nx.payOnline) Nx.payOnline(checkout, Nx.prefillFrom(page));
       return;
     }
     const reply = await Nx.submitForm(form, {

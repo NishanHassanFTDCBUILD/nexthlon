@@ -20,7 +20,11 @@ function errorHandler(err, req, res, next) {
   if (err.code === 11000) status = 409;
 
   let message;
-  if (status >= 500) {
+  if (status >= 500 && err instanceof HttpError) {
+    // A 5xx we raised on purpose (e.g. the payment gateway is down) carries a message written
+    // for the shopper, so it is shown. Unexpected errors never show their details.
+    message = err.message;
+  } else if (status >= 500) {
     console.error("[error]", req.method, req.originalUrl, err);
     message = "Something went wrong on our side. Please try again in a moment.";
   } else if (err instanceof HttpError || err.expose) {

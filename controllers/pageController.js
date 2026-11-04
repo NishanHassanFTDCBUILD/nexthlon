@@ -9,6 +9,7 @@ const wishlistService = require("../services/wishlistService");
 const checkoutService = require("../services/checkoutService");
 const orderService = require("../services/orderService");
 const invoiceService = require("../services/invoiceService");
+const razorpayService = require("../services/razorpayService");
 const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
 const { CONTACT_TOPICS, STORE } = require("../config/store");
@@ -145,7 +146,7 @@ const checkout = asyncHandler(async (req, res) => {
   ]);
   // Nothing to buy: back to the cart, which explains why.
   if (!quote.lines.length) return res.redirect("/cart");
-  return res.render("pages/checkout", { title: "Checkout | Nexthlon", quote, addresses, states: INDIAN_STATES });
+  return res.render("pages/checkout", { title: "Checkout | Nexthlon", quote, addresses, states: INDIAN_STATES, razorpayEnabled: razorpayService.isEnabled() });
 });
 
 const orders = asyncHandler(async (req, res) => {
@@ -164,6 +165,7 @@ const orderDetail = asyncHandler(async (req, res) => {
     labels: orderRules.STATUS_LABELS,
     canCancel: order.items.some(orderRules.canCancelItem),
     canReturn: orderRules.canRequestReturn(order, STORE.returnDays),
+    canRetryPayment: razorpayService.isEnabled() && order.paymentMethod === "razorpay" && ["pending", "failed"].includes(order.paymentStatus) && order.orderStatus !== "cancelled",
     cancelReasons: orderRules.CANCEL_REASONS,
     returnReasons: orderRules.RETURN_REASONS
   });

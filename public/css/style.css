@@ -1310,7 +1310,9 @@ a.stat:hover .stat-link .i { transform: translateX(3px); }
 .order-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius); box-shadow: var(--shadow-xs); overflow: hidden; }
 .order-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4); padding: var(--space-1h) var(--space-2); background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: 13.5px; }
 .order-card-head > div { display: flex; flex-direction: column; }
-.order-card-head .pill { margin-left: auto; }
+.order-card-head .pill { margin-left: 0; }
+.order-card-pills { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.order-pay-alert { margin-bottom: var(--space-2); }
 .order-card-body { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2); flex-wrap: wrap; }
 .order-thumbs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1; }
 .order-thumbs li { display: flex; align-items: center; gap: 10px; font-size: 14px; min-width: 0; }
