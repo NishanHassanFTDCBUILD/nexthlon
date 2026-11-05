@@ -16,18 +16,18 @@ const page = value => {
   return Number.isInteger(n) && n > 0 && n <= 500 ? n : 1;
 };
 
-// GET /api/products/:productId/questions?page=&q=
+// GET /api/products/:id/questions?page=&q=
 // Open to everyone. A signed-in customer also learns which Helpful buttons they have pressed.
 const listQuestions = asyncHandler(async (req, res) => {
   const viewer = req.user && req.user.role === "customer" ? req.user : null;
-  const data = await questionService.publicList(req.params.productId, { page: page(req.query.page), q: req.query.q }, viewer);
+  const data = await questionService.publicList(req.params.id, { page: page(req.query.page), q: req.query.q }, viewer);
   res.json(data);
 });
 
-// POST /api/products/:productId/questions   body: { body }
+// POST /api/products/:id/questions   body: { body }
 const ask = asyncHandler(async (req, res) => {
   const value = checked(validateQuestion, req.body);
-  const question = await questionService.ask(req.user, req.params.productId, value.body);
+  const question = await questionService.ask(req.user, req.params.id, value.body);
   res.status(201).json({ message: "Your question has been posted. We'll answer it soon.", question });
 });
 

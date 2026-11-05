@@ -442,6 +442,18 @@ function validateReturnDecision(body = {}) {
 // ---------- Admin: coupons ----------
 
 const COUPON_CODE = /^[A-Z0-9]{3,20}$/;
+// Rupees that may arrive as a number (JSON) or as text (a form). An empty box means 0.
+function readOptionalMoney(value) {
+  if (typeof value === "number") return readMoney(value);
+  return text(value) === "" ? 0 : readMoney(value);
+}
+
+// A whole count that may arrive as a number (JSON) or as text (a form). Empty means 0.
+function readWhole(value, digits) {
+  const raw = typeof value === "number" ? String(value) : text(value);
+  if (raw === "") return 0;
+  return raw.length <= digits && WHOLE.test(raw) ? Number(raw) : NaN;
+}
 // A date from a date input (YYYY-MM-DD). Start dates begin at midnight IST, end dates run to the
 // very end of that day, so "expires 31 March" really includes the 31st.
 function readDay(value, endOfDay = false) {
@@ -464,12 +476,12 @@ function validateCoupon(body = {}) {
   const isPercent = type === "percent";
   const value = isPercent ? readPercent(body.value, 90) : readMoney(body.value);
   // The cap and the minimum order are optional on the form: an empty box means "no limit".
-  const maxDiscount = text(body.maxDiscount) === "" ? 0 : readMoney(body.maxDiscount);
-  const minOrder = text(body.minOrder) === "" ? 0 : readMoney(body.minOrder);
+  const maxDiscount = readOptionalMoney(body.maxDiscount);
+  const minOrder = readOptionalMoney(body.minOrder);
   const startsAt = readDay(body.startsAt);
   const endsAt = readDay(body.endsAt, true);
-  const usageLimit = /^\d{0,6}$/.test(text(body.usageLimit)) ? Number(text(body.usageLimit) || 0) : NaN;
-  const perUserLimit = /^\d{0,4}$/.test(text(body.perUserLimit)) ? Number(text(body.perUserLimit) || 0) : NaN;
+  const usageLimit = readWhole(body.usageLimit, 6);
+  const perUserLimit = readWhole(body.perUserLimit, 4);
 
   if (!COUPON_CODE.test(code)) errors.code = "Use 3 to 20 capital letters and numbers, for example RUN10.";
   if (type !== "percent" && type !== "flat") errors.type = "Choose a percent or a flat discount.";
