@@ -4,6 +4,17 @@
   include('../partials/account-end'). Account pages are calm on purpose: no store motion is loaded
   (res.locals.motion is false) and the active section has a static volt highlight.
 %>
+<%
+  const activeSection = typeof section !== 'undefined' ? section : '';
+  // The section's script in account.js (window.NxPages[name]); order and ticket pages name their own.
+  const pageName = typeof acctPage !== 'undefined' ? acctPage : 'account-' + activeSection;
+  // A page that needs extra scripts (Razorpay on an unpaid order) always loads in full.
+  const fullOnly = typeof canRetryPayment !== 'undefined' && Boolean(canRetryPayment);
+  const contentAttrs = 'class="acct-content" data-acct-page="' + pageName + '" data-acct-section="' + activeSection + '"' + (fullOnly ? ' data-acct-full="1"' : '');
+%>
+<% if (typeof partial !== 'undefined' && partial) { %>
+<div <%- contentAttrs %> data-acct-title="<%= title %>">
+<% } else { %>
 <%- include('head', { styles: ['account'], bodyClass: 'acct-body' }) %>
 <%- include('header') %>
 <%
@@ -30,16 +41,13 @@
       { key: 'help', href: '/account/help', icon: 'headset', label: 'Help & support' }
     ] }
   ];
-  const activeSection = typeof section !== 'undefined' ? section : '';
-  // The section's script in account.js (window.NxPages[name]); order and ticket pages name their own.
-  const pageName = typeof acctPage !== 'undefined' ? acctPage : 'account-' + activeSection;
 %>
 <main id="main" class="container page acct" data-acct>
   <div class="acct-layout">
     <aside class="acct-side" aria-label="Your account">
       <a class="acct-me" href="/account">
         <span class="avatar acct-me-avatar" aria-hidden="true"><%= currentUser.name.charAt(0).toUpperCase() %></span>
-        <span class="acct-me-text"><strong><%= currentUser.name %></strong><small><%= currentUser.email %></small></span>
+        <span class="acct-me-text"><strong data-user-name><%= currentUser.name %></strong><small data-user-email><%= currentUser.email %></small></span>
       </a>
       <nav class="acct-nav" aria-label="Account sections" data-acct-nav>
         <% accountNav.forEach(function (group) { %>
@@ -51,4 +59,6 @@
       </nav>
     </aside>
     <div class="acct-main" data-acct-main>
-      <div class="acct-content" data-acct-page="<%= pageName %>" data-acct-section="<%= activeSection %>">
+      <div class="acct-loading" data-acct-loading role="status"><span class="acct-loading-spin" aria-hidden="true"></span>Loading…</div>
+      <div <%- contentAttrs %>>
+<% } %>

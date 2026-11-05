@@ -398,7 +398,7 @@
       if (address) {
         for (const key of ["fullName", "phone", "line1", "line2", "landmark", "city", "state", "pincode"]) form.elements[key].value = address[key] || "";
         form.elements.isDefault.checked = Boolean(address.isDefault);
-        form.elements.type.value = address.type || "home";
+        if (form.elements.type) form.elements.type.value = address.type || "home";
       }
       title.textContent = address ? "Edit address" : "Add a new address";
       form.querySelector('[type="submit"]').textContent = address ? "Save changes" : "Save address";
@@ -456,17 +456,36 @@
     if (bar) bar.dataset.score = input.value ? String(Math.max(1, met)) : "0";
   }
 
+  // The sidebar card and the header greeting sit outside the swapped content: keep them in step.
+  function showIdentity({ name, email }) {
+    const set = (selector, text) => document.querySelectorAll(selector).forEach(el => { el.textContent = text; });
+    if (name) {
+      set("[data-user-name]", name);
+      set("[data-user-first]", name.trim().split(/\s+/)[0]);
+      document.querySelectorAll(".acct-me-avatar").forEach(el => { el.textContent = name.trim().charAt(0).toUpperCase(); });
+    }
+    if (email) set("[data-user-email]", email);
+  }
+
   define("account-security", (root, signal) => {
     on(root, "submit", "[data-profile-form]", async (event, form) => {
       event.preventDefault();
+      const name = form.elements.name.value.trim().replace(/\s+/g, " ");
       const reply = await Nx.submitForm(form, { url: "/api/profile", method: "PATCH", busyLabel: "Saving…" });
-      if (reply) refresh(reply.message);
+      if (reply) {
+        showIdentity({ name });
+        refresh(reply.message);
+      }
     }, signal);
 
     on(root, "submit", "[data-email-form]", async (event, form) => {
       event.preventDefault();
+      const email = form.elements.email.value.trim().toLowerCase();
       const reply = await Nx.submitForm(form, { url: "/api/account/email", method: "PATCH", busyLabel: "Saving…" });
-      if (reply) refresh(reply.message);
+      if (reply) {
+        showIdentity({ email });
+        refresh(reply.message);
+      }
     }, signal);
 
     on(root, "input", "[data-password-form] [data-strength]", (event, input) => showStrength(input.form), signal);

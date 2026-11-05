@@ -64,7 +64,7 @@
             <button type="button" class="account-btn" data-menu-toggle aria-expanded="false" aria-controls="account-menu">
               <span class="avatar avatar-sm account-avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span>
               <span class="account-text">
-                <small>Hello, <%= firstName(currentUser.name) %></small>
+                <small>Hello, <span data-user-first><%= firstName(currentUser.name) %></span></small>
                 <strong><%= isAdmin ? 'Admin' : 'Account & Orders' %> <%- icon('chevron-down', 'i-xs account-caret') %></strong>
               </span>
               <span class="sr-only">Open account menu</span>

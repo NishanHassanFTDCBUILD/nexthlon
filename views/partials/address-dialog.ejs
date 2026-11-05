@@ -62,6 +62,14 @@
           </div>
           <p class="field-error" id="a-state-error" data-error-for="state"></p>
         </div>
+        <fieldset class="address-type field-wide">
+          <legend>Address type</legend>
+          <div class="segmented-radio">
+            <label><input type="radio" name="type" value="home" checked><span><%- icon('home', 'i-xs') %> Home</span></label>
+            <label><input type="radio" name="type" value="work"><span><%- icon('box', 'i-xs') %> Work</span></label>
+            <label><input type="radio" name="type" value="other"><span><%- icon('pin', 'i-xs') %> Other</span></label>
+          </div>
+        </fieldset>
         <label class="choice choice-card field-wide">
           <input type="checkbox" name="isDefault" value="true">
           <span><strong>Make this my default address</strong><small>We'll use it first at checkout.</small></span>

@@ -30,8 +30,8 @@ let base;
 let shoe;
 let socks;
 
-async function call(method, path, { body, cookie, form } = {}) {
-  const headers = { Accept: "application/json", Origin: base };
+async function call(method, path, { body, cookie, form, headers: extra = {} } = {}) {
+  const headers = { Accept: "application/json", Origin: base, ...extra };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (cookie) headers.Cookie = cookie;
   const response = await fetch(base + path, {
@@ -100,6 +100,31 @@ test("account pages: every section renders for a customer and sends guests to si
   for (const path of ["/profile", "/orders", "/wallet", "/wishlist"]) assert.equal((await call("GET", path, { cookie })).status, 200, path);
   assert.equal((await call("GET", "/account")).location, "/login?next=%2Faccount");
   assert.equal((await call("GET", "/account/security")).location, "/login?next=%2Faccount%2Fsecurity");
+});
+
+test("account sections: X-Partial returns only the content, without store motion; the full page stays calm", async () => {
+  const { cookie } = await signUp("Pia Nair", "pia@account.test");
+  const sections = { "/account": "account-overview", "/account/orders": "account-orders", "/account/wallet": "account-wallet", "/account/lists": "account-lists",
+    "/account/addresses": "account-addresses", "/account/security": "account-security", "/account/help": "account-help", "/wishlist": "account-lists" };
+  for (const [path, name] of Object.entries(sections)) {
+    const partial = await call("GET", path, { cookie, headers: { "X-Partial": "1" } });
+    assert.equal(partial.status, 200, path);
+    assert.match(partial.data, new RegExp(`data-acct-page="${name}"`), path);
+    assert.match(partial.data, /data-acct-title="[^"]+\| Nexthlon"/, path);
+    // Only the section: no document, header, sidebar or footer.
+    assert.doesNotMatch(partial.data, /<html|<header|data-acct-nav|<footer|<script/, path);
+
+    const full = await call("GET", path, { cookie });
+    assert.match(full.data, /<!doctype html>/i, path);
+    assert.match(full.data, /data-acct-nav/, path);
+    assert.match(full.data, /\/js\/account-nav\.js/, path);
+    // No store motion on account pages.
+    assert.doesNotMatch(full.data, /motion\.css|\/js\/motion\.js|footer-wave\.js|confetti\.js/, path);
+  }
+  // Store pages keep their motion layer.
+  assert.match((await call("GET", "/products")).data, /\/js\/motion\.js/);
+  // Signed out, a partial request is sent to sign in like any other (the router then loads it in full).
+  assert.equal((await call("GET", "/account/wallet", { headers: { "X-Partial": "1" } })).location, "/login?next=%2Faccount%2Fwallet");
 });
 
 test("lists: create, add, move between lists, and nobody else can touch them", async () => {

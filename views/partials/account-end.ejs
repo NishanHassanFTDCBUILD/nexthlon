@@ -1,5 +1,9 @@
+<% if (typeof partial !== 'undefined' && partial) { %>
+</div>
+<% } else { %>
       </div>
     </div>
   </div>
 </main>
-<%- include('footer', { scripts: ['account'].concat(typeof scripts !== 'undefined' ? scripts : []) }) %>
+<%- include('footer', { scripts: ['account-nav', 'account'].concat(typeof scripts !== 'undefined' ? scripts : []) }) %>
+<% } %>
