@@ -1,0 +1,97 @@
+<%#
+  Coupons. The status shown here is worked out in exactly the order the store checks a code
+  (services/adminCouponService.js statusOf), so what this list says is what a customer will see.
+  Disabling is reversible; deleting is a soft delete, so past orders keep their history.
+%>
+<%
+  const tabs = [['all', 'All'], ['active', 'Running'], ['scheduled', 'Starts later'], ['expired', 'Expired'], ['used_up', 'Fully used'], ['disabled', 'Disabled']];
+  const pill = { active: 'pill-green', scheduled: 'pill-blue', expired: 'pill-red', disabled: 'pill-grey', used_up: 'pill-amber' };
+%>
+<%- include('../partials/admin-start', { section: 'coupons' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Coupons</h1>
+    <p class="muted">Discount codes customers type at checkout. Every code is checked again on the server when it is applied and when the order is placed.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-primary btn-sm" href="<%= adminPath %>/coupons/new"><%- icon('plus', 'i-sm') %> New coupon</a>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Coupon totals">
+  <div class="admin-total"><span>Running now</span><strong><%= totals.active %></strong><small class="muted">customers can use these</small></div>
+  <div class="admin-total"><span>Times used</span><strong><%= totals.uses.toLocaleString('en-IN') %></strong><small class="muted">across all coupons</small></div>
+  <div class="admin-total is-out"><span>Discount given</span><strong><%= formatPrice(totals.discountGiven) %></strong><small class="muted">total, all time</small></div>
+  <div class="admin-total"><span>Not running</span><strong><%= totals.disabled + totals.expired + totals.used_up %></strong><small class="muted"><%= totals.disabled %> disabled · <%= totals.expired %> expired · <%= totals.used_up %> used up</small></div>
+</section>
+
+<nav class="segmented admin-tabs" aria-label="Coupon status">
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>"><%= label %><% if (key !== 'all' && totals[key]) { %> <span class="admin-tab-count"><%= totals[key] %></span><% } %></a><% }) %>
+</nav>
+
+<form class="admin-filterbar" action="<%= adminPath %>/coupons" method="get">
+  <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="cp-q">Search coupons</label>
+    <input id="cp-q" type="search" name="q" value="<%= filters.q %>" maxlength="40" placeholder="Code or description">
+  </div>
+  <label class="admin-field"><span>Sort</span>
+    <select name="sort" data-auto-submit>
+      <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
+    </select>
+  </label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Coupons">
+  <% if (coupons.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">Code</th><th scope="col">Discount</th>
+          <th scope="col" class="cell-num">Minimum order</th><th scope="col" class="cell-num">Cap</th>
+          <th scope="col">Runs</th><th scope="col">Limits</th>
+          <th scope="col" class="cell-num">Used</th><th scope="col">Status</th>
+          <th scope="col" class="cell-action">Actions</th>
+        </tr></thead>
+        <tbody>
+          <% coupons.forEach(function (c) { %>
+            <tr data-coupon-row="<%= c.id %>" data-row-href="<%= adminPath %>/coupons/<%= c.id %>">
+              <td>
+                <div class="admin-items-name">
+                  <strong><a href="<%= adminPath %>/coupons/<%= c.id %>"><code class="admin-code"><%= c.code %></code></a></strong>
+                  <% if (c.description) { %><span class="admin-sub"><%= c.description %></span><% } %>
+                </div>
+              </td>
+              <td data-label="Discount"><%= c.type === 'percent' ? c.value + '% off' : formatPrice(c.value) + ' off' %></td>
+              <td data-label="Minimum order" class="cell-num"><%= c.minOrder ? formatPrice(c.minOrder) : '—' %></td>
+              <td data-label="Cap" class="cell-num"><%= c.maxDiscount ? formatPrice(c.maxDiscount) : '—' %></td>
+              <td data-label="Runs">
+                <%= c.startsAt ? formatDate(c.startsAt) : 'Now' %> → <%= c.endsAt ? formatDate(c.endsAt) : 'No end' %>
+              </td>
+              <td data-label="Limits">
+                <%= c.usageLimit ? c.usageLimit + ' in total' : 'No total limit' %><br>
+                <small class="muted"><%= c.perUserLimit ? c.perUserLimit + ' per customer' : 'Unlimited per customer' %></small>
+              </td>
+              <td data-label="Used" class="cell-num"><strong><%= c.usedCount %></strong><% if (c.usesLeft !== null) { %><small class="muted admin-sub"><%= c.usesLeft %> left</small><% } %></td>
+              <td data-label="Status"><span class="pill <%= pill[c.status] || 'pill-grey' %>" data-coupon-status><%= statusLabels[c.status] %></span></td>
+              <td class="cell-action"><div class="row-actions">
+                <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/coupons/<%= c.id %>/edit" aria-label="Edit <%= c.code %>"><%- icon('edit', 'i-xs') %> Edit</a>
+                <button type="button" class="btn btn-sm <%= c.isActive ? 'btn-danger-soft' : 'btn-secondary' %>"
+                        data-coupon-toggle="<%= c.id %>" data-active="<%= c.isActive %>" data-code="<%= c.code %>"
+                        aria-label="<%= c.isActive ? 'Disable' : 'Enable' %> <%= c.code %>"><%= c.isActive ? 'Disable' : 'Enable' %></button>
+                <button type="button" class="btn btn-ghost btn-sm" data-coupon-delete="<%= c.id %>" data-code="<%= c.code %>" aria-label="Delete <%= c.code %>"><%- icon('trash', 'i-xs') %></button>
+              </div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>No coupons match</h2><p>Create one and it appears at checkout for every customer who qualifies.</p><a class="btn btn-primary" href="<%= adminPath %>/coupons/new"><%- icon('plus', 'i-sm') %> New coupon</a></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

@@ -1,0 +1,99 @@
+<%#
+  Reviews. Hiding is the everyday action and can be undone: the review leaves the product page and
+  stops counting towards the product's stars, but stays in the database so the audit log still
+  points at something real. Deleting is for spam and is final. Both are written to the audit log.
+%>
+<%
+  const tabs = [['all', 'All'], ['visible', 'Visible'], ['hidden', 'Hidden']];
+  const stars = [5, 4, 3, 2, 1];
+%>
+<%- include('../partials/admin-start', { section: 'reviews' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Catalog</span>
+    <h1>Reviews</h1>
+    <p class="muted">Only customers who received a product can review it, so these are all verified buyers. Hidden reviews do not count towards a product's rating.</p>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Review totals">
+  <div class="admin-total"><span>Reviews</span><strong><%= totals.all.toLocaleString('en-IN') %></strong><small class="muted">from verified buyers</small></div>
+  <div class="admin-total"><span>Average rating</span><strong><%= totals.average ? totals.average.toFixed(1) : '–' %></strong><small class="muted">out of 5, visible only</small></div>
+  <div class="admin-total"><span>Visible</span><strong><%= totals.visible.toLocaleString('en-IN') %></strong><small class="muted">on the store</small></div>
+  <div class="admin-total <%= totals.hidden ? 'is-out' : '' %>"><span>Hidden</span><strong><%= totals.hidden %></strong><small class="muted"><a href="<%= link({ visibility: 'hidden', page: '' }) %>">Show them</a></small></div>
+</section>
+
+<nav class="segmented admin-tabs" aria-label="Visibility">
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ visibility: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.visibility === key ? 'is-active' : '' %>"><%= label %></a><% }) %>
+</nav>
+
+<form class="admin-filterbar" action="<%= adminPath %>/reviews" method="get">
+  <% if (filters.visibility !== 'all') { %><input type="hidden" name="visibility" value="<%= filters.visibility %>"><% } %>
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="rev-q">Search reviews</label>
+    <input id="rev-q" type="search" name="q" value="<%= filters.q %>" maxlength="80" placeholder="Words in the review, its title, or the author">
+  </div>
+  <label class="admin-field"><span>Product</span>
+    <select name="product" data-auto-submit>
+      <option value="">Any</option>
+      <% products.forEach(function (p) { %><option value="<%= p._id %>" <%= filters.product === String(p._id) ? 'selected' : '' %>><%= p.name %></option><% }) %>
+    </select>
+  </label>
+  <label class="admin-field"><span>Rating</span>
+    <select name="rating" data-auto-submit>
+      <option value="">Any</option>
+      <% stars.forEach(function (n) { %><option value="<%= n %>" <%= filters.rating === n ? 'selected' : '' %>><%= n %> star<%= n === 1 ? '' : 's' %></option><% }) %>
+    </select>
+  </label>
+  <label class="admin-field"><span>Sort</span>
+    <select name="sort" data-auto-submit>
+      <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
+    </select>
+  </label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Reviews">
+  <% if (reviews.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">Review</th><th scope="col">Product</th>
+          <th scope="col">Rating</th><th scope="col">Written</th>
+          <th scope="col">State</th><th scope="col" class="cell-action">Actions</th>
+        </tr></thead>
+        <tbody>
+          <% reviews.forEach(function (r) { %>
+            <tr data-review-row="<%= r.id %>" class="<%= r.isHidden ? 'is-unlisted' : '' %>">
+              <td>
+                <div class="admin-items-name">
+                  <% if (r.title) { %><strong><%= r.title %></strong><% } %>
+                  <span class="admin-sub"><%= r.body.length > 180 ? r.body.slice(0, 180) + '…' : r.body %></span>
+                  <small class="muted">by <%= r.author %></small>
+                  <% if (r.isHidden && r.hiddenReason) { %><small class="muted">Hidden: <%= r.hiddenReason %></small><% } %>
+                </div>
+              </td>
+              <td data-label="Product">
+                <% if (r.product) { %><a href="/products/<%= r.product.slug %>" target="_blank" rel="noopener"><%= r.product.name %></a><% } else { %><span class="muted">Product deleted</span><% } %>
+              </td>
+              <td data-label="Rating"><span class="rating-chip"><%= r.rating %> <%- icon('star', 'i-xs') %></span></td>
+              <td data-label="Written"><%= formatDate(r.createdAt) %></td>
+              <td data-label="State"><span class="pill <%= r.isHidden ? 'pill-grey' : 'pill-green' %>" data-review-state><%= r.isHidden ? 'Hidden' : 'Visible' %></span></td>
+              <td class="cell-action"><div class="row-actions">
+                <button type="button" class="btn btn-sm <%= r.isHidden ? 'btn-secondary' : 'btn-danger-soft' %>"
+                        data-review-toggle="<%= r.id %>" data-hidden="<%= r.isHidden %>"
+                        aria-label="<%= r.isHidden ? 'Show' : 'Hide' %> this review"><%= r.isHidden ? 'Show' : 'Hide' %></button>
+                <button type="button" class="btn btn-ghost btn-sm" data-review-delete="<%= r.id %>" aria-label="Delete this review"><%- icon('trash', 'i-xs') %> Delete</button>
+              </div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'star' }) %><h2>No reviews match</h2><p>Reviews appear once a delivered product is reviewed by the customer who bought it.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

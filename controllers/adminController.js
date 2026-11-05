@@ -3,6 +3,7 @@ const auditService = require("../services/auditService");
 const SupportTicket = require("../models/SupportTicket");
 const adminService = require("../services/adminService");
 const dashboardService = require("../services/dashboardService");
+const analyticsService = require("../services/analyticsService");
 const settingsService = require("../services/settingsService");
 const { validateReferralSetting, validateTicketReply, validateAdminSearch, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
@@ -12,6 +13,13 @@ const { HttpError, asyncHandler } = require("../utils/http");
 const dashboard = asyncHandler(async (req, res) => {
   const [stats, data] = await Promise.all([adminService.getDashboardStats(), dashboardService.dashboard(req.query)]);
   res.json({ ...stats, ...data });
+});
+
+// GET /api/admin/analytics?range=&by=day|week|month&from=&to=
+// Everything the Analytics section shows. The page renders it server-side; this is for scripts
+// and for checking the numbers without opening the console.
+const analytics = asyncHandler(async (req, res) => {
+  res.json(await analyticsService.analytics(req.query));
 });
 
 // GET /api/admin/customers?q=&status=all|active|blocked&page=
@@ -74,4 +82,4 @@ const notifications = asyncHandler(async (req, res) => {
   res.json(await adminService.notifications());
 });
 
-module.exports = { dashboard, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, listTickets, replyTicket };
+module.exports = { dashboard, analytics, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, listTickets, replyTicket };

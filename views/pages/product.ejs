@@ -260,6 +260,113 @@
     </div>
   </section>
 
+
+  <%# ---------- Questions & answers ---------- %>
+  <%# Anyone may read. Signed-in customers can ask, answer and mark answers helpful. Every piece of
+      text is printed escaped, so a question containing markup is shown as text, never run. %>
+  <section class="section section-box qa" id="questions" aria-labelledby="qa-title" data-qa data-product-id="<%= product._id %>">
+    <div class="section-head" data-reveal>
+      <div>
+        <span class="section-kicker">Ask the community</span>
+        <h2 id="qa-title">Questions &amp; answers</h2>
+        <p class="muted"><%= questions.total %> <%= questions.total === 1 ? 'question' : 'questions' %><%= questions.answeredCount ? ', ' + questions.answeredCount + ' answered' : '' %>. Answers from <strong><%= teamName %></strong> carry an official badge.</p>
+      </div>
+    </div>
+
+    <div class="qa-tools">
+      <form class="qa-search" data-qa-search role="search" novalidate>
+        <label class="sr-only" for="qa-find">Search the questions</label>
+        <div class="qa-search-box">
+          <%- icon('search', 'i-sm') %>
+          <input id="qa-find" type="search" name="q" maxlength="60" placeholder="Search these questions" value="<%= questions.search %>" autocomplete="off">
+        </div>
+        <button class="btn btn-ghost btn-sm" type="submit">Search</button>
+      </form>
+      <% if (shopper) { %>
+        <button type="button" class="btn btn-secondary btn-sm" data-qa-ask-open aria-expanded="false" aria-controls="qa-ask"><%- icon('help', 'i-sm') %> Ask a question</button>
+      <% } else { %>
+        <a class="btn btn-secondary btn-sm" href="/login?next=<%= encodeURIComponent('/products/' + product.slug + '#questions') %>"><%- icon('help', 'i-sm') %> Sign in to ask</a>
+      <% } %>
+    </div>
+
+    <% if (shopper) { %>
+      <form class="form qa-ask" id="qa-ask" data-qa-ask hidden novalidate>
+        <div class="form-alert" data-form-alert aria-live="polite"></div>
+        <div class="field">
+          <label for="qa-body">Your question</label>
+          <textarea id="qa-body" name="body" rows="3" required minlength="10" maxlength="300" placeholder="e.g. Does this shoe suit a wide foot?" aria-describedby="qa-body-error"></textarea>
+          <p class="field-error" id="qa-body-error" data-error-for="body"></p>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit"><%- icon('send', 'i-sm') %> Post the question</button>
+          <button type="button" class="btn btn-ghost" data-qa-ask-cancel>Cancel</button>
+        </div>
+      </form>
+    <% } %>
+
+    <ol class="qa-list" data-qa-list>
+      <% questions.questions.forEach(function (q) { %>
+        <li class="qa-entry" data-qa-item="<%= q.id %>">
+          <p class="qa-q"><span class="qa-mark" aria-hidden="true">Q</span><span><%= q.body %></span></p>
+          <p class="qa-meta">
+            <%= q.author %> · <%= formatDate(q.createdAt) %>
+            <% if (shopper) { %>
+              · <button type="button" class="link-btn qa-vote<%= q.votedByMe ? ' is-voted' : '' %>" data-qa-helpful="<%= q.id %>" aria-pressed="<%= q.votedByMe %>">
+                  <%- icon('check', 'i-xs') %> Helpful <span data-qa-count><%= q.helpful %></span>
+                </button>
+            <% } else if (q.helpful) { %>
+              · <%= q.helpful %> found this helpful
+            <% } %>
+          </p>
+
+          <% if (q.answers.length) { %>
+            <ul class="qa-answers">
+              <% q.answers.forEach(function (a) { %>
+                <li class="qa-a<%= a.byTeam ? ' is-official' : '' %>" data-qa-answer-item="<%= a.id %>">
+                  <p><span class="qa-mark" aria-hidden="true">A</span><span><%= a.body %></span></p>
+                  <p class="qa-meta">
+                    <strong><%= a.author %></strong>
+                    <% if (a.byTeam) { %><span class="qa-badge"><%- icon('shield', 'i-xs') %> Nexthlon</span><% } %>
+                    · <%= formatDate(a.at) %>
+                    <% if (shopper) { %>
+                      · <button type="button" class="link-btn qa-vote<%= a.votedByMe ? ' is-voted' : '' %>" data-qa-helpful="<%= q.id %>" data-answer-id="<%= a.id %>" aria-pressed="<%= a.votedByMe %>">
+                          <%- icon('check', 'i-xs') %> Helpful <span data-qa-count><%= a.helpful %></span>
+                        </button>
+                    <% } else if (a.helpful) { %>
+                      · <%= a.helpful %> found this helpful
+                    <% } %>
+                  </p>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p class="qa-waiting muted"><%- icon('clock', 'i-xs') %> No answer yet.</p>
+          <% } %>
+
+          <% if (shopper) { %>
+            <form class="qa-reply-form" data-qa-reply="<%= q.id %>" novalidate>
+              <label class="sr-only" for="qa-reply-<%= q.id %>">Answer this question</label>
+              <input id="qa-reply-<%= q.id %>" name="body" maxlength="1000" placeholder="Know the answer? Help another shopper" autocomplete="off">
+              <button class="btn btn-ghost btn-sm" type="submit">Answer</button>
+            </form>
+          <% } %>
+        </li>
+      <% }) %>
+    </ol>
+
+    <% if (!questions.total) { %>
+      <div class="state-box" data-qa-empty>
+        <%- icon('help', 'i-sm') %>
+        <%= questions.search ? 'No question matches "' + questions.search + '".' : 'No questions yet. Be the first to ask about this product.' %>
+      </div>
+    <% } %>
+
+    <% if (questions.pagination.pages > 1) { %>
+      <button type="button" class="btn btn-ghost btn-block" data-qa-more data-next-page="2"><%- icon('chevron-down', 'i-sm') %> Show more questions</button>
+    <% } %>
+    <p class="state-box is-error" data-qa-error hidden>We couldn't load the questions. <button type="button" class="link-btn" data-qa-retry>Try again</button></p>
+  </section>
+
   <% if (related.length) { %>
     <section class="section" aria-labelledby="related-title">
       <div class="section-head" data-reveal>
@@ -288,4 +395,4 @@
   </div>
 </dialog>
 
-<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart'] }) %>
+<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart', 'questions'] }) %>

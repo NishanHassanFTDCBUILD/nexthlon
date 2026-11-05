@@ -439,7 +439,118 @@ function validateReturnDecision(body = {}) {
   return { errors, value: { decision, note, refundMethod } };
 }
 
+// ---------- Admin: coupons ----------
+
+const COUPON_CODE = /^[A-Z0-9]{3,20}$/;
+// A date from a date input (YYYY-MM-DD). Start dates begin at midnight IST, end dates run to the
+// very end of that day, so "expires 31 March" really includes the 31st.
+function readDay(value, endOfDay = false) {
+  const raw = text(value);
+  if (raw === "") return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return NaN;
+  const at = new Date(`${raw}T${endOfDay ? "18:29:59.999Z" : "00:00:00.000Z"}`);
+  // Written as UTC minus the 5.5 hour offset, so the day is an Indian calendar day.
+  const shifted = new Date(at.getTime() - (endOfDay ? 0 : 330 * 60 * 1000));
+  return Number.isNaN(shifted.getTime()) ? NaN : shifted;
+}
+
+// The admin coupon form. Percent coupons carry a whole percent in "value"; flat ones carry paise.
+// Money fields are typed in rupees and kept in paise. usageLimit / perUserLimit of 0 mean no limit.
+function validateCoupon(body = {}) {
+  const errors = {};
+  const code = text(body.code).replace(/\s+/g, "").toUpperCase();
+  const type = text(body.type);
+  const description = text(body.description).slice(0, 140);
+  const isPercent = type === "percent";
+  const value = isPercent ? readPercent(body.value, 90) : readMoney(body.value);
+  // The cap and the minimum order are optional on the form: an empty box means "no limit".
+  const maxDiscount = text(body.maxDiscount) === "" ? 0 : readMoney(body.maxDiscount);
+  const minOrder = text(body.minOrder) === "" ? 0 : readMoney(body.minOrder);
+  const startsAt = readDay(body.startsAt);
+  const endsAt = readDay(body.endsAt, true);
+  const usageLimit = /^\d{0,6}$/.test(text(body.usageLimit)) ? Number(text(body.usageLimit) || 0) : NaN;
+  const perUserLimit = /^\d{0,4}$/.test(text(body.perUserLimit)) ? Number(text(body.perUserLimit) || 0) : NaN;
+
+  if (!COUPON_CODE.test(code)) errors.code = "Use 3 to 20 capital letters and numbers, for example RUN10.";
+  if (type !== "percent" && type !== "flat") errors.type = "Choose a percent or a flat discount.";
+  else if (isPercent) {
+    if (!Number.isInteger(value) || value < 1 || value > 90) errors.value = "Enter a whole percentage from 1 to 90.";
+  } else if (!Number.isInteger(value) || value < 100) errors.value = "Enter a flat discount of at least Rs 1.";
+  if (!Number.isInteger(maxDiscount) || maxDiscount < 0 || maxDiscount > MAX_PRICE) errors.maxDiscount = "Enter a cap of Rs 0 or more (0 means no cap).";
+  else if (!isPercent && maxDiscount > 0) errors.maxDiscount = "A cap only applies to a percent coupon.";
+  if (!Number.isInteger(minOrder) || minOrder < 0 || minOrder > MAX_PRICE) errors.minOrder = "Enter a minimum order of Rs 0 or more.";
+  if (Number.isNaN(startsAt)) errors.startsAt = "Enter a start date, or leave it empty.";
+  if (Number.isNaN(endsAt)) errors.endsAt = "Enter an expiry date, or leave it empty.";
+  if (startsAt && endsAt && endsAt <= startsAt) errors.endsAt = "The expiry date must be after the start date.";
+  if (!Number.isInteger(usageLimit) || usageLimit > 100000) errors.usageLimit = "Enter a total limit from 0 to 100,000 (0 means no limit).";
+  if (!Number.isInteger(perUserLimit) || perUserLimit > 100) errors.perUserLimit = "Enter a per-customer limit from 0 to 100 (0 means no limit).";
+  // A flat coupon bigger than the minimum order would pay the customer to shop.
+  if (!errors.value && !errors.minOrder && !isPercent && minOrder > 0 && value > minOrder) {
+    errors.value = "A flat discount cannot be more than the minimum order.";
+  }
+
+  return {
+    errors,
+    value: {
+      code, description, type, value,
+      maxDiscount: isPercent ? maxDiscount : 0,
+      minOrder, startsAt: startsAt || null, endsAt: endsAt || null,
+      usageLimit, perUserLimit, isActive: readFlag(body.isActive)
+    }
+  };
+}
+
+// ---------- Admin: inventory, reviews and Q&A ----------
+
+// One stock correction: add units, remove units, or set the exact count on the shelf.
+function validateStockChange(body = {}) {
+  const errors = {};
+  const action = text(body.action);
+  const raw = typeof body.units === "number" ? String(body.units) : text(body.units);
+  const units = /^\d{1,6}$/.test(raw) ? Number(raw) : NaN;
+  const note = text(body.note).slice(0, 120);
+  if (!["add", "remove", "count"].includes(action)) errors.action = "Choose add, remove or set.";
+  if (!Number.isInteger(units) || units > 100000) errors.units = "Enter a whole number of units up to 100,000.";
+  else if (action !== "count" && units < 1) errors.units = "Enter at least 1 unit.";
+  return { errors, value: { action, units, note } };
+}
+
+// Hiding a review: the reason is for the audit log, never shown to the customer.
+function validateReviewHide(body = {}) {
+  const errors = {};
+  const isHidden = readFlag(body.isHidden);
+  const reason = text(body.reason).slice(0, 200);
+  if (typeof body.isHidden !== "boolean" && body.isHidden !== "true" && body.isHidden !== "false") {
+    errors.isHidden = "isHidden must be true or false.";
+  }
+  if (isHidden && reason.length < 3) errors.reason = "Say briefly why it is being hidden (3 characters or more).";
+  return { errors, value: { isHidden, reason } };
+}
+
+// A customer asking a question on a product page.
+function validateQuestion(body = {}) {
+  const errors = {};
+  const value = { body: longText(body.body) };
+  if (value.body.length < 10) errors.body = "Please write a question of at least 10 characters.";
+  else if (value.body.length > 300) errors.body = "Please keep the question under 300 characters.";
+  return { errors, value };
+}
+
+// An answer, whether from a customer or from the store team.
+function validateAnswer(body = {}) {
+  const errors = {};
+  const value = { body: longText(body.body) };
+  if (value.body.length < 2) errors.body = "Please write an answer.";
+  else if (value.body.length > 1000) errors.body = "Please keep the answer under 1,000 characters.";
+  return { errors, value };
+}
+
 module.exports = {
+  validateCoupon,
+  validateStockChange,
+  validateReviewHide,
+  validateQuestion,
+  validateAnswer,
   validateStatusChange,
   validateBulkStatus,
   validateAdminCancel,

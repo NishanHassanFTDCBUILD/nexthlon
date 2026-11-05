@@ -1,6 +1,9 @@
 // Admin console: the shell (collapsible sidebar groups, the phone menu, global search, the Ctrl+K
-// command palette and the notification bell) and the section modules for customers, settings
-// and support tickets. No animation: everything appears and disappears instantly.
+// command palette and the notification bell), plus the small sections that need no file of their
+// own (customers, settings, system status). No animation: everything appears and disappears
+// instantly. The bigger sections live in their own files: admin-dashboard.js (dashboard and
+// analytics), admin-products.js, admin-orders.js, admin-catalog.js (inventory, reviews, Q&A)
+// and admin-coupons.js.
 // Section modules use window.NxPages (section-nav.js) with init(root)/destroy(), so they keep
 // working when sections switch without a reload.
 (function () {
@@ -11,12 +14,6 @@
   if (!BASE || !document.querySelector(".admin-shell")) return;
   const Pages = window.NxPages;
   const go = href => (window.NxNav && window.NxNav.inArea(href) ? window.NxNav.go(href) : window.location.assign(href));
-  const refresh = message => {
-    if (window.NxNav) return window.NxNav.reload().then(() => message && Nx.toast(message));
-    if (message) Nx.flash(message);
-    window.location.reload();
-    return Promise.resolve();
-  };
   const store = {
     get(key, fallback) { try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch { return fallback; } },
     set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked */ } }
@@ -281,9 +278,24 @@
   // Refresh the badge every 2 minutes while the tab is visible.
   setInterval(() => { if (!document.hidden && bellPanel.hidden) loadBell(); }, 120000);
 
-  // ================= Section modules =================
+  // After a change, show the section again with fresh data (the no-reload router swaps content).
+  const refresh = message => {
+    if (window.NxNav) return window.NxNav.reload().then(() => message && Nx.toast(message));
+    if (message) Nx.flash(message);
+    window.location.reload();
+    return Promise.resolve();
+  };
 
-  Pages.define("admin-soon", () => {});
+  // ================= Shared section behaviour =================
+
+  // Rows that open a record when clicked anywhere (used by several tables).
+  Pages.define("admin-rows", (root, signal) => {
+    root.addEventListener("click", event => {
+      const row = event.target.closest("tr[data-row-href]");
+      if (!row || event.target.closest("a, button, input, label")) return;
+      go(row.dataset.rowHref);
+    }, { signal });
+  });
 
   // ---------- Customers: block and unblock without reloading ----------
   Pages.define("admin-customers", (root, signal) => {
@@ -322,43 +334,22 @@
     }, { signal });
   });
 
-  // ---------- Store settings: the referral reward ----------
+  // ---------- Settings: store numbers an admin may change ----------
   Pages.define("admin-settings", (root, signal) => {
     root.addEventListener("submit", async event => {
-      const form = event.target.closest("[data-referral-form]");
+      const form = event.target.closest("[data-settings-form]");
       if (!form) return;
       event.preventDefault();
-      Nx.clearErrors(form);
-      const raw = form.elements.referralReward.value.trim();
-      if (!/^\d{1,4}$/.test(raw) || Number(raw) > 1000) {
-        Nx.showErrors(form, { referralReward: "Enter a whole amount from ₹0 to ₹1,000." });
-        form.elements.referralReward.focus();
-        return;
-      }
-      const amount = Number(raw);
-      const confirmed = await Nx.confirm({
-        title: amount ? `Set the referral reward to ${Nx.formatPrice(amount * 100)}?` : "Turn off referral rewards?",
-        message: amount
-          ? "New sign-ups with a referral code will give this amount to both people. Rewards already given stay as they are."
-          : "New sign-ups with a referral code will not get any wallet credit.",
-        confirmLabel: amount ? "Save reward" : "Turn off",
-        tone: amount ? "primary" : "danger"
-      });
-      if (!confirmed) return;
-      const reply = await Nx.submitForm(form, { url: "/api/admin/settings/referral", method: "PATCH", body: { referralReward: raw }, busyLabel: "Saving…" });
+      const reply = await Nx.submitForm(form, { url: `/api/admin/settings/${form.dataset.settingsForm}`, method: "PATCH", busyLabel: "Saving…" });
       if (reply) Nx.toast(reply.message);
     }, { signal });
   });
 
-  // ---------- Support tickets ----------
-  Pages.define("admin-tickets", () => {});
-  Pages.define("admin-ticket", (root, signal) => {
-    root.addEventListener("submit", async event => {
-      const form = event.target.closest("[data-admin-ticket-reply]");
-      if (!form) return;
-      event.preventDefault();
-      const reply = await Nx.submitForm(form, { url: `/api/admin/tickets/${form.dataset.adminTicketReply}/reply`, busyLabel: "Sending…" });
-      if (reply) refresh(reply.message);
+  // ---------- System status: re-read the health check on demand ----------
+  Pages.define("admin-system", (root, signal) => {
+    root.addEventListener("click", event => {
+      if (!event.target.closest("[data-system-refresh]")) return;
+      refresh("System status updated.");
     }, { signal });
   });
 })();

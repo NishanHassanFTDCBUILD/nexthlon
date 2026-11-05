@@ -1,59 +1,37 @@
-// The admin console's sections, in sidebar order. Used by the sidebar, the Ctrl+K command
-// palette and the placeholder page of sections that are not built yet.
+// The admin console's sections, in sidebar order. Used by the sidebar and the Ctrl+K palette.
+// Every section listed here is built: there are no "coming soon" placeholders any more, so a URL
+// that is not one of these is a plain 404 like any other unknown page.
 //   key    the section id (also the URL: <ADMIN_PATH>/<key>)
-//   ready  false while the section is still being built; it then shows a short notice
-//   part   which part of the admin build brings it (for that notice)
+//   label  what the sidebar and the palette show
+//   icon   a name from public/img/icons.svg
 const ADMIN_NAV = [
   { group: "Overview", items: [
-    { key: "dashboard", label: "Dashboard", icon: "grid", ready: true },
-    { key: "analytics", label: "Analytics", icon: "trending-up", part: 5 }
+    { key: "dashboard", label: "Dashboard", icon: "grid" },
+    { key: "analytics", label: "Analytics", icon: "trending-up" }
   ] },
   { group: "Sales", items: [
-    { key: "orders", label: "Orders", icon: "package-check", ready: true },
-    { key: "returns", label: "Returns", icon: "rotate-ccw", ready: true },
-    { key: "transactions", label: "Transactions", icon: "credit-card", ready: true },
-    { key: "refunds", label: "Refunds", icon: "wallet", ready: true },
-    { key: "abandoned-carts", label: "Abandoned carts", icon: "cart", ready: true }
+    { key: "orders", label: "Orders", icon: "package-check" },
+    { key: "returns", label: "Returns", icon: "rotate-ccw" },
+    { key: "transactions", label: "Transactions", icon: "credit-card" },
+    { key: "refunds", label: "Refunds", icon: "wallet" },
+    { key: "abandoned-carts", label: "Abandoned carts", icon: "cart" },
+    { key: "coupons", label: "Coupons", icon: "ticket" }
   ] },
   { group: "Catalog", items: [
-    { key: "products", label: "Products", icon: "box", ready: true },
-    { key: "categories", label: "Categories", icon: "layers", part: 6 },
-    { key: "brands", label: "Brands", icon: "award", part: 6 },
-    { key: "inventory", label: "Inventory", icon: "archive", part: 6 },
-    { key: "reviews", label: "Reviews", icon: "star", part: 6 },
-    { key: "questions", label: "Q&A", icon: "help", part: 6 }
+    { key: "products", label: "Products", icon: "box" },
+    { key: "inventory", label: "Inventory", icon: "archive" },
+    { key: "reviews", label: "Reviews", icon: "star" },
+    { key: "questions", label: "Q&A", icon: "help" }
   ] },
   { group: "Customers", items: [
-    { key: "customers", label: "Customers", icon: "users", ready: true },
-    { key: "segments", label: "Segments", icon: "pie", part: 6 },
-    { key: "tickets", label: "Support tickets", icon: "headset", ready: true }
+    { key: "customers", label: "Customers", icon: "users" }
   ] },
-  { group: "Marketing", items: [
-    { key: "coupons", label: "Coupons", icon: "ticket", part: 6 },
-    { key: "offers", label: "Offers", icon: "tag", part: 6 },
-    { key: "flash-sales", label: "Flash sales", icon: "bolt", part: 6 },
-    { key: "campaigns", label: "Email campaigns", icon: "mail", part: 6 },
-    { key: "gift-cards", label: "Gift cards", icon: "gift", part: 6 },
-    { key: "loyalty", label: "Loyalty & Pro", icon: "sparkles", part: 6 }
-  ] },
-  { group: "Content", items: [
-    { key: "cms", label: "Home page CMS", icon: "home", part: 6 },
-    { key: "banners", label: "Banners", icon: "image", part: 6 }
-  ] },
-  { group: "Reports", items: [
-    { key: "sales-report", label: "Sales report", icon: "file-text", part: 6 },
-    { key: "exports", label: "Exports", icon: "download", part: 6 }
-  ] },
-  { group: "Settings", items: [
-    { key: "settings", label: "Store settings", icon: "settings", ready: true },
-    { key: "delivery-zones", label: "Delivery zones", icon: "truck", part: 6 },
-    { key: "admins", label: "Admin users & roles", icon: "shield", part: 6 },
-    { key: "audit-log", label: "Audit log", icon: "history", part: 6 },
-    { key: "system", label: "System status", icon: "monitor", part: 6 }
+  { group: "System", items: [
+    { key: "settings", label: "Settings", icon: "settings" },
+    { key: "system", label: "System status", icon: "monitor" }
   ] }
 ];
 
 const ALL_ITEMS = ADMIN_NAV.flatMap(group => group.items.map(item => ({ ...item, group: group.group })));
-const findSection = key => ALL_ITEMS.find(item => item.key === key) || null;
 
-module.exports = { ADMIN_NAV, ALL_ITEMS, findSection };
+module.exports = { ADMIN_NAV, ALL_ITEMS };

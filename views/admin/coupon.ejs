@@ -1,0 +1,88 @@
+<%#
+  One coupon: its rules, how much discount it has given altogether, and every use with the
+  customer and the order it was used on. The uses come from CouponRedemption, one row per order.
+%>
+<%
+  const pill = { active: 'pill-green', scheduled: 'pill-blue', expired: 'pill-red', disabled: 'pill-grey', used_up: 'pill-amber' };
+%>
+<%- include('../partials/admin-start', { section: 'coupons', page: 'coupon-detail' }) %>
+<nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
+  <a href="<%= adminPath %>/coupons">Coupons</a> <%- icon('chevron-right', 'i-xs') %>
+  <span aria-current="page"><%= coupon.code %></span>
+</nav>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Coupon</span>
+    <h1><code class="admin-code"><%= coupon.code %></code></h1>
+    <p class="muted">
+      <span class="pill <%= pill[coupon.status] || 'pill-grey' %>" data-coupon-status><%= statusLabels[coupon.status] %></span>
+      · <%= coupon.title %><% if (coupon.description) { %> · <%= coupon.description %><% } %>
+    </p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-secondary btn-sm" href="<%= adminPath %>/coupons/<%= coupon.id %>/edit"><%- icon('edit', 'i-sm') %> Edit</a>
+    <button type="button" class="btn btn-sm <%= coupon.isActive ? 'btn-danger-soft' : 'btn-secondary' %>"
+            data-coupon-toggle="<%= coupon.id %>" data-active="<%= coupon.isActive %>" data-code="<%= coupon.code %>"><%= coupon.isActive ? 'Disable' : 'Enable' %></button>
+    <button type="button" class="btn btn-ghost btn-sm" data-coupon-delete="<%= coupon.id %>" data-code="<%= coupon.code %>"><%- icon('trash', 'i-sm') %> Delete</button>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Coupon totals">
+  <div class="admin-total is-out"><span>Discount given</span><strong><%= formatPrice(totals.discountGiven) %></strong><small class="muted">total, all time</small></div>
+  <div class="admin-total"><span>Times used</span><strong><%= totals.uses %></strong><small class="muted"><%= coupon.usesLeft === null ? 'no total limit' : coupon.usesLeft + ' uses left' %></small></div>
+  <div class="admin-total"><span>Customers</span><strong><%= totals.customers %></strong><small class="muted"><%= coupon.perUserLimit ? coupon.perUserLimit + ' use(s) each' : 'unlimited each' %></small></div>
+  <div class="admin-total"><span>Average discount</span><strong><%= formatPrice(totals.uses ? Math.round(totals.discountGiven / totals.uses) : 0) %></strong><small class="muted">per order</small></div>
+</section>
+
+<div class="dash-row dash-row-2">
+  <section class="panel admin-block" aria-labelledby="cp-rules-title">
+    <h2 id="cp-rules-title" class="panel-title">The rules</h2>
+    <dl class="admin-facts">
+      <div><dt>Discount</dt><dd><%= coupon.type === 'percent' ? coupon.value + '% off' : formatPrice(coupon.value) + ' off' %></dd></div>
+      <div><dt>Most it can take off</dt><dd><%= coupon.maxDiscount ? formatPrice(coupon.maxDiscount) : 'No cap' %></dd></div>
+      <div><dt>Minimum order</dt><dd><%= coupon.minOrder ? formatPrice(coupon.minOrder) : 'None' %></dd></div>
+      <div><dt>Starts</dt><dd><%= coupon.startsAt ? formatDate(coupon.startsAt) : 'Already running' %></dd></div>
+      <div><dt>Expires</dt><dd><%= coupon.endsAt ? formatDate(coupon.endsAt) : 'Never' %></dd></div>
+      <div><dt>Total uses allowed</dt><dd><%= coupon.usageLimit ? coupon.usageLimit.toLocaleString('en-IN') : 'No limit' %></dd></div>
+      <div><dt>Uses per customer</dt><dd><%= coupon.perUserLimit ? coupon.perUserLimit : 'No limit' %></dd></div>
+      <div><dt>Created</dt><dd><%= formatDate(coupon.createdAt) %></dd></div>
+    </dl>
+  </section>
+
+  <section class="panel admin-block" aria-labelledby="cp-how-title">
+    <h2 id="cp-how-title" class="panel-title">How it is checked</h2>
+    <p class="muted">A customer's code is judged on the server every single time — when they apply it, when the totals are worked out, and once more as the order is saved. The browser never decides.</p>
+    <ul class="acct-rows">
+      <li class="acct-row"><span class="acct-row-icon"><%- icon('check', 'i-sm') %></span><span><strong>Enabled and in date</strong><small class="muted">A disabled, not-yet-started or expired coupon is refused.</small></span></li>
+      <li class="acct-row"><span class="acct-row-icon"><%- icon('check', 'i-sm') %></span><span><strong>Within both limits</strong><small class="muted">The total count is claimed with one atomic update, so it can never go over.</small></span></li>
+      <li class="acct-row"><span class="acct-row-icon"><%- icon('check', 'i-sm') %></span><span><strong>Big enough order</strong><small class="muted">Measured on the items only, before delivery.</small></span></li>
+      <li class="acct-row"><span class="acct-row-icon"><%- icon('check', 'i-sm') %></span><span><strong>Given back if the order fails</strong><small class="muted">A cancelled or unpaid order releases the use again.</small></span></li>
+    </ul>
+  </section>
+</div>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Who used this coupon">
+  <div class="admin-table-tools"><h2 class="panel-title">Who used it</h2><span class="muted"><%= uses.length %> shown<%= totals.uses > uses.length ? ' of ' + totals.uses : '' %></span></div>
+  <% if (uses.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr><th scope="col">When</th><th scope="col">Customer</th><th scope="col">Order</th><th scope="col">Order status</th><th scope="col" class="cell-num">Discount given</th><th scope="col" class="cell-num">Order total</th></tr></thead>
+        <tbody>
+          <% uses.forEach(function (u) { %>
+            <tr<% if (u.orderId) { %> data-row-href="<%= adminPath %>/orders/<%= u.orderId %>"<% } %>>
+              <td data-label="When"><%= formatDate(u.at) %></td>
+              <td data-label="Customer"><% if (u.customer) { %><strong><%= u.customer.name %></strong><small class="muted admin-sub"><%= u.customer.email %></small><% } else { %><span class="muted">Account removed</span><% } %></td>
+              <td data-label="Order"><% if (u.orderId) { %><a href="<%= adminPath %>/orders/<%= u.orderId %>"><%= u.orderId %></a><% } else { %>—<% } %></td>
+              <td data-label="Order status"><%= u.orderStatus ? (statusLabels[u.orderStatus] || u.orderStatus) : '—' %></td>
+              <td data-label="Discount given" class="cell-num"><strong><%= formatPrice(u.discount) %></strong></td>
+              <td data-label="Order total" class="cell-num"><%= formatPrice(u.orderTotal) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>Nobody has used it yet</h2><p>Uses appear here as soon as an order is placed with this code.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

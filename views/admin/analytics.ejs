@@ -1,0 +1,172 @@
+<%#
+  Analytics. Same date range as the dashboard, plus a grouping (day / week / month) the admin
+  chooses. Every chart is hand-drawn SVG from public/js/admin-dashboard.js (no chart library), and
+  every chart has a table under it, so the numbers are readable without the picture.
+%>
+<%
+  const presets = [['today', 'Today'], ['7d', '7 days'], ['30d', '30 days'], ['month', 'This month'], ['year', 'This year']];
+  const byOptions = [['', 'Automatic'], ['day', 'By day'], ['week', 'By week'], ['month', 'By month']];
+  const fmt = function (value, format) {
+    if (format === 'money') return formatPrice(value);
+    if (format === 'percent') return Number(value).toFixed(1) + '%';
+    return Number(value).toLocaleString('en-IN');
+  };
+  // Only what the browser needs to draw: the series, not the whole page data.
+  const chartData = {
+    timeline: timeline,
+    newReturning: newReturning,
+    categories: topCategories,
+    payments: payments.map(function (p) { return { key: p.key, count: p.count, amount: p.amount }; }),
+    paymentLabels: paymentLabels
+  };
+  const periodHead = group.unit === 'hour' ? 'Hour' : group.unit === 'week' ? 'Week' : group.unit === 'month' ? 'Month' : 'Day';
+  const totalPayments = payments.reduce(function (sum, p) { return sum + p.count; }, 0);
+%>
+<%- include('../partials/admin-start', { section: 'analytics' }) %>
+<div class="dash" data-analytics="<%= JSON.stringify(chartData) %>">
+  <header class="admin-top">
+    <div>
+      <span class="section-kicker">Overview</span>
+      <h1>Analytics</h1>
+      <p class="muted"><%= range.label %> · <%= formatDate(range.from) %> to <%= formatDate(new Date(range.to.getTime() - 1)) %>, grouped <%= group.label.toLowerCase() %>, compared with the period before.</p>
+    </div>
+    <div class="admin-top-actions">
+      <a class="btn btn-secondary btn-sm" href="/api/admin/reports/analytics.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Export CSV</a>
+    </div>
+  </header>
+
+  <%# ---------- Date range and grouping ---------- %>
+  <div class="dash-range" role="group" aria-label="Date range">
+    <nav class="segmented dash-presets" aria-label="Quick ranges">
+      <% presets.forEach(function ([key, label]) { %>
+        <a href="<%= link({ range: key, from: '', to: '' }) %>" class="<%= range.key === key ? 'is-active' : '' %>" <%- range.key === key ? 'aria-current="true"' : '' %>><%= label %></a>
+      <% }) %>
+    </nav>
+    <form class="dash-custom<%= range.key === 'custom' ? ' is-active' : '' %>" action="<%= adminPath %>/analytics" method="get">
+      <input type="hidden" name="range" value="custom">
+      <input type="hidden" name="by" value="<%= group.key === 'auto' ? '' : group.key %>">
+      <label><span>From</span><input type="date" name="from" value="<%= range.fromDay %>" required></label>
+      <label><span>To</span><input type="date" name="to" value="<%= range.toDay %>" required></label>
+      <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+    </form>
+    <nav class="segmented dash-presets" aria-label="Group by">
+      <% byOptions.forEach(function ([key, label]) { %>
+        <a href="<%= link({ by: key }) %>" class="<%= (group.key === 'auto' ? '' : group.key) === key ? 'is-active' : '' %>"><%= label %></a>
+      <% }) %>
+    </nav>
+  </div>
+  <% if (range.error) { %><div class="alert alert-danger" role="alert"><%- icon('alert') %><span><%= range.error %> Showing the last 7 days instead.</span></div><% } %>
+
+  <%# ---------- Headline numbers ---------- %>
+  <section class="dash-kpis" aria-label="Key numbers">
+    <% cards.forEach(function (c) {
+         const up = c.change !== null && c.change > 0;
+         const down = c.change !== null && c.change < 0; %>
+      <article class="dash-kpi" data-kpi="<%= c.key %>">
+        <div class="dash-kpi-head">
+          <h2><%= c.label %></h2>
+          <% if (c.hint) { %><span class="dash-hint" title="<%= c.hint %>" aria-label="<%= c.hint %>"><%- icon('info', 'i-xs') %></span><% } %>
+        </div>
+        <strong class="dash-kpi-value"><%= fmt(c.value, c.format) %></strong>
+        <div class="dash-kpi-foot">
+          <span class="dash-change<%= up ? ' is-good' : down ? ' is-bad' : '' %>">
+            <% if (c.change === null) { %>–<% } else { %><%- up ? icon('arrow-up', 'i-xs') : down ? icon('arrow-down', 'i-xs') : '' %><%= Math.abs(c.change).toFixed(1) %>%<% } %>
+            <span class="sr-only"><%= c.change === null ? 'nothing to compare with' : up ? 'up' : down ? 'down' : 'no change' %> compared with the previous period</span>
+          </span>
+        </div>
+      </article>
+    <% }) %>
+  </section>
+
+  <%# ---------- Revenue and orders over time ---------- %>
+  <div class="dash-row dash-row-main">
+    <section class="panel dash-card" aria-labelledby="an-timeline-title">
+      <div class="dash-card-head">
+        <h2 id="an-timeline-title">Revenue and orders over time</h2>
+        <span class="dash-legend"><i class="dash-dot dash-dot-line"></i> Revenue (paid) <i class="dash-dot dash-dot-bar"></i> Orders</span>
+      </div>
+      <div class="dash-chart dash-chart-tall" data-chart="timeline" role="img" tabindex="0" aria-label="Revenue and orders per <%= periodHead.toLowerCase() %>. Use the arrow keys to read each value, or open the table below."></div>
+      <details class="dash-table">
+        <summary>Show as a table</summary>
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th scope="col"><%= periodHead %></th><th scope="col">Revenue</th><th scope="col">Orders</th><th scope="col">Average order value</th></tr></thead>
+          <tbody><% timeline.forEach(function (b) { %><tr><td><%= b.label %></td><td><%= formatPrice(b.revenue) %></td><td><%= b.orders %></td><td><%= formatPrice(b.aov) %></td></tr><% }) %></tbody>
+        </table></div>
+      </details>
+    </section>
+
+    <%# Conversion: how many filled baskets turned into orders. %>
+    <section class="panel dash-card" aria-labelledby="an-funnel-title">
+      <div class="dash-card-head"><h2 id="an-funnel-title">Carts → orders</h2></div>
+      <ul class="dash-actions an-funnel">
+        <li><span class="dash-action"><%- icon('cart', 'i-sm') %><span>Shoppers with items in a cart</span><strong><%= funnel.carts.toLocaleString('en-IN') %></strong></span></li>
+        <li><span class="dash-action has-count"><%- icon('package-check', 'i-sm') %><span>Orders placed</span><strong><%= funnel.orders.toLocaleString('en-IN') %></strong></span></li>
+        <li><span class="dash-action"><%- icon('credit-card', 'i-sm') %><span>Orders paid</span><strong><%= funnel.paid.toLocaleString('en-IN') %></strong></span></li>
+        <li><a class="dash-action" href="<%= adminPath %>/abandoned-carts"><%- icon('zap-off', 'i-sm') %><span>Never became an order</span><strong><%= funnel.abandoned.toLocaleString('en-IN') %></strong></a></li>
+      </ul>
+      <p class="muted dash-sub">
+        <strong><%= funnel.cartToOrder.toFixed(1) %>%</strong> of filled baskets became an order,
+        and <strong><%= funnel.orderToPaid.toFixed(1) %>%</strong> of orders were paid.
+      </p>
+    </section>
+  </div>
+
+  <%# ---------- Splits ---------- %>
+  <div class="dash-row dash-row-2">
+    <section class="panel dash-card" aria-labelledby="an-pay-title">
+      <div class="dash-card-head"><h2 id="an-pay-title">Payment methods</h2><span class="muted"><%= totalPayments %> orders</span></div>
+      <div class="dash-chart dash-chart-donut" data-chart="payments" role="img" tabindex="0" aria-label="Payment methods: <%= payments.map(function (p) { return (paymentLabels[p.key] || p.key) + ' ' + p.count; }).join(', ') || 'no orders' %>."></div>
+      <details class="dash-table"><summary>Show as a table</summary>
+        <table class="table"><thead><tr><th scope="col">Method</th><th scope="col">Orders</th><th scope="col">Paid</th><th scope="col">Share</th><th scope="col">Charged</th></tr></thead>
+          <tbody><% payments.forEach(function (p) { %><tr><td><%= paymentLabels[p.key] || p.key %></td><td><%= p.count %></td><td><%= p.paid %></td><td><%= p.share.toFixed(1) %>%</td><td><%= formatPrice(p.amount) %></td></tr><% }) %></tbody></table>
+      </details>
+      <% if (!payments.length) { %><p class="muted dash-empty">No orders in this period.</p><% } %>
+    </section>
+
+    <section class="panel dash-card" aria-labelledby="an-nr-title">
+      <div class="dash-card-head"><h2 id="an-nr-title">New vs returning customers</h2><span class="dash-legend"><i class="dash-dot dash-dot-new"></i> New <i class="dash-dot dash-dot-ret"></i> Returning</span></div>
+      <div class="dash-chart" data-chart="newReturning" role="img" tabindex="0" aria-label="Orders from new and returning customers per <%= periodHead.toLowerCase() %>. Use the arrow keys to read each value."></div>
+      <details class="dash-table"><summary>Show as a table</summary>
+        <div class="table-wrap"><table class="table"><thead><tr><th scope="col"><%= periodHead %></th><th scope="col">New</th><th scope="col">Returning</th></tr></thead>
+          <tbody><% newReturning.forEach(function (b) { %><tr><td><%= b.label %></td><td><%= b.newCustomers %></td><td><%= b.returning %></td></tr><% }) %></tbody></table></div>
+      </details>
+    </section>
+  </div>
+
+  <%# ---------- What sells ---------- %>
+  <div class="dash-row dash-row-2">
+    <section class="panel dash-card" aria-labelledby="an-cat-title">
+      <div class="dash-card-head"><h2 id="an-cat-title">Top categories</h2></div>
+      <div class="dash-chart" data-chart="categories" role="img" tabindex="0" aria-label="Top categories: <%= topCategories.map(function (c) { return c.name + ' ' + formatPrice(c.revenue); }).join(', ') || 'no sales' %>."></div>
+      <details class="dash-table"><summary>Show as a table</summary>
+        <table class="table"><thead><tr><th scope="col">Category</th><th scope="col">Revenue</th><th scope="col">Units</th></tr></thead>
+          <tbody><% topCategories.forEach(function (c) { %><tr><td><%= c.name %></td><td><%= formatPrice(c.revenue) %></td><td><%= c.units %></td></tr><% }) %></tbody></table>
+      </details>
+    </section>
+
+    <section class="panel dash-card" aria-labelledby="an-top-title" data-dash-top>
+      <div class="dash-card-head">
+        <h2 id="an-top-title">Top-selling products</h2>
+        <div class="segmented dash-tabs" role="tablist" aria-label="Rank by">
+          <button type="button" role="tab" aria-selected="true" aria-controls="an-top-revenue" id="an-tab-revenue" class="is-active" data-dash-tab="revenue">Revenue</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="an-top-units" id="an-tab-units" data-dash-tab="units" tabindex="-1">Units</button>
+        </div>
+      </div>
+      <% [['revenue', topProducts.byRevenue], ['units', topProducts.byUnits]].forEach(function ([key, list]) { %>
+        <div id="an-top-<%= key %>" role="tabpanel" aria-labelledby="an-tab-<%= key %>" <%= key === 'units' ? 'hidden' : '' %>>
+          <% if (list.length) { %>
+            <ol class="dash-rank">
+              <% list.forEach(function (p) { %>
+                <li>
+                  <span class="dash-rank-name"><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a><small class="muted"><%= p.units %> <%= p.units === 1 ? 'unit' : 'units' %> · <%= p.orders %> <%= p.orders === 1 ? 'order' : 'orders' %></small></span>
+                  <strong><%= formatPrice(p.revenue) %></strong>
+                </li>
+              <% }) %>
+            </ol>
+          <% } else { %><p class="muted dash-empty">Nothing sold in this period.</p><% } %>
+        </div>
+      <% }) %>
+    </section>
+  </div>
+</div>
+<%- include('../partials/admin-end') %>

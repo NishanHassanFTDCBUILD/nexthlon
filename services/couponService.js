@@ -48,7 +48,8 @@ async function usedBy(couponId, userId, session = null) {
 // Checks a code for this customer and subtotal. Returns { coupon, problem }.
 async function check(code, userId, subtotal, now = new Date()) {
   const clean = normaliseCode(code);
-  const coupon = CODE.test(clean) ? await Coupon.findOne({ code: clean }).lean() : null;
+  // A deleted coupon behaves exactly like a code that never existed.
+  const coupon = CODE.test(clean) ? await Coupon.findOne({ code: clean, isDeleted: { $ne: true } }).lean() : null;
   if (!coupon) return { coupon: null, problem: "This coupon code is not valid." };
   const problem = couponProblem(coupon, { subtotal, usedByUser: await usedBy(coupon._id, userId), now });
   return { coupon, problem };
@@ -74,6 +75,7 @@ async function removeFromCart(userId) {
 async function listAvailable(userId, subtotal, now = new Date()) {
   const coupons = await Coupon.find({
     isActive: true,
+    isDeleted: { $ne: true },
     $and: [
       { $or: [{ startsAt: null }, { startsAt: { $lte: now } }] },
       { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] },
@@ -99,7 +101,7 @@ async function listAvailable(userId, subtotal, now = new Date()) {
 // or registers undo steps on a single server.
 async function redeem(coupon, userId, orderObjectId, discount, { session = null, undo = null } = {}) {
   const claimed = await Coupon.findOneAndUpdate(
-    { _id: coupon._id, isActive: true, ...UNDER_LIMIT },
+    { _id: coupon._id, isActive: true, isDeleted: { $ne: true }, ...UNDER_LIMIT },
     { $inc: { usedCount: 1 } },
     { new: true, session }
   );

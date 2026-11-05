@@ -18,7 +18,7 @@
         <div class="admin-group-items" id="<%= id %>">
           <% group.items.forEach(function (item) { const on = item.key === activeSection; %>
             <a href="<%= adminPath %>/<%= item.key %>" class="admin-link<%= on ? ' is-active' : '' %>" data-nav-link="<%= item.key %>" data-label="<%= item.label %>" data-group="<%= group.group %>" <%- on ? 'aria-current="page"' : '' %>>
-              <%- icon(item.icon, 'i-sm') %><span><%= item.label %></span><% if (!item.ready) { %><em class="admin-soon">Soon</em><% } %>
+              <%- icon(item.icon, 'i-sm') %><span><%= item.label %></span>
             </a>
           <% }) %>
         </div>

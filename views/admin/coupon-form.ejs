@@ -1,0 +1,129 @@
+<%#
+  One page for creating and for editing a coupon. Amounts are typed in rupees and kept in paise.
+  Everything typed here is checked again on the server (utils/validators.js validateCoupon), so a
+  changed form or a direct API call cannot slip a bad coupon through.
+%>
+<%
+  const isEdit = Boolean(coupon);
+  const c = coupon || {
+    code: '', description: '', type: 'percent', valueRupees: '', maxDiscountRupees: '', minOrderRupees: '',
+    startsDay: '', endsDay: '', usageLimit: '', perUserLimit: 1, isActive: true, usedCount: 0, status: 'active'
+  };
+%>
+<%- include('../partials/admin-start', { section: 'coupons', page: 'coupon-form' }) %>
+<nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
+  <a href="<%= adminPath %>/coupons">Coupons</a> <%- icon('chevron-right', 'i-xs') %>
+  <span aria-current="page"><%= isEdit ? c.code : 'New coupon' %></span>
+</nav>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker"><%= isEdit ? 'Edit coupon' : 'New coupon' %></span>
+    <h1><%= isEdit ? c.code : 'Create a coupon' %></h1>
+    <p class="muted">
+      <% if (isEdit) { %>
+        Used <%= c.usedCount %> <%= c.usedCount === 1 ? 'time' : 'times' %> · <a href="<%= adminPath %>/coupons/<%= c.id %>">See who used it</a>
+      <% } else { %>
+        The code is saved in capitals. Leave a limit empty for "no limit".
+      <% } %>
+    </p>
+  </div>
+</header>
+
+<form class="form" data-coupon-form novalidate
+      data-endpoint="<%= isEdit ? '/api/admin/coupons/' + c.id : '/api/admin/coupons' %>"
+      data-method="<%= isEdit ? 'PATCH' : 'POST' %>"
+      data-done="<%= adminPath %>/coupons">
+  <div class="form-alert" data-form-alert aria-live="assertive"></div>
+
+  <div class="product-form-grid">
+    <section class="panel" aria-labelledby="cp-what-title">
+      <h2 id="cp-what-title" class="panel-title">The discount</h2>
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="cp-code">Code</label>
+          <input id="cp-code" name="code" required minlength="3" maxlength="20" value="<%= c.code %>"
+                 autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="RUN10" aria-describedby="cp-code-error cp-code-hint">
+          <p class="hint" id="cp-code-hint">3 to 20 capital letters and numbers. Customers type this at checkout.</p>
+          <p class="field-error" id="cp-code-error" data-error-for="code"></p>
+        </div>
+        <div class="field">
+          <label for="cp-type">Type</label>
+          <div class="select-wrap select-field">
+            <select id="cp-type" name="type" required data-coupon-type aria-describedby="cp-type-error">
+              <option value="percent" <%= c.type === 'percent' ? 'selected' : '' %>>Percent off</option>
+              <option value="flat" <%= c.type === 'flat' ? 'selected' : '' %>>Flat ₹ off</option>
+            </select>
+          </div>
+          <p class="field-error" id="cp-type-error" data-error-for="type"></p>
+        </div>
+        <div class="field">
+          <label for="cp-value"><span data-coupon-value-label><%= c.type === 'percent' ? 'Percentage off' : 'Amount off (₹)' %></span></label>
+          <input id="cp-value" name="value" type="number" inputmode="numeric" required min="1" step="1" value="<%= c.valueRupees %>" aria-describedby="cp-value-error cp-value-hint">
+          <p class="hint" id="cp-value-hint" data-coupon-value-hint><%= c.type === 'percent' ? 'A whole percentage from 1 to 90.' : 'In rupees, at least ₹1.' %></p>
+          <p class="field-error" id="cp-value-error" data-error-for="value"></p>
+        </div>
+        <div class="field" data-coupon-cap <%= c.type === 'percent' ? '' : 'hidden' %>>
+          <label for="cp-max">Most it can take off (₹)</label>
+          <input id="cp-max" name="maxDiscount" type="number" inputmode="numeric" min="0" step="1" value="<%= c.maxDiscountRupees || '' %>" aria-describedby="cp-max-error cp-max-hint">
+          <p class="hint" id="cp-max-hint">Empty or 0 means no cap. Only percent coupons can have one.</p>
+          <p class="field-error" id="cp-max-error" data-error-for="maxDiscount"></p>
+        </div>
+        <div class="field">
+          <label for="cp-min">Minimum order (₹)</label>
+          <input id="cp-min" name="minOrder" type="number" inputmode="numeric" min="0" step="1" value="<%= c.minOrderRupees || '' %>" aria-describedby="cp-min-error cp-min-hint">
+          <p class="hint" id="cp-min-hint">Measured against the items only, before delivery. Empty means no minimum.</p>
+          <p class="field-error" id="cp-min-error" data-error-for="minOrder"></p>
+        </div>
+        <div class="field field-wide">
+          <label for="cp-desc">Description <span class="optional">(optional)</span></label>
+          <input id="cp-desc" name="description" maxlength="140" value="<%= c.description %>" placeholder="Monsoon running sale" aria-describedby="cp-desc-error">
+          <p class="hint">Shown to you in the list, not to customers.</p>
+          <p class="field-error" id="cp-desc-error" data-error-for="description"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="cp-when-title">
+      <h2 id="cp-when-title" class="panel-title">When and how often</h2>
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="cp-starts">Starts <span class="optional">(optional)</span></label>
+          <input id="cp-starts" name="startsAt" type="date" value="<%= c.startsDay %>" aria-describedby="cp-starts-error">
+          <p class="hint">From midnight IST on this day. Empty means it works at once.</p>
+          <p class="field-error" id="cp-starts-error" data-error-for="startsAt"></p>
+        </div>
+        <div class="field">
+          <label for="cp-ends">Expires <span class="optional">(optional)</span></label>
+          <input id="cp-ends" name="endsAt" type="date" value="<%= c.endsDay %>" aria-describedby="cp-ends-error">
+          <p class="hint">Works to the very end of this day, IST. Empty means it never expires.</p>
+          <p class="field-error" id="cp-ends-error" data-error-for="endsAt"></p>
+        </div>
+        <div class="field">
+          <label for="cp-uses">Total uses <span class="optional">(optional)</span></label>
+          <input id="cp-uses" name="usageLimit" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= c.usageLimit || '' %>" aria-describedby="cp-uses-error">
+          <p class="hint">Across all customers. Empty or 0 means no limit.</p>
+          <p class="field-error" id="cp-uses-error" data-error-for="usageLimit"></p>
+        </div>
+        <div class="field">
+          <label for="cp-per-user">Uses per customer</label>
+          <input id="cp-per-user" name="perUserLimit" type="number" inputmode="numeric" min="0" max="100" step="1" value="<%= c.perUserLimit %>" aria-describedby="cp-per-user-error">
+          <p class="hint">1 is usual. 0 means a customer may use it as often as they like.</p>
+          <p class="field-error" id="cp-per-user-error" data-error-for="perUserLimit"></p>
+        </div>
+        <div class="field field-wide">
+          <label class="check">
+            <input type="checkbox" name="isActive" value="true" <%= c.isActive ? 'checked' : '' %>>
+            <span>Enabled — customers can use this code</span>
+          </label>
+          <p class="hint">Turn this off to stop a coupon at once without deleting it.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="form-actions admin-status-actions">
+    <button class="btn btn-primary" type="submit"><%- icon('check', 'i-sm') %> <%= isEdit ? 'Save the coupon' : 'Create the coupon' %></button>
+    <a class="btn btn-ghost" href="<%= adminPath %>/coupons">Cancel</a>
+  </div>
+</form>
+<%- include('../partials/admin-end') %>

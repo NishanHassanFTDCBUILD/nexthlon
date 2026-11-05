@@ -6,7 +6,7 @@ const Order = require("../models/Order");
 const User = require("../models/User");
 const Product = require("../models/Product");
 const Review = require("../models/Review");
-const SupportTicket = require("../models/SupportTicket");
+const Question = require("../models/Question");
 const WalletTransaction = require("../models/WalletTransaction");
 const LoginActivity = require("../models/LoginActivity");
 const { LOW_STOCK_LIMIT } = require("../config/catalog");
@@ -318,18 +318,18 @@ async function charts(range) {
 
 // ---------- Panels (not tied to the date range) ----------
 async function panels() {
-  const [recentOrders, toConfirm, toShip, returns, openTickets, failedPayments, lowStockCount, outOfStock, stockList, recentCustomers, latestReviews, products, customers, blockedCustomers, newCustomers] = await Promise.all([
+  const [recentOrders, toConfirm, toShip, returns, unanswered, failedPayments, lowStockCount, outOfStock, stockList, recentCustomers, latestReviews, products, customers, blockedCustomers, newCustomers] = await Promise.all([
     Order.find().sort({ createdAt: -1 }).limit(10).select("orderId total walletUsed orderStatus paymentStatus paymentMethod createdAt address.fullName address.city").lean(),
     Order.countDocuments({ orderStatus: "placed" }),
     Order.countDocuments({ orderStatus: "confirmed" }),
     Order.countDocuments({ orderStatus: "return_requested" }),
-    SupportTicket.countDocuments({ status: "open" }),
+    Question.countDocuments({ isHidden: false, answered: false }),
     Order.countDocuments({ paymentStatus: "failed", orderStatus: { $ne: "cancelled" } }),
     Product.countDocuments({ ...Product.LISTED, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
     Product.countDocuments({ ...Product.LISTED, stock: 0 }),
     Product.find({ ...Product.LISTED, stock: { $lte: LOW_STOCK_LIMIT } }).sort({ stock: 1, name: 1 }).limit(8).select("name stock image").lean(),
     User.find({ role: "customer", isDeleted: { $ne: true } }).sort({ createdAt: -1 }).limit(6).select("name email createdAt isBlocked").lean(),
-    Review.find().sort({ createdAt: -1 }).limit(5).select("rating title body authorName createdAt product").populate("product", "name slug").lean(),
+    Review.find().sort({ createdAt: -1 }).limit(5).select("rating title body authorName createdAt product isHidden").populate("product", "name slug").lean(),
     Product.countDocuments({ ...Product.LISTED }),
     User.countDocuments({ role: "customer" }),
     User.countDocuments({ role: "customer", isBlocked: true }),
@@ -341,13 +341,13 @@ async function panels() {
       { key: "confirm", label: "Orders to confirm", count: toConfirm, href: "orders?status=placed", icon: "clock" },
       { key: "ship", label: "Orders to ship", count: toShip, href: "orders?status=confirmed", icon: "truck" },
       { key: "returns", label: "Return requests", count: returns, href: "returns", icon: "rotate-ccw" },
-      { key: "tickets", label: "Open tickets", count: openTickets, href: "tickets?status=open", icon: "headset" },
+      { key: "questions", label: "Questions to answer", count: unanswered, href: "questions?answered=no", icon: "help" },
       { key: "failed", label: "Failed payments", count: failedPayments, href: "transactions?status=failed", icon: "credit-card" },
       { key: "stock", label: "Low-stock products", count: lowStockCount + outOfStock, href: "products?status=low", icon: "alert" }
     ],
     stockList: stockList.map(p => ({ id: String(p._id), name: p.name, stock: p.stock, image: p.image })),
     recentCustomers: recentCustomers.map(c => ({ id: String(c._id), name: c.name, email: c.email, createdAt: c.createdAt, isBlocked: Boolean(c.isBlocked) })),
-    latestReviews: latestReviews.map(r => ({ id: String(r._id), rating: r.rating, title: r.title, body: r.body, author: r.authorName, createdAt: r.createdAt, product: r.product ? { name: r.product.name, slug: r.product.slug } : null })),
+    latestReviews: latestReviews.map(r => ({ id: String(r._id), rating: r.rating, title: r.title, body: r.body, author: r.authorName, createdAt: r.createdAt, isHidden: Boolean(r.isHidden), product: r.product ? { name: r.product.name, slug: r.product.slug } : null })),
     stock: { products, lowStock: lowStockCount, outOfStock, healthy: Math.max(products - lowStockCount - outOfStock, 0) },
     people: { customers, blockedCustomers, newCustomers }
   };

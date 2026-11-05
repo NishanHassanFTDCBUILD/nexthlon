@@ -1,0 +1,120 @@
+<%#
+  Questions & Answers. The default order puts the ones nobody has answered first, oldest at the
+  top, so the longest wait is always the next job. Answering here posts as "Nexthlon Team" and the
+  store shows that answer with an official badge.
+%>
+<%
+  const tabs = [['all', 'All'], ['no', 'Waiting'], ['yes', 'Answered']];
+%>
+<%- include('../partials/admin-start', { section: 'questions' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Catalog</span>
+    <h1>Questions &amp; answers</h1>
+    <p class="muted">Customers ask on the product page; anyone can read. Your answer is posted as <strong><%= teamName %></strong> and carries the official badge.</p>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Question totals">
+  <div class="admin-total <%= totals.waiting ? 'is-out' : '' %>"><span>Waiting for an answer</span><strong><%= totals.waiting %></strong><small class="muted"><a href="<%= link({ answered: 'no', page: '' }) %>">Show them</a></small></div>
+  <div class="admin-total"><span>Answered</span><strong><%= totals.answered %></strong><small class="muted">visible in the store</small></div>
+  <div class="admin-total"><span>Hidden</span><strong><%= totals.hidden %></strong><small class="muted"><a href="<%= link({ hidden: 'yes', page: '' }) %>">Show them</a></small></div>
+  <div class="admin-total"><span>Questions in total</span><strong><%= totals.all.toLocaleString('en-IN') %></strong><small class="muted">across the catalogue</small></div>
+</section>
+
+<nav class="segmented admin-tabs" aria-label="Answered state">
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ answered: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.answered === key ? 'is-active' : '' %>"><%= label %></a><% }) %>
+</nav>
+
+<form class="admin-filterbar" action="<%= adminPath %>/questions" method="get">
+  <% if (filters.answered !== 'all') { %><input type="hidden" name="answered" value="<%= filters.answered %>"><% } %>
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="qa-q">Search questions</label>
+    <input id="qa-q" type="search" name="q" value="<%= filters.q %>" maxlength="80" placeholder="Words in the question">
+  </div>
+  <label class="admin-field"><span>Product</span>
+    <select name="product" data-auto-submit>
+      <option value="">Any</option>
+      <% products.forEach(function (p) { %><option value="<%= p._id %>" <%= filters.product === String(p._id) ? 'selected' : '' %>><%= p.name %></option><% }) %>
+    </select>
+  </label>
+  <label class="admin-field"><span>Hidden</span>
+    <select name="hidden" data-auto-submit>
+      <option value="no" <%= filters.hidden === 'no' ? 'selected' : '' %>>Leave hidden out</option>
+      <option value="yes" <%= filters.hidden === 'yes' ? 'selected' : '' %>>Include hidden</option>
+    </select>
+  </label>
+  <label class="admin-field"><span>Sort</span>
+    <select name="sort" data-auto-submit>
+      <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
+    </select>
+  </label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<section class="qa-admin" aria-label="Questions">
+  <% if (questions.length) { %>
+    <% questions.forEach(function (q) { const teamAnswer = q.answers.find(function (a) { return a.byTeam; }); %>
+      <article class="panel admin-block qa-item<%= q.isHidden ? ' is-hidden' : '' %>" data-question="<%= q.id %>">
+        <header class="qa-head">
+          <div class="qa-head-text">
+            <p class="qa-question" data-qa-body><%= q.body %></p>
+            <small class="muted">
+              Asked by <%= q.author %> · <%= formatDate(q.createdAt) %>
+              <% if (q.product) { %> · <a href="/products/<%= q.product.slug %>" target="_blank" rel="noopener"><%= q.product.name %></a><% } else { %> · product deleted<% } %>
+              <% if (q.helpful) { %> · <%= q.helpful %> found it helpful<% } %>
+            </small>
+          </div>
+          <div class="qa-head-tags">
+            <span class="pill <%= q.answered ? 'pill-green' : 'pill-amber' %>" data-qa-state><%= q.answered ? 'Answered' : 'Waiting' %></span>
+            <% if (q.isHidden) { %><span class="pill pill-grey">Hidden</span><% } %>
+          </div>
+        </header>
+
+        <% if (q.answers.length) { %>
+          <ul class="qa-answers">
+            <% q.answers.forEach(function (a) { %>
+              <li class="qa-answer<%= a.isHidden ? ' is-hidden' : '' %>" data-answer="<%= a.id %>">
+                <p data-qa-body><%= a.body %></p>
+                <small class="muted">
+                  <strong><%= a.author %></strong>
+                  <% if (a.byTeam) { %><span class="qa-badge"><%- icon('shield', 'i-xs') %> Official</span><% } %>
+                  · <%= formatDate(a.at) %>
+                  <% if (a.helpful) { %> · <%= a.helpful %> helpful<% } %>
+                  <% if (a.isHidden) { %> · hidden<% } %>
+                </small>
+                <div class="row-actions">
+                  <button type="button" class="btn btn-ghost btn-sm" data-qa-edit="<%= a.id %>"><%- icon('edit', 'i-xs') %> Edit</button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-qa-hide="<%= a.id %>" data-hidden="<%= a.isHidden %>"><%= a.isHidden ? 'Show' : 'Hide' %></button>
+                  <button type="button" class="btn btn-ghost btn-sm" data-qa-delete="<%= a.id %>"><%- icon('trash', 'i-xs') %> Delete</button>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+
+        <%# One official answer per question: answering again edits it, so the team never appears twice. %>
+        <form class="form qa-reply" data-qa-answer="<%= q.id %>" novalidate>
+          <div class="form-alert" data-form-alert aria-live="polite"></div>
+          <label class="sr-only" for="qa-reply-<%= q.id %>">Answer as <%= teamName %></label>
+          <textarea id="qa-reply-<%= q.id %>" name="body" rows="2" required minlength="2" maxlength="1000"
+                    placeholder="<%= teamAnswer ? 'Edit the official answer…' : 'Answer as ' + teamName + '…' %>"><%= teamAnswer ? teamAnswer.body : '' %></textarea>
+          <p class="field-error" data-error-for="body"></p>
+          <div class="qa-reply-actions">
+            <button class="btn btn-primary btn-sm" type="submit"><%- icon('send', 'i-xs') %> <%= teamAnswer ? 'Update the official answer' : 'Answer as ' + teamName %></button>
+            <div class="row-actions">
+              <button type="button" class="btn btn-ghost btn-sm" data-qa-edit-question="<%= q.id %>"><%- icon('edit', 'i-xs') %> Edit the question</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-qa-hide-question="<%= q.id %>" data-hidden="<%= q.isHidden %>"><%= q.isHidden ? 'Show' : 'Hide' %></button>
+              <button type="button" class="btn btn-ghost btn-sm" data-qa-delete-question="<%= q.id %>"><%- icon('trash', 'i-xs') %> Delete</button>
+            </div>
+          </div>
+        </form>
+      </article>
+    <% }) %>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="panel empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'headset' }) %><h2>No questions match</h2><p>Questions appear here as soon as a customer asks one on a product page.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

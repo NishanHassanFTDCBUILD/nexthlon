@@ -517,4 +517,68 @@
       cancelAnimationFrame(frame);
     };
   });
+  // ---------- The analytics section ----------
+  // The same hand-drawn charts as the dashboard, over the range and grouping the admin picked.
+  Pages.define("admin-analytics", (root, signal) => {
+    const holder = root.querySelector("[data-analytics]");
+    if (!holder) return;
+    let data;
+    try { data = JSON.parse(holder.dataset.analytics); } catch { return; }
+    const chartEls = {};
+    root.querySelectorAll("[data-chart]").forEach(el => { chartEls[el.dataset.chart] = el; });
+
+    function render(animate) {
+      // Each redraw replaces the previous chart listeners.
+      if (render.controller) render.controller.abort();
+      const local = new AbortController();
+      render.controller = local;
+      signal.addEventListener("abort", () => local.abort(), { once: true });
+      const s = local.signal;
+      if (chartEls.timeline) timelineChart(chartEls.timeline, data.timeline, animate, s);
+      if (chartEls.newReturning) stackedChart(chartEls.newReturning, data.newReturning, animate, s);
+      if (chartEls.categories) hbarChart(chartEls.categories, data.categories, animate, s);
+      if (chartEls.payments) {
+        donutChart(chartEls.payments, data.payments.map(p => ({ label: data.paymentLabels[p.key] || p.key, value: p.count, cls: PAYMENT_CLASS[p.key] || "c4" })), "orders", animate, s);
+      }
+    }
+    render(true);
+
+    // Redraw (without motion) when the width changes.
+    let lastWidth = root.clientWidth;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      if (Math.abs(root.clientWidth - lastWidth) < 8) return;
+      lastWidth = root.clientWidth;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => render(false));
+    });
+    observer.observe(root);
+
+    // Top products: Revenue / Units tabs (arrow keys too).
+    const tabs = [...root.querySelectorAll("[data-dash-tab]")];
+    const selectTab = tab => {
+      tabs.forEach(t => {
+        const on = t === tab;
+        t.classList.toggle("is-active", on);
+        t.setAttribute("aria-selected", String(on));
+        t.tabIndex = on ? 0 : -1;
+        root.querySelector(`#${t.getAttribute("aria-controls")}`).hidden = !on;
+      });
+    };
+    tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => selectTab(tab), { signal });
+      tab.addEventListener("keydown", event => {
+        const move = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+        if (!move) return;
+        const next = tabs[(i + move + tabs.length) % tabs.length];
+        selectTab(next);
+        next.focus();
+      }, { signal });
+    });
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  });
 })();

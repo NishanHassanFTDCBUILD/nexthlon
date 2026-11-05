@@ -44,7 +44,6 @@
 .admin-link:hover { color: var(--ink); background: var(--surface-2); text-decoration: none; }
 .admin-link.is-active { color: var(--ink); font-weight: var(--weight-semibold); background: var(--brand-soft); box-shadow: inset 3px 0 0 var(--brand); }
 .admin-link.is-active .i { color: var(--brand-ink); }
-.admin-soon { font-style: normal; font-size: 10px; font-weight: var(--weight-bold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted-2); border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 1px 6px; }
 .admin-side-foot { margin-top: auto; padding-top: var(--space-1); border-top: 1px solid var(--line); }
 .admin-scrim { position: fixed; inset: 0; z-index: 39; background: rgba(0, 0, 0, 0.5); }
 .admin-scrim[hidden] { display: none; }
@@ -121,9 +120,25 @@
 .admin-facts div { padding: var(--space-1h) var(--space-2); border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); }
 .admin-facts dt { font-size: var(--text-xs); color: var(--muted); }
 .admin-facts dd { margin: 2px 0 0; font-weight: var(--weight-semibold); }
-.admin-soon-panel { display: flex; flex-direction: column; align-items: center; gap: var(--space-1h); padding: var(--space-6) var(--space-3); text-align: center; }
-.admin-soon-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: var(--brand-soft); color: var(--brand-ink); }
-.admin-soon-icon .i { width: 30px; height: 30px; }
+/* ---------- Q&A moderation ---------- */
+.qa-admin { display: flex; flex-direction: column; gap: var(--space-2); }
+.qa-item.is-hidden { opacity: 0.6; }
+.qa-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-1h); }
+.qa-head-text { min-width: 0; flex: 1 1 320px; }
+.qa-head-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.qa-question { margin: 0 0 4px; font-size: 15px; font-weight: var(--weight-semibold); color: var(--ink); }
+.qa-item .qa-answers { list-style: none; margin: var(--space-1h) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1h); }
+.qa-item .qa-answer { padding: var(--space-1h); border-left: 2px solid var(--line); background: var(--surface-2); border-radius: var(--radius-sm); }
+.qa-item .qa-answer.is-hidden { opacity: 0.6; }
+.qa-item .qa-answer > p:first-child { margin: 0 0 4px; font-size: 14px; }
+.qa-item .qa-answer small { display: block; margin-bottom: 6px; }
+.qa-reply { margin-top: var(--space-2); padding-top: var(--space-1h); border-top: 1px solid var(--line); }
+.qa-reply textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; resize: vertical; }
+.qa-reply textarea:focus { border-color: var(--brand); outline: none; box-shadow: var(--ring); }
+.qa-reply-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1h); margin-top: var(--space-1h); }
+/* Analytics: the carts-to-orders steps read as a list, not as links. */
+.an-funnel .dash-action { cursor: default; }
+.an-funnel a.dash-action { cursor: pointer; }
 
 /* ---------- Tablets and phones: the sidebar becomes a menu panel ---------- */
 @media (max-width: 1024px) {

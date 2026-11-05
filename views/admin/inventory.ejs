@@ -1,0 +1,102 @@
+<%#
+  Inventory: the stock view of the catalogue. Products is where a product is written; this is
+  where its stock is watched and corrected. Each row carries a small form that adds units, removes
+  units or sets the exact count, and the server applies it with one atomic update.
+%>
+<%
+  const tabs = [['all', 'All'], ['out', 'Out of stock'], ['low', 'Low stock'], ['healthy', 'Well stocked'], ['unlisted', 'Unlisted']];
+  const statePill = { out: 'pill-red', low: 'pill-amber', healthy: 'pill-green' };
+  const stateLabel = { out: 'Out of stock', low: 'Low', healthy: 'In stock' };
+%>
+<%- include('../partials/admin-start', { section: 'inventory' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Catalog</span>
+    <h1>Inventory</h1>
+    <p class="muted">Stock only. A product's name, price and photos live in <a href="<%= adminPath %>/products">Products</a>. "Low" means <%= totals.lowStockLimit %> units or fewer.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-secondary btn-sm" href="/api/admin/inventory/export.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Export CSV</a>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Stock totals">
+  <div class="admin-total"><span>Units on the shelf</span><strong><%= totals.units.toLocaleString('en-IN') %></strong><small class="muted">across <%= totals.products %> products</small></div>
+  <div class="admin-total"><span>Stock value</span><strong><%= formatPrice(totals.value) %></strong><small class="muted">at the selling price</small></div>
+  <div class="admin-total <%= totals.low ? 'is-out' : '' %>"><span>Low stock</span><strong><%= totals.low %></strong><small class="muted"><a href="<%= link({ status: 'low', page: '' }) %>">Show them</a></small></div>
+  <div class="admin-total <%= totals.out ? 'is-out' : '' %>"><span>Out of stock</span><strong><%= totals.out %></strong><small class="muted"><a href="<%= link({ status: 'out', page: '' }) %>">Show them</a></small></div>
+</section>
+
+<nav class="segmented admin-tabs" aria-label="Stock state">
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>"><%= label %></a><% }) %>
+</nav>
+
+<form class="admin-filterbar" action="<%= adminPath %>/inventory" method="get">
+  <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="inv-q">Search the catalogue</label>
+    <input id="inv-q" type="search" name="q" value="<%= filters.q %>" maxlength="80" placeholder="Product name or brand">
+  </div>
+  <label class="admin-field"><span>Category</span>
+    <select name="category" data-auto-submit>
+      <option value="">Any</option>
+      <% categories.forEach(function (c) { %><option value="<%= c._id %>" <%= filters.category === String(c._id) ? 'selected' : '' %>><%= c.name %></option><% }) %>
+    </select>
+  </label>
+  <label class="admin-field"><span>Sort</span>
+    <select name="sort" data-auto-submit>
+      <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
+    </select>
+  </label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Stock levels">
+  <% if (products.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">Product</th>
+          <th scope="col" class="cell-num">Stock</th>
+          <th scope="col">State</th>
+          <th scope="col" class="cell-num">Stock value</th>
+          <th scope="col">Correct the stock</th>
+        </tr></thead>
+        <tbody>
+          <% products.forEach(function (p) { %>
+            <tr data-inv-row="<%= p.id %>" class="<%= p.isListed ? '' : 'is-unlisted' %>">
+              <td>
+                <div class="person product-person">
+                  <img class="product-thumb" src="<%= p.image %>" alt="" width="48" height="48" loading="lazy" decoding="async">
+                  <div><strong><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a></strong><span><%= p.category || 'No category' %> · <%= p.brand %><%= p.isListed ? '' : ' · unlisted' %></span></div>
+                </div>
+              </td>
+              <td data-label="Stock" class="cell-num"><strong data-inv-stock><%= p.stock %></strong></td>
+              <td data-label="State"><span class="pill <%= statePill[p.state] %>" data-inv-state><%= stateLabel[p.state] %></span></td>
+              <td data-label="Stock value" class="cell-num" data-inv-value><%= formatPrice(p.stockValue) %></td>
+              <td data-label="Correct the stock">
+                <%# Submitted by public/js/admin-catalog.js as a PATCH; the server validates it again. %>
+                <form class="admin-inline-form" data-inv-form="<%= p.id %>" data-name="<%= p.name %>" novalidate>
+                  <label class="sr-only" for="inv-action-<%= p.id %>">What to do with the stock of <%= p.name %></label>
+                  <select id="inv-action-<%= p.id %>" name="action">
+                    <option value="add">Add</option>
+                    <option value="remove">Remove</option>
+                    <option value="count">Set to</option>
+                  </select>
+                  <label class="sr-only" for="inv-units-<%= p.id %>">Number of units for <%= p.name %></label>
+                  <input id="inv-units-<%= p.id %>" name="units" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="Units" required>
+                  <button class="btn btn-secondary btn-sm" type="submit">Save</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No products match</h2><p>Try another stock state, category or search.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

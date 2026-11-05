@@ -1,0 +1,85 @@
+<%#
+  System status: is the store healthy, and what is switched on? Everything here is read-only.
+  No secret is ever printed: for each optional service the page says only whether its keys are
+  present, never what they are.
+%>
+<%- include('../partials/admin-start', { section: 'system' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">System</span>
+    <h1>System status</h1>
+    <p class="muted">Checked <%= new Date(checkedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' }) %> IST. Nothing on this page can be changed from here.</p>
+  </div>
+  <div class="admin-top-actions">
+    <button type="button" class="btn btn-secondary btn-sm" data-system-refresh><%- icon('history', 'i-sm') %> Check again</button>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Health">
+  <div class="admin-total <%= healthy ? '' : 'is-out' %>">
+    <span>Overall</span>
+    <strong><%= healthy ? 'Healthy' : 'Attention needed' %></strong>
+    <small class="muted"><%= healthy ? 'The app is serving and the database answers.' : 'The database is not answering.' %></small>
+  </div>
+  <div class="admin-total <%= database.ok ? '' : 'is-out' %>">
+    <span>Database</span>
+    <strong><%= database.state %></strong>
+    <small class="muted"><%= database.ok ? (database.pingMs === null ? 'Connected' : 'Replied in ' + database.pingMs + ' ms') : 'MongoDB is unreachable' %></small>
+  </div>
+  <div class="admin-total"><span>Uptime</span><strong><%= app.uptime %></strong><small class="muted">since the server last started</small></div>
+  <div class="admin-total"><span>Memory in use</span><strong><%= app.memoryMb %> MB</strong><small class="muted">resident set size</small></div>
+</section>
+
+<div class="dash-row dash-row-2">
+  <section class="panel admin-block" aria-labelledby="sys-features-title">
+    <h2 id="sys-features-title" class="panel-title">What is switched on</h2>
+    <ul class="acct-rows">
+      <% features.forEach(function (f) { %>
+        <li class="acct-row">
+          <span class="acct-row-icon"><%- icon(f.on ? 'check' : 'zap-off', 'i-sm') %></span>
+          <span><strong><%= f.label %></strong><small class="muted"><%= f.detail %></small></span>
+          <span class="acct-row-action"><span class="pill <%= f.on ? 'pill-green' : 'pill-grey' %>"><%= f.on ? 'On' : 'Off' %></span></span>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+
+  <section class="panel admin-block" aria-labelledby="sys-session-title">
+    <h2 id="sys-session-title" class="panel-title">Login session rules</h2>
+    <p class="muted dash-sub">How long a signed-in session lasts. Set in <code>.env</code>; see the README for what each one means.</p>
+    <ul class="acct-rows">
+      <% session.forEach(function (s) { %>
+        <li class="acct-row">
+          <span class="acct-row-icon"><%- icon('lock', 'i-sm') %></span>
+          <span><strong><%= s.label %></strong><small class="muted"><%= s.hint %></small></span>
+          <span class="acct-row-action"><code class="admin-code"><%= s.value %></code></span>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+</div>
+
+<section class="panel admin-block" aria-labelledby="sys-counts-title">
+  <h2 id="sys-counts-title" class="panel-title">How much data there is</h2>
+  <div class="admin-totals">
+    <% counts.forEach(function (c) { %>
+      <div class="admin-total">
+        <span><%= c.label %></span>
+        <strong><%= c.value.toLocaleString('en-IN') %></strong>
+        <small class="muted"><% if (c.section) { %><a href="<%= adminPath %>/<%= c.section %>">Open</a><% } else { %>live refresh tokens<% } %></small>
+      </div>
+    <% }) %>
+  </div>
+</section>
+
+<section class="panel admin-block" aria-labelledby="sys-build-title">
+  <h2 id="sys-build-title" class="panel-title">Build and host</h2>
+  <dl class="admin-facts">
+    <div><dt>Application</dt><dd><%= app.name %> <%= app.version %></dd></div>
+    <div><dt>Node.js</dt><dd><%= app.node %></dd></div>
+    <div><dt>Mongoose</dt><dd><%= app.mongoose %></dd></div>
+    <div><dt>Database name</dt><dd><%= database.name || '—' %></dd></div>
+    <div><dt>Host</dt><dd><%= app.platform %></dd></div>
+  </dl>
+</section>
+<%- include('../partials/admin-end') %>

@@ -31,7 +31,8 @@ function publicReview(review) {
     rating: review.rating,
     title: review.title,
     body: review.body,
-    createdAt: review.createdAt
+    createdAt: review.createdAt,
+    isHidden: Boolean(review.isHidden)
   };
 }
 
@@ -41,10 +42,10 @@ function shortName(name) {
   return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.` : parts[0];
 }
 
-// How many reviews gave each star rating, 5 down to 1.
+// How many reviews gave each star rating, 5 down to 1. Hidden reviews are not counted.
 async function ratingBreakdown(productId) {
   const groups = await Review.aggregate([
-    { $match: { product: new mongoose.Types.ObjectId(String(productId)) } },
+    { $match: { product: new mongoose.Types.ObjectId(String(productId)), isHidden: { $ne: true } } },
     { $group: { _id: "$rating", count: { $sum: 1 } } }
   ]);
   const counts = new Map(groups.map(group => [group._id, group.count]));
@@ -53,8 +54,8 @@ async function ratingBreakdown(productId) {
 
 async function listReviews(productId, page = 1) {
   const [reviews, total, breakdown] = await Promise.all([
-    Review.find({ product: productId }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
-    Review.countDocuments({ product: productId }),
+    Review.find({ product: productId, ...Review.VISIBLE }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+    Review.countDocuments({ product: productId, ...Review.VISIBLE }),
     ratingBreakdown(productId)
   ]);
   return {
@@ -65,9 +66,10 @@ async function listReviews(productId, page = 1) {
 }
 
 // Keeps the product's stored average (one decimal place) and count in step with its reviews.
+// A review an admin has hidden counts for nothing, so hiding one changes the product's stars.
 async function refreshProductRating(productId) {
   const [stats] = await Review.aggregate([
-    { $match: { product: new mongoose.Types.ObjectId(String(productId)) } },
+    { $match: { product: new mongoose.Types.ObjectId(String(productId)), isHidden: { $ne: true } } },
     { $group: { _id: null, average: { $avg: "$rating" }, count: { $sum: 1 } } }
   ]);
   const ratingAverage = stats ? Math.round(stats.average * 10) / 10 : 0;

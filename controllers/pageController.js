@@ -1,5 +1,6 @@
 const config = require("../config/env");
 const dashboardService = require("../services/dashboardService");
+const analyticsService = require("../services/analyticsService");
 const productService = require("../services/productService");
 const profileService = require("../services/profileService");
 const adminService = require("../services/adminService");
@@ -7,6 +8,7 @@ const adminProductService = require("../services/adminProductService");
 const cartService = require("../services/cartService");
 const homeService = require("../services/homeService");
 const reviewService = require("../services/reviewService");
+const questionService = require("../services/questionService");
 const checkoutService = require("../services/checkoutService");
 const orderService = require("../services/orderService");
 const invoiceService = require("../services/invoiceService");
@@ -18,7 +20,7 @@ const accountService = require("../services/accountService");
 const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
 const { CONTACT_TOPICS, STORE } = require("../config/store");
-const { INDIAN_STATES } = require("../config/catalog");
+const { INDIAN_STATES, LOW_STOCK_LIMIT, MAX_ADDRESSES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
 
@@ -101,10 +103,13 @@ const productDetail = asyncHandler(async (req, res) => {
   if (req.user && req.user.role === "customer") {
     accountService.recordView(req.user._id, product._id).catch(() => {});
   }
-  const [related, reviews, reviewState] = await Promise.all([
+  const shopper = req.user && req.user.role === "customer" ? req.user : null;
+  const [related, reviews, reviewState, questions] = await Promise.all([
     productService.getRelatedProducts(product),
     reviewService.listReviews(product._id, 1),
-    reviewService.reviewStatus(req.user, product._id)
+    reviewService.reviewStatus(req.user, product._id),
+    // Q&A: anyone may read it, so it is loaded for guests too.
+    questionService.publicList(product._id, { page: 1 }, shopper)
   ]);
   res.render("pages/product", {
     title: `${product.name} | Nexthlon`,
@@ -113,7 +118,9 @@ const productDetail = asyncHandler(async (req, res) => {
     offer: productService.offerLabel(product),
     related,
     reviews,
-    reviewState
+    reviewState,
+    questions,
+    teamName: questionService.TEAM_NAME
   });
 });
 
@@ -220,8 +227,30 @@ const adminDashboard = asyncHandler(async (req, res) => {
   res.render("admin/dashboard", { title: "Dashboard | Nexthlon Admin", ...data, statusLabels: orderRules.STATUS_LABELS });
 });
 
+// Analytics. Every number comes from the service; the page only draws it.
+const adminAnalytics = asyncHandler(async (req, res) => {
+  const data = await analyticsService.analytics(req.query);
+  const current = { range: data.range.key, by: data.group.key === "auto" ? "" : data.group.key, from: data.range.fromDay, to: data.range.toDay };
+  res.render("admin/analytics", {
+    title: "Analytics | Nexthlon Admin",
+    ...data,
+    ranges: dashboardService.RANGE_LABELS,
+    paymentLabels: { razorpay: "Razorpay", wallet: "Wallet", cod: "Cash on delivery" },
+    link: linkBuilder(`${config.adminPath}/analytics`, current),
+    exportQuery: new URLSearchParams(Object.entries(current).filter(([, v]) => v)).toString()
+  });
+});
+
+// Settings: what an admin may change, plus the fixed rules, so the page explains the whole store.
 const adminSettings = asyncHandler(async (req, res) => {
-  res.render("admin/settings", { title: "Store settings | Nexthlon Admin", settings: await settingsService.getAll() });
+  res.render("admin/settings", {
+    title: "Settings | Nexthlon Admin",
+    settings: await settingsService.getAll(),
+    lowStockLimit: LOW_STOCK_LIMIT,
+    maxPerProduct: cartService.MAX_PER_PRODUCT,
+    codLimit: orderRules.COD_LIMIT,
+    maxAddresses: MAX_ADDRESSES
+  });
 });
 
 const adminUsers = asyncHandler(async (req, res) => {
@@ -276,6 +305,7 @@ module.exports = {
   orderInvoice,
   adminLogin,
   adminDashboard,
+  adminAnalytics,
   adminUsers,
   adminSettings,
   adminProducts,

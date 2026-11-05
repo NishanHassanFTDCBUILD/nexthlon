@@ -14,7 +14,12 @@ const couponSchema = new mongoose.Schema({
   usageLimit: { type: Number, default: 0, min: 0, validate: Number.isInteger },
   perUserLimit: { type: Number, default: 1, min: 0, validate: Number.isInteger },
   usedCount: { type: Number, default: 0, min: 0 },
-  isActive: { type: Boolean, default: true }
+  // The enable/disable toggle in the admin console.
+  isActive: { type: Boolean, default: true },
+  // Soft delete: the coupon can never be used again, but the orders that used it keep their
+  // history (see models/CouponRedemption.js). It is simply hidden from the admin list.
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 couponSchema.path("value").validate(function checkPercent(value) {
@@ -23,5 +28,6 @@ couponSchema.path("value").validate(function checkPercent(value) {
 
 couponSchema.index({ isActive: 1, endsAt: 1 });
 couponSchema.index({ createdAt: -1 });
+couponSchema.index({ isDeleted: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Coupon", couponSchema);

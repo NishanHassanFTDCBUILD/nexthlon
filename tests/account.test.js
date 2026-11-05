@@ -305,7 +305,11 @@ test("help requests: own orders only, the admin replies, and other customers can
   assert.equal(reply.status, 200);
   assert.equal(reply.data.ticket.status, "pending");
   assert.equal((await call("POST", `/api/admin/tickets/${ticketId}/reply`, { body: { message: "x", status: "weird" }, cookie: admin.cookie })).status, 400);
-  assert.match((await call("GET", "/admin/tickets", { cookie: admin.cookie })).data, new RegExp(ticketId));
+  // The admin console no longer has a tickets screen, but its API still lists them.
+  assert.equal((await call("GET", "/admin/tickets", { cookie: admin.cookie })).status, 404);
+  const listed = await call("GET", "/api/admin/tickets", { cookie: admin.cookie });
+  assert.equal(listed.status, 200);
+  assert.ok(listed.data.tickets.some(row => row.ticketId === ticketId));
 
   const page = await call("GET", `/account/help/${ticketId}`, { cookie: customer.cookie });
   assert.match(page.data, /Yes, we will arrange it\./);

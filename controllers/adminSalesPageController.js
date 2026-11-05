@@ -4,6 +4,7 @@ const config = require("../config/env");
 const adminOrderService = require("../services/adminOrderService");
 const ledgerService = require("../services/ledgerService");
 const cartRecoveryService = require("../services/cartRecoveryService");
+const adminCouponService = require("../services/adminCouponService");
 const rules = require("../utils/orderRules");
 const { linkBuilder } = require("../utils/queryString");
 const { asyncHandler } = require("../utils/http");
@@ -89,4 +90,31 @@ const abandonedCarts = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { orders, order, returns, transactions, transaction, reconciliation, refunds, abandonedCarts };
+// ---------- Coupons ----------
+
+const coupons = asyncHandler(async (req, res) => {
+  const data = await adminCouponService.listCoupons(req.query);
+  const current = without(data.filters, { sort: "newest" });
+  res.render("admin/coupons", {
+    title: "Coupons | Nexthlon Admin",
+    ...data,
+    link: linkBuilder(base("coupons"), current)
+  });
+});
+
+// The create form and the edit form are the same page; product is null when creating.
+const couponNew = (req, res) => {
+  res.render("admin/coupon-form", { title: "New coupon | Nexthlon Admin", coupon: null });
+};
+
+const couponEdit = asyncHandler(async (req, res) => {
+  const coupon = await adminCouponService.getCoupon(req.params.couponId);
+  res.render("admin/coupon-form", { title: `Edit ${coupon.code} | Nexthlon Admin`, coupon });
+});
+
+const coupon = asyncHandler(async (req, res) => {
+  const data = await adminCouponService.getCouponDetail(req.params.couponId);
+  res.render("admin/coupon", { title: `${data.coupon.code} | Nexthlon Admin`, ...data, ...labels, statusLabels: adminCouponService.STATUS_LABELS });
+});
+
+module.exports = { orders, order, returns, transactions, transaction, reconciliation, refunds, abandonedCarts, coupons, couponNew, couponEdit, coupon };

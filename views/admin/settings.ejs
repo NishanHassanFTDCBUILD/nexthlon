@@ -1,9 +1,17 @@
+<%#
+  Settings: the store numbers an admin may change, and the ones that are fixed in the code.
+  Each form posts to /api/admin/settings/ plus its data-settings-form name, and the server checks the
+  value against services/settingsService.js LIMITS before saving it.
+%>
 <%- include('../partials/admin-start', { section: 'settings' }) %>
 <header class="admin-top">
   <div>
-    <span class="section-kicker">Settings</span>
-    <h1>Store settings</h1>
-    <p class="muted">Rewards and the rules shoppers see at checkout.</p>
+    <span class="section-kicker">System</span>
+    <h1>Settings</h1>
+    <p class="muted">Rewards and the rules shoppers see at checkout. Anything you change here takes effect at once.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/system"><%- icon('monitor', 'i-sm') %> System status</a>
   </div>
 </header>
 
@@ -12,7 +20,7 @@
     <h2 id="referral-title"><%- icon('gift', 'i-sm') %> Referral reward</h2>
     <span class="muted">Credited to both wallets when a new customer signs up with a code</span>
   </div>
-  <form class="form settings-form" data-referral-form novalidate>
+  <form class="form settings-form" data-settings-form="referral" novalidate>
     <div class="form-alert" data-form-alert aria-live="assertive"></div>
     <div class="field">
       <label for="referralReward">Reward for each person (₹)</label>
@@ -27,7 +35,7 @@
 <section class="panel" aria-labelledby="rules-title">
   <div class="panel-head panel-head-row">
     <h2 id="rules-title"><%- icon('truck', 'i-sm') %> Delivery and returns</h2>
-    <span class="muted">Set in config/store.js for now; editable here in a later part</span>
+    <span class="muted">Fixed in config/store.js, because prices and policy pages are worked out from them</span>
   </div>
   <dl class="admin-facts">
     <div><dt>Delivery fee</dt><dd><%= formatPrice(store.deliveryFee) %></dd></div>
@@ -36,6 +44,20 @@
     <div><dt>Refunds reach the bank in</dt><dd><%= store.refundDays %></dd></div>
     <div><dt>Dispatch</dt><dd><%= store.dispatchDays %></dd></div>
     <div><dt>Delivery</dt><dd><%= store.deliveryDays %></dd></div>
+  </dl>
+</section>
+
+<section class="panel" aria-labelledby="catalog-rules-title">
+  <div class="panel-head panel-head-row">
+    <h2 id="catalog-rules-title"><%- icon('box', 'i-sm') %> Catalogue and checkout rules</h2>
+    <span class="muted">Fixed in the code; shown here so you can see what the store is doing</span>
+  </div>
+  <dl class="admin-facts">
+    <div><dt>Low-stock warning at</dt><dd><%= lowStockLimit %> units or fewer</dd></div>
+    <div><dt>Most of one product per order</dt><dd><%= maxPerProduct %></dd></div>
+    <div><dt>Cash on delivery up to</dt><dd><%= formatPrice(codLimit) %></dd></div>
+    <div><dt>Addresses per customer</dt><dd><%= maxAddresses %></dd></div>
+    <div><dt>Admin console address</dt><dd><code class="admin-code"><%= adminPath %></code></dd></div>
   </dl>
 </section>
 <%- include('../partials/admin-end') %>
