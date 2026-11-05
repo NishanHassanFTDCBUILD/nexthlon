@@ -2,7 +2,7 @@ const router = require("express").Router();
 const pages = require("../controllers/pageController");
 const account = require("../controllers/accountPageController");
 const { customerPage, guestOnly } = require("../middleware/auth");
-const { accountShell } = require("../middleware/accountShell");
+const { accountShell } = require("../middleware/shell");
 
 // My Account pages: signed-in customers only, without the store's motion layer.
 const accountPage = [customerPage, accountShell];

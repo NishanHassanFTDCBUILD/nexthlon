@@ -1,0 +1,53 @@
+<%# The admin top bar: global search, the Ctrl+K palette, notifications, theme and the admin menu. %>
+<header class="admin-bar" data-nav-sticky>
+  <button type="button" class="icon-btn admin-menu-btn" data-admin-menu-open aria-controls="admin-side" aria-expanded="false" aria-label="Open menu"><%- icon('menu') %></button>
+
+  <div class="admin-search" data-admin-search>
+    <%- icon('search', 'i-sm admin-search-icon') %>
+    <label class="sr-only" for="admin-search-input">Search orders, products and customers</label>
+    <input id="admin-search-input" type="search" autocomplete="off" maxlength="60" placeholder="Search orders, products, customers"
+           role="combobox" aria-expanded="false" aria-controls="admin-search-results" aria-autocomplete="list" data-admin-search-input>
+    <button type="button" class="admin-kbd" data-admin-palette-open aria-label="Open the command palette (Ctrl+K)"><kbd>Ctrl</kbd><kbd>K</kbd></button>
+    <div class="admin-pop admin-search-pop" id="admin-search-results" role="listbox" aria-label="Search results" data-admin-search-results hidden></div>
+  </div>
+
+  <div class="admin-bar-actions">
+    <div class="admin-bell" data-admin-bell>
+      <button type="button" class="icon-btn" aria-expanded="false" aria-controls="admin-bell-panel" data-admin-bell-toggle aria-label="Notifications">
+        <%- icon('bell') %><span class="admin-badge" data-admin-bell-count hidden></span>
+      </button>
+      <div class="admin-pop admin-bell-pop" id="admin-bell-panel" data-admin-bell-panel hidden>
+        <div class="admin-pop-head"><strong>Needs attention</strong><button type="button" class="link-btn" data-admin-bell-refresh>Refresh</button></div>
+        <ul class="admin-bell-list" data-admin-bell-list><li class="muted">Loading…</li></ul>
+      </div>
+    </div>
+
+    <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="Theme">
+      <span class="theme-icon theme-icon-system"><%- icon('monitor') %></span>
+      <span class="theme-icon theme-icon-light"><%- icon('sun') %></span>
+      <span class="theme-icon theme-icon-dark"><%- icon('moon') %></span>
+    </button>
+
+    <div class="admin-me" data-menu>
+      <button type="button" class="admin-me-btn" data-menu-toggle aria-expanded="false" aria-controls="admin-me-menu">
+        <span class="avatar avatar-sm"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+        <span class="admin-me-text"><strong><%= currentUser.name %></strong><small>Administrator</small></span>
+        <%- icon('chevron-down', 'i-xs') %>
+      </button>
+      <div class="menu admin-me-menu" id="admin-me-menu" data-menu-panel tabindex="-1" hidden>
+        <div class="menu-head">
+          <span class="avatar avatar-md"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+          <span class="menu-who"><strong><%= currentUser.name %></strong><span><%= currentUser.email %></span></span>
+        </div>
+        <div class="menu-group">
+          <a href="<%= adminPath %>/profile"><%- icon('user') %> Your profile</a>
+          <a href="<%= adminPath %>/settings"><%- icon('settings') %> Store settings</a>
+          <a href="/" data-nav-skip><%- icon('home') %> View store</a>
+        </div>
+        <div class="menu-group">
+          <button type="button" class="menu-logout" data-logout="/api/admin/logout"><%- icon('logout') %> Sign out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

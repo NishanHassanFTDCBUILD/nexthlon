@@ -1,0 +1,14 @@
+<%# The Ctrl+K command palette: jump to any section, or search orders, products and customers. %>
+<dialog class="admin-palette" aria-label="Command palette" data-admin-palette>
+  <div class="admin-palette-box">
+    <div class="admin-palette-input">
+      <%- icon('command', 'i-sm') %>
+      <label class="sr-only" for="admin-palette-input">Type a section or search</label>
+      <input id="admin-palette-input" type="text" autocomplete="off" maxlength="60" placeholder="Go to a section, or search orders, products, customers"
+             role="combobox" aria-expanded="true" aria-controls="admin-palette-list" aria-autocomplete="list" data-admin-palette-input>
+      <kbd>Esc</kbd>
+    </div>
+    <ul class="admin-palette-list" id="admin-palette-list" role="listbox" aria-label="Results" data-admin-palette-list></ul>
+    <p class="admin-palette-foot"><kbd>↑</kbd><kbd>↓</kbd> to move · <kbd>Enter</kbd> to open · <kbd>Esc</kbd> to close</p>
+  </div>
+</dialog>

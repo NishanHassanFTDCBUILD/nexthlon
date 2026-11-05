@@ -10,10 +10,10 @@
   const pageName = typeof acctPage !== 'undefined' ? acctPage : 'account-' + activeSection;
   // A page that needs extra scripts (Razorpay on an unpaid order) always loads in full.
   const fullOnly = typeof canRetryPayment !== 'undefined' && Boolean(canRetryPayment);
-  const contentAttrs = 'class="acct-content" data-acct-page="' + pageName + '" data-acct-section="' + activeSection + '"' + (fullOnly ? ' data-acct-full="1"' : '');
+  const contentAttrs = 'class="acct-content" data-page="' + pageName + '" data-section="' + activeSection + '"' + (fullOnly ? ' data-page-full="1"' : '');
 %>
 <% if (typeof partial !== 'undefined' && partial) { %>
-<div <%- contentAttrs %> data-acct-title="<%= title %>">
+<div <%- contentAttrs %> data-page-title="<%= title %>">
 <% } else { %>
 <%- include('head', { styles: ['account'], bodyClass: 'acct-body' }) %>
 <%- include('header') %>
@@ -44,7 +44,7 @@
 %>
 <main id="main" class="container page acct" data-acct>
   <div class="acct-layout">
-    <aside class="acct-side" aria-label="Your account">
+    <aside class="acct-side" aria-label="Your account" data-nav-sticky>
       <a class="acct-me" href="/account">
         <span class="avatar acct-me-avatar" aria-hidden="true"><%= currentUser.name.charAt(0).toUpperCase() %></span>
         <span class="acct-me-text"><strong data-user-name><%= currentUser.name %></strong><small data-user-email><%= currentUser.email %></small></span>
@@ -53,12 +53,12 @@
         <% accountNav.forEach(function (group) { %>
           <% if (group.group) { %><span class="acct-nav-group"><%= group.group %></span><% } %>
           <% group.items.forEach(function (item) { %>
-            <a class="acct-link<%= activeSection === item.key ? ' is-active' : '' %>" href="<%= item.href %>" data-acct-link="<%= item.key %>" <%- activeSection === item.key ? 'aria-current="page"' : '' %>><%- icon(item.icon, 'i-sm') %><span><%= item.label %></span></a>
+            <a class="acct-link<%= activeSection === item.key ? ' is-active' : '' %>" href="<%= item.href %>" data-nav-link="<%= item.key %>" <%- activeSection === item.key ? 'aria-current="page"' : '' %>><%- icon(item.icon, 'i-sm') %><span><%= item.label %></span></a>
           <% }) %>
         <% }) %>
       </nav>
     </aside>
-    <div class="acct-main" data-acct-main>
+    <div class="acct-main" data-acct-main data-nav-main="account">
       <div class="acct-loading" data-acct-loading role="status"><span class="acct-loading-spin" aria-hidden="true"></span>Loading…</div>
       <div <%- contentAttrs %>>
 <% } %>

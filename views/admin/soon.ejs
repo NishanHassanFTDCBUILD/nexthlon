@@ -1,0 +1,15 @@
+<%- include('../partials/admin-start', { section: item.key, page: 'soon' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker"><%= item.group %></span>
+    <h1><%= item.label %></h1>
+    <p class="muted">This section is part of the admin build and is not ready yet.</p>
+  </div>
+</header>
+<section class="panel admin-soon-panel">
+  <span class="admin-soon-icon" aria-hidden="true"><%- icon(item.icon) %></span>
+  <h2>Coming in Part <%= item.part %></h2>
+  <p class="muted">Everything else in the console works today. Use the sidebar or press <kbd>Ctrl</kbd> <kbd>K</kbd> to jump to another section.</p>
+  <a class="btn btn-primary" href="<%= adminPath %>/dashboard"><%- icon('grid', 'i-sm') %> Back to the dashboard</a>
+</section>
+<%- include('../partials/admin-end') %>

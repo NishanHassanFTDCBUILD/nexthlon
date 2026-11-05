@@ -3,7 +3,7 @@ const auditService = require("../services/auditService");
 const SupportTicket = require("../models/SupportTicket");
 const adminService = require("../services/adminService");
 const settingsService = require("../services/settingsService");
-const { validateReferralSetting, validateTicketReply, hasErrors } = require("../utils/validators");
+const { validateReferralSetting, validateTicketReply, validateAdminSearch, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 
 // GET /api/admin/dashboard
@@ -59,4 +59,16 @@ const replyTicket = asyncHandler(async (req, res) => {
   res.json({ message: "Reply sent to the customer.", ticket });
 });
 
-module.exports = { dashboard, listCustomers, setCustomerBlocked, getSettings, updateReferral, listTickets, replyTicket };
+// GET /api/admin/search?q=   Orders, products and customers for the top bar search and Ctrl+K.
+const search = asyncHandler(async (req, res) => {
+  const { errors, value } = validateAdminSearch(req.query);
+  if (hasErrors(errors)) throw new HttpError(400, errors.q, errors);
+  res.json({ q: value.q, results: await adminService.globalSearch(value.q) });
+});
+
+// GET /api/admin/notifications   Counts for the bell: orders to confirm, returns, stock, tickets.
+const notifications = asyncHandler(async (req, res) => {
+  res.json(await adminService.notifications());
+});
+
+module.exports = { dashboard, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, listTickets, replyTicket };

@@ -9,7 +9,7 @@ const { escapeRegex, toPositiveInt } = require("./productService");
 const imageService = require("./imageService");
 
 const PAGE_SIZE = 10;
-const STATUSES = ["all", "active", "unlisted", "out"];
+const STATUSES = ["all", "active", "low", "unlisted", "out"];
 const ADMIN_SORTS = {
   newest: { label: "Newest first", order: { createdAt: -1, _id: -1 } },
   oldest: { label: "Oldest first", order: { createdAt: 1, _id: 1 } },
@@ -77,6 +77,7 @@ async function listAdminProducts(query) {
   if (filters.status === "unlisted") filter.isListed = false;
   if (filters.status === "active") Object.assign(filter, { isListed: true, stock: { $gt: 0 } });
   if (filters.status === "out") Object.assign(filter, { isListed: true, stock: 0 });
+  if (filters.status === "low") Object.assign(filter, { isListed: true, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } });
 
   const [products, total] = await Promise.all([
     Product.find(filter)

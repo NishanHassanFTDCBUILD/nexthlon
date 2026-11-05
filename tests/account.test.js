@@ -109,15 +109,15 @@ test("account sections: X-Partial returns only the content, without store motion
   for (const [path, name] of Object.entries(sections)) {
     const partial = await call("GET", path, { cookie, headers: { "X-Partial": "1" } });
     assert.equal(partial.status, 200, path);
-    assert.match(partial.data, new RegExp(`data-acct-page="${name}"`), path);
-    assert.match(partial.data, /data-acct-title="[^"]+\| Nexthlon"/, path);
+    assert.match(partial.data, new RegExp(`data-page="${name}"`), path);
+    assert.match(partial.data, /data-page-title="[^"]+\| Nexthlon"/, path);
     // Only the section: no document, header, sidebar or footer.
     assert.doesNotMatch(partial.data, /<html|<header|data-acct-nav|<footer|<script/, path);
 
     const full = await call("GET", path, { cookie });
     assert.match(full.data, /<!doctype html>/i, path);
     assert.match(full.data, /data-acct-nav/, path);
-    assert.match(full.data, /\/js\/account-nav\.js/, path);
+    assert.match(full.data, /\/js\/section-nav\.js/, path);
     // No store motion on account pages.
     assert.doesNotMatch(full.data, /motion\.css|\/js\/motion\.js|footer-wave\.js|confetti\.js/, path);
   }

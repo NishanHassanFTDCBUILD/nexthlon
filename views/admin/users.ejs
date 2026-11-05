@@ -1,4 +1,3 @@
-<%- include('../partials/head', { bodyClass: 'admin-body' }) %>
 
 <%
   const pageList = [];
@@ -7,10 +6,7 @@
     else if (pageList[pageList.length - 1] !== '…') pageList.push('…');
   }
 %>
-<div class="admin-shell">
-  <%- include('../partials/admin-sidebar') %>
-
-  <main id="main" class="admin-main">
+<%- include('../partials/admin-start', { section: 'customers' }) %>
     <header class="admin-top">
       <div>
         <span class="section-kicker">Customers</span>
@@ -20,7 +16,7 @@
     </header>
 
     <div class="toolbar">
-      <form class="toolbar-search" action="<%= adminPath %>/users" method="get" role="search">
+      <form class="toolbar-search" action="<%= adminPath %>/customers" method="get" role="search">
         <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
         <label class="sr-only" for="user-search">Search customers</label>
         <%- icon('search', 'i-sm') %>
@@ -71,7 +67,7 @@
           <%- include('../partials/empty-art', { art: 'users' }) %>
           <h2>No customers found</h2>
           <p><%= filters.q || filters.status !== 'all' ? 'Try a different search or filter.' : 'Customers appear here as soon as they sign up.' %></p>
-          <% if (filters.q || filters.status !== 'all') { %><a class="btn btn-secondary" href="<%= adminPath %>/users">Show all customers</a><% } %>
+          <% if (filters.q || filters.status !== 'all') { %><a class="btn btn-secondary" href="<%= adminPath %>/customers">Show all customers</a><% } %>
         </div>
       <% } %>
     </section>
@@ -93,7 +89,4 @@
         <% } %>
       </nav>
     <% } %>
-  </main>
-</div>
-
-<%- include('../partials/scripts', { scripts: ['admin'] }) %>
+<%- include('../partials/admin-end') %>

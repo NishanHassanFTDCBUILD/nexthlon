@@ -1,0 +1,41 @@
+<%- include('../partials/admin-start', { section: 'settings' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Settings</span>
+    <h1>Store settings</h1>
+    <p class="muted">Rewards and the rules shoppers see at checkout.</p>
+  </div>
+</header>
+
+<section class="panel settings-panel" aria-labelledby="referral-title">
+  <div class="panel-head panel-head-row">
+    <h2 id="referral-title"><%- icon('gift', 'i-sm') %> Referral reward</h2>
+    <span class="muted">Credited to both wallets when a new customer signs up with a code</span>
+  </div>
+  <form class="form settings-form" data-referral-form novalidate>
+    <div class="form-alert" data-form-alert aria-live="assertive"></div>
+    <div class="field">
+      <label for="referralReward">Reward for each person (₹)</label>
+      <input id="referralReward" name="referralReward" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.referralReward / 100 %>" aria-describedby="referralReward-hint referralReward-error">
+      <p class="hint" id="referralReward-hint">0 turns referral rewards off. Each new customer can be rewarded only once.</p>
+      <p class="field-error" id="referralReward-error" data-error-for="referralReward"></p>
+    </div>
+    <button class="btn btn-primary" type="submit">Save reward</button>
+  </form>
+</section>
+
+<section class="panel" aria-labelledby="rules-title">
+  <div class="panel-head panel-head-row">
+    <h2 id="rules-title"><%- icon('truck', 'i-sm') %> Delivery and returns</h2>
+    <span class="muted">Set in config/store.js for now; editable here in a later part</span>
+  </div>
+  <dl class="admin-facts">
+    <div><dt>Delivery fee</dt><dd><%= formatPrice(store.deliveryFee) %></dd></div>
+    <div><dt>Free delivery from</dt><dd><%= formatPrice(store.freeDeliveryMin) %></dd></div>
+    <div><dt>Return window</dt><dd><%= store.returnDays %> days</dd></div>
+    <div><dt>Refunds reach the bank in</dt><dd><%= store.refundDays %></dd></div>
+    <div><dt>Dispatch</dt><dd><%= store.dispatchDays %></dd></div>
+    <div><dt>Delivery</dt><dd><%= store.deliveryDays %></dd></div>
+  </dl>
+</section>
+<%- include('../partials/admin-end') %>

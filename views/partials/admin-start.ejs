@@ -1,0 +1,24 @@
+<%#
+  The admin console shell: a grouped sidebar, a top bar (search, Ctrl+K, notifications, theme,
+  admin menu) and the section's content. Usage:
+    include('../partials/admin-start', { section: 'products', page: 'product-form' }) ... include('../partials/admin-end')
+  With the "X-Partial: 1" header (section-nav.js) only the content is rendered.
+%>
+<%
+  const activeSection = typeof section !== 'undefined' ? section : '';
+  const pageName = 'admin-' + (typeof page !== 'undefined' ? page : activeSection);
+  const contentAttrs = 'class="admin-content" data-page="' + pageName + '" data-section="' + activeSection + '"';
+%>
+<% if (typeof partial !== 'undefined' && partial) { %>
+<div <%- contentAttrs %> data-page-title="<%= title %>">
+<% } else { %>
+<%- include('head', { styles: ['account', 'admin'], bodyClass: 'admin-body' }) %>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="admin-shell">
+  <%- include('admin-sidebar', { activeSection: activeSection }) %>
+  <div class="admin-frame">
+    <%- include('admin-topbar') %>
+    <main id="main" class="admin-main" data-nav-main="admin">
+      <div class="admin-loading" role="status"><span class="admin-loading-spin" aria-hidden="true"></span>Loading…</div>
+      <div <%- contentAttrs %>>
+<% } %>

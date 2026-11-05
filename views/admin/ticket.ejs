@@ -1,7 +1,4 @@
-<%- include('../partials/head', { bodyClass: 'admin-body', styles: ['account'] }) %>
-<div class="admin-shell">
-  <%- include('../partials/admin-sidebar') %>
-  <main id="main" class="admin-main">
+<%- include('../partials/admin-start', { section: 'tickets', page: 'ticket' }) %>
     <header class="admin-top">
       <div>
         <a class="back-link" href="<%= adminPath %>/tickets"><%- icon('chevron-left', 'i-xs') %> All tickets</a>
@@ -38,6 +35,4 @@
         </div>
       </form>
     </section>
-  </main>
-</div>
-<%- include('../partials/scripts', { scripts: ['admin', 'admin-tickets'] }) %>
+<%- include('../partials/admin-end') %>

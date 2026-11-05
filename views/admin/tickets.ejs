@@ -1,8 +1,5 @@
-<%- include('../partials/head', { bodyClass: 'admin-body', styles: ['account'] }) %>
 <% const tabs = [['all', 'All'], ['open', 'Open'], ['pending', 'Waiting for customer'], ['resolved', 'Resolved']]; %>
-<div class="admin-shell">
-  <%- include('../partials/admin-sidebar') %>
-  <main id="main" class="admin-main">
+<%- include('../partials/admin-start', { section: 'tickets' }) %>
     <header class="admin-top">
       <div>
         <span class="section-kicker">Customers</span>
@@ -33,6 +30,4 @@
     <% } else { %>
       <div class="empty-state"><%- include('../partials/empty-art', { art: 'headset' }) %><h2>No tickets here</h2><p>Customer help requests will appear here.</p></div>
     <% } %>
-  </main>
-</div>
-<%- include('../partials/scripts', { scripts: ['admin'] }) %>
+<%- include('../partials/admin-end') %>

@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Product = require("../models/Product");
+const Order = require("../models/Order");
+const SupportTicket = require("../models/SupportTicket");
 const { LOW_STOCK_LIMIT } = require("../config/catalog");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
@@ -80,4 +82,48 @@ async function setCustomerBlocked(userId, isBlocked) {
   return publicCustomer(user);
 }
 
-module.exports = { getDashboardStats, listCustomers, setCustomerBlocked };
+// ---------- Top bar: global search and the notification bell ----------
+
+// Up to 5 orders, products and customers matching the text (order id, names, email or phone).
+async function globalSearch(term) {
+  const pattern = new RegExp(escapeRegex(term), "i");
+  const [orders, products, customers] = await Promise.all([
+    Order.find({ $or: [{ orderId: pattern }, { "address.fullName": pattern }, { "address.phone": pattern }] })
+      .sort({ createdAt: -1 }).limit(5).select("orderId total orderStatus createdAt address.fullName").lean(),
+    Product.find({ $or: [{ name: pattern }, { brand: pattern }] })
+      .sort({ name: 1 }).limit(5).select("name brand stock isListed image").lean(),
+    User.find({ role: "customer", isDeleted: { $ne: true }, $or: [{ name: pattern }, { email: pattern }, { phone: pattern }] })
+      .sort({ createdAt: -1 }).limit(5).select("name email phone isBlocked").lean()
+  ]);
+  return {
+    orders: orders.map(o => ({ orderId: o.orderId, customer: (o.address && o.address.fullName) || "", total: o.total, status: o.orderStatus, createdAt: o.createdAt })),
+    products: products.map(p => ({ id: String(p._id), name: p.name, brand: p.brand || "", stock: p.stock, isListed: p.isListed !== false })),
+    customers: customers.map(c => ({ id: String(c._id), name: c.name, email: c.email, phone: c.phone || "", isBlocked: Boolean(c.isBlocked) }))
+  };
+}
+
+// What needs the team's attention. Each item links to a section of the console (by key).
+async function notifications(now = new Date()) {
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const [newOrders, toConfirm, returns, lowStock, outOfStock, openTickets] = await Promise.all([
+    Order.countDocuments({ createdAt: { $gte: dayAgo } }),
+    Order.countDocuments({ orderStatus: "placed" }),
+    Order.countDocuments({ orderStatus: "return_requested" }),
+    Product.countDocuments({ ...Product.LISTED, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
+    Product.countDocuments({ ...Product.LISTED, stock: 0 }),
+    SupportTicket.countDocuments({ status: "open" })
+  ]);
+  const items = [
+    { key: "new-orders", label: "New orders in the last 24 hours", count: newOrders, section: "orders", icon: "package-check" },
+    { key: "to-confirm", label: "Orders waiting to be confirmed", count: toConfirm, section: "orders", icon: "clock" },
+    { key: "returns", label: "Return requests", count: returns, section: "returns", icon: "rotate-ccw" },
+    { key: "low-stock", label: "Products low on stock", count: lowStock, section: "products?status=low", icon: "alert" },
+    { key: "out-of-stock", label: "Products out of stock", count: outOfStock, section: "products?status=out", icon: "box" },
+    { key: "tickets", label: "Open support tickets", count: openTickets, section: "tickets?status=open", icon: "headset" }
+  ];
+  // The badge counts what someone has to act on (new orders are only news).
+  const total = toConfirm + returns + lowStock + outOfStock + openTickets;
+  return { items, total };
+}
+
+module.exports = { getDashboardStats, listCustomers, setCustomerBlocked, globalSearch, notifications };

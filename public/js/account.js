@@ -40,11 +40,11 @@
     }, { signal });
   }
 
-  // After a change, show the section again with fresh data. The no-reload router (account-nav.js)
+  // After a change, show the section again with fresh data. The no-reload router (section-nav.js)
   // swaps just the content; without it the page reloads and the message shows after.
   function refresh(message, type = "success") {
-    if (window.NxAccountNav && window.NxAccountNav.reload) {
-      window.NxAccountNav.reload().then(() => message && Nx.toast(message, type));
+    if (window.NxNav && window.NxNav.reload) {
+      window.NxNav.reload().then(() => message && Nx.toast(message, type));
       return;
     }
     if (message) Nx.flash(message, type);
@@ -52,8 +52,8 @@
   }
 
   function go(url, message) {
-    if (window.NxAccountNav && window.NxAccountNav.go) {
-      window.NxAccountNav.go(url).then(() => message && Nx.toast(message));
+    if (window.NxNav && window.NxNav.go) {
+      window.NxNav.go(url).then(() => message && Nx.toast(message));
       return;
     }
     if (message) Nx.flash(message);
@@ -570,14 +570,14 @@
     const link = active.getBoundingClientRect();
     nav.scrollLeft += link.left - box.left - (box.width - link.width) / 2;
   }
-  window.NxAccount = { showActiveTab };
   showActiveTab();
+  document.addEventListener("nx:section", showActiveTab);
 
   // ---------- Start the section on this page ----------
-  // (When account-nav.js is on the page, it starts sections itself, including after each swap.)
-  if (!window.NxAccountNav) {
-    const root = document.querySelector("[data-acct-page]");
-    const page = root && Pages[root.dataset.acctPage];
+  // (When section-nav.js is on the page, it starts sections itself, including after each swap.)
+  if (!window.NxNav) {
+    const root = document.querySelector("[data-page]");
+    const page = root && Pages[root.dataset.page];
     if (page) page.init(root);
   }
 })();

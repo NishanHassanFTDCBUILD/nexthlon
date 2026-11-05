@@ -38,7 +38,7 @@
 .acct-main { position: relative; min-width: 0; }
 .acct-content { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 
-/* Loading: a small spinner that appears only when a section takes a while (account-nav.js). */
+/* Loading: a small spinner that appears only when a section takes a while (section-nav.js). */
 .acct-loading { position: absolute; top: 4px; right: 0; z-index: 2; display: none; align-items: center; gap: 8px; padding: 6px 12px; border-radius: var(--radius-pill); background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: var(--text-sm); }
 .acct-main.is-loading .acct-loading { display: inline-flex; }
 .acct-main.is-loading > :not(.acct-loading) { opacity: 0.55; }

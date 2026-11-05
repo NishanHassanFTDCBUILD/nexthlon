@@ -346,7 +346,16 @@ function validateDeleteAccount(body = {}) {
   return { errors, value: { password } };
 }
 
+// Admin top bar search: 2 to 60 characters of plain text.
+function validateAdminSearch(query = {}) {
+  const q = typeof query.q === "string" ? query.q.trim().replace(/\s+/g, " ").slice(0, 60) : "";
+  const errors = {};
+  if (q.length < 2) errors.q = "Type at least 2 characters to search.";
+  return { errors, value: { q } };
+}
+
 module.exports = {
+  validateAdminSearch,
   hasErrors,
   readFlag,
   validateReferralSetting,

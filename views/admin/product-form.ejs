@@ -1,13 +1,9 @@
-<%- include('../partials/head', { bodyClass: 'admin-body' }) %>
 
 <%
   const isEdit = Boolean(product);
   const p = product || { name: '', description: '', category: '', brand: '', basePriceRupees: '', mrpRupees: '', offerPercent: 0, stock: '', images: [], isListed: true };
 %>
-<div class="admin-shell">
-  <%- include('../partials/admin-sidebar') %>
-
-  <main id="main" class="admin-main">
+<%- include('../partials/admin-start', { section: 'products', page: 'product-form' }) %>
     <nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
       <a href="<%= adminPath %>/products">Products</a> <%- icon('chevron-right', 'i-xs') %>
       <span aria-current="page"><%= isEdit ? p.name : 'Add product' %></span>
@@ -120,7 +116,4 @@
         <button class="btn btn-primary" type="submit"><%= isEdit ? 'Save changes' : 'Add product' %></button>
       </div>
     </form>
-  </main>
-</div>
-
-<%- include('../partials/scripts', { scripts: ['admin-products'] }) %>
+<%- include('../partials/admin-end') %>

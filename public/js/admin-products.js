@@ -16,18 +16,16 @@
   }
 
   // ---------- List page ----------
-  const filterForm = document.querySelector("[data-admin-filters]");
-  if (filterForm) {
-    const results = document.querySelector("[data-results]");
-    filterForm.addEventListener("submit", () => results && results.classList.add("is-loading"));
-    filterForm.querySelectorAll("[data-auto-submit-field]").forEach(field => {
-      field.addEventListener("change", () => filterForm.requestSubmit());
-    });
-    window.addEventListener("pageshow", () => results && results.classList.remove("is-loading"));
-  }
+  // (The filter form is a GET form: section-nav.js loads its results without a reload.)
+  window.NxPages.define("admin-products", (root, signal) => {
+    root.addEventListener("change", event => {
+      const field = event.target.closest("[data-admin-filters] [data-auto-submit-field]");
+      if (field) field.form.requestSubmit();
+    }, { signal });
 
-  document.querySelectorAll("[data-toggle-listing]").forEach(button => {
-    button.addEventListener("click", async () => {
+    root.addEventListener("click", async event => {
+      const button = event.target.closest("[data-toggle-listing]");
+      if (!button) return;
       const listed = button.dataset.listed === "true";
       const name = button.dataset.name;
       const confirmed = await Nx.confirm({
@@ -62,154 +60,161 @@
         Nx.busy(button, false);
         Nx.toast(error.message, "error");
       }
-    });
+    }, { signal });
   });
 
   // ---------- Add / edit form ----------
-  const form = document.querySelector("[data-product-form]");
-  if (!form) return;
+  // Its elements live inside the section, so their listeners go away with it.
+  window.NxPages.define("admin-product-form", root => {
+    const form = root.querySelector("[data-product-form]");
+    if (!form) return;
 
-  // Live discount preview. The server works out the real value when saving.
-  const priceInput = form.querySelector("[data-price]");
-  const mrpInput = form.querySelector("[data-mrp]");
-  const preview = form.querySelector("[data-discount-preview]");
-  function updateDiscount() {
-    const price = Number(priceInput.value);
-    const mrp = Number(mrpInput.value);
-    if (!price || !mrp) preview.textContent = "—";
-    else if (mrp < price) preview.textContent = "M.R.P. is lower than the price";
-    else preview.textContent = mrp > price ? `${Math.round(((mrp - price) / mrp) * 100)}% off` : "No discount";
-  }
-  priceInput.addEventListener("input", updateDiscount);
-  mrpInput.addEventListener("input", updateDiscount);
-  updateDiscount();
+    // Live discount preview. The server works out the real value when saving.
+    const priceInput = form.querySelector("[data-price]");
+    const mrpInput = form.querySelector("[data-mrp]");
+    const preview = form.querySelector("[data-discount-preview]");
+    function updateDiscount() {
+      const price = Number(priceInput.value);
+      const mrp = Number(mrpInput.value);
+      if (!price || !mrp) preview.textContent = "—";
+      else if (mrp < price) preview.textContent = "M.R.P. is lower than the price";
+      else preview.textContent = mrp > price ? `${Math.round(((mrp - price) / mrp) * 100)}% off` : "No discount";
+    }
+    priceInput.addEventListener("input", updateDiscount);
+    mrpInput.addEventListener("input", updateDiscount);
+    updateDiscount();
 
-  // Photo manager. Each item is a photo already saved ("kept") or a file picked just now ("new").
-  const manager = form.querySelector("[data-image-manager]");
-  const tiles = manager.querySelector("[data-image-tiles]");
-  const input = manager.querySelector("[data-image-input]");
-  const addTile = manager.querySelector("[data-image-add]");
-  const countLabel = manager.querySelector("[data-image-count]");
-  const imageError = form.querySelector('[data-error-for="images"]');
-  let nextId = 0;
-  const items = JSON.parse(manager.dataset.existing || "[]").map(url => ({ id: nextId++, kind: "kept", url, src: url }));
-  let mainId = items.length ? items[0].id : null;
+    // Photo manager. Each item is a photo already saved ("kept") or a file picked just now ("new").
+    const manager = form.querySelector("[data-image-manager]");
+    const tiles = manager.querySelector("[data-image-tiles]");
+    const input = manager.querySelector("[data-image-input]");
+    const addTile = manager.querySelector("[data-image-add]");
+    const countLabel = manager.querySelector("[data-image-count]");
+    const imageError = form.querySelector('[data-error-for="images"]');
+    let nextId = 0;
+    const items = JSON.parse(manager.dataset.existing || "[]").map(url => ({ id: nextId++, kind: "kept", url, src: url }));
+    let mainId = items.length ? items[0].id : null;
 
-  function showImageError(message) {
-    imageError.textContent = message;
-  }
+    function showImageError(message) {
+      imageError.textContent = message;
+    }
 
-  function render() {
-    tiles.textContent = "";
-    if (!items.some(item => item.id === mainId)) mainId = items.length ? items[0].id : null;
-    items.forEach((item, index) => {
-      const li = document.createElement("li");
-      li.className = `image-tile${item.id === mainId ? " is-main" : ""}`;
-      const img = document.createElement("img");
-      img.src = item.src;
-      img.alt = `Photo ${index + 1}`;
-      img.width = 160;
-      img.height = 160;
-      li.append(img);
+    function render() {
+      tiles.textContent = "";
+      if (!items.some(item => item.id === mainId)) mainId = items.length ? items[0].id : null;
+      items.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = `image-tile${item.id === mainId ? " is-main" : ""}`;
+        const img = document.createElement("img");
+        img.src = item.src;
+        img.alt = `Photo ${index + 1}`;
+        img.width = 160;
+        img.height = 160;
+        li.append(img);
 
-      const bar = document.createElement("div");
-      bar.className = "image-tile-bar";
-      if (item.id === mainId) {
-        const badge = document.createElement("span");
-        badge.className = "image-main-badge";
-        badge.innerHTML = `${iconSvg("check")} Main photo`;
-        bar.append(badge);
-      } else {
-        const makeMain = document.createElement("button");
-        makeMain.type = "button";
-        makeMain.className = "link-btn";
-        makeMain.textContent = "Make main";
-        makeMain.setAttribute("aria-label", `Make photo ${index + 1} the main photo`);
-        makeMain.addEventListener("click", () => {
-          mainId = item.id;
+        const bar = document.createElement("div");
+        bar.className = "image-tile-bar";
+        if (item.id === mainId) {
+          const badge = document.createElement("span");
+          badge.className = "image-main-badge";
+          badge.innerHTML = `${iconSvg("check")} Main photo`;
+          bar.append(badge);
+        } else {
+          const makeMain = document.createElement("button");
+          makeMain.type = "button";
+          makeMain.className = "link-btn";
+          makeMain.textContent = "Make main";
+          makeMain.setAttribute("aria-label", `Make photo ${index + 1} the main photo`);
+          makeMain.addEventListener("click", () => {
+            mainId = item.id;
+            render();
+          });
+          bar.append(makeMain);
+        }
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "icon-btn icon-btn-sm image-remove";
+        remove.setAttribute("aria-label", `Remove photo ${index + 1}`);
+        remove.innerHTML = iconSvg("trash");
+        remove.addEventListener("click", () => {
+          items.splice(items.indexOf(item), 1);
+          showImageError("");
           render();
         });
-        bar.append(makeMain);
-      }
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.className = "icon-btn icon-btn-sm image-remove";
-      remove.setAttribute("aria-label", `Remove photo ${index + 1}`);
-      remove.innerHTML = iconSvg("trash");
-      remove.addEventListener("click", () => {
-        items.splice(items.indexOf(item), 1);
-        showImageError("");
-        render();
+        bar.append(remove);
+        li.append(bar);
+        tiles.append(li);
       });
-      bar.append(remove);
-      li.append(bar);
-      tiles.append(li);
-    });
-    addTile.hidden = items.length >= MAX_IMAGES;
-    countLabel.textContent = `${items.length} of ${MAX_IMAGES} added`;
-  }
-
-  // Previews use data: URLs, which the Content Security Policy already allows for images.
-  function readPreview(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  input.addEventListener("change", async () => {
-    const files = [...input.files];
-    input.value = "";
-    showImageError("");
-    for (const file of files) {
-      if (items.length >= MAX_IMAGES) {
-        showImageError(`A product can have up to ${MAX_IMAGES} photos.`);
-        break;
-      }
-      if (!TYPES.includes(file.type)) {
-        showImageError(`${file.name} is not a JPG, PNG or WEBP image.`);
-        continue;
-      }
-      if (file.size > MAX_BYTES) {
-        showImageError(`${file.name} is larger than 2 MB.`);
-        continue;
-      }
-      try {
-        items.push({ id: nextId++, kind: "new", file, src: await readPreview(file) });
-      } catch {
-        showImageError(`${file.name} could not be read.`);
-      }
+      addTile.hidden = items.length >= MAX_IMAGES;
+      countLabel.textContent = `${items.length} of ${MAX_IMAGES} added`;
     }
+
+    // Previews use data: URLs, which the Content Security Policy already allows for images.
+    function readPreview(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    input.addEventListener("change", async () => {
+      const files = [...input.files];
+      input.value = "";
+      showImageError("");
+      for (const file of files) {
+        if (items.length >= MAX_IMAGES) {
+          showImageError(`A product can have up to ${MAX_IMAGES} photos.`);
+          break;
+        }
+        if (!TYPES.includes(file.type)) {
+          showImageError(`${file.name} is not a JPG, PNG or WEBP image.`);
+          continue;
+        }
+        if (file.size > MAX_BYTES) {
+          showImageError(`${file.name} is larger than 2 MB.`);
+          continue;
+        }
+        try {
+          items.push({ id: nextId++, kind: "new", file, src: await readPreview(file) });
+        } catch {
+          showImageError(`${file.name} could not be read.`);
+        }
+      }
+      render();
+    });
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      // Everything is checked on the server, which reports every problem at once (photos included).
+      const data = new FormData();
+      for (const name of ["name", "description", "category", "brand", "price", "mrp", "offerPercent", "stock"]) {
+        data.append(name, form.elements[name].value);
+      }
+      const kept = items.filter(item => item.kind === "kept");
+      const fresh = items.filter(item => item.kind === "new");
+      data.append("keepImages", JSON.stringify(kept.map(item => item.url)));
+      fresh.forEach(item => data.append("images", item.file, item.file.name));
+      const main = items.find(item => item.id === mainId);
+      if (main) data.append("mainImage", main.kind === "kept" ? main.url : `new:${fresh.indexOf(main)}`);
+
+      const result = await Nx.submitForm(form, {
+        url: form.dataset.endpoint,
+        method: form.dataset.method,
+        body: data,
+        busyLabel: "Saving…"
+      });
+      if (result) {
+        const list = `${document.body.dataset.adminPath}/products`;
+        if (window.NxNav) window.NxNav.go(list).then(() => Nx.toast(result.message));
+        else {
+          Nx.flash(result.message);
+          window.location.assign(list);
+        }
+      }
+    });
+
     render();
   });
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-    // Everything is checked on the server, which reports every problem at once (photos included).
-    const data = new FormData();
-    for (const name of ["name", "description", "category", "brand", "price", "mrp", "offerPercent", "stock"]) {
-      data.append(name, form.elements[name].value);
-    }
-    const kept = items.filter(item => item.kind === "kept");
-    const fresh = items.filter(item => item.kind === "new");
-    data.append("keepImages", JSON.stringify(kept.map(item => item.url)));
-    fresh.forEach(item => data.append("images", item.file, item.file.name));
-    const main = items.find(item => item.id === mainId);
-    if (main) data.append("mainImage", main.kind === "kept" ? main.url : `new:${fresh.indexOf(main)}`);
-
-    const result = await Nx.submitForm(form, {
-      url: form.dataset.endpoint,
-      method: form.dataset.method,
-      body: data,
-      busyLabel: "Saving…"
-    });
-    if (result) {
-      Nx.flash(result.message);
-      window.location.assign(`${document.body.dataset.adminPath}/products`);
-    }
-  });
-
-  render();
 })();

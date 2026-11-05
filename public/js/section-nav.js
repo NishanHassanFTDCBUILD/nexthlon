@@ -1,38 +1,74 @@
-// My Account: switch sections without reloading the page, and without any animation.
+// Section router for the work areas (My Account and the admin console): switch sections without
+// reloading the page, and without any animation.
 //
-// Clicks on account links (the sidebar, the phone tab bar and links inside a section) fetch the
-// URL with the header "X-Partial: 1". The server then sends only the section's content, which
-// replaces the old content instantly. The URL, the page title, the active sidebar item and the
-// focus follow; Back and Forward work. A small spinner shows only if a section takes over 300ms.
-// Anything unexpected (signed out, an error page, a page that needs extra scripts) falls back to
-// a normal page load, so the router can never leave the visitor stuck.
+// Clicks on area links (the sidebar, the tab bar and links inside a section) and the area's GET
+// forms fetch the URL with the header "X-Partial: 1". The server then sends only the section's
+// content, which replaces the old content instantly. The URL, the page title, the active sidebar
+// item and the focus follow; Back and Forward work. A small spinner shows only after 300ms.
+// Anything unexpected (signed out, an error page, a page that needs extra scripts) falls back to a
+// normal page load, so the router can never leave anyone stuck.
 //
-// Each section's script is a module in window.NxPages (see account.js): the old section's
-// destroy() runs before the swap and the new section's init(root) after it.
+// Markup:  <div data-nav-main="account|admin">  the content holder
+//            <div data-page="account-wallet" data-section="wallet">  the section (swapped)
+//          <a data-nav-link="wallet">  sidebar links, marked active by section
+//
+// Each section's script is a module in window.NxPages with init(root) and destroy(): the old
+// section's destroy() runs before the swap and the new section's init(root) after it.
 (function () {
   "use strict";
 
-  const main = document.querySelector("[data-acct-main]");
+  // ---------- The section registry (also used without the router) ----------
+  const Pages = (window.NxPages = window.NxPages || {});
+  // NxPages.define(name, setup): setup(root, signal) attaches the section's listeners and may
+  // return a cleanup function. Listeners added with { signal } are removed by destroy().
+  if (!Pages.define) {
+    Object.defineProperty(Pages, "define", {
+      enumerable: false,
+      value(name, setup) {
+        let controller = null;
+        let cleanup = null;
+        Pages[name] = {
+          init(root) {
+            this.destroy();
+            controller = new AbortController();
+            const result = setup(root, controller.signal);
+            cleanup = typeof result === "function" ? result : null;
+          },
+          destroy() {
+            if (controller) controller.abort();
+            if (cleanup) cleanup();
+            controller = null;
+            cleanup = null;
+          }
+        };
+      }
+    });
+  }
+
+  const main = document.querySelector("[data-nav-main]");
   if (!main || !window.fetch || !window.DOMParser || !history.pushState) return;
 
-  const Pages = (window.NxPages = window.NxPages || {});
-  const nav = document.querySelector("[data-acct-nav]");
-  const SPINNER_DELAY = 300;
-  // Account URLs the router may load: /account..., the short aliases, and one order's page.
+  // Which URLs belong to this area, and so may be loaded into it.
+  const area = main.dataset.navMain;
+  const adminBase = (document.body.dataset.adminPath || "").toLowerCase();
   const ACCOUNT_PATH = /^\/(?:account(?:\/[\w-]+){0,2}|orders|wallet|profile|wishlist|orders\/NX-\d{4}-\d{6})\/?$/i;
-
-  let active = null; // { name, root }
-  let request = null; // the AbortController of the fetch in flight
-  let shownUrl = location.pathname + location.search;
-
-  const keyOf = url => url.pathname + url.search;
-  function isAccountUrl(url) {
-    return url.origin === location.origin && ACCOUNT_PATH.test(url.pathname);
+  function inArea(url) {
+    if (url.origin !== location.origin) return false;
+    const path = url.pathname.toLowerCase();
+    if (area === "account") return ACCOUNT_PATH.test(url.pathname);
+    if (area === "admin") return Boolean(adminBase) && path.startsWith(`${adminBase}/`) && path !== `${adminBase}/login` && !/\.(pdf|csv|xlsx)$/.test(path);
+    return false;
   }
+
+  const SPINNER_DELAY = 300;
+  let active = null; // { root, page }
+  let request = null; // the AbortController of the fetch in flight
+  const keyOf = url => url.pathname + url.search;
+  let shownUrl = keyOf(location);
 
   // ---------- Section scripts ----------
   function start(root) {
-    const page = Pages[root.dataset.acctPage];
+    const page = Pages[root.dataset.page];
     active = { root, page };
     if (page) page.init(root);
   }
@@ -43,14 +79,13 @@
 
   // ---------- The shell around the content ----------
   function markActive(section) {
-    if (!nav) return;
-    nav.querySelectorAll("[data-acct-link]").forEach(link => {
-      const on = link.dataset.acctLink === section;
+    document.querySelectorAll("[data-nav-link]").forEach(link => {
+      const on = link.dataset.navLink === section;
       link.classList.toggle("is-active", on);
       if (on) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });
-    if (window.NxAccount && window.NxAccount.showActiveTab) window.NxAccount.showActiveTab();
+    document.dispatchEvent(new CustomEvent("nx:section", { detail: { section, area } }));
   }
 
   function focusHeading(root) {
@@ -59,17 +94,17 @@
     heading.focus({ preventScroll: true });
   }
 
-  // The top of the content, just under the sticky header (or the phone tab bar).
+  // The top of the content, just under anything sticky above it.
   function contentTop() {
-    const side = document.querySelector(".acct-side");
-    const sticky = side && getComputedStyle(side).position === "sticky" && side.getBoundingClientRect().width >= main.getBoundingClientRect().width ? side.offsetHeight : 0;
-    const header = document.querySelector("[data-site-header]");
-    const headerFixed = header && getComputedStyle(header).position === "sticky" ? header.offsetHeight : 0;
-    return Math.max(0, main.getBoundingClientRect().top + window.scrollY - Math.max(sticky, headerFixed) - 12);
+    let offset = 0;
+    document.querySelectorAll("[data-nav-sticky]").forEach(el => {
+      if (getComputedStyle(el).position === "sticky" || getComputedStyle(el).position === "fixed") offset = Math.max(offset, el.getBoundingClientRect().bottom);
+    });
+    return Math.max(0, main.getBoundingClientRect().top + window.scrollY - offset - 12);
   }
 
   function rememberScroll() {
-    const state = history.state && history.state.nxAccount ? history.state : { nxAccount: true };
+    const state = history.state && history.state.nxNav ? history.state : { nxNav: true };
     history.replaceState({ ...state, scrollY: window.scrollY }, "", location.href);
   }
 
@@ -82,7 +117,7 @@
   // mode: "push" (a click), "replace" (refresh the same section after a change), "pop" (Back/Forward).
   async function load(href, mode = "push") {
     const url = new URL(href, location.href);
-    if (!isAccountUrl(url)) {
+    if (!inArea(url)) {
       fullLoad(url.href, mode);
       return;
     }
@@ -100,9 +135,9 @@
       });
       const finalUrl = new URL(response.url || url.href);
       const html = await response.text();
-      const fresh = new DOMParser().parseFromString(html, "text/html").querySelector("[data-acct-page]");
-      // Signed out (sent to /login), an error page, or a page that must load in full.
-      if (!response.ok || !fresh || fresh.dataset.acctFull === "1" || !isAccountUrl(finalUrl)) {
+      const fresh = new DOMParser().parseFromString(html, "text/html").querySelector("[data-page]");
+      // Signed out, an error page, or a page that must load in full.
+      if (!response.ok || !fresh || fresh.dataset.pageFull === "1" || !inArea(finalUrl)) {
         fullLoad(url.href, mode);
         return;
       }
@@ -125,19 +160,19 @@
   }
 
   function swap(fresh, href, mode) {
-    const old = main.querySelector("[data-acct-page]");
+    const old = main.querySelector("[data-page]");
     stop();
     const root = document.importNode(fresh, true);
-    const title = root.dataset.acctTitle;
-    root.removeAttribute("data-acct-title");
+    const title = root.dataset.pageTitle;
+    root.removeAttribute("data-page-title");
     old.replaceWith(root);
     if (title) document.title = title;
 
-    if (mode === "push") history.pushState({ nxAccount: true, scrollY: 0 }, "", href);
-    else if (mode === "replace") history.replaceState({ ...(history.state || {}), nxAccount: true }, "", href);
+    if (mode === "push") history.pushState({ nxNav: true, scrollY: 0 }, "", href);
+    else if (mode === "replace") history.replaceState({ ...(history.state || {}), nxNav: true }, "", href);
     shownUrl = keyOf(new URL(href, location.href));
 
-    markActive(root.dataset.acctSection);
+    markActive(root.dataset.section);
     start(root);
 
     // Scroll: the top of the content for a new section; where it was for Back/Forward; unchanged
@@ -157,24 +192,24 @@
   document.addEventListener("click", event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
-    if (!link || !link.closest("[data-acct]")) return;
+    if (!link || link.closest("[data-nav-skip]")) return;
     if (link.target && link.target !== "_self") return;
     if (link.hasAttribute("download") || link.hasAttribute("data-full-load")) return;
     const url = new URL(link.href, location.href);
-    if (!isAccountUrl(url)) return;
+    if (!inArea(url)) return;
     // A link to a spot on this same section: the browser jumps there by itself.
     if (url.hash && keyOf(url) === shownUrl) return;
     event.preventDefault();
     load(url.href, "push");
   });
 
-  // Search and filter forms inside a section (method GET with an action, e.g. Your orders).
+  // Search and filter forms (method GET with an action) that point inside the area.
   document.addEventListener("submit", event => {
     const form = event.target;
-    if (event.defaultPrevented || !(form instanceof HTMLFormElement) || !form.closest("[data-acct-main]")) return;
+    if (event.defaultPrevented || !(form instanceof HTMLFormElement)) return;
     if (form.method.toLowerCase() !== "get" || !form.hasAttribute("action")) return;
     const url = new URL(form.action, location.href);
-    if (!isAccountUrl(url)) return;
+    if (!inArea(url)) return;
     event.preventDefault();
     const params = new URLSearchParams();
     for (const [key, value] of new FormData(form)) if (typeof value === "string" && value !== "") params.append(key, value);
@@ -189,19 +224,20 @@
     load(here.href, "pop");
   });
 
-  // ---------- Used by account.js after a change ----------
-  window.NxAccountNav = {
+  // ---------- Used by section scripts after a change ----------
+  window.NxNav = {
     go: href => load(href, "push"),
-    reload: () => load(location.href, "replace")
+    reload: () => load(location.href, "replace"),
+    inArea: href => inArea(new URL(href, location.href))
   };
 
   // ---------- Start ----------
   history.scrollRestoration = "manual";
-  history.replaceState({ ...(history.state || {}), nxAccount: true, scrollY: window.scrollY }, "", location.href);
+  history.replaceState({ ...(history.state || {}), nxNav: true, scrollY: window.scrollY }, "", location.href);
   window.addEventListener("pagehide", rememberScroll);
-  // Deferred scripts have all run by now, so account.js has registered every section.
+  // Deferred scripts have all run by now, so every section module is registered.
   document.addEventListener("DOMContentLoaded", () => {
-    const root = main.querySelector("[data-acct-page]");
+    const root = main.querySelector("[data-page]");
     if (root) start(root);
   });
 })();

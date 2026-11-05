@@ -1,14 +1,10 @@
-<%- include('../partials/head', { bodyClass: 'admin-body' }) %>
 
 <%
   const STATUS_LABELS = { active: 'Active', unlisted: 'Unlisted', out: 'Out of stock' };
   const STATUS_PILLS = { active: 'pill-green', unlisted: 'pill-grey', out: 'pill-red' };
   const filtered = filters.q || filters.category || filters.status !== 'all';
 %>
-<div class="admin-shell">
-  <%- include('../partials/admin-sidebar') %>
-
-  <main id="main" class="admin-main">
+<%- include('../partials/admin-start', { section: 'products' }) %>
     <header class="admin-top">
       <div>
         <span class="section-kicker">Catalogue</span>
@@ -46,6 +42,7 @@
           <select name="status" data-auto-submit-field>
             <option value="" <%= filters.status === 'all' ? 'selected' : '' %>>Any status</option>
             <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
+            <option value="low" <%= filters.status === 'low' ? 'selected' : '' %>>Low stock</option>
             <option value="unlisted" <%= filters.status === 'unlisted' ? 'selected' : '' %>>Unlisted</option>
             <option value="out" <%= filters.status === 'out' ? 'selected' : '' %>>Out of stock</option>
           </select>
@@ -119,7 +116,4 @@
     </section>
 
     <%- include('../partials/pagination', { pagination: pagination, link: link }) %>
-  </main>
-</div>
-
-<%- include('../partials/scripts', { scripts: ['admin-products'] }) %>
+<%- include('../partials/admin-end') %>

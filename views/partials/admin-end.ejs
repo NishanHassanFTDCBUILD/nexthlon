@@ -1,0 +1,10 @@
+<% if (typeof partial !== 'undefined' && partial) { %>
+</div>
+<% } else { %>
+      </div>
+    </main>
+  </div>
+</div>
+<%- include('admin-palette') %>
+<%- include('scripts', { scripts: ['section-nav', 'admin', 'admin-products'] }) %>
+<% } %>

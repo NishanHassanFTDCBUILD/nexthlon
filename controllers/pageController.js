@@ -219,13 +219,17 @@ const adminDashboard = asyncHandler(async (req, res) => {
   res.render("admin/dashboard", { title: "Dashboard | Nexthlon Admin", ...data, settings });
 });
 
+const adminSettings = asyncHandler(async (req, res) => {
+  res.render("admin/settings", { title: "Store settings | Nexthlon Admin", settings: await settingsService.getAll() });
+});
+
 const adminUsers = asyncHandler(async (req, res) => {
   const data = await adminService.listCustomers(req.query);
-  const link = linkBuilder(`${config.adminPath}/users`, {
+  const link = linkBuilder(`${config.adminPath}/customers`, {
     q: data.filters.q,
     status: data.filters.status === "all" ? "" : data.filters.status
   });
-  res.render("admin/users", { title: "Users | Nexthlon Admin", link, ...data });
+  res.render("admin/users", { title: "Customers | Nexthlon Admin", link, ...data });
 });
 
 const adminProducts = asyncHandler(async (req, res) => {
@@ -272,6 +276,7 @@ module.exports = {
   adminLogin,
   adminDashboard,
   adminUsers,
+  adminSettings,
   adminProducts,
   adminProductNew,
   adminProductEdit

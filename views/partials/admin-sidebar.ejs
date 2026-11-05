@@ -1,23 +1,32 @@
-<aside class="admin-sidebar">
-  <a class="brand brand-light" href="<%= adminPath %>/dashboard" aria-label="Nexthlon admin dashboard">
-    <span class="brand-mark"><%- icon('bolt') %></span>
-    <span class="brand-word">NEXTHLON<small>Admin console</small></span>
-  </a>
-  <nav class="admin-nav" aria-label="Admin">
-    <span class="admin-nav-label">Manage</span>
-    <a href="<%= adminPath %>/dashboard" class="<%= path === adminPath + '/dashboard' ? 'is-active' : '' %>" <%- path === adminPath + '/dashboard' ? 'aria-current="page"' : '' %>><%- icon('grid') %> Dashboard</a>
-    <a href="<%= adminPath %>/users" class="<%= path === adminPath + '/users' ? 'is-active' : '' %>" <%- path === adminPath + '/users' ? 'aria-current="page"' : '' %>><%- icon('users') %> Users</a>
-    <% const onProducts = path.startsWith(adminPath + '/products'); %>
-    <% const onTickets = path.startsWith(adminPath + '/tickets'); %>
-    <a href="<%= adminPath %>/tickets" class="<%= onTickets ? 'is-active' : '' %>" <%- onTickets ? 'aria-current="page"' : '' %>><%- icon('headset') %> Support tickets</a>
-    <a href="<%= adminPath %>/products" class="<%= onProducts ? 'is-active' : '' %>" <%- onProducts ? 'aria-current="page"' : '' %>><%- icon('box') %> Products</a>
+<%# The admin sidebar: collapsible groups from config/adminNav.js, a static volt highlight on the active section. %>
+<aside class="admin-side" id="admin-side" aria-label="Admin" data-admin-side>
+  <div class="admin-side-head">
+    <a class="brand" href="<%= adminPath %>/dashboard" aria-label="Nexthlon admin dashboard">
+      <span class="brand-mark"><%- icon('bolt') %></span>
+      <span class="brand-word">NEXTHLON<small>Admin console</small></span>
+    </a>
+    <button type="button" class="icon-btn admin-side-close" data-admin-menu-close aria-label="Close menu"><%- icon('x') %></button>
+  </div>
+  <nav class="admin-sidenav" aria-label="Admin sections">
+    <% adminNav.forEach(function (group) {
+         const open = group.items.some(function (item) { return item.key === activeSection; });
+         const id = 'admin-group-' + group.group.toLowerCase(); %>
+      <div class="admin-group" data-admin-group="<%= group.group %>">
+        <button type="button" class="admin-group-btn" aria-expanded="true" aria-controls="<%= id %>" data-admin-group-toggle <%- open ? 'data-has-active' : '' %>>
+          <span><%= group.group %></span><%- icon('chevron-down', 'i-xs') %>
+        </button>
+        <div class="admin-group-items" id="<%= id %>">
+          <% group.items.forEach(function (item) { const on = item.key === activeSection; %>
+            <a href="<%= adminPath %>/<%= item.key %>" class="admin-link<%= on ? ' is-active' : '' %>" data-nav-link="<%= item.key %>" data-label="<%= item.label %>" data-group="<%= group.group %>" <%- on ? 'aria-current="page"' : '' %>>
+              <%- icon(item.icon, 'i-sm') %><span><%= item.label %></span><% if (!item.ready) { %><em class="admin-soon">Soon</em><% } %>
+            </a>
+          <% }) %>
+        </div>
+      </div>
+    <% }) %>
   </nav>
-  <div class="admin-sidebar-foot">
-    <div class="admin-sidebar-user">
-      <span class="avatar avatar-sm"><%= currentUser.name.charAt(0).toUpperCase() %></span>
-      <span><strong><%= currentUser.name %></strong><small><%= currentUser.email %></small></span>
-    </div>
-    <a href="/"><%- icon('home') %> <span>View store</span></a>
-    <button type="button" data-logout="/api/admin/logout"><%- icon('logout') %> <span>Sign out</span></button>
+  <div class="admin-side-foot">
+    <a href="/" class="admin-link" data-nav-skip><%- icon('home', 'i-sm') %><span>View store</span><%- icon('external-link', 'i-xs') %></a>
   </div>
 </aside>
+<div class="admin-scrim" data-admin-menu-close hidden></div>

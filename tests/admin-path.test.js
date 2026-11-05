@@ -131,3 +131,83 @@ test("after signing in, the admin login only sends the admin to pages inside the
   assert.match((await call("GET", `${ADMIN}/login?next=%2Faccount`)).data, new RegExp(`name="next" value="${ADMIN}/dashboard"`));
   assert.match((await call("GET", `${ADMIN}/login?next=${encodeURIComponent(`${ADMIN}/products`)}`)).data, new RegExp(`name="next" value="${ADMIN}/products"`));
 });
+
+// ---------- Part 2: layout, navigation, search and notifications ----------
+const Product = require("../models/Product");
+const Order = require("../models/Order");
+
+async function adminSession() {
+  return (await call("POST", "/api/admin/login", { body: { email: "admin@path.test", password: "AdminPass123" } })).cookie;
+}
+
+test("admin layout: grouped sidebar, top bar, and X-Partial returns only the section", async () => {
+  const cookie = await adminSession();
+  const full = await call("GET", `${ADMIN}/products`, { cookie });
+  for (const group of ["Overview", "Sales", "Catalog", "Customers", "Marketing", "Content", "Reports", "Settings"]) assert.match(full.data, new RegExp(`data-admin-group="${group}"`));
+  assert.match(full.data, /data-admin-search-input/);
+  assert.match(full.data, /data-admin-palette/);
+  assert.match(full.data, /data-admin-bell/);
+  assert.match(full.data, /data-theme-toggle/);
+  assert.match(full.data, /data-nav-main="admin"/);
+  assert.match(full.data, /class="admin-link is-active" data-nav-link="products"/);
+  assert.match(full.data, /\/js\/section-nav\.js/);
+  assert.doesNotMatch(full.data, /\/js\/motion\.js|motion\.css/);
+
+  const partial = await fetch(base + `${ADMIN}/customers`, { headers: { Cookie: cookie, "X-Partial": "1" } });
+  const html = await partial.text();
+  assert.equal(partial.status, 200);
+  assert.match(partial.headers.get("vary") || "", /X-Partial/);
+  assert.match(html, /data-page="admin-customers"/);
+  assert.match(html, /data-page-title="Customers \| Nexthlon Admin"/);
+  assert.doesNotMatch(html, /<html|admin-side|data-admin-search|<script/);
+
+  // The old customer list address moves to /customers, keeping the search.
+  assert.equal((await call("GET", `${ADMIN}/users?q=lina`, { cookie })).location, `${ADMIN}/customers?q=lina`);
+});
+
+test("store settings hold the referral reward (moved from the dashboard); unbuilt sections show a notice", async () => {
+  const cookie = await adminSession();
+  const settings = await call("GET", `${ADMIN}/settings`, { cookie });
+  assert.equal(settings.status, 200);
+  assert.match(settings.data, /data-referral-form/);
+  assert.doesNotMatch((await call("GET", `${ADMIN}/dashboard`, { cookie })).data, /data-referral-form/);
+
+  const soon = await call("GET", `${ADMIN}/transactions`, { cookie });
+  assert.equal(soon.status, 200);
+  assert.match(soon.data, /Coming in Part 4/);
+  assert.equal((await call("GET", `${ADMIN}/not-a-section`, { cookie })).status, 404);
+  // Still invisible to everyone else.
+  assert.equal((await call("GET", `${ADMIN}/settings`)).status, 404);
+  assert.equal((await call("GET", `${ADMIN}/transactions`)).status, 404);
+});
+
+test("global search finds orders, products and customers; it is admin-only and validated", async () => {
+  const cookie = await adminSession();
+  const lina = await User.findOne({ email: "lina@path.test" });
+  await Product.collection.insertOne({ name: "Path Finder Boots", slug: "path-finder-boots", brand: "Nexthlon", basePrice: 199900, price: 199900, mrp: 249900, stock: 2, isListed: true, categoryListed: true, image: "/img/favicon.svg", images: [] });
+  await Order.collection.insertOne({ orderId: "NX-2026-777001", user: lina._id, items: [], total: 199900, orderStatus: "placed", paymentStatus: "pending", paymentMethod: "cod", address: { fullName: "Lina Paul", phone: "9876543210" }, createdAt: new Date(), statusHistory: [] });
+
+  assert.equal((await call("GET", "/api/admin/search?q=lina")).status, 401);
+  assert.equal((await call("GET", "/api/admin/search?q=l", { cookie })).status, 400);
+  const byName = await call("GET", "/api/admin/search?q=lina", { cookie });
+  assert.equal(byName.status, 200);
+  assert.equal(byName.data.results.customers[0].email, "lina@path.test");
+  assert.equal(byName.data.results.orders[0].orderId, "NX-2026-777001");
+  assert.equal(byName.data.results.customers[0].passwordHash, undefined);
+  assert.equal((await call("GET", "/api/admin/search?q=777001", { cookie })).data.results.orders.length, 1);
+  assert.equal((await call("GET", "/api/admin/search?q=path%20finder", { cookie })).data.results.products[0].name, "Path Finder Boots");
+  // Regex characters are plain text, never a pattern.
+  assert.equal((await call("GET", "/api/admin/search?q=.*", { cookie })).data.results.customers.length, 0);
+});
+
+test("notifications count what needs attention, for admins only", async () => {
+  const cookie = await adminSession();
+  assert.equal((await call("GET", "/api/admin/notifications")).status, 401);
+  const res = await call("GET", "/api/admin/notifications", { cookie });
+  assert.equal(res.status, 200);
+  const byKey = Object.fromEntries(res.data.items.map(item => [item.key, item.count]));
+  assert.equal(byKey["to-confirm"], 1);
+  assert.equal(byKey["low-stock"], 1);
+  assert.equal(byKey["new-orders"], 1);
+  assert.equal(res.data.total, byKey["to-confirm"] + byKey.returns + byKey["low-stock"] + byKey["out-of-stock"] + byKey.tickets);
+});

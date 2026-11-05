@@ -1,13 +1,9 @@
-<%- include('../partials/head', { bodyClass: 'admin-body' }) %>
 
 <%
   const healthy = Math.max(stats.products - stats.lowStock - stats.outOfStock, 0);
   const stockTotal = Math.max(stats.products, 1);
 %>
-<div class="admin-shell">
-  <%- include('../partials/admin-sidebar') %>
-
-  <main id="main" class="admin-main">
+<%- include('../partials/admin-start', { section: 'dashboard' }) %>
     <header class="admin-top">
       <div>
         <span class="section-kicker">Overview</span>
@@ -17,26 +13,26 @@
       <div class="admin-top-actions">
         <a class="btn btn-ghost btn-sm" href="/"><%- icon('home', 'i-sm') %> View store</a>
         <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/products"><%- icon('box', 'i-sm') %> Manage products</a>
-        <a class="btn btn-primary btn-sm" href="<%= adminPath %>/users"><%- icon('users', 'i-sm') %> Manage users</a>
+        <a class="btn btn-primary btn-sm" href="<%= adminPath %>/customers"><%- icon('users', 'i-sm') %> Manage customers</a>
       </div>
     </header>
 
     <section aria-labelledby="customers-stats">
       <h2 class="admin-section-title" data-reveal id="customers-stats">Customers</h2>
       <div class="stat-grid">
-        <a class="stat" data-reveal href="<%= adminPath %>/users">
+        <a class="stat" data-reveal href="<%= adminPath %>/customers">
           <span class="stat-icon"><%- icon('users') %></span>
           <span class="stat-label">Customers</span>
           <strong class="stat-value" data-count-to="<%= stats.customers %>"><%= stats.customers %></strong>
           <span class="stat-link">View all <%- icon('arrow-right', 'i-xs') %></span>
         </a>
-        <a class="stat" data-reveal href="<%= adminPath %>/users">
+        <a class="stat" data-reveal href="<%= adminPath %>/customers">
           <span class="stat-icon stat-icon-green"><%- icon('plus') %></span>
           <span class="stat-label">New this week</span>
           <strong class="stat-value" data-count-to="<%= stats.newCustomers %>"><%= stats.newCustomers %></strong>
           <span class="stat-link">In the last 7 days</span>
         </a>
-        <a class="stat" data-reveal href="<%= adminPath %>/users?status=blocked">
+        <a class="stat" data-reveal href="<%= adminPath %>/customers?status=blocked">
           <span class="stat-icon stat-icon-red"><%- icon('lock') %></span>
           <span class="stat-label">Blocked customers</span>
           <strong class="stat-value" data-count-to="<%= stats.blockedCustomers %>"><%= stats.blockedCustomers %></strong>
@@ -84,28 +80,12 @@
       <% } %>
     </section>
 
-    <section class="panel settings-panel" data-reveal aria-labelledby="referral-title">
-      <div class="panel-head panel-head-row">
-        <h2 id="referral-title"><%- icon('gift', 'i-sm') %> Referral reward</h2>
-        <span class="muted">Credited to both wallets when a new customer signs up with a code</span>
-      </div>
-      <form class="form settings-form" data-referral-form novalidate>
-        <div class="form-alert" data-form-alert aria-live="assertive"></div>
-        <div class="field">
-          <label for="referralReward">Reward for each person (₹)</label>
-          <input id="referralReward" name="referralReward" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.referralReward / 100 %>" aria-describedby="referralReward-hint referralReward-error">
-          <p class="hint" id="referralReward-hint">0 turns referral rewards off. Each new customer can be rewarded only once.</p>
-          <p class="field-error" id="referralReward-error" data-error-for="referralReward"></p>
-        </div>
-        <button class="btn btn-primary" type="submit">Save reward</button>
-      </form>
-    </section>
 
     <div class="admin-panels">
       <section class="panel panel-flush" data-reveal aria-labelledby="newest-title">
         <div class="panel-head panel-head-row">
           <h2 id="newest-title">Newest customers</h2>
-          <a href="<%= adminPath %>/users">Manage users <%- icon('chevron-right', 'i-sm') %></a>
+          <a href="<%= adminPath %>/customers">Manage customers <%- icon('chevron-right', 'i-sm') %></a>
         </div>
         <% if (recentCustomers.length) { %>
           <div class="table-wrap">
@@ -151,7 +131,4 @@
         <% } %>
       </section>
     </div>
-  </main>
-</div>
-
-<%- include('../partials/scripts', { scripts: ['admin-settings'] }) %>
+<%- include('../partials/admin-end') %>
