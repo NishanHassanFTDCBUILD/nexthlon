@@ -6,7 +6,16 @@ const UNIT_MS = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 };
 function durationToMs(value) {
   const [, count, unit] = value.match(DURATION);
   return Number(count) * UNIT_MS[unit];
-}  
+}
+
+// Reads a lifetime like "15m" or "7d" from .env, with a default and a largest allowed value.
+function readDuration(name, fallback, limit) {
+  const value = (process.env[name] || "").trim() || fallback;
+  if (!DURATION.test(value) || durationToMs(value) > durationToMs(limit)) {
+    throw new Error(`${name} must look like 15m, 12h or 7d, and be ${limit} or less. The default is ${fallback}.`);
+  }
+  return value;
+}
 
 function readConfig() {
   const isProduction = process.env.NODE_ENV === "production";
@@ -21,18 +30,27 @@ function readConfig() {
     throw new Error("JWT_SECRET must be at least 32 characters. See .env.example for how to make one.");
   }
 
-  const jwtExpiresIn = process.env.JWT_EXPIRES_IN || "1d";
-  if (!DURATION.test(jwtExpiresIn) || durationToMs(jwtExpiresIn) > 7 * UNIT_MS.d) {
-    throw new Error("JWT_EXPIRES_IN must look like 30m, 12h or 1d, and be 7 days or less.");
-  }
+  // The access token is deliberately short-lived: it cannot be withdrawn once issued, so it must
+  // run out quickly. The refresh token is the long-lived one, and that one CAN be revoked
+  // (see models/RefreshToken.js), which is why it may live for days.
+  const accessExpiresIn = readDuration("ACCESS_TOKEN_EXPIRES_IN", "15m", "1h");
+  const refreshExpiresIn = readDuration("REFRESH_TOKEN_EXPIRES_IN", "7d", "30d");
+  // Admin sessions are shorter than customer ones, because an admin can do more harm.
+  const adminRefreshExpiresIn = readDuration("ADMIN_REFRESH_TOKEN_EXPIRES_IN", "1d", "7d");
 
   return {
     isProduction,
     port: Number(process.env.PORT) || 3000,
     mongoUri,
     jwtSecret,
-    jwtExpiresIn,
-    jwtExpiresInMs: durationToMs(jwtExpiresIn),
+    // Access token (the JWT in nx_token / nx_admin): the same short life for both sessions.
+    accessExpiresIn,
+    accessExpiresInMs: durationToMs(accessExpiresIn),
+    // Refresh token (the random string in nx_refresh / nx_admin_refresh).
+    refreshExpiresIn,
+    refreshExpiresInMs: durationToMs(refreshExpiresIn),
+    adminRefreshExpiresIn,
+    adminRefreshExpiresInMs: durationToMs(adminRefreshExpiresIn),
     // Browsers only send Secure cookies over HTTPS, so this stays off for http://localhost.
     cookieSecure: isProduction || process.env.COOKIE_SECURE === "true",
     // Online payments (Razorpay). Optional: without the keys the store still runs, and the
@@ -40,9 +58,6 @@ function readConfig() {
     razorpay: readRazorpay(),
     // The admin console lives under a private path (ADMIN_PATH, e.g. /nx-console-7f3k).
     adminPath: readAdminPath(),
-    // Admin sessions are short: 8 hours, in their own cookie.
-    adminJwtExpiresIn: "8h",
-    adminJwtExpiresInMs: durationToMs("8h"),
     // Email (order emails, cart reminders, campaigns). Optional: without SMTP the emails are
     // written to the console in development. The values are never logged.
     mail: readMail()

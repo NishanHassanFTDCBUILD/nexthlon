@@ -7,7 +7,7 @@ const listService = require("../services/listService");
 const supportService = require("../services/supportService");
 const auditService = require("../services/auditService");
 const SupportTicket = require("../models/SupportTicket");
-const { clearAuthCookie } = require("../services/tokenService");
+const { endSession, readSessionCookie } = require("../services/tokenService");
 const {
   validateEmailChange, validatePreferences, validateDeleteAccount, validateReview,
   validateListName, validateTicket, validateTicketReply, hasErrors
@@ -32,8 +32,28 @@ const changeEmail = asyncHandler(async (req, res) => {
 // Every token, on every device, stops working at once, including this one.
 const logoutAll = asyncHandler(async (req, res) => {
   await accountService.logoutEverywhere(req.user._id, auditService.fromRequest(req));
-  clearAuthCookie(res);
+  endSession(res, "customer");
   res.json({ message: "You have been signed out of all devices." });
+});
+
+// GET /api/account/sessions
+// The devices signed in to this account: one row per live refresh token. The nx_sid cookie only
+// says which row is this device; it is not a key and cannot sign anybody in.
+const listSessions = asyncHandler(async (req, res) => {
+  res.json({ sessions: await accountService.sessions(req.user._id, readSessionCookie(req, "customer")) });
+});
+
+// DELETE /api/account/sessions/:sessionId   ("Log out this device")
+const endDeviceSession = asyncHandler(async (req, res) => {
+  const here = readSessionCookie(req, "customer");
+  const result = await accountService.endSession(req.user._id, req.params.sessionId, here, auditService.fromRequest(req));
+  // Logging out the device you are on: drop this browser's cookies too.
+  if (result.current) endSession(res, "customer");
+  res.json({
+    message: result.current ? "This device has been signed out." : `${result.device} has been signed out.`,
+    current: result.current,
+    sessions: result.current ? [] : await accountService.sessions(req.user._id, here)
+  });
 });
 
 // PATCH /api/account/preferences   { orderUpdates?, offers?, newsletter? } (true/false)
@@ -52,7 +72,7 @@ const clearRecent = asyncHandler(async (req, res) => {
 const deleteAccount = asyncHandler(async (req, res) => {
   const { password } = checked(validateDeleteAccount, req.body);
   await accountService.deleteAccount(req.user._id, password, auditService.fromRequest(req));
-  clearAuthCookie(res);
+  endSession(res, "customer");
   res.json({ message: "Your account has been deleted. We are sorry to see you go." });
 });
 
@@ -140,7 +160,7 @@ const replyTicket = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  changeEmail, logoutAll, updatePreferences, clearRecent, deleteAccount,
+  changeEmail, logoutAll, listSessions, endDeviceSession, updatePreferences, clearRecent, deleteAccount,
   updateReview, deleteReview,
   getLists, createList, renameList, deleteList, addListItem, removeListItem, moveListItem, listItemToCart, shareList,
   createTicket, listTickets, replyTicket

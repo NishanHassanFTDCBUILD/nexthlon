@@ -1,6 +1,6 @@
 const User = require("../models/User");
 const config = require("../config/env");
-const { KINDS, verifyToken, clearAuthCookie } = require("../services/tokenService");
+const { KINDS, verifyToken, clearAuthCookie, readSessionCookie } = require("../services/tokenService");
 const { HttpError } = require("../utils/http");
 
 // Which session a request belongs to: the admin console (its pages under ADMIN_PATH and the
@@ -53,6 +53,9 @@ async function attachUser(req, res, next) {
       res.locals.currentUser = user.toSafeJSON();
     }
 
+    // Only the ACCESS cookie goes. The refresh cookie is deliberately left alone: an access token
+    // that has run out is the normal case, and the refresh token is what renews it
+    // (POST /api/auth/refresh). Clearing it here would end the session every 15 minutes.
     if (req.authProblem && fromCookie) clearAuthCookie(res, scope);
     return next();
   } catch (error) {
@@ -77,22 +80,39 @@ function requireRole(role) {
 }
 
 // ---------- Page guards ----------
-function redirectToLogin(req, res, loginPath) {
+
+// A page load cannot renew the session by itself: the refresh cookie is only sent to
+// /api/auth/refresh. So when the browser still carries the session label (nx_sid), the login page
+// is told the session merely expired, and its script renews it and comes straight back
+// (renewAfterBounce in public/js/app.js). A visitor with no session at all gets no reason.
+function loginReason(req, kind) {
+  return req.authProblem || (readSessionCookie(req, kind) ? "expired" : null);
+}
+
+function redirectToLogin(req, res, loginPath, reason) {
   const params = new URLSearchParams({ next: req.originalUrl });
-  if (req.authProblem) params.set("reason", req.authProblem);
+  if (reason) params.set("reason", reason);
   return res.redirect(`${loginPath}?${params}`);
 }
 
 // Customer pages send signed-out visitors to sign in.
 function customerPage(req, res, next) {
-  if (!req.user || req.user.role !== "customer") return redirectToLogin(req, res, "/login");
+  if (!req.user || req.user.role !== "customer") {
+    return redirectToLogin(req, res, "/login", loginReason(req, "customer"));
+  }
   return next();
 }
 
 // Admin pages: anyone who is not a signed-in admin gets the ordinary "page not found", so the
 // console's existence and address are never revealed. Only the exact login URL shows a form.
+// The one exception is a browser that was signed in as an admin a moment ago (it still has the
+// admin session label): it is sent to the admin login, which renews the session and carries on.
+// Nothing is given away, because only a browser that already knew the console can get that far.
 function adminPage(req, res, next) {
   if (req.user && req.user.role === "admin") return next();
+  if (readSessionCookie(req, "admin")) {
+    return redirectToLogin(req, res, `${config.adminPath}/login`, loginReason(req, "admin"));
+  }
   return next(new HttpError(404, "We couldn't find that page."));
 }
 

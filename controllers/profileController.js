@@ -1,5 +1,6 @@
 const profileService = require("../services/profileService");
-const { signToken, setAuthCookie } = require("../services/tokenService");
+const refreshTokenService = require("../services/refreshTokenService");
+const { startSession } = require("../services/tokenService");
 const { validateProfile, validatePasswordChange, validateAddress, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const auditService = require("../services/auditService");
@@ -22,11 +23,13 @@ const updateProfile = asyncHandler(async (req, res) => {
 });
 
 // PATCH /api/profile/password
-// Older tokens stop working after this, so this device gets a fresh token.
+// Changing the password signs out every device (see profileService). This one is then given a
+// completely new pair — a new access token and a new refresh family — so it stays signed in.
 const changePassword = asyncHandler(async (req, res) => {
   const user = await profileService.changePassword(req.user._id, checked(validatePasswordChange, req.body));
   await auditService.record({ ...auditService.fromRequest(req), action: "account.password_changed", target: `user:${user._id}` });
-  setAuthCookie(res, signToken(user));
+  const { rawToken, familyId } = await refreshTokenService.issue(user, refreshTokenService.deviceFrom(req));
+  startSession(res, { user, refreshToken: rawToken, familyId });
   res.json({ message: "Password changed. Your other devices have been signed out." });
 });
 

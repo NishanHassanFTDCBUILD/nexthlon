@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const User = require("../models/User");
 const Address = require("../models/Address");
 const { hashPassword } = require("./authService");
+const refreshTokenService = require("./refreshTokenService");
 const { MAX_ADDRESSES } = require("../config/catalog");
 const { HttpError } = require("../utils/http");
 
@@ -25,8 +26,11 @@ async function changePassword(userId, { currentPassword, newPassword }) {
     });
   }
   user.passwordHash = await hashPassword(newPassword);
+  // Two locks turned at once: the higher tokenVersion kills every access token still in the wild
+  // (middleware/auth.js compares it), and revoking the refresh tokens stops any device renewing.
   user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
+  await refreshTokenService.revokeAllForUser(user._id, "password_change");
   return user;
 }
 

@@ -7,6 +7,9 @@ const { sensitiveLimiter } = require("../middleware/rateLimit");
 router.use(requireAuth, requireRole("customer"));
 router.patch("/email", sensitiveLimiter, account.changeEmail);
 router.post("/logout-all", sensitiveLimiter, account.logoutAll);
+// Logged-in devices: one row per live refresh token (see services/refreshTokenService.js).
+router.get("/sessions", account.listSessions);
+router.delete("/sessions/:sessionId", sensitiveLimiter, account.endDeviceSession);
 router.patch("/preferences", account.updatePreferences);
 router.delete("/recent", account.clearRecent);
 router.post("/delete", sensitiveLimiter, account.deleteAccount);

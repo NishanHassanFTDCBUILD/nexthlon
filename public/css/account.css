@@ -62,6 +62,8 @@
 .acct-row > small:last-child { margin-left: auto; text-align: right; }
 .acct-row code { font-weight: var(--weight-bold); }
 .acct-row-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--surface-2); color: var(--muted); flex: none; }
+/* A button at the end of a row (Logged-in devices) sits on the right, like the dates do. */
+.acct-row-action { margin-left: auto; flex: none; }
 .acct-row-product img { width: 56px; height: 56px; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface-2); flex: none; }
 .back-link { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--muted); }
 .acct-inline-form { display: flex; gap: 8px; }

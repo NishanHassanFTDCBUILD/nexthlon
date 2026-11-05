@@ -6,6 +6,7 @@ const SupportTicket = require("../models/SupportTicket");
 const { LOW_STOCK_LIMIT } = require("../config/catalog");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
+const refreshTokenService = require("./refreshTokenService");
 
 const PAGE_SIZE = 15;
 
@@ -79,6 +80,9 @@ async function setCustomerBlocked(userId, isBlocked) {
     { new: true }
   ).lean();
   if (!user) throw new HttpError(404, "Customer not found.");
+  // Blocking takes effect at once for pages and APIs (middleware/auth.js reads isBlocked on every
+  // request), and revoking the refresh tokens means the browser cannot renew its way back in.
+  if (isBlocked) await refreshTokenService.revokeAllForUser(user._id, "blocked");
   return publicCustomer(user);
 }
 

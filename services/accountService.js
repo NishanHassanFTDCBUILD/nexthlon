@@ -13,6 +13,8 @@ const wishlistService = require("./wishlistService");
 const couponService = require("./couponService");
 const referralService = require("./referralService");
 const auditService = require("./auditService");
+const refreshTokenService = require("./refreshTokenService");
+const { browserName } = require("../utils/device");
 const { HttpError } = require("../utils/http");
 
 const RECENT_LIMIT = 20;
@@ -23,22 +25,7 @@ const toId = id => new mongoose.Types.ObjectId(String(id));
 
 // ---------- Sign-in history ----------
 
-// "Chrome on Windows". A short, readable name from the User-Agent header; nothing else is kept.
-function browserName(userAgent = "") {
-  const ua = String(userAgent);
-  const browser = /Edg\//.test(ua) ? "Edge"
-    : /OPR\/|Opera/.test(ua) ? "Opera"
-      : /Firefox\//.test(ua) ? "Firefox"
-        : /Chrome\//.test(ua) ? "Chrome"
-          : /Safari\//.test(ua) ? "Safari"
-            : /node|undici|curl|postman/i.test(ua) ? "App or script" : "Unknown browser";
-  const os = /Windows/.test(ua) ? "Windows"
-    : /iPhone|iPad|iPod/.test(ua) ? "iOS"
-      : /Android/.test(ua) ? "Android"
-        : /Mac OS X|Macintosh/.test(ua) ? "macOS"
-          : /Linux/.test(ua) ? "Linux" : "";
-  return os ? `${browser} on ${os}` : browser;
-}
+// "Chrome on Windows" lives in utils/device.js now, so the devices list names a device the same way.
 
 // Stores one sign-in and keeps only the latest LOGIN_HISTORY for the account.
 async function recordLogin(userId, { userAgent = "", ip = "" } = {}) {
@@ -115,12 +102,28 @@ async function changeEmail(userId, { email, password }, context = {}) {
   return user;
 }
 
-// Every token carries the account's tokenVersion; raising it makes all of them invalid at once.
+// Two steps, because a login has two halves. Raising tokenVersion makes every access token
+// invalid at once (middleware/auth.js checks it), and revoking the refresh tokens means no device
+// can quietly renew itself afterwards.
 async function logoutEverywhere(userId, context = {}) {
   const user = await User.findByIdAndUpdate(userId, { $inc: { tokenVersion: 1 } }, { new: true });
   if (!user) throw new HttpError(404, "Account not found.");
+  await refreshTokenService.revokeAllForUser(user._id, "logout_all");
   await auditService.record({ ...context, action: "account.logout_all", target: `user:${user._id}` });
   return user;
+}
+
+// The "Logged-in devices" list on the security page: one row per live refresh token.
+function sessions(userId, currentFamilyId = "") {
+  return refreshTokenService.listSessions(userId, currentFamilyId);
+}
+
+// "Log out this device": that device's whole refresh family is revoked, so it cannot renew.
+async function endSession(userId, sessionId, currentFamilyId = "", context = {}) {
+  const result = await refreshTokenService.revokeSession(userId, sessionId, currentFamilyId);
+  if (!result) throw new HttpError(404, "That device is not signed in to your account.");
+  await auditService.record({ ...context, action: "account.device_logout", target: `user:${userId}`, after: { device: result.device } });
+  return result;
 }
 
 // Soft delete: the account can never sign in again and every token stops working, but orders,
@@ -132,6 +135,7 @@ async function deleteAccount(userId, password, context = {}) {
   user.tokenVersion = (user.tokenVersion || 0) + 1;
   user.recentlyViewed = [];
   await user.save();
+  await refreshTokenService.revokeAllForUser(user._id, "account_deleted");
   await auditService.record({ ...context, action: "account.deleted", target: `user:${user._id}`, after: { deletedAt: user.deletedAt } });
   return user;
 }
@@ -258,6 +262,8 @@ module.exports = {
   checkPassword,
   changeEmail,
   logoutEverywhere,
+  sessions,
+  endSession,
   deleteAccount,
   overview,
   recommendations,

@@ -61,9 +61,55 @@ test("customer and admin tokens are separate: each only works for its own sessio
   assert.equal(verifyToken(admin, "admin").aud, "nexthlon-admin");
   assert.throws(() => verifyToken(customer, "admin"));
   assert.throws(() => verifyToken(admin, "customer"));
-  // Admin sessions last 8 hours.
-  const { exp, iat } = verifyToken(admin, "admin");
-  assert.equal(exp - iat, 8 * 60 * 60);
+});
+
+test("access tokens are short-lived for both kinds of session", () => {
+  const customer = signToken({ _id: "64b000000000000000000004", role: "customer", tokenVersion: 0 });
+  const admin = signToken({ _id: "64b000000000000000000005", role: "admin", tokenVersion: 0 });
+  // 15 minutes, set in tests/helpers.js. The refresh token is the long-lived one.
+  assert.equal(verifyToken(customer, "customer").exp - verifyToken(customer, "customer").iat, 15 * 60);
+  assert.equal(verifyToken(admin, "admin").exp - verifyToken(admin, "admin").iat, 15 * 60);
+});
+
+test("refresh tokens are random, and only their hash is ever stored", () => {
+  const refreshTokenService = require("../services/refreshTokenService");
+  const a = refreshTokenService.newToken();
+  const b = refreshTokenService.newToken();
+  // 32 random bytes as hex.
+  assert.match(a, /^[a-f0-9]{64}$/);
+  assert.notEqual(a, b);
+
+  // The hash is what the database holds: same input, same hash; and it never contains the token.
+  const hash = refreshTokenService.hashToken(a);
+  assert.match(hash, /^[a-f0-9]{64}$/);
+  assert.equal(hash, refreshTokenService.hashToken(a));
+  assert.notEqual(hash, a);
+  assert.notEqual(hash, refreshTokenService.hashToken(b));
+});
+
+test("refresh lifetimes: 7 days for customers, 1 day for admins", () => {
+  const { lifetimeMs } = require("../services/refreshTokenService");
+  assert.equal(lifetimeMs("customer"), 7 * 24 * 60 * 60 * 1000);
+  assert.equal(lifetimeMs("admin"), 24 * 60 * 60 * 1000);
+});
+
+test("the refresh cookie is limited to the renewal path, and the access cookie is not", () => {
+  const { REFRESH_PATH, KINDS } = require("../services/tokenService");
+  assert.equal(REFRESH_PATH, "/api/auth/refresh");
+  const written = [];
+  const res = { cookie: (name, value, options) => written.push({ name, value, options }) };
+  const { setAuthCookie, setRefreshCookie } = require("../services/tokenService");
+  setAuthCookie(res, "access-token", "customer");
+  setRefreshCookie(res, "refresh-token", "customer");
+  assert.equal(written[0].name, KINDS.customer.cookie);
+  assert.equal(written[0].options.path, "/");
+  assert.equal(written[1].name, KINDS.customer.refreshCookie);
+  assert.equal(written[1].options.path, REFRESH_PATH);
+  // Both are httpOnly, so page scripts can never read either token.
+  assert.ok(written.every(cookie => cookie.options.httpOnly));
+  // Admin cookies are SameSite=Strict, so another site can never make the browser send them.
+  setRefreshCookie(res, "refresh-token", "admin");
+  assert.equal(written[2].options.sameSite, "strict");
 });
 
 function runOriginCheck(req) {

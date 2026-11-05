@@ -8,6 +8,7 @@ const supportService = require("../services/supportService");
 const Order = require("../models/Order");
 const SupportTicket = require("../models/SupportTicket");
 const orderRules = require("../utils/orderRules");
+const { readSessionCookie } = require("../services/tokenService");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
 
@@ -52,9 +53,15 @@ const recent = asyncHandler(async (req, res) => {
 
 // GET /account/security
 const security = asyncHandler(async (req, res) => {
+  const [activity, sessions] = await Promise.all([
+    accountService.loginActivity(req.user._id),
+    // The live sessions, with this browser's one marked "This device" (from the nx_sid cookie).
+    accountService.sessions(req.user._id, readSessionCookie(req, "customer"))
+  ]);
   res.render("account/security", {
     title: "Login & security | Nexthlon",
-    activity: await accountService.loginActivity(req.user._id),
+    activity,
+    sessions,
     phone: req.user.phone || ""
   });
 });

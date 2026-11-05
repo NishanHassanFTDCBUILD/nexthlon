@@ -519,6 +519,38 @@
       }
     }, signal);
 
+    // "Log out this device": the server revokes that device's refresh token, so it can never
+    // renew. Signing out the device you are on ends this session too, hence the trip to sign in.
+    on(root, "click", "[data-device-logout]", async (event, button) => {
+      const id = button.dataset.deviceLogout;
+      const row = button.closest("[data-device]");
+      const here = row && row.hasAttribute("data-device-current");
+      const ok = await Nx.confirm({
+        title: here ? "Log out this device?" : `Log out ${button.dataset.deviceName}?`,
+        message: here
+          ? "You will be signed out of this browser and sent to the sign-in page."
+          : "That device will have to sign in again to open your account.",
+        confirmLabel: "Log out"
+      });
+      if (!ok) return;
+      Nx.busy(button, true, "Signing out…");
+      try {
+        const reply = await Nx.api(`/api/account/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
+        if (reply.current) {
+          doneThen(reply.message, "/login?reason=logged_out_all");
+          return;
+        }
+        if (row) row.remove();
+        const list = root.querySelector("[data-device-list]");
+        const empty = root.querySelector("[data-device-empty]");
+        if (empty && list) empty.hidden = list.children.length > 0;
+        Nx.toast(reply.message);
+      } catch (error) {
+        Nx.busy(button, false);
+        Nx.toast(error.message, "error");
+      }
+    }, signal);
+
     on(root, "submit", "[data-delete-form]", async (event, form) => {
       event.preventDefault();
       const ok = await Nx.confirm({ title: "Delete your account?", message: "You will be signed out and won't be able to sign in again. This can't be undone from here.", confirmLabel: "Delete account" });

@@ -80,10 +80,36 @@
   </form>
 </section>
 
+<%# Logged-in devices: one row per live refresh token, so "signed in" here means "can renew". %>
+<section class="panel acct-section" id="devices" aria-labelledby="devices-title">
+  <div class="acct-section-head">
+    <div><h2 id="devices-title">Logged-in devices</h2><small class="muted">Every browser or app that can still open your account. Don't recognise one? Sign it out.</small></div>
+    <button type="button" class="btn btn-ghost btn-sm" data-logout-all><%- icon('logout', 'i-xs') %> Log out of all devices</button>
+  </div>
+  <ul class="acct-rows" data-device-list>
+    <% sessions.forEach(function (s) { %>
+      <li class="acct-row" data-device="<%= s.id %>"<%= s.current ? ' data-device-current' : '' %>>
+        <span class="acct-row-icon"><%- icon('monitor', 'i-sm') %></span>
+        <span>
+          <strong><%= s.device %><%= s.current ? ' · This device' : '' %></strong>
+          <small class="muted">
+            <%= s.ip || 'IP unknown' %> · signed in <%= formatDate(s.signedInAt) %><% if (s.lastUsedAt) { %> · last renewed <%= formatDate(s.lastUsedAt) %><% } %>
+          </small>
+        </span>
+        <span class="acct-row-action">
+          <button type="button" class="btn btn-ghost btn-sm" data-device-logout="<%= s.id %>" data-device-name="<%= s.device %>">
+            <%= s.current ? 'Log out this device' : 'Log out' %>
+          </button>
+        </span>
+      </li>
+    <% }) %>
+  </ul>
+  <p class="muted acct-note" data-device-empty<%= sessions.length ? ' hidden' : '' %>>No other devices are signed in.</p>
+</section>
+
 <section class="panel acct-section" id="activity" aria-labelledby="activity-title">
   <div class="acct-section-head">
     <div><h2 id="activity-title">Recent sign-ins</h2><small class="muted">The last <%= activity.length %> times your account was signed in to. IP addresses are partly hidden.</small></div>
-    <button type="button" class="btn btn-ghost btn-sm" data-logout-all><%- icon('logout', 'i-xs') %> Log out of all devices</button>
   </div>
   <% if (activity.length) { %>
     <ul class="acct-rows">

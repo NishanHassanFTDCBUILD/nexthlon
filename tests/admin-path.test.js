@@ -98,7 +98,7 @@ test("guests and customers get a 404 on admin pages; only the login URL shows a 
   }
 });
 
-test("an admin signs in at the new path with a separate 8-hour cookie, and signs out", async () => {
+test("an admin signs in at the new path with its own short access cookie and 1-day refresh cookie, and signs out", async () => {
   // The customer sign-in refuses admins, and the admin sign-in refuses customers.
   assert.equal((await call("POST", "/api/login", { body: { email: "admin@path.test", password: "AdminPass123" } })).status, 403);
   assert.equal((await call("POST", "/api/admin/login", { body: { email: "lina@path.test", password: "pathway2024" } })).status, 403);
@@ -106,7 +106,11 @@ test("an admin signs in at the new path with a separate 8-hour cookie, and signs
   const admin = await call("POST", "/api/admin/login", { body: { email: "admin@path.test", password: "AdminPass123" } });
   assert.equal(admin.status, 200);
   assert.match(admin.cookie, /^nx_admin=/);
-  assert.match(admin.setCookie, /Max-Age=28800/);
+  // The access token lasts 15 minutes; the refresh token that renews it lasts a day and is only
+  // ever sent to /api/auth/refresh. Both are HttpOnly and SameSite=Strict for the console.
+  assert.match(admin.setCookie, /nx_admin=[^;]+;[^,]*Max-Age=900/);
+  assert.match(admin.setCookie, /nx_admin_refresh=[^;]+;[^,]*Max-Age=86400/);
+  assert.match(admin.setCookie, /nx_admin_refresh=[^;]+;[^,]*Path=\/api\/auth\/refresh/);
   assert.match(admin.setCookie, /HttpOnly/);
   assert.match(admin.setCookie, /SameSite=Strict/);
 

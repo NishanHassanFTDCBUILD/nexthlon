@@ -22,6 +22,16 @@ const adminLoginLimiter = rateLimit({
   message: { message: "Too many attempts. Please wait 15 minutes and try again." }
 });
 
+// Renewing a session: 60 per 15 minutes per IP. A normal browser renews every 15 minutes, so this
+// is far above honest use, but it stops a script from hammering the endpoint with stolen tokens.
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many session renewals. Please sign in again." }
+});
+
 // Contact form and newsletter: 8 messages per 15 minutes per IP address, so the inbox cannot be flooded.
 const formLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -71,4 +81,4 @@ const adminMoneyLimiter = rateLimit({
   message: { message: "Too many refunds or emails in a short time. Please wait a few minutes." }
 });
 
-module.exports = { authLimiter, adminLoginLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
+module.exports = { authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };

@@ -15,21 +15,26 @@
 
   // Sign-in calls answer 401/403 for a wrong password; those must stay on the form.
   const LOGIN_CALLS = ["/api/login", "/api/signup", "/api/admin/login"];
+  // The renewal endpoint. The refresh cookie's path is this exact URL, so the browser only sends
+  // the long-lived token here. A 401 from this call means the session really is over.
+  const REFRESH_URL = "/api/auth/refresh";
+
+  // Admin pages carry their private base path on <body>; everything else is the store. The two
+  // sessions have separate cookies, so the renewal has to say which one it means.
+  const isAdminPage = () => Boolean(document.body.dataset.adminPath);
 
   // The login ended elsewhere (signed out in another tab, token expired, account blocked):
   // go to the right sign-in page and come back here afterwards.
   function sendToLogin(reason) {
     const here = window.location.pathname + window.location.search;
-    // Admin pages carry their private base path on <body>; everything else is the store.
     const admin = document.body.dataset.adminPath;
     const loginPath = admin ? `${admin}/login` : "/login";
     const params = new URLSearchParams({ next: here, reason });
     window.location.replace(`${loginPath}?${params}`);
   }
 
-  // Calls our JSON API. The login cookie is sent automatically; the token is never readable here.
-  Nx.api = async function api(url, options = {}) {
-    const { method = "GET", body } = options;
+  // One request. Returns { response, data } and never throws for an HTTP error status.
+  async function send(url, { method = "GET", body } = {}) {
     // FormData (file uploads) sets its own multipart Content-Type; everything else is sent as JSON.
     const isForm = typeof FormData !== "undefined" && body instanceof FormData;
     const headers = { Accept: "application/json" };
@@ -55,10 +60,39 @@
     } catch {
       data = {};
     }
+    return { response, data };
+  }
+
+  // Asks the server for a new access token using the refresh cookie. Several calls can get a 401
+  // at the same moment, so they all wait on ONE renewal: rotation would revoke the token of any
+  // second call and, worse, look like a stolen token.
+  let renewal = null;
+  function renewSession() {
+    if (!renewal) {
+      renewal = send(REFRESH_URL, { method: "POST", body: { scope: isAdminPage() ? "admin" : "customer" } })
+        .then(({ response }) => response.ok)
+        .catch(() => false)
+        .finally(() => { renewal = null; });
+    }
+    return renewal;
+  }
+  Nx.renewSession = renewSession;
+
+  // Calls our JSON API. The cookies are sent automatically; no token is ever readable here.
+  // On a 401 the access token has simply run out (15 minutes), so this renews the session once
+  // and sends the very same request again. Only if the renewal fails does the visitor go to sign in.
+  Nx.api = async function api(url, options = {}) {
+    const path = new URL(url, window.location.href).pathname;
+    const canRenew = !LOGIN_CALLS.includes(path) && path !== REFRESH_URL;
+
+    let { response, data } = await send(url, options);
+    if (response.status === 401 && canRenew && await renewSession()) {
+      ({ response, data } = await send(url, options));
+    }
+
     if (!response.ok) {
       const blocked = response.status === 403 && /account has been blocked/i.test(data.message || "");
-      const path = new URL(url, window.location.href).pathname;
-      if ((response.status === 401 || blocked) && !LOGIN_CALLS.includes(path)) {
+      if ((response.status === 401 || blocked) && canRenew) {
         sendToLogin(blocked ? "blocked" : "expired");
       }
       const error = new Error(data.message || "Something went wrong. Please try again.");
@@ -389,9 +423,33 @@
     if (event.persisted) window.location.reload();
   });
 
+  // ---------- Coming back from an expired page load ----------
+  // Nx.api renews quietly, but a plain page load cannot: the refresh cookie is only sent to
+  // /api/auth/refresh, so the server had to bounce us here. Try the renewal once and, if it
+  // works, carry straight on to the page that was wanted. The flag stops this ever looping.
+  const RENEW_TRIED = "nx-renew-tried";
+  function renewAfterBounce() {
+    const params = new URLSearchParams(window.location.search);
+    const expired = Boolean(document.querySelector("[data-auth]")) && params.get("reason") === "expired";
+    let tried = false;
+    try {
+      tried = sessionStorage.getItem(RENEW_TRIED) === "1";
+      if (expired) sessionStorage.setItem(RENEW_TRIED, "1");
+      else sessionStorage.removeItem(RENEW_TRIED);
+    } catch {
+      /* storage blocked: fall back to showing the sign-in form */
+    }
+    if (!expired || tried) return;
+    // Only a path on this site, never another website.
+    const next = params.get("next") || "/";
+    const target = next.startsWith("/") && !next.startsWith("//") ? next : "/";
+    renewSession().then(ok => { if (ok) window.location.replace(target); });
+  }
+
   setupMenus();
   setupHeader();
   setupLogout();
   setupReveal();
   showFlash();
+  renewAfterBounce();
 })();
