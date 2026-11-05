@@ -16,37 +16,21 @@
   </div>
 
   <div class="wallet-top">
-    <section class="wallet-flip" data-wallet-flip aria-labelledby="balance-title">
-      <div class="wallet-flip-inner">
-        <div class="wallet-card wallet-face wallet-face-front">
-          <span class="wallet-shine" aria-hidden="true"></span>
-          <span class="wallet-card-icon"><%- icon('wallet') %></span>
-          <h2 id="balance-title" class="wallet-card-label">Available balance</h2>
-          <strong class="wallet-balance" data-roll="<%= balance %>" data-roll-money><%= formatPrice(balance) %></strong>
-          <dl class="wallet-sums">
-            <div><dt>Money in</dt><dd><%= formatPrice(totals.credited) %></dd></div>
-            <div><dt>Money out</dt><dd><%= formatPrice(totals.debited) %></dd></div>
-          </dl>
-          <div class="wallet-card-actions">
-            <a class="btn btn-light btn-sm" href="/products"><%- icon('cart', 'i-sm') %> Shop now</a>
-            <% if (transactions.length) { %><button type="button" class="btn btn-outline-light btn-sm" data-wallet-flip-toggle aria-pressed="false"><%- icon('history', 'i-sm') %> Recent activity</button><% } %>
-          </div>
-        </div>
-        <% if (transactions.length) { %>
-          <div class="wallet-card wallet-face wallet-face-back" aria-hidden="true">
-            <span class="wallet-card-label">Last transactions</span>
-            <ul class="wallet-mini">
-              <% transactions.slice(0, 3).forEach(function (t) { %>
-                <li><span><%= t.reason %></span><strong><%= t.type === 'credit' ? '+' : '−' %><%= formatPrice(t.amount) %></strong></li>
-              <% }) %>
-            </ul>
-            <button type="button" class="btn btn-outline-light btn-sm" data-wallet-flip-toggle tabindex="-1"><%- icon('rotate-ccw', 'i-sm') %> Back to balance</button>
-          </div>
-        <% } %>
+    <section class="wallet-card" aria-labelledby="balance-title">
+      <span class="wallet-card-icon"><%- icon('wallet') %></span>
+      <h2 id="balance-title" class="wallet-card-label">Available balance</h2>
+      <strong class="wallet-balance"><%= formatPrice(balance) %></strong>
+      <dl class="wallet-sums">
+        <div><dt>Money in</dt><dd><%= formatPrice(totals.credited) %></dd></div>
+        <div><dt>Money out</dt><dd><%= formatPrice(totals.debited) %></dd></div>
+      </dl>
+      <div class="wallet-card-actions">
+        <a class="btn btn-light btn-sm" href="/products"><%- icon('cart', 'i-sm') %> Shop now</a>
+        <% if (transactions.length) { %><a class="btn btn-outline-light btn-sm" href="#history-title"><%- icon('history', 'i-sm') %> See history</a><% } %>
       </div>
     </section>
 
-    <section class="panel referral-card" data-reveal aria-labelledby="refer-title" data-referral>
+    <section class="panel referral-card" aria-labelledby="refer-title" data-referral>
       <div class="referral-head">
         <span class="referral-icon"><%- icon('gift') %></span>
         <div>
@@ -63,17 +47,17 @@
       <div class="referral-code">
         <span class="sr-only">Your referral code</span>
         <code data-referral-code><%= referral.code %></code>
-        <button type="button" class="btn btn-ghost btn-sm" data-copy="<%= referral.code %>" data-copy-label="Code copied"><%- icon('copy', 'i-sm') %> Copy code</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-copy-code="<%= referral.code %>" data-copy-label="Code"><%- icon('copy', 'i-sm') %> Copy code</button>
       </div>
       <div class="referral-actions">
-        <button type="button" class="btn btn-primary btn-sm" data-share-link="<%= referral.link %>"><%- icon('send', 'i-sm') %> Share invite link</button>
-        <button type="button" class="btn btn-ghost btn-sm" data-copy="<%= referral.link %>" data-copy-label="Link copied"><%- icon('copy', 'i-sm') %> Copy link</button>
+        <button type="button" class="btn btn-primary btn-sm" data-referral-share data-link="<%= referral.link %>" data-code="<%= referral.code %>"><%- icon('send', 'i-sm') %> Share invite link</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-copy-code="<%= referral.link %>" data-copy-label="Link"><%- icon('copy', 'i-sm') %> Copy link</button>
       </div>
       <p class="hint"><%- icon('users', 'i-xs') %> <%= referral.joined %> <%= referral.joined === 1 ? 'friend has' : 'friends have' %> joined with your code.</p>
     </section>
   </div>
 
-  <section class="panel wallet-history" aria-labelledby="history-title" data-reveal>
+  <section class="panel wallet-history" aria-labelledby="history-title">
     <div class="panel-head panel-head-row">
       <h2 id="history-title">History</h2>
       <nav class="segmented" aria-label="Show">
@@ -86,7 +70,7 @@
     <% if (transactions.length) { %>
       <ul class="txn-list">
         <% transactions.forEach(function (t) { %>
-          <li class="txn" data-reveal>
+          <li class="txn">
             <span class="txn-icon <%= t.type === 'credit' ? 'is-in' : 'is-out' %>"><%- icon(kindIcon[t.kind] || 'wallet', 'i-sm') %></span>
             <div class="txn-body">
               <strong><%= t.reason %></strong>
@@ -109,7 +93,7 @@
         <h2><%= filters.type === 'all' ? 'No wallet activity yet' : 'Nothing here yet' %></h2>
         <p><%= filters.type === 'all' ? 'Refunds and referral rewards will show up here. Invite a friend to get started.' : 'Try showing all activity.' %></p>
         <% if (filters.type === 'all') { %>
-          <button type="button" class="btn btn-primary" data-share-link="<%= referral.link %>"><%- icon('gift', 'i-sm') %> Invite a friend</button>
+          <button type="button" class="btn btn-primary" data-referral-share data-link="<%= referral.link %>" data-code="<%= referral.code %>"><%- icon('gift', 'i-sm') %> Invite a friend</button>
         <% } else { %>
           <a class="btn btn-primary" href="/wallet">Show all activity</a>
         <% } %>
@@ -118,4 +102,4 @@
   </section>
 </div>
 
-<%- include('../partials/account-end', { scripts: ['wallet'] }) %>
+<%- include('../partials/account-end') %>

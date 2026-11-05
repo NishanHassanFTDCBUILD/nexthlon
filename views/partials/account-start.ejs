@@ -1,8 +1,8 @@
 <%#
-  The My Account shell: a glass sidebar on wide screens, a sliding tab bar on phones, and the
+  The My Account shell: a sidebar on wide screens, a horizontal tab bar on phones, and the
   section's content. Usage: include('../partials/account-start', { section: 'orders' }) ... then
-  include('../partials/account-end', { scripts: [...] }). Every link is a normal link; moving
-  between sections animates with cross-page View Transitions where the browser supports them.
+  include('../partials/account-end'). Account pages are calm on purpose: no store motion is loaded
+  (res.locals.motion is false) and the active section has a static volt highlight.
 %>
 <%- include('head', { styles: ['account'], bodyClass: 'acct-body' }) %>
 <%- include('header') %>
@@ -31,6 +31,8 @@
     ] }
   ];
   const activeSection = typeof section !== 'undefined' ? section : '';
+  // The section's script in account.js (window.NxPages[name]); order and ticket pages name their own.
+  const pageName = typeof acctPage !== 'undefined' ? acctPage : 'account-' + activeSection;
 %>
 <main id="main" class="container page acct" data-acct>
   <div class="acct-layout">
@@ -40,13 +42,13 @@
         <span class="acct-me-text"><strong><%= currentUser.name %></strong><small><%= currentUser.email %></small></span>
       </a>
       <nav class="acct-nav" aria-label="Account sections" data-acct-nav>
-        <span class="acct-indicator" data-acct-indicator aria-hidden="true"></span>
         <% accountNav.forEach(function (group) { %>
           <% if (group.group) { %><span class="acct-nav-group"><%= group.group %></span><% } %>
           <% group.items.forEach(function (item) { %>
-            <a class="acct-link<%= activeSection === item.key ? ' is-active' : '' %>" href="<%= item.href %>" <%- activeSection === item.key ? 'aria-current="page"' : '' %>><%- icon(item.icon, 'i-sm') %><span><%= item.label %></span></a>
+            <a class="acct-link<%= activeSection === item.key ? ' is-active' : '' %>" href="<%= item.href %>" data-acct-link="<%= item.key %>" <%- activeSection === item.key ? 'aria-current="page"' : '' %>><%- icon(item.icon, 'i-sm') %><span><%= item.label %></span></a>
           <% }) %>
         <% }) %>
       </nav>
     </aside>
     <div class="acct-main" data-acct-main>
+      <div class="acct-content" data-acct-page="<%= pageName %>" data-acct-section="<%= activeSection %>">

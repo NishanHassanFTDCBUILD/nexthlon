@@ -1,12 +1,12 @@
 <%- include('../partials/account-start', { section: 'reviews' }) %>
-<div class="acct-page-head" data-rise>
+<div class="acct-page-head">
   <span class="label-caps">Shopping</span>
   <h1>Your reviews</h1>
   <p class="muted">Your reviews help other athletes choose. You can edit or delete them at any time.</p>
 </div>
 
 <% if (waiting.length) { %>
-  <section class="panel acct-section" aria-labelledby="waiting-title" data-rise>
+  <section class="panel acct-section" aria-labelledby="waiting-title">
     <div class="acct-section-head">
       <h2 id="waiting-title">Waiting for your review <span class="count-chip"><%= waiting.length %></span></h2>
     </div>
@@ -27,7 +27,7 @@
   <% if (mine.length) { %>
     <div class="review-list">
       <% mine.forEach(function (r, i) { %>
-        <article class="panel review-mine" data-review="<%= r.id %>" data-rise style="--rise: <%= Math.min(i, 8) %>">
+        <article class="panel review-mine" data-review="<%= r.id %>">
           <a class="review-mine-product" href="/products/<%= r.product.slug %>"><img src="<%= r.product.image %>" alt="" width="64" height="64" loading="lazy"><span><%= r.product.name %></span></a>
           <div class="review-mine-view" data-review-view>
             <span class="rating" style="--rating: <%= r.rating %>" role="img" aria-label="Rated <%= r.rating %> out of 5"></span>

@@ -16,7 +16,8 @@
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/motion.css">
+  <%# The store's motion layer. My Account pages turn it off (res.locals.motion = false). %>
+  <% if (typeof motion === 'undefined' || motion !== false) { %><link rel="stylesheet" href="/css/motion.css"><% } %>
   <% (typeof styles !== 'undefined' ? styles : []).forEach(function (name) { %><link rel="stylesheet" href="/css/<%= name %>.css">
   <% }) %>
 </head>

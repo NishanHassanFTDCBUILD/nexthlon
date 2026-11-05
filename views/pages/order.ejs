@@ -11,12 +11,11 @@
   const methodLabel = order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod === 'wallet' ? 'Nexthlon wallet' : 'UPI, card or net banking';
   const timeText = function (value) { return value ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).format(new Date(value)) : ''; };
 %>
-<%- include('../partials/account-start', { section: 'orders' }) %>
+<%- include('../partials/account-start', { section: 'orders', acctPage: 'account-order' }) %>
 <div class="order-detail" data-order data-order-id="<%= order.orderId %>" data-paid="<%= ['paid', 'partially_refunded'].includes(order.paymentStatus) || order.walletUsed > 0 ? 'true' : 'false' %>" data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || order.address.phone %>">
   <a class="back-link" href="/account/orders"><%- icon('chevron-left', 'i-xs') %> Your orders</a>
 
   <div class="page-head">
-    <span class="pkg3d" aria-hidden="true"><span class="pkg3d-cube"><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
     <div>
       <h1>Order <%= order.orderId %></h1>
       <p class="muted order-head-meta">Placed on <%= formatDate(order.createdAt) %> · <span class="pill <%= pillFor(order.orderStatus) %>"><%= labels[order.orderStatus] %></span> <%- include('../partials/pay-status', { status: order.paymentStatus, method: order.paymentMethod }) %></p>
@@ -40,7 +39,7 @@
     <div class="order-main">
       <section class="section-box" aria-labelledby="track-title">
         <h2 id="track-title" class="panel-title">Tracking</h2>
-        <ol class="timeline" data-timeline>
+        <ol class="timeline">
           <% timeline.forEach(function (step) { %>
             <li class="timeline-step <%= step.done ? 'is-done' : '' %> <%= ['cancelled', 'return_requested', 'returned'].includes(step.status) ? 'is-alert' : '' %>" <%- step.status === order.orderStatus ? 'aria-current="step"' : '' %>>
               <span class="timeline-dot" aria-hidden="true"><% if (step.done) { %><%- icon(step.status === 'cancelled' ? 'x' : 'check', 'i-xs') %><% } %></span>
@@ -172,4 +171,4 @@
 <% } %>
 
 <% if (canRetryPayment) { %><%- include('../partials/pay-overlay') %><% } %>
-<%- include('../partials/account-end', { scripts: canRetryPayment ? ['confetti', 'payment', 'orders'] : ['orders'], razorpay: canRetryPayment }) %>
+<%- include('../partials/account-end', { scripts: canRetryPayment ? ['payment'] : [], razorpay: canRetryPayment }) %>

@@ -1,11 +1,11 @@
 <%- include('../partials/account-start', { section: 'help' }) %>
-<div class="acct-page-head" data-rise>
+<div class="acct-page-head">
   <span class="label-caps">Account</span>
   <h1>Help &amp; support</h1>
   <p class="muted">Ask us anything. Link an order and we can sort it out faster. Replies show up here.</p>
 </div>
 
-<section class="panel acct-section" aria-labelledby="new-ticket-title" data-rise>
+<section class="panel acct-section" aria-labelledby="new-ticket-title">
   <h2 class="acct-h2" id="new-ticket-title">Start a new request</h2>
   <form class="form form-grid" data-ticket-form novalidate>
     <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
@@ -50,7 +50,7 @@
   <% if (tickets.length) { %>
     <ul class="ticket-list">
       <% tickets.forEach(function (t, i) { %>
-        <li data-rise style="--rise: <%= Math.min(i, 8) %>">
+        <li>
           <a class="ticket-row" href="/account/help/<%= t.ticketId %>">
             <span class="ticket-row-main"><strong><%= t.subject %></strong><small class="muted"><%= t.ticketId %> · <%= t.topic %><%= t.orderId ? ' · ' + t.orderId : '' %> · updated <%= formatDate(t.updatedAt) %></small></span>
             <span class="status-pill status-<%= t.status %>"><span class="status-dot" aria-hidden="true"></span><%= t.status === 'pending' ? 'Replied' : t.status === 'open' ? 'Open' : 'Resolved' %></span>

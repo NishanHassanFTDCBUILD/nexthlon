@@ -1,11 +1,11 @@
 <%- include('../partials/account-start', { section: 'security' }) %>
-<div class="acct-page-head" data-rise>
+<div class="acct-page-head">
   <span class="label-caps">Account</span>
   <h1>Login &amp; security</h1>
   <p class="muted">Your name, sign-in email and password, where you're signed in, and your account.</p>
 </div>
 
-<section class="panel acct-section" id="details" aria-labelledby="details-title" data-rise>
+<section class="panel acct-section" id="details" aria-labelledby="details-title">
   <div class="acct-section-head"><h2 id="details-title">Name and phone</h2></div>
   <form class="form form-grid" data-profile-form novalidate>
     <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
@@ -23,7 +23,7 @@
   </form>
 </section>
 
-<section class="panel acct-section" id="email" aria-labelledby="email-title" data-rise>
+<section class="panel acct-section" id="email" aria-labelledby="email-title">
   <div class="acct-section-head">
     <div><h2 id="email-title">Sign-in email</h2><small class="muted">Currently <strong><%= currentUser.email %></strong></small></div>
   </div>
@@ -43,7 +43,7 @@
   </form>
 </section>
 
-<section class="panel acct-section" id="password" aria-labelledby="password-title" data-rise>
+<section class="panel acct-section" id="password" aria-labelledby="password-title">
   <div class="acct-section-head">
     <div><h2 id="password-title">Password</h2><small class="muted">Changing it signs you out on every other device.</small></div>
   </div>
@@ -80,7 +80,7 @@
   </form>
 </section>
 
-<section class="panel acct-section" id="activity" aria-labelledby="activity-title" data-rise>
+<section class="panel acct-section" id="activity" aria-labelledby="activity-title">
   <div class="acct-section-head">
     <div><h2 id="activity-title">Recent sign-ins</h2><small class="muted">The last <%= activity.length %> times your account was signed in to. IP addresses are partly hidden.</small></div>
     <button type="button" class="btn btn-ghost btn-sm" data-logout-all><%- icon('logout', 'i-xs') %> Log out of all devices</button>
@@ -96,7 +96,7 @@
   <% } %>
 </section>
 
-<section class="panel acct-section acct-danger" id="delete" aria-labelledby="delete-title" data-rise>
+<section class="panel acct-section acct-danger" id="delete" aria-labelledby="delete-title">
   <div class="acct-section-head">
     <div><h2 id="delete-title">Delete your account</h2><small class="muted">You will be signed out and won't be able to sign in again. Your order records are kept for invoices and returns.</small></div>
   </div>
@@ -115,4 +115,4 @@
     <div class="form-actions"><button class="btn btn-danger" type="submit"><%- icon('trash', 'i-xs') %> Delete my account</button></div>
   </form>
 </section>
-<%- include('../partials/account-end', { scripts: ['auth', 'profile'] }) %>
+<%- include('../partials/account-end') %>

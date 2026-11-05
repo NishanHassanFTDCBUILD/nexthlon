@@ -25,11 +25,11 @@
         <a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="page"' : '' %>><%= label %></a>
       <% }) %>
     </nav>
-    <form class="orders-search" action="/orders" method="get" role="search" data-auto-submit>
+    <form class="orders-search" action="/orders" method="get" role="search" data-orders-filter>
       <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
       <span class="select-wrap">
         <label class="sr-only" for="order-period">Time</label>
-        <select id="order-period" name="period" data-auto-submit-field>
+        <select id="order-period" name="period">
           <% periods.forEach(function ([key, label]) { %><option value="<%= key %>" <%= filters.period === key ? 'selected' : '' %>><%= label %></option><% }) %>
         </select>
         <%- icon('chevron-down', 'i-xs') %>
@@ -87,4 +87,4 @@
   <% } %>
 </div>
 
-<%- include('../partials/account-end', { scripts: ['catalog'] }) %>
+<%- include('../partials/account-end') %>

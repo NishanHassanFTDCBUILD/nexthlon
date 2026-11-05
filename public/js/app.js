@@ -358,16 +358,16 @@
   }
 
   // ---------- Show/hide password ----------
+  // One delegated listener, so buttons in content swapped in later (My Account) work too.
   function setupReveal() {
-    document.querySelectorAll("[data-reveal]").forEach(button => {
-      const input = document.getElementById(button.dataset.reveal);
+    document.addEventListener("click", event => {
+      const button = event.target instanceof Element ? event.target.closest("button[data-reveal]") : null;
+      const input = button && document.getElementById(button.dataset.reveal);
       if (!input) return;
-      button.addEventListener("click", () => {
-        const show = input.type === "password";
-        input.type = show ? "text" : "password";
-        button.setAttribute("aria-label", show ? "Hide password" : "Show password");
-        button.innerHTML = iconSvg(show ? "eye-off" : "eye");
-      });
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      button.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      button.innerHTML = iconSvg(show ? "eye-off" : "eye");
     });
   }
 

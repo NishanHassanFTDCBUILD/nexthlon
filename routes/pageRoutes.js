@@ -2,6 +2,10 @@ const router = require("express").Router();
 const pages = require("../controllers/pageController");
 const account = require("../controllers/accountPageController");
 const { customerPage, adminPage, guestOnly } = require("../middleware/auth");
+const { accountShell } = require("../middleware/accountShell");
+
+// My Account pages: signed-in customers only, without the store's motion layer.
+const accountPage = [customerPage, accountShell];
 
 // Store
 router.get("/", pages.home);
@@ -20,24 +24,24 @@ router.get("/shipping-policy", pages.infoPage("shipping"));
 router.get("/login", guestOnly, pages.login);
 router.get("/signup", guestOnly, pages.signup);
 // My Account. The older short URLs (/profile, /orders, /wallet, /wishlist) still work.
-router.get("/account", customerPage, account.overview);
-router.get(["/account/addresses", "/profile"], customerPage, pages.profile);
-router.get("/account/buy-again", customerPage, account.buyAgain);
-router.get("/account/coupons", customerPage, account.coupons);
-router.get(["/account/lists", "/wishlist"], customerPage, account.lists);
-router.get("/account/reviews", customerPage, account.reviews);
-router.get("/account/recent", customerPage, account.recent);
-router.get("/account/security", customerPage, account.security);
-router.get("/account/notifications", customerPage, account.notifications);
-router.get("/account/referral", customerPage, account.referral);
-router.get("/account/help", customerPage, account.help);
-router.get("/account/help/:ticketId", customerPage, account.ticket);
+router.get("/account", accountPage, account.overview);
+router.get(["/account/addresses", "/profile"], accountPage, pages.profile);
+router.get("/account/buy-again", accountPage, account.buyAgain);
+router.get("/account/coupons", accountPage, account.coupons);
+router.get(["/account/lists", "/wishlist"], accountPage, account.lists);
+router.get("/account/reviews", accountPage, account.reviews);
+router.get("/account/recent", accountPage, account.recent);
+router.get("/account/security", accountPage, account.security);
+router.get("/account/notifications", accountPage, account.notifications);
+router.get("/account/referral", accountPage, account.referral);
+router.get("/account/help", accountPage, account.help);
+router.get("/account/help/:ticketId", accountPage, account.ticket);
 router.get("/lists/:shareId", account.sharedList);
 router.get("/cart", customerPage, pages.cart);
 router.get("/checkout", customerPage, pages.checkout);
-router.get(["/account/orders", "/orders"], customerPage, pages.orders);
-router.get(["/account/wallet", "/wallet"], customerPage, pages.wallet);
-router.get("/orders/:orderId", customerPage, pages.orderDetail);
+router.get(["/account/orders", "/orders"], accountPage, pages.orders);
+router.get(["/account/wallet", "/wallet"], accountPage, pages.wallet);
+router.get("/orders/:orderId", accountPage, pages.orderDetail);
 router.get("/orders/:orderId/success", customerPage, pages.orderSuccess);
 router.get("/orders/:orderId/invoice", customerPage, pages.orderInvoice);
 

@@ -1,6 +1,6 @@
 <%- include('../partials/account-start', { section: 'lists' }) %>
 <% const all = [wishlist].concat(lists); %>
-<div class="acct-page-head acct-page-head-row" data-rise>
+<div class="acct-page-head acct-page-head-row">
   <div>
     <span class="label-caps">Shopping</span>
     <h1>Wishlist &amp; lists</h1>
@@ -21,7 +21,7 @@
 </div>
 
 <% all.forEach(function (l) { %>
-  <section class="panel acct-section list-block" data-list="<%= l.id %>" aria-labelledby="list-<%= l.id %>-title" data-rise>
+  <section class="panel acct-section list-block" data-list="<%= l.id %>" aria-labelledby="list-<%= l.id %>-title">
     <div class="acct-section-head">
       <div>
         <h2 id="list-<%= l.id %>-title"><%= l.name %></h2>
@@ -49,7 +49,7 @@
     <% if (l.items.length) { %>
       <div class="acct-grid list-items">
         <% l.items.forEach(function (item, i) { %>
-          <article class="list-item<%= item.available ? '' : ' is-unavailable' %>" draggable="true" data-list-item="<%= item.productId %>" data-from="<%= l.id %>" data-acct-tilt style="--rise: <%= Math.min(i, 8) %>">
+          <article class="list-item<%= item.available ? '' : ' is-unavailable' %>" draggable="true" data-list-item="<%= item.productId %>" data-from="<%= l.id %>">
             <a class="list-item-media" href="/products/<%= item.slug %>" draggable="false"><img src="<%= item.image %>" alt="<%= item.name %>" width="240" height="240" loading="lazy" decoding="async" draggable="false"></a>
             <div class="list-item-body">
               <a class="list-item-name" href="/products/<%= item.slug %>" draggable="false"><%= item.name %></a>
@@ -57,7 +57,7 @@
               <% if (!item.available) { %><span class="pill pill-red"><%= item.reason %></span><% } %>
               <div class="list-item-actions">
                 <% if (item.available) { %><button type="button" class="btn btn-primary btn-xs" data-list-cart="<%= item.productId %>"><%- icon('cart', 'i-xs') %> Move to cart</button><% } %>
-                <button type="button" class="icon-btn icon-btn-sm heart-pop" data-list-remove="<%= item.productId %>" aria-label="Remove <%= item.name %> from <%= l.name %>"><%- icon('heart', 'i-sm') %></button>
+                <button type="button" class="icon-btn icon-btn-sm" data-list-remove="<%= item.productId %>" aria-label="Remove <%= item.name %> from <%= l.name %>"><%- icon('heart', 'i-sm') %></button>
                 <% if (all.length > 1) { %>
                   <span class="select-wrap select-xs">
                     <label class="sr-only" for="move-<%= l.id %>-<%= item.productId %>">Move <%= item.name %> to another list</label>

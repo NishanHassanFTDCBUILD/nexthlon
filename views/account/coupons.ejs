@@ -1,5 +1,5 @@
 <%- include('../partials/account-start', { section: 'coupons' }) %>
-<div class="acct-page-head" data-rise>
+<div class="acct-page-head">
   <span class="label-caps">Payments</span>
   <h1>Coupons &amp; offers</h1>
   <p class="muted">Copy a code and paste it at checkout. Each code shows when it ends.</p>
@@ -10,7 +10,7 @@
   <% if (available.length) { %>
     <div class="ticket-grid">
       <% available.forEach(function (c, i) { %>
-        <article class="ticket" data-rise style="--rise: <%= i %>">
+        <article class="ticket">
           <div class="ticket-main">
             <span class="ticket-value"><%= c.type === 'percent' ? c.value + '%' : formatPrice(c.value) %><small>OFF</small></span>
             <p class="ticket-title"><%= c.title %></p>
@@ -59,4 +59,4 @@
     </div>
   </section>
 <% } %>
-<%- include('../partials/account-end', { scripts: ['confetti'] }) %>
+<%- include('../partials/account-end') %>

@@ -1,5 +1,5 @@
 <%- include('../partials/account-start', { section: 'addresses' }) %>
-<section class="panel acct-section" data-rise id="addresses" aria-labelledby="addresses-title">
+<section class="panel acct-section" id="addresses" aria-labelledby="addresses-title">
   <div class="panel-head">
     <span class="panel-icon"><%- icon('pin') %></span>
     <div>
@@ -17,7 +17,7 @@
       </button>
     <% } %>
     <% addresses.forEach(function (a) { %>
-      <article data-reveal class="address-card <%= a.isDefault ? 'is-default' : '' %>" aria-label="Address for <%= a.fullName %><%= a.isDefault ? ', default' : '' %>">
+      <article class="address-card <%= a.isDefault ? 'is-default' : '' %>" aria-label="Address for <%= a.fullName %><%= a.isDefault ? ', default' : '' %>">
         <div class="address-card-head">
           <h3><%= a.fullName %></h3>
           <span class="address-type-pill"><%- icon(a.type === 'work' ? 'box' : a.type === 'other' ? 'pin' : 'home', 'i-xs') %> <%= a.type === 'work' ? 'Work' : a.type === 'other' ? 'Other' : 'Home' %></span>
@@ -47,4 +47,4 @@
 
 
 <%- include('../partials/address-dialog') %>
-<%- include('../partials/account-end', { scripts: ['profile'] }) %>
+<%- include('../partials/account-end') %>
