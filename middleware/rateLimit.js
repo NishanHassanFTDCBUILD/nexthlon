@@ -30,4 +30,15 @@ const reviewLimiter = rateLimit({
   message: { message: "Too many reviews in a short time. Please try again later." }
 });
 
-module.exports = { authLimiter, formLimiter, reviewLimiter };
+// Sensitive account actions (change email or password, sign out everywhere, delete the account,
+// support requests): 15 per 15 minutes for each signed-in account (or IP address).
+const sensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: req => (req.user ? `user:${req.user._id}` : `ip:${req.ip}`),
+  message: { message: "Too many changes in a short time. Please wait a few minutes and try again." }
+});
+
+module.exports = { authLimiter, formLimiter, reviewLimiter, sensitiveLimiter };

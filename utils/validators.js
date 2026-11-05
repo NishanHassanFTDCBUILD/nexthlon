@@ -97,6 +97,7 @@ function validateAddress(body = {}) {
     city: text(body.city),
     state: text(body.state),
     pincode: text(body.pincode),
+    type: ["home", "work", "other"].includes(text(body.type).toLowerCase()) ? text(body.type).toLowerCase() : "home",
     isDefault: body.isDefault === true || body.isDefault === "true" || body.isDefault === "on"
   };
 
@@ -273,6 +274,78 @@ function validateReferralSetting(body = {}) {
   return { errors, value: { referralReward } };
 }
 
+// ---------- My Account ----------
+
+// Changing the sign-in email needs the current password.
+function validateEmailChange(body = {}) {
+  const errors = {};
+  const email = text(body.email).toLowerCase();
+  const password = typeof body.password === "string" ? body.password : "";
+  if (!EMAIL.test(email) || email.length > 254) errors.email = "Enter a valid email address.";
+  if (!password || password.length > 64) errors.password = "Enter your current password.";
+  return { errors, value: { email, password } };
+}
+
+// Notification switches: only these three keys are read, and only true/false.
+const PREFERENCE_KEYS = ["orderUpdates", "offers", "newsletter"];
+function validatePreferences(body = {}) {
+  const errors = {};
+  const value = {};
+  PREFERENCE_KEYS.forEach(key => {
+    if (body[key] === undefined) return;
+    if (typeof body[key] !== "boolean") errors[key] = "Choose on or off.";
+    else value[key] = body[key];
+  });
+  if (!Object.keys(value).length && !hasErrors(errors)) errors.form = "Nothing to change.";
+  return { errors, value };
+}
+
+function validateListName(body = {}) {
+  const errors = {};
+  const name = text(body.name);
+  if (name.length < 1 || name.length > 40) errors.name = "Give the list a name of up to 40 characters.";
+  else if (/^(wishlist|your wishlist|default)$/i.test(name)) errors.name = "Choose a name other than Wishlist.";
+  return { errors, value: { name } };
+}
+
+// A help request. orderId is optional; the service checks that the order belongs to the customer.
+function validateTicket(body = {}, topics = []) {
+  const errors = {};
+  const value = {
+    topic: text(body.topic),
+    subject: text(body.subject),
+    message: longText(body.message),
+    orderId: text(body.orderId).toUpperCase()
+  };
+  if (!topics.includes(value.topic)) errors.topic = "Choose what it is about.";
+  if (value.subject.length < 4 || value.subject.length > 100) errors.subject = "Write a short subject (4 to 100 characters).";
+  if (value.message.length < 10 || value.message.length > 2000) errors.message = "Tell us more (10 to 2000 characters).";
+  if (value.orderId && !/^[A-Z0-9-]{4,30}$/.test(value.orderId)) errors.orderId = "Choose one of your orders.";
+  return { errors, value };
+}
+
+function validateTicketReply(body = {}, statuses = null) {
+  const errors = {};
+  const value = { message: longText(body.message) };
+  if (value.message.length < 2 || value.message.length > 2000) errors.message = "Write a reply of 2 to 2000 characters.";
+  if (statuses) {
+    const status = text(body.status);
+    if (status && !statuses.includes(status)) errors.status = "Choose a valid status.";
+    value.status = status || null;
+  }
+  return { errors, value };
+}
+
+// Deleting the account needs the password and the word DELETE typed out.
+function validateDeleteAccount(body = {}) {
+  const errors = {};
+  const password = typeof body.password === "string" ? body.password : "";
+  const confirm = text(body.confirm).toUpperCase();
+  if (!password || password.length > 64) errors.password = "Enter your password.";
+  if (confirm !== "DELETE") errors.confirm = "Type DELETE to confirm.";
+  return { errors, value: { password } };
+}
+
 module.exports = {
   hasErrors,
   readFlag,
@@ -293,5 +366,12 @@ module.exports = {
   validateAddress,
   validateProduct,
   validateCartItem,
-  validateCartQuantity
+  validateCartQuantity,
+  validateEmailChange,
+  validatePreferences,
+  validateListName,
+  validateTicket,
+  validateTicketReply,
+  validateDeleteAccount,
+  checkPassword
 };

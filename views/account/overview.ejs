@@ -1,0 +1,82 @@
+<%- include('../partials/account-start', { section: 'overview' }) %>
+<%
+  const stepOf = { placed: 0, confirmed: 1, shipped: 2, out_for_delivery: 3, delivered: 4 };
+  const tiles = [
+    { key: 'orders', label: 'Orders', value: stats.orders, href: '/account/orders', icon: 'package-check', note: stats.openOrders ? stats.openOrders + ' on the way' : 'All caught up' },
+    { key: 'wallet', label: 'Wallet balance', value: stats.wallet, money: true, href: '/account/wallet', icon: 'wallet', note: 'Use it at checkout' },
+    { key: 'wishlist', label: 'Wishlist', value: stats.wishlist, href: '/account/lists', icon: 'heart', note: 'Saved for later' },
+    { key: 'coupons', label: 'Active coupons', value: stats.coupons, href: '/account/coupons', icon: 'ticket', note: 'Ready to use' },
+    { key: 'reviews', label: 'Reviews written', value: stats.reviews, href: '/account/reviews', icon: 'star', note: 'Thanks for helping others' }
+  ];
+%>
+<section class="acct-hero" aria-labelledby="acct-hello">
+  <div class="acct-card3d" data-acct-tilt>
+    <span class="acct-card3d-shine" aria-hidden="true"></span>
+    <span class="acct-avatar-ring" aria-hidden="true"><span class="avatar avatar-lg"><%= currentUser.name.charAt(0).toUpperCase() %></span></span>
+    <div class="acct-card3d-text">
+      <span class="label-caps">Your account</span>
+      <h1 id="acct-hello">Hello, <%= firstName(currentUser.name) %></h1>
+      <p class="muted">Member since <%= formatDate(currentUser.createdAt) %></p>
+      <span class="acct-badge acct-badge-<%= memberTier.toLowerCase() %>"><%- icon('award', 'i-xs') %> Nexthlon <%= memberTier %></span>
+    </div>
+  </div>
+
+  <div class="acct-bento">
+    <% tiles.forEach(function (t, i) { %>
+      <a class="acct-tile acct-tile-<%= t.key %>" href="<%= t.href %>" data-acct-tilt data-rise style="--rise: <%= i %>">
+        <span class="acct-tile-icon"><%- icon(t.icon) %></span>
+        <span class="acct-tile-value" data-roll="<%= t.value %>" <%- t.money ? 'data-roll-money' : '' %>><%= t.money ? formatPrice(t.value) : t.value %></span>
+        <span class="acct-tile-label"><%= t.label %></span>
+        <small class="acct-tile-note"><%= t.note %></small>
+      </a>
+    <% }) %>
+  </div>
+</section>
+
+<section class="panel acct-section" aria-labelledby="last-order-title" data-rise>
+  <div class="acct-section-head">
+    <h2 id="last-order-title">Your last order</h2>
+    <a class="section-link" href="/account/orders">All orders <%- icon('chevron-right', 'i-sm') %></a>
+  </div>
+  <% if (lastOrder) { %>
+    <% const step = stepOf[lastOrder.orderStatus]; %>
+    <a class="acct-last-order" href="/orders/<%= lastOrder.orderId %>">
+      <span class="acct-last-thumbs">
+        <% lastOrder.items.slice(0, 3).forEach(function (item) { %><img src="<%= item.image %>" alt="" width="64" height="64" loading="lazy"><% }) %>
+      </span>
+      <span class="acct-last-body">
+        <strong><%= lastOrder.orderId %></strong>
+        <small class="muted">Placed <%= formatDate(lastOrder.createdAt) %> · <%= lastOrder.items.length %> <%= lastOrder.items.length === 1 ? 'item' : 'items' %> · <%= formatPrice(lastOrder.total) %></small>
+        <span class="status-pill status-<%= lastOrder.orderStatus %>"><span class="status-dot" aria-hidden="true"></span><%= labels[lastOrder.orderStatus] || lastOrder.orderStatus %></span>
+      </span>
+      <% if (step !== undefined) { %>
+        <span class="acct-mini-track" aria-hidden="true" style="--step: <%= step %>">
+          <% ['Placed', 'Confirmed', 'Shipped', 'Out', 'Delivered'].forEach(function (label, i) { %><span class="<%= i <= step ? 'is-done' : '' %>"><i></i><%= label %></span><% }) %>
+        </span>
+      <% } %>
+    </a>
+  <% } else { %>
+    <%- include('../partials/account-empty', { art: 'box', title: 'No orders yet', text: 'Your first order will show up here with live tracking.', href: '/products', cta: 'Start shopping' }) %>
+  <% } %>
+</section>
+
+<% if (recent.length) { %>
+  <section class="panel acct-section" aria-labelledby="recent-title" data-rise>
+    <div class="acct-section-head">
+      <h2 id="recent-title">Recently viewed</h2>
+      <a class="section-link" href="/account/recent">See all <%- icon('chevron-right', 'i-sm') %></a>
+    </div>
+    <%- include('../partials/account-products', { products: recent }) %>
+  </section>
+<% } %>
+
+<% if (recommended.length) { %>
+  <section class="panel acct-section" aria-labelledby="picks-title" data-rise>
+    <div class="acct-section-head">
+      <h2 id="picks-title">Picked for you</h2>
+      <a class="section-link" href="/products">Browse all <%- icon('chevron-right', 'i-sm') %></a>
+    </div>
+    <%- include('../partials/account-products', { products: recommended }) %>
+  </section>
+<% } %>
+<%- include('../partials/account-end') %>

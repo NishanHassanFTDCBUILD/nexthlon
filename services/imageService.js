@@ -5,8 +5,10 @@ const path = require("path");
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+// Uploads live in public/uploads/<folder>: products (admin photos) and returns (customer photos).
+const FOLDERS = new Set(["products", "returns"]);
 const UPLOAD_DIR = path.join(__dirname, "..", "public", "uploads", "products");
-const PUBLIC_PREFIX = "/uploads/products/";
+const MAX_RETURN_PHOTOS = 3;
 
 // Works out the real image type from the first bytes of the file, not from its name.
 function detectImageType(buffer) {
@@ -23,15 +25,17 @@ function findFakeImages(files = []) {
 }
 
 // Saves checked uploads with random names and returns their public URLs, in the same order.
-async function saveImages(files = []) {
+async function saveImages(files = [], folder = "products") {
   if (!files.length) return [];
-  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  if (!FOLDERS.has(folder)) throw new Error(`Unknown upload folder: ${folder}`);
+  const dir = path.join(__dirname, "..", "public", "uploads", folder);
+  await fs.mkdir(dir, { recursive: true });
   const urls = [];
   for (const file of files) {
     const type = detectImageType(file.buffer);
     const name = `${crypto.randomBytes(16).toString("hex")}.${type}`;
-    await fs.writeFile(path.join(UPLOAD_DIR, name), file.buffer, { flag: "wx" });
-    urls.push(PUBLIC_PREFIX + name);
+    await fs.writeFile(path.join(dir, name), file.buffer, { flag: "wx" });
+    urls.push(`/uploads/${folder}/${name}`);
   }
   return urls;
 }
@@ -49,6 +53,7 @@ async function deleteImages(urls = []) {
 
 module.exports = {
   MAX_IMAGES,
+  MAX_RETURN_PHOTOS,
   MAX_IMAGE_BYTES,
   ALLOWED_TYPES,
   detectImageType,

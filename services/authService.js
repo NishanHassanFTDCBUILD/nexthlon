@@ -44,7 +44,8 @@ async function registerCustomer({ name, email, password, referralCode = "" }) {
 async function authenticate({ email, password }, expectedRole) {
   const user = await User.findOne({ email }).select("+passwordHash");
   const passwordMatches = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
-  if (!user || !passwordMatches) {
+  // A deleted account answers exactly like a wrong password.
+  if (!user || !passwordMatches || user.isDeleted) {
     throw new HttpError(401, "Incorrect email or password.");
   }
   if (user.role !== expectedRole) {

@@ -1,0 +1,15 @@
+<%- include('../partials/account-start', { section: 'recent' }) %>
+<div class="acct-page-head acct-page-head-row" data-rise>
+  <div>
+    <span class="label-caps">Shopping</span>
+    <h1>Recently viewed</h1>
+    <p class="muted">The last <%= products.length %> products you looked at, on every device you sign in on.</p>
+  </div>
+  <% if (products.length) { %><button type="button" class="btn btn-ghost btn-sm" data-clear-recent><%- icon('trash', 'i-xs') %> Clear history</button><% } %>
+</div>
+<% if (products.length) { %>
+  <%- include('../partials/account-products', { products: products }) %>
+<% } else { %>
+  <%- include('../partials/account-empty', { art: 'clock', title: 'Nothing viewed yet', text: 'Products you open while signed in are kept here, so you can find them again on any device.', href: '/products', cta: 'Browse gear' }) %>
+<% } %>
+<%- include('../partials/account-end') %>

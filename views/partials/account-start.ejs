@@ -1,0 +1,52 @@
+<%#
+  The My Account shell: a glass sidebar on wide screens, a sliding tab bar on phones, and the
+  section's content. Usage: include('../partials/account-start', { section: 'orders' }) ... then
+  include('../partials/account-end', { scripts: [...] }). Every link is a normal link; moving
+  between sections animates with cross-page View Transitions where the browser supports them.
+%>
+<%- include('head', { styles: ['account'], bodyClass: 'acct-body' }) %>
+<%- include('header') %>
+<%
+  const accountNav = [
+    { group: '', items: [{ key: 'overview', href: '/account', icon: 'grid', label: 'Overview' }] },
+    { group: 'Orders', items: [
+      { key: 'orders', href: '/account/orders', icon: 'package-check', label: 'Your orders' },
+      { key: 'buy-again', href: '/account/buy-again', icon: 'rotate-ccw', label: 'Buy it again' }
+    ] },
+    { group: 'Payments', items: [
+      { key: 'wallet', href: '/account/wallet', icon: 'wallet', label: 'Wallet' },
+      { key: 'coupons', href: '/account/coupons', icon: 'ticket', label: 'Coupons & offers' }
+    ] },
+    { group: 'Shopping', items: [
+      { key: 'lists', href: '/account/lists', icon: 'heart', label: 'Wishlist & lists' },
+      { key: 'reviews', href: '/account/reviews', icon: 'star', label: 'Your reviews' },
+      { key: 'recent', href: '/account/recent', icon: 'history', label: 'Recently viewed' }
+    ] },
+    { group: 'Account', items: [
+      { key: 'addresses', href: '/account/addresses', icon: 'pin', label: 'Addresses' },
+      { key: 'security', href: '/account/security', icon: 'lock', label: 'Login & security' },
+      { key: 'notifications', href: '/account/notifications', icon: 'mail', label: 'Notifications' },
+      { key: 'referral', href: '/account/referral', icon: 'gift', label: 'Refer a friend' },
+      { key: 'help', href: '/account/help', icon: 'headset', label: 'Help & support' }
+    ] }
+  ];
+  const activeSection = typeof section !== 'undefined' ? section : '';
+%>
+<main id="main" class="container page acct" data-acct>
+  <div class="acct-layout">
+    <aside class="acct-side" aria-label="Your account">
+      <a class="acct-me" href="/account">
+        <span class="avatar acct-me-avatar" aria-hidden="true"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+        <span class="acct-me-text"><strong><%= currentUser.name %></strong><small><%= currentUser.email %></small></span>
+      </a>
+      <nav class="acct-nav" aria-label="Account sections" data-acct-nav>
+        <span class="acct-indicator" data-acct-indicator aria-hidden="true"></span>
+        <% accountNav.forEach(function (group) { %>
+          <% if (group.group) { %><span class="acct-nav-group"><%= group.group %></span><% } %>
+          <% group.items.forEach(function (item) { %>
+            <a class="acct-link<%= activeSection === item.key ? ' is-active' : '' %>" href="<%= item.href %>" <%- activeSection === item.key ? 'aria-current="page"' : '' %>><%- icon(item.icon, 'i-sm') %><span><%= item.label %></span></a>
+          <% }) %>
+        <% }) %>
+      </nav>
+    </aside>
+    <div class="acct-main" data-acct-main>

@@ -12,7 +12,21 @@ const userSchema = new mongoose.Schema({
   lastLoginAt: { type: Date, default: null },
   // Every customer has a code to invite friends; referredBy is set once, at sign-up.
   referralCode: { type: String, uppercase: true, trim: true },
-  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  // What the customer wants to hear about (saved from the account's notification page).
+  notifyPrefs: {
+    orderUpdates: { type: Boolean, default: true },
+    offers: { type: Boolean, default: true },
+    newsletter: { type: Boolean, default: false }
+  },
+  // The last products this customer looked at, newest first (kept to RECENT_LIMIT).
+  recentlyViewed: {
+    type: [{ product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" }, at: { type: Date, default: Date.now }, _id: false }],
+    default: []
+  },
+  // Soft delete: the account can no longer sign in, but its orders stay for the store's records.
+  isDeleted: { type: Boolean, default: false, index: true },
+  deletedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 userSchema.index({ referralCode: 1 }, { unique: true, sparse: true });

@@ -1,0 +1,29 @@
+<%- include('../partials/account-start', { section: 'notifications' }) %>
+<%
+  const options = [
+    { key: 'orderUpdates', title: 'Order updates', text: 'When an order is confirmed, shipped, delivered or refunded.', icon: 'truck' },
+    { key: 'offers', title: 'Offers and coupons', text: 'Price drops, new coupons and sale alerts picked for you.', icon: 'tag' },
+    { key: 'newsletter', title: 'Weekly newsletter', text: 'New arrivals, training tips and stories, once a week.', icon: 'mail' }
+  ];
+%>
+<div class="acct-page-head" data-rise>
+  <span class="label-caps">Account</span>
+  <h1>Notifications</h1>
+  <p class="muted">Choose what we email you about. Changes save as soon as you flip a switch.</p>
+</div>
+<section class="panel acct-section" aria-label="Email preferences" data-rise>
+  <ul class="pref-list" data-prefs>
+    <% options.forEach(function (o) { %>
+      <li class="pref">
+        <span class="pref-icon"><%- icon(o.icon) %></span>
+        <label class="pref-text" for="pref-<%= o.key %>"><strong><%= o.title %></strong><small class="muted"><%= o.text %></small></label>
+        <span class="switch-row">
+          <input type="checkbox" class="switch-input" id="pref-<%= o.key %>" data-pref="<%= o.key %>" <%= prefs[o.key] ? 'checked' : '' %>>
+          <span class="switch" aria-hidden="true"></span>
+        </span>
+      </li>
+    <% }) %>
+  </ul>
+  <p class="muted acct-note">Account and security emails (like password changes) are always sent.</p>
+</section>
+<%- include('../partials/account-end') %>

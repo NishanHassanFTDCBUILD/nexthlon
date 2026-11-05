@@ -84,13 +84,15 @@
                   <a href="/admin/products"><%- icon('box') %> Manage products</a>
                   <a href="/admin/users"><%- icon('users') %> Manage users</a>
                 <% } else { %>
-                  <a href="/profile"><%- icon('user') %> Your account</a>
-                  <a href="/orders"><%- icon('package-check') %> Your orders</a>
-                  <a href="/wallet"><%- icon('wallet') %> Wallet &amp; referrals</a>
-                  <a href="/wishlist"><%- icon('heart') %> Your wishlist</a>
+                  <a href="/account"><%- icon('user') %> Your account</a>
+                  <a href="/account/orders"><%- icon('package-check') %> Your orders</a>
+                  <a href="/account/wallet"><%- icon('wallet') %> Wallet</a>
+                  <a href="/account/buy-again"><%- icon('rotate-ccw') %> Buy it again</a>
+                  <a href="/account/lists"><%- icon('heart') %> Wishlist &amp; lists</a>
                   <a href="/cart"><%- icon('cart') %> Your cart</a>
-                  <a href="/profile#addresses"><%- icon('pin') %> Saved addresses</a>
-                  <a href="/profile#security"><%- icon('lock') %> Login &amp; security</a>
+                  <a href="/account/addresses"><%- icon('pin') %> Saved addresses</a>
+                  <a href="/account/security"><%- icon('lock') %> Login &amp; security</a>
+                  <a href="/account/help"><%- icon('headset') %> Help &amp; support</a>
                 <% } %>
               </div>
               <div class="menu-group">
@@ -202,9 +204,9 @@
         <a href="/admin"><%- icon('grid', 'i-sm') %> Admin dashboard</a>
         <a href="/admin/products"><%- icon('box', 'i-sm') %> Manage products</a>
       <% } else if (currentUser) { %>
-        <a href="/profile"><%- icon('user', 'i-sm') %> Your account</a>
-        <a href="/orders"><%- icon('package-check', 'i-sm') %> Your orders</a>
-        <a href="/wallet"><%- icon('wallet', 'i-sm') %> Wallet &amp; referrals</a>
+        <a href="/account"><%- icon('user', 'i-sm') %> Your account</a>
+        <a href="/account/orders"><%- icon('package-check', 'i-sm') %> Your orders</a>
+        <a href="/account/wallet"><%- icon('wallet', 'i-sm') %> Wallet</a>
         <a href="/wishlist"><%- icon('heart', 'i-sm') %> Your wishlist</a>
         <a href="/cart"><%- icon('cart', 'i-sm') %> Your cart</a>
       <% } else { %>

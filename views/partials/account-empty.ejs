@@ -1,0 +1,7 @@
+<%# An animated empty state for a My Account section: { art, title, text, href?, cta? } %>
+<div class="empty-state empty-state-flat acct-empty">
+  <%- include('empty-art', { art: art }) %>
+  <h2><%= title %></h2>
+  <p><%= text %></p>
+  <% if (typeof href !== 'undefined' && href) { %><a class="btn btn-primary" href="<%= href %>"><%= cta %> <%- icon('arrow-right', 'i-sm') %></a><% } %>
+</div>

@@ -28,7 +28,7 @@ async function attachUser(req, res, next) {
     }
     const user = payload ? await User.findById(payload.sub) : null;
 
-    if (!user || user.role !== payload.role) {
+    if (!user || user.role !== payload.role || user.isDeleted) {
       req.authProblem = "expired";
     } else if ((payload.ver || 0) !== (user.tokenVersion || 0)) {
       req.authProblem = "expired";

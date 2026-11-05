@@ -2,6 +2,7 @@ const profileService = require("../services/profileService");
 const { signToken, setAuthCookie } = require("../services/tokenService");
 const { validateProfile, validatePasswordChange, validateAddress, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
+const auditService = require("../services/auditService");
 
 function checked(validate, body) {
   const { errors, value } = validate(body);
@@ -24,6 +25,7 @@ const updateProfile = asyncHandler(async (req, res) => {
 // Older tokens stop working after this, so this device gets a fresh token.
 const changePassword = asyncHandler(async (req, res) => {
   const user = await profileService.changePassword(req.user._id, checked(validatePasswordChange, req.body));
+  await auditService.record({ ...auditService.fromRequest(req), action: "account.password_changed", target: `user:${user._id}` });
   setAuthCookie(res, signToken(user));
   res.json({ message: "Password changed. Your other devices have been signed out." });
 });

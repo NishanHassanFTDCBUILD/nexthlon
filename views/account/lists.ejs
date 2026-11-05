@@ -1,0 +1,81 @@
+<%- include('../partials/account-start', { section: 'lists' }) %>
+<% const all = [wishlist].concat(lists); %>
+<div class="acct-page-head acct-page-head-row" data-rise>
+  <div>
+    <span class="label-caps">Shopping</span>
+    <h1>Wishlist &amp; lists</h1>
+    <p class="muted"><%= wishlist.count %> saved <%= wishlist.count === 1 ? 'item' : 'items' %> in your wishlist<%= lists.length ? ', and ' + lists.length + ' of your own ' + (lists.length === 1 ? 'list' : 'lists') : '' %>.</p>
+  </div>
+  <% if (lists.length < maxLists) { %>
+    <form class="acct-inline-form" data-list-create novalidate>
+      <label class="sr-only" for="new-list-name">New list name</label>
+      <input id="new-list-name" name="name" maxlength="40" placeholder="New list, e.g. Gym kit" required>
+      <button class="btn btn-primary btn-sm" type="submit"><%- icon('plus', 'i-xs') %> Create</button>
+    </form>
+  <% } %>
+</div>
+
+<%# Drop targets: drag a product onto a list to move it there. Each card also has a "Move to" menu. %>
+<div class="list-targets" data-list-targets aria-hidden="true">
+  <% all.forEach(function (l) { %><span class="list-target" data-drop-list="<%= l.id %>"><%- icon(l.id === 'default' ? 'heart' : 'box', 'i-xs') %> <%= l.name %> <em><%= l.count %></em></span><% }) %>
+</div>
+
+<% all.forEach(function (l) { %>
+  <section class="panel acct-section list-block" data-list="<%= l.id %>" aria-labelledby="list-<%= l.id %>-title" data-rise>
+    <div class="acct-section-head">
+      <div>
+        <h2 id="list-<%= l.id %>-title"><%= l.name %></h2>
+        <small class="muted"><%= l.count %> <%= l.count === 1 ? 'item' : 'items' %><%= l.id === 'default' ? ' · your main wishlist' : '' %></small>
+      </div>
+      <% if (l.id !== 'default') { %>
+        <div class="list-actions">
+          <label class="switch-row">
+            <span>Share</span>
+            <input type="checkbox" class="switch-input" data-list-share="<%= l.id %>" <%= l.isShared ? 'checked' : '' %> aria-label="Share <%= l.name %> with a read-only link">
+            <span class="switch" aria-hidden="true"></span>
+          </label>
+          <button type="button" class="btn btn-ghost btn-xs" data-list-rename="<%= l.id %>" data-name="<%= l.name %>"><%- icon('edit', 'i-xs') %> Rename</button>
+          <button type="button" class="btn btn-danger-soft btn-xs" data-list-delete="<%= l.id %>" data-name="<%= l.name %>"><%- icon('trash', 'i-xs') %> Delete</button>
+        </div>
+      <% } %>
+    </div>
+    <% if (l.isShared) { %>
+      <div class="list-share" data-share-box>
+        <%- icon('send', 'i-sm') %>
+        <input type="text" readonly value="<%= l.sharePath %>" data-share-path aria-label="Share link for <%= l.name %>">
+        <button type="button" class="btn btn-ghost btn-xs" data-share-copy="<%= l.sharePath %>"><%- icon('copy', 'i-xs') %> Copy link</button>
+      </div>
+    <% } %>
+    <% if (l.items.length) { %>
+      <div class="acct-grid list-items">
+        <% l.items.forEach(function (item, i) { %>
+          <article class="list-item<%= item.available ? '' : ' is-unavailable' %>" draggable="true" data-list-item="<%= item.productId %>" data-from="<%= l.id %>" data-acct-tilt style="--rise: <%= Math.min(i, 8) %>">
+            <a class="list-item-media" href="/products/<%= item.slug %>" draggable="false"><img src="<%= item.image %>" alt="<%= item.name %>" width="240" height="240" loading="lazy" decoding="async" draggable="false"></a>
+            <div class="list-item-body">
+              <a class="list-item-name" href="/products/<%= item.slug %>" draggable="false"><%= item.name %></a>
+              <p class="acct-buy-price"><strong><%= formatPrice(item.price) %></strong><% if (item.discountPercent > 0) { %> <s><%= formatPrice(item.mrp) %></s> <em><%= item.discountPercent %>% off</em><% } %></p>
+              <% if (!item.available) { %><span class="pill pill-red"><%= item.reason %></span><% } %>
+              <div class="list-item-actions">
+                <% if (item.available) { %><button type="button" class="btn btn-primary btn-xs" data-list-cart="<%= item.productId %>"><%- icon('cart', 'i-xs') %> Move to cart</button><% } %>
+                <button type="button" class="icon-btn icon-btn-sm heart-pop" data-list-remove="<%= item.productId %>" aria-label="Remove <%= item.name %> from <%= l.name %>"><%- icon('heart', 'i-sm') %></button>
+                <% if (all.length > 1) { %>
+                  <span class="select-wrap select-xs">
+                    <label class="sr-only" for="move-<%= l.id %>-<%= item.productId %>">Move <%= item.name %> to another list</label>
+                    <select id="move-<%= l.id %>-<%= item.productId %>" data-list-move="<%= item.productId %>">
+                      <option value="">Move to…</option>
+                      <% all.filter(function (o) { return o.id !== l.id; }).forEach(function (o) { %><option value="<%= o.id %>"><%= o.name %></option><% }) %>
+                    </select>
+                    <%- icon('chevron-down', 'i-xs') %>
+                  </span>
+                <% } %>
+              </div>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <%- include('../partials/account-empty', { art: 'heart', title: l.id === 'default' ? 'Your wishlist is empty' : 'This list is empty', text: l.id === 'default' ? 'Tap the heart on any product to save it here.' : 'Drag products here, or use "Move to" on any saved item.', href: l.id === 'default' ? '/products' : '', cta: 'Find something you love' }) %>
+    <% } %>
+  </section>
+<% }) %>
+<%- include('../partials/account-end') %>

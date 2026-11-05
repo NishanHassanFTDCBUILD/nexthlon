@@ -1,0 +1,62 @@
+<%- include('../partials/account-start', { section: 'coupons' }) %>
+<div class="acct-page-head" data-rise>
+  <span class="label-caps">Payments</span>
+  <h1>Coupons &amp; offers</h1>
+  <p class="muted">Copy a code and paste it at checkout. Each code shows when it ends.</p>
+</div>
+
+<section class="acct-section" aria-labelledby="coupons-available">
+  <h2 class="acct-h2" id="coupons-available">Available to you <span class="count-chip"><%= available.length %></span></h2>
+  <% if (available.length) { %>
+    <div class="ticket-grid">
+      <% available.forEach(function (c, i) { %>
+        <article class="ticket" data-rise style="--rise: <%= i %>">
+          <div class="ticket-main">
+            <span class="ticket-value"><%= c.type === 'percent' ? c.value + '%' : formatPrice(c.value) %><small>OFF</small></span>
+            <p class="ticket-title"><%= c.title %></p>
+            <% if (c.description) { %><p class="ticket-desc muted"><%= c.description %></p><% } %>
+            <small class="muted"><%= c.endsAt ? 'Ends ' + formatDate(c.endsAt) : 'No end date' %></small>
+          </div>
+          <div class="ticket-stub">
+            <code class="ticket-code"><%= c.code %></code>
+            <button type="button" class="btn btn-primary btn-sm" data-copy-code="<%= c.code %>"><%- icon('copy', 'i-xs') %> Copy code</button>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <%- include('../partials/account-empty', { art: 'ticket', title: 'No coupons right now', text: 'New offers land here first. Check back soon, or turn on offer emails in your notifications.', href: '/account/notifications', cta: 'Notification settings' }) %>
+  <% } %>
+</section>
+
+<section class="acct-section" aria-labelledby="coupons-used">
+  <h2 class="acct-h2" id="coupons-used">Used <span class="count-chip"><%= used.length %></span></h2>
+  <% if (used.length) { %>
+    <ul class="acct-rows">
+      <% used.forEach(function (u) { %>
+        <li class="acct-row"><code><%= u.code %></code><span>Saved <strong><%= formatPrice(u.discount) %></strong><% if (u.orderId) { %> on <a href="/orders/<%= u.orderId %>"><%= u.orderId %></a><% } %></span><small class="muted"><%= formatDate(u.usedAt) %></small></li>
+      <% }) %>
+    </ul>
+  <% } else { %>
+    <p class="muted acct-note">You haven't used a coupon yet.</p>
+  <% } %>
+</section>
+
+<% if (expired.length) { %>
+  <section class="acct-section" aria-labelledby="coupons-expired">
+    <h2 class="acct-h2" id="coupons-expired">Expired</h2>
+    <div class="ticket-grid">
+      <% expired.forEach(function (c) { %>
+        <article class="ticket is-expired" aria-label="<%= c.code %>, expired">
+          <div class="ticket-main">
+            <span class="ticket-value"><%= c.type === 'percent' ? c.value + '%' : formatPrice(c.value) %><small>OFF</small></span>
+            <p class="ticket-title"><%= c.title %></p>
+            <small class="muted">Ended <%= formatDate(c.endsAt) %></small>
+          </div>
+          <div class="ticket-stub"><code class="ticket-code"><%= c.code %></code><span class="pill">Expired</span></div>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+<% } %>
+<%- include('../partials/account-end', { scripts: ['confetti'] }) %>

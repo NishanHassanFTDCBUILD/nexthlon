@@ -1,160 +1,50 @@
-<%- include('../partials/head') %>
-<%- include('../partials/header') %>
-
-<main id="main" class="container page">
-  <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page">Your account</span>
-  </nav>
-
-  <div class="account-hero">
-    <span class="avatar avatar-lg"><%= currentUser.name.charAt(0).toUpperCase() %></span>
-    <div class="account-hero-text">
-      <h1>Hello, <%= firstName(currentUser.name) %></h1>
-      <p class="account-hero-meta">
-        <span><%- icon('mail', 'i-xs') %> <%= currentUser.email %></span>
-        <span><%- icon('calendar', 'i-xs') %> Member since <%= formatDate(currentUser.createdAt) %></span>
-      </p>
+<%- include('../partials/account-start', { section: 'addresses' }) %>
+<section class="panel acct-section" data-rise id="addresses" aria-labelledby="addresses-title">
+  <div class="panel-head">
+    <span class="panel-icon"><%- icon('pin') %></span>
+    <div>
+      <h1 id="addresses-title">Your addresses</h1>
+      <p class="muted"><%= addresses.length %> of 10 saved. Your default address is used first at checkout.</p>
     </div>
-    <div class="account-hero-stat">
-      <strong><%= addresses.length %></strong>
-      <span><%= addresses.length === 1 ? 'saved address' : 'saved addresses' %></span>
-    </div>
+    <div class="address-meter" aria-hidden="true"><span style="--fill: <%= Math.min(addresses.length, 10) / 10 %>"></span></div>
   </div>
-
-  <div class="account-layout">
-    <nav class="account-nav" aria-label="Account sections" data-account-nav>
-      <a href="#details"><%- icon('user') %> Account details</a>
-      <a href="#addresses"><%- icon('pin') %> Your addresses</a>
-      <a href="#security"><%- icon('lock') %> Login &amp; security</a>
-      <a href="/orders"><%- icon('box') %> Your orders</a>
-    </nav>
-
-    <div class="account-content">
-      <section class="panel" data-reveal id="details" aria-labelledby="details-title">
-        <div class="panel-head">
-          <span class="panel-icon"><%- icon('user') %></span>
-          <div>
-            <h2 id="details-title">Account details</h2>
-            <p class="muted">Your name appears on your account and future orders.</p>
-          </div>
+  <div class="address-grid">
+    <% if (addresses.length < 10) { %>
+      <button type="button" class="address-add" data-address-add>
+        <span class="address-add-icon"><%- icon('plus', 'i-lg') %></span>
+        <strong>Add address</strong>
+        <span>Home, work or anywhere you train</span>
+      </button>
+    <% } %>
+    <% addresses.forEach(function (a) { %>
+      <article data-reveal class="address-card <%= a.isDefault ? 'is-default' : '' %>" aria-label="Address for <%= a.fullName %><%= a.isDefault ? ', default' : '' %>">
+        <div class="address-card-head">
+          <h3><%= a.fullName %></h3>
+          <span class="address-type-pill"><%- icon(a.type === 'work' ? 'box' : a.type === 'other' ? 'pin' : 'home', 'i-xs') %> <%= a.type === 'work' ? 'Work' : a.type === 'other' ? 'Other' : 'Home' %></span>
+          <% if (a.isDefault) { %><span class="pill pill-blue"><%- icon('check', 'i-xs') %> Default</span><% } %>
         </div>
-        <form class="form form-grid" data-profile-form novalidate>
-          <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
-          <div class="field">
-            <label for="profile-name">Full name</label>
-            <input id="profile-name" name="name" type="text" autocomplete="name" value="<%= currentUser.name %>" required maxlength="60" aria-describedby="profile-name-error">
-            <p class="field-error" id="profile-name-error" data-error-for="name"></p>
-          </div>
-          <div class="field">
-            <label for="profile-email">Email address</label>
-            <input id="profile-email" type="email" value="<%= currentUser.email %>" disabled aria-describedby="profile-email-hint">
-            <p class="hint" id="profile-email-hint"><%- icon('lock', 'i-xs') %> Your email is your sign-in ID and cannot be changed here.</p>
-          </div>
-          <div class="field">
-            <label for="profile-phone">Mobile number <span class="optional">(optional)</span></label>
-            <div class="input-prefix">
-              <span>+91</span>
-              <input id="profile-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="10" value="<%= currentUser.phone %>" placeholder="10-digit number" aria-describedby="profile-phone-error">
-            </div>
-            <p class="field-error" id="profile-phone-error" data-error-for="phone"></p>
-          </div>
-          <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Save changes</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="panel" data-reveal id="addresses" aria-labelledby="addresses-title">
-        <div class="panel-head">
-          <span class="panel-icon"><%- icon('pin') %></span>
-          <div>
-            <h2 id="addresses-title">Your addresses</h2>
-            <p class="muted"><%= addresses.length %> of 10 saved. Your default address is used first at checkout.</p>
-          </div>
-          <div class="address-meter" aria-hidden="true"><span style="--fill: <%= Math.min(addresses.length, 10) / 10 %>"></span></div>
-        </div>
-        <div class="address-grid">
-          <% if (addresses.length < 10) { %>
-            <button type="button" class="address-add" data-address-add>
-              <span class="address-add-icon"><%- icon('plus', 'i-lg') %></span>
-              <strong>Add address</strong>
-              <span>Home, work or anywhere you train</span>
-            </button>
+        <p>
+          <%= a.line1 %><br>
+          <% if (a.line2) { %><%= a.line2 %><br><% } %>
+          <% if (a.landmark) { %>Near <%= a.landmark %><br><% } %>
+          <%= a.city %>, <%= a.state %> <%= a.pincode %>
+        </p>
+        <p class="address-phone"><%- icon('phone', 'i-xs') %> +91 <%= a.phone %></p>
+        <div class="address-actions">
+          <button type="button" class="btn btn-ghost btn-xs" data-address-edit
+                  data-address="<%= JSON.stringify({ id: String(a._id), fullName: a.fullName, phone: a.phone, line1: a.line1, line2: a.line2, landmark: a.landmark, city: a.city, state: a.state, pincode: a.pincode, type: a.type || 'home', isDefault: a.isDefault }) %>"
+                  aria-label="Edit address for <%= a.fullName %>"><%- icon('edit', 'i-xs') %> Edit</button>
+          <button type="button" class="btn btn-danger-soft btn-xs" data-address-delete="<%= a._id %>" data-name="<%= a.fullName %>"
+                  aria-label="Remove address for <%= a.fullName %>"><%- icon('trash', 'i-xs') %> Remove</button>
+          <% if (!a.isDefault) { %>
+            <button type="button" class="link-btn" data-address-default="<%= a._id %>">Deliver here by default</button>
           <% } %>
-          <% addresses.forEach(function (a) { %>
-            <article data-reveal class="address-card <%= a.isDefault ? 'is-default' : '' %>" aria-label="Address for <%= a.fullName %><%= a.isDefault ? ', default' : '' %>">
-              <div class="address-card-head">
-                <h3><%= a.fullName %></h3>
-                <% if (a.isDefault) { %><span class="pill pill-blue"><%- icon('check', 'i-xs') %> Default</span><% } %>
-              </div>
-              <p>
-                <%= a.line1 %><br>
-                <% if (a.line2) { %><%= a.line2 %><br><% } %>
-                <% if (a.landmark) { %>Near <%= a.landmark %><br><% } %>
-                <%= a.city %>, <%= a.state %> <%= a.pincode %>
-              </p>
-              <p class="address-phone"><%- icon('phone', 'i-xs') %> +91 <%= a.phone %></p>
-              <div class="address-actions">
-                <button type="button" class="btn btn-ghost btn-xs" data-address-edit
-                        data-address="<%= JSON.stringify({ id: String(a._id), fullName: a.fullName, phone: a.phone, line1: a.line1, line2: a.line2, landmark: a.landmark, city: a.city, state: a.state, pincode: a.pincode, isDefault: a.isDefault }) %>"
-                        aria-label="Edit address for <%= a.fullName %>"><%- icon('edit', 'i-xs') %> Edit</button>
-                <button type="button" class="btn btn-danger-soft btn-xs" data-address-delete="<%= a._id %>" data-name="<%= a.fullName %>"
-                        aria-label="Remove address for <%= a.fullName %>"><%- icon('trash', 'i-xs') %> Remove</button>
-                <% if (!a.isDefault) { %>
-                  <button type="button" class="link-btn" data-address-default="<%= a._id %>">Set as default</button>
-                <% } %>
-              </div>
-            </article>
-          <% }) %>
         </div>
-      </section>
-
-      <section class="panel" data-reveal id="security" aria-labelledby="security-title">
-        <div class="panel-head">
-          <span class="panel-icon"><%- icon('lock') %></span>
-          <div>
-            <h2 id="security-title">Login &amp; security</h2>
-            <p class="muted">Changing your password signs you out on every other device.</p>
-          </div>
-        </div>
-        <form class="form form-grid" data-password-form novalidate>
-          <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
-          <div class="field field-wide field-half">
-            <label for="currentPassword">Current password</label>
-            <div class="password-wrap">
-              <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" required maxlength="64" aria-describedby="currentPassword-error">
-              <button type="button" class="reveal" data-reveal="currentPassword" aria-label="Show password"><%- icon('eye') %></button>
-            </div>
-            <p class="field-error" id="currentPassword-error" data-error-for="currentPassword"></p>
-          </div>
-          <div class="field">
-            <label for="newPassword">New password</label>
-            <div class="password-wrap">
-              <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="64" data-strength aria-describedby="newPassword-rules newPassword-error">
-              <button type="button" class="reveal" data-reveal="newPassword" aria-label="Show password"><%- icon('eye') %></button>
-            </div>
-            <div class="strength" aria-hidden="true"><span class="strength-bar" data-strength-bar></span></div>
-            <ul class="rules" id="newPassword-rules" data-rules aria-label="Password must have">
-              <li data-rule="length"><span class="rule-mark" aria-hidden="true"></span>8 to 64 characters<span class="sr-only" data-rule-state> (not yet)</span></li>
-              <li data-rule="letter"><span class="rule-mark" aria-hidden="true"></span>At least one letter<span class="sr-only" data-rule-state> (not yet)</span></li>
-              <li data-rule="number"><span class="rule-mark" aria-hidden="true"></span>At least one number<span class="sr-only" data-rule-state> (not yet)</span></li>
-            </ul>
-            <p class="field-error" id="newPassword-error" data-error-for="newPassword"></p>
-          </div>
-          <div class="field">
-            <label for="confirmNewPassword">Confirm new password</label>
-            <input id="confirmNewPassword" name="confirmPassword" type="password" autocomplete="new-password" required maxlength="64" aria-describedby="confirmPassword-error">
-            <p class="field-error" id="confirmPassword-error" data-error-for="confirmPassword"></p>
-          </div>
-          <div class="form-actions">
-            <button class="btn btn-primary" type="submit">Change password</button>
-          </div>
-        </form>
-      </section>
-    </div>
+      </article>
+    <% }) %>
   </div>
-</main>
+</section>
+
 
 <%- include('../partials/address-dialog') %>
-
-<%- include('../partials/footer', { scripts: ['auth', 'profile'] }) %>
+<%- include('../partials/account-end', { scripts: ['profile'] }) %>

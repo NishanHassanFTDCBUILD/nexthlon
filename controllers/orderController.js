@@ -3,6 +3,7 @@ const orderService = require("../services/orderService");
 const { validatePlaceOrder, validateCancel, validateReturn, readFlag, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { STATUS_LABELS } = require("../utils/orderRules");
+const imageService = require("../services/imageService");
 
 function checked(validate, body) {
   const { errors, value } = validate(body);
@@ -81,9 +82,16 @@ const cancelItem = asyncHandler(async (req, res) => {
   res.json({ message: "That item is cancelled.", order: toPublicOrder(order) });
 });
 
-// POST /api/orders/:orderId/return   body: { reason, note? }
+// POST /api/orders/:orderId/return   body: { reason, note? } as JSON, or a form with up to 3 "photos"
+// Photos are saved only after the order is found to be returnable.
 const requestReturn = asyncHandler(async (req, res) => {
-  const order = await orderService.requestReturn(req.user._id, req.params.orderId, checked(validateReturn, req.body));
+  const value = checked(validateReturn, req.body);
+  const files = req.files || [];
+  const fakes = imageService.findFakeImages(files);
+  if (fakes.length) throw new HttpError(400, "Only real JPG, PNG or WEBP photos can be added.", { photos: "Only real JPG, PNG or WEBP photos can be added." });
+  const order = await orderService.requestReturn(req.user._id, req.params.orderId, value, new Date(), {
+    savePhotos: () => imageService.saveImages(files, "returns")
+  });
   res.json({ message: "Return requested. We will arrange a pickup and keep you posted.", order: toPublicOrder(order) });
 });
 

@@ -1,0 +1,43 @@
+<%- include('../partials/head', { bodyClass: 'admin-body', styles: ['account'] }) %>
+<div class="admin-shell">
+  <%- include('../partials/admin-sidebar') %>
+  <main id="main" class="admin-main">
+    <header class="admin-top">
+      <div>
+        <a class="back-link" href="/admin/tickets"><%- icon('chevron-left', 'i-xs') %> All tickets</a>
+        <h1><%= ticket.subject %></h1>
+        <p class="muted"><%= ticket.ticketId %> · <%= ticket.topic %><%= ticket.orderId ? ' · ' + ticket.orderId : '' %><% if (ticket.customer) { %> · <%= ticket.customer.name %> (<%= ticket.customer.email %>)<% } %></p>
+      </div>
+      <span class="status-pill status-<%= ticket.status %>"><span class="status-dot" aria-hidden="true"></span><%= ticket.status %></span>
+    </header>
+    <section class="panel" aria-label="Conversation">
+      <ol class="chat">
+        <% ticket.messages.forEach(function (m, i) { %>
+          <li class="chat-msg chat-<%= m.from === 'admin' ? 'customer' : 'admin' %>" style="--rise: <%= i %>">
+            <span class="chat-author"><%= m.from === 'admin' ? 'Nexthlon support' : m.authorName %> · <%= formatDate(m.at) %></span>
+            <p><%= m.body %></p>
+          </li>
+        <% }) %>
+      </ol>
+      <form class="form chat-reply" data-admin-ticket-reply="<%= ticket.ticketId %>" novalidate>
+        <div class="form-alert" data-form-alert aria-live="polite"></div>
+        <label class="sr-only" for="admin-reply">Reply to the customer</label>
+        <textarea id="admin-reply" name="message" rows="4" maxlength="2000" required placeholder="Write a reply to the customer"></textarea>
+        <p class="field-error" data-error-for="message"></p>
+        <div class="form-actions">
+          <span class="select-wrap">
+            <label class="sr-only" for="admin-status">Status after replying</label>
+            <select id="admin-status" name="status">
+              <option value="pending">Waiting for customer</option>
+              <option value="resolved">Resolved</option>
+              <option value="open">Keep open</option>
+            </select>
+            <%- icon('chevron-down', 'i-xs') %>
+          </span>
+          <button class="btn btn-primary btn-sm" type="submit"><%- icon('send', 'i-xs') %> Send reply</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</div>
+<%- include('../partials/scripts', { scripts: ['admin', 'admin-tickets'] }) %>

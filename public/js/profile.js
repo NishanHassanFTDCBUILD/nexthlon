@@ -80,6 +80,7 @@
         addressForm.elements[key].value = address[key] || "";
       }
       addressForm.elements.isDefault.checked = Boolean(address.isDefault);
+      addressForm.elements.type.value = address.type || "home";
     }
     title.textContent = address ? "Edit address" : "Add a new address";
     addressForm.querySelector('[type="submit"]').textContent = address ? "Save changes" : "Save address";

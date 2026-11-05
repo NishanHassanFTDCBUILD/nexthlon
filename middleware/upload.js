@@ -1,6 +1,6 @@
 const multer = require("multer");
 const { HttpError } = require("../utils/http");
-const { MAX_IMAGES, MAX_IMAGE_BYTES, ALLOWED_TYPES } = require("../services/imageService");
+const { MAX_IMAGES, MAX_RETURN_PHOTOS, MAX_IMAGE_BYTES, ALLOWED_TYPES } = require("../services/imageService");
 
 // Files are held in memory first, so their real type can be checked before anything touches the disk.
 const upload = multer({
@@ -35,4 +35,18 @@ function productImages(req, res, next) {
   });
 }
 
-module.exports = { productImages };
+// Up to MAX_RETURN_PHOTOS photos in the "photos" field of a return request. A JSON request
+// (no photos) passes straight through.
+function returnPhotos(req, res, next) {
+  upload.array("photos", MAX_RETURN_PHOTOS)(req, res, error => {
+    if (!error) return next();
+    if (error instanceof HttpError) return next(new HttpError(400, error.message, { photos: error.message }));
+    if (error instanceof multer.MulterError) {
+      const message = error.code === "LIMIT_FILE_SIZE" ? "Each photo must be 2 MB or smaller." : `You can add up to ${MAX_RETURN_PHOTOS} photos.`;
+      return next(new HttpError(400, message, { photos: message }));
+    }
+    return next(error);
+  });
+}
+
+module.exports = { productImages, returnPhotos };

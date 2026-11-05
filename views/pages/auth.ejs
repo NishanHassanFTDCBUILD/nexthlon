@@ -44,6 +44,8 @@
             <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Your account has been blocked. Please contact Nexthlon support.</span></div>
           <% } else if (reason === 'expired') { %>
             <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
+          <% } else if (reason === 'logged_out_all') { %>
+            <div class="alert alert-info" role="status"><%- icon('check') %> <span>You have been signed out of all devices. Sign in again to continue.</span></div>
           <% } %>
           <form class="au-form" data-auth-form data-endpoint="/api/login" data-kind="login" novalidate>
             <div class="form-alert" data-form-alert aria-live="assertive"></div>

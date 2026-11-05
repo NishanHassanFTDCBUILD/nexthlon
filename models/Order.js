@@ -69,6 +69,7 @@ const orderSchema = new mongoose.Schema({
   cancelReason: { type: String, default: "" },
   returnReason: { type: String, default: "" },
   returnNote: { type: String, default: "" },
+  returnPhotos: { type: [String], default: [] },
   refundedAmount: { type: Number, default: 0, min: 0 },
   refunds: { type: [refundSchema], default: [] },
   razorpay: {

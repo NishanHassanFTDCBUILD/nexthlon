@@ -1,0 +1,65 @@
+<%- include('../partials/account-start', { section: 'help' }) %>
+<div class="acct-page-head" data-rise>
+  <span class="label-caps">Account</span>
+  <h1>Help &amp; support</h1>
+  <p class="muted">Ask us anything. Link an order and we can sort it out faster. Replies show up here.</p>
+</div>
+
+<section class="panel acct-section" aria-labelledby="new-ticket-title" data-rise>
+  <h2 class="acct-h2" id="new-ticket-title">Start a new request</h2>
+  <form class="form form-grid" data-ticket-form novalidate>
+    <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
+    <div class="field">
+      <label for="t-topic">What is it about?</label>
+      <span class="select-wrap">
+        <select id="t-topic" name="topic" required>
+          <option value="">Choose a topic</option>
+          <% topics.forEach(function (t) { %><option value="<%= t %>" <%= selectedOrder && t === 'Order' ? 'selected' : '' %>><%= t %></option><% }) %>
+        </select>
+        <%- icon('chevron-down', 'i-xs') %>
+      </span>
+      <p class="field-error" data-error-for="topic"></p>
+    </div>
+    <div class="field">
+      <label for="t-order">Order <span class="optional">(optional)</span></label>
+      <span class="select-wrap">
+        <select id="t-order" name="orderId">
+          <option value="">Not about an order</option>
+          <% orders.forEach(function (o) { %><option value="<%= o.orderId %>" <%= selectedOrder === o.orderId ? 'selected' : '' %>><%= o.orderId %> · <%= formatDate(o.createdAt) %> · <%= labels[o.orderStatus] || o.orderStatus %></option><% }) %>
+        </select>
+        <%- icon('chevron-down', 'i-xs') %>
+      </span>
+      <p class="field-error" data-error-for="orderId"></p>
+    </div>
+    <div class="field field-wide">
+      <label for="t-subject">Subject</label>
+      <input id="t-subject" name="subject" maxlength="100" required placeholder="e.g. My parcel is late">
+      <p class="field-error" data-error-for="subject"></p>
+    </div>
+    <div class="field field-wide">
+      <label for="t-message">Message</label>
+      <textarea id="t-message" name="message" rows="5" maxlength="2000" required placeholder="Tell us what happened"></textarea>
+      <p class="field-error" data-error-for="message"></p>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit"><%- icon('send', 'i-sm') %> Send request</button></div>
+  </form>
+</section>
+
+<section class="acct-section" aria-labelledby="tickets-title">
+  <h2 class="acct-h2" id="tickets-title">Your requests <span class="count-chip"><%= tickets.length %></span></h2>
+  <% if (tickets.length) { %>
+    <ul class="ticket-list">
+      <% tickets.forEach(function (t, i) { %>
+        <li data-rise style="--rise: <%= Math.min(i, 8) %>">
+          <a class="ticket-row" href="/account/help/<%= t.ticketId %>">
+            <span class="ticket-row-main"><strong><%= t.subject %></strong><small class="muted"><%= t.ticketId %> · <%= t.topic %><%= t.orderId ? ' · ' + t.orderId : '' %> · updated <%= formatDate(t.updatedAt) %></small></span>
+            <span class="status-pill status-<%= t.status %>"><span class="status-dot" aria-hidden="true"></span><%= t.status === 'pending' ? 'Replied' : t.status === 'open' ? 'Open' : 'Resolved' %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  <% } else { %>
+    <%- include('../partials/account-empty', { art: 'headset', title: 'No requests yet', text: 'If something goes wrong with an order or your account, we are one message away.' }) %>
+  <% } %>
+</section>
+<%- include('../partials/account-end') %>

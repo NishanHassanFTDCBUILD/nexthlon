@@ -1,6 +1,9 @@
+const supportService = require("../services/supportService");
+const auditService = require("../services/auditService");
+const SupportTicket = require("../models/SupportTicket");
 const adminService = require("../services/adminService");
 const settingsService = require("../services/settingsService");
-const { validateReferralSetting, hasErrors } = require("../utils/validators");
+const { validateReferralSetting, validateTicketReply, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 
 // GET /api/admin/dashboard
@@ -41,4 +44,19 @@ const updateReferral = asyncHandler(async (req, res) => {
   res.json({ message: value.referralReward ? "Referral reward saved." : "Referral rewards are turned off.", settings });
 });
 
-module.exports = { dashboard, listCustomers, setCustomerBlocked, getSettings, updateReferral };
+// ---------- Support tickets ----------
+
+// GET /api/admin/tickets?status=open|pending|resolved
+const listTickets = asyncHandler(async (req, res) => {
+  res.json(await supportService.listAll(req.query));
+});
+
+// POST /api/admin/tickets/:ticketId/reply   { message, status? }
+const replyTicket = asyncHandler(async (req, res) => {
+  const { errors, value } = validateTicketReply(req.body, SupportTicket.STATUSES);
+  if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
+  const ticket = await supportService.replyAsAdmin(req.user, req.params.ticketId, value, auditService.fromRequest(req));
+  res.json({ message: "Reply sent to the customer.", ticket });
+});
+
+module.exports = { dashboard, listCustomers, setCustomerBlocked, getSettings, updateReferral, listTickets, replyTicket };

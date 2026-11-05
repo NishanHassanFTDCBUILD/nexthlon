@@ -94,4 +94,57 @@ async function addReview(user, productId, value) {
   return { review: publicReview(review), rating };
 }
 
-module.exports = { PAGE_SIZE, hasReceived, reviewStatus, listReviews, ratingBreakdown, refreshProductRating, addReview, shortName, publicReview };
+// ---------- The customer's own reviews (My Account) ----------
+
+// Reviews the customer wrote, newest first, with the product's name, link and photo.
+async function listMine(userId) {
+  const reviews = await Review.find({ user: userId }).sort({ createdAt: -1 }).limit(100).populate("product", "name slug image").lean();
+  return reviews.filter(review => review.product).map(review => ({
+    ...publicReview(review),
+    product: { id: String(review.product._id), name: review.product.name, slug: review.product.slug, image: review.product.image }
+  }));
+}
+
+// Products delivered to the customer that they have not reviewed yet (still sold), newest first.
+async function waitingForReview(userId) {
+  const id = new mongoose.Types.ObjectId(String(userId));
+  const rows = await mongoose.connection.collection("orders").aggregate([
+    { $match: { user: id } },
+    { $unwind: "$items" },
+    { $match: { "items.status": "delivered" } },
+    { $sort: { deliveredAt: -1, createdAt: -1 } },
+    { $group: { _id: "$items.product", deliveredAt: { $first: { $ifNull: ["$deliveredAt", "$createdAt"] } } } }
+  ]).toArray();
+  if (!rows.length) return [];
+  const reviewed = new Set((await Review.find({ user: id }).select("product").lean()).map(review => String(review.product)));
+  const pending = rows.filter(row => !reviewed.has(String(row._id)));
+  const products = await Product.find({ _id: { $in: pending.map(row => row._id) }, ...Product.LISTED }).select("name slug image").lean();
+  const byId = new Map(products.map(product => [String(product._id), product]));
+  return pending
+    .map(row => ({ product: byId.get(String(row._id)), deliveredAt: row.deliveredAt }))
+    .filter(row => row.product)
+    .map(row => ({ id: String(row.product._id), name: row.product.name, slug: row.product.slug, image: row.product.image, deliveredAt: row.deliveredAt }));
+}
+
+async function findOwnedReview(userId, reviewId) {
+  if (!mongoose.isValidObjectId(reviewId)) throw new HttpError(404, "Review not found.");
+  const review = await Review.findOne({ _id: reviewId, user: userId });
+  if (!review) throw new HttpError(404, "Review not found.");
+  return review;
+}
+
+async function updateMine(userId, reviewId, value) {
+  const review = await findOwnedReview(userId, reviewId);
+  Object.assign(review, value);
+  await review.save();
+  const rating = await refreshProductRating(review.product);
+  return { review: publicReview(review), rating };
+}
+
+async function deleteMine(userId, reviewId) {
+  const review = await findOwnedReview(userId, reviewId);
+  await review.deleteOne();
+  return refreshProductRating(review.product);
+}
+
+module.exports = { PAGE_SIZE, hasReceived, reviewStatus, listReviews, ratingBreakdown, refreshProductRating, addReview, shortName, publicReview, listMine, waitingForReview, updateMine, deleteMine };

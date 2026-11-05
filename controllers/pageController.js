@@ -5,7 +5,6 @@ const adminProductService = require("../services/adminProductService");
 const cartService = require("../services/cartService");
 const homeService = require("../services/homeService");
 const reviewService = require("../services/reviewService");
-const wishlistService = require("../services/wishlistService");
 const checkoutService = require("../services/checkoutService");
 const orderService = require("../services/orderService");
 const invoiceService = require("../services/invoiceService");
@@ -13,6 +12,7 @@ const razorpayService = require("../services/razorpayService");
 const walletService = require("../services/walletService");
 const referralService = require("../services/referralService");
 const settingsService = require("../services/settingsService");
+const accountService = require("../services/accountService");
 const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
 const { CONTACT_TOPICS, STORE } = require("../config/store");
@@ -25,11 +25,6 @@ const { linkBuilder } = require("../utils/queryString");
 const home = asyncHandler(async (req, res) => {
   const data = await homeService.getHomePage();
   res.render("pages/home", { title: "Nexthlon | Your Next Move Starts Here", ...data });
-});
-
-const wishlist = asyncHandler(async (req, res) => {
-  const data = await wishlistService.getWishlist(req.user._id);
-  res.render("pages/wishlist", { title: "Your wishlist | Nexthlon", ...data });
 });
 
 // ---------- Store information and policy pages ----------
@@ -100,6 +95,10 @@ const products = asyncHandler(async (req, res) => {
 const productDetail = asyncHandler(async (req, res) => {
   const product = await productService.getProduct(req.params.slug);
   if (!product) throw new HttpError(404, "That product is no longer available.");
+  // Signed-in customers get it added to their recently viewed products (synced to the account).
+  if (req.user && req.user.role === "customer") {
+    accountService.recordView(req.user._id, product._id).catch(() => {});
+  }
   const [related, reviews, reviewState] = await Promise.all([
     productService.getRelatedProducts(product),
     reviewService.listReviews(product._id, 1),
@@ -253,7 +252,6 @@ const adminProductEdit = asyncHandler(async (req, res) => {
 
 module.exports = {
   home,
-  wishlist,
   infoPage,
   products,
   productDetail,

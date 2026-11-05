@@ -1,0 +1,73 @@
+<%- include('../partials/account-start', { section: 'reviews' }) %>
+<div class="acct-page-head" data-rise>
+  <span class="label-caps">Shopping</span>
+  <h1>Your reviews</h1>
+  <p class="muted">Your reviews help other athletes choose. You can edit or delete them at any time.</p>
+</div>
+
+<% if (waiting.length) { %>
+  <section class="panel acct-section" aria-labelledby="waiting-title" data-rise>
+    <div class="acct-section-head">
+      <h2 id="waiting-title">Waiting for your review <span class="count-chip"><%= waiting.length %></span></h2>
+    </div>
+    <ul class="acct-rows">
+      <% waiting.forEach(function (p) { %>
+        <li class="acct-row acct-row-product">
+          <img src="<%= p.image %>" alt="" width="56" height="56" loading="lazy">
+          <span><strong><%= p.name %></strong><small class="muted">Delivered <%= formatDate(p.deliveredAt) %></small></span>
+          <a class="btn btn-primary btn-sm" href="/products/<%= p.slug %>#reviews"><%- icon('star', 'i-xs') %> Write a review</a>
+        </li>
+      <% }) %>
+    </ul>
+  </section>
+<% } %>
+
+<section class="acct-section" aria-labelledby="mine-title">
+  <h2 class="acct-h2" id="mine-title">Reviews you wrote <span class="count-chip"><%= mine.length %></span></h2>
+  <% if (mine.length) { %>
+    <div class="review-list">
+      <% mine.forEach(function (r, i) { %>
+        <article class="panel review-mine" data-review="<%= r.id %>" data-rise style="--rise: <%= Math.min(i, 8) %>">
+          <a class="review-mine-product" href="/products/<%= r.product.slug %>"><img src="<%= r.product.image %>" alt="" width="64" height="64" loading="lazy"><span><%= r.product.name %></span></a>
+          <div class="review-mine-view" data-review-view>
+            <span class="rating" style="--rating: <%= r.rating %>" role="img" aria-label="Rated <%= r.rating %> out of 5"></span>
+            <% if (r.title) { %><h3><%= r.title %></h3><% } %>
+            <p><%= r.body %></p>
+            <small class="muted">Written <%= formatDate(r.createdAt) %></small>
+            <div class="review-mine-actions">
+              <button type="button" class="btn btn-ghost btn-xs" data-review-edit><%- icon('edit', 'i-xs') %> Edit</button>
+              <button type="button" class="btn btn-danger-soft btn-xs" data-review-delete><%- icon('trash', 'i-xs') %> Delete</button>
+            </div>
+          </div>
+          <form class="form review-mine-form" data-review-form hidden novalidate>
+            <div class="form-alert" data-form-alert aria-live="polite"></div>
+            <fieldset class="star-input" aria-label="Your rating">
+              <% [5, 4, 3, 2, 1].forEach(function (n) { %>
+                <input type="radio" id="r-<%= r.id %>-<%= n %>" name="rating" value="<%= n %>" <%= r.rating === n ? 'checked' : '' %>>
+                <label for="r-<%= r.id %>-<%= n %>" aria-label="<%= n %> <%= n === 1 ? 'star' : 'stars' %>"><%- icon('star') %></label>
+              <% }) %>
+            </fieldset>
+            <p class="field-error" data-error-for="rating"></p>
+            <div class="field">
+              <label for="rt-<%= r.id %>">Title <span class="optional">(optional)</span></label>
+              <input id="rt-<%= r.id %>" name="title" maxlength="80" value="<%= r.title %>">
+              <p class="field-error" data-error-for="title"></p>
+            </div>
+            <div class="field">
+              <label for="rb-<%= r.id %>">Your review</label>
+              <textarea id="rb-<%= r.id %>" name="body" rows="4" maxlength="1000" required><%= r.body %></textarea>
+              <p class="field-error" data-error-for="body"></p>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-ghost btn-sm" data-review-cancel>Cancel</button>
+              <button type="submit" class="btn btn-primary btn-sm">Save review</button>
+            </div>
+          </form>
+        </article>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <%- include('../partials/account-empty', { art: 'star', title: 'No reviews yet', text: 'Once an order is delivered you can rate it here, or from the product page.', href: '/account/orders', cta: 'See your orders' }) %>
+  <% } %>
+</section>
+<%- include('../partials/account-end') %>

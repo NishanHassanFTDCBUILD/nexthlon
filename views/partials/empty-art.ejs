@@ -1,6 +1,6 @@
 <%# Empty-state illustrations, drawn with inline SVG and coloured by the design tokens, so they
     follow light and dark mode. Pass { art: 'cart' | 'heart' | 'box' | 'package-check' | 'search' |
-    'wallet' | 'users' | 'check' }. The drawing gently floats (motion.css). %>
+    'wallet' | 'users' | 'check' | 'ticket' | 'star' | 'clock' | 'headset' | 'pin' | 'gift' | 'lock' }. The drawing gently floats (motion.css). %>
 <% const kind = typeof art !== 'undefined' ? art : 'box'; %>
 <span class="empty-art" aria-hidden="true">
   <svg viewBox="0 0 160 120" focusable="false">
@@ -36,6 +36,33 @@
     <% } else if (kind === 'check') { %>
       <circle class="ea-fill ea-line" cx="80" cy="60" r="32"/>
       <path class="ea-accent-line ea-thick" d="M66 61l10 10 20-22"/>
+    <% } else if (kind === 'ticket') { %>
+      <path class="ea-fill ea-line" d="M40 42h80v12a8 8 0 0 0 0 16v12H40V70a8 8 0 0 0 0-16z"/>
+      <path class="ea-line ea-soft" d="M96 44v36" stroke-dasharray="4 4"/>
+      <path class="ea-accent-line" d="M56 56h24M56 66h16"/>
+    <% } else if (kind === 'star') { %>
+      <path class="ea-fill ea-line" d="M80 30l9 19 21 3-15 15 4 21-19-10-19 10 4-21-15-15 21-3z"/>
+      <circle class="ea-accent" cx="80" cy="62" r="5"/>
+    <% } else if (kind === 'clock') { %>
+      <circle class="ea-fill ea-line" cx="80" cy="60" r="32"/>
+      <path class="ea-accent-line ea-thick" d="M80 42v20l13 8"/>
+    <% } else if (kind === 'headset') { %>
+      <path class="ea-line" d="M50 66v-8a30 30 0 0 1 60 0v8"/>
+      <rect class="ea-fill ea-line" x="44" y="62" width="16" height="24" rx="6"/>
+      <rect class="ea-fill ea-line" x="100" y="62" width="16" height="24" rx="6"/>
+      <path class="ea-accent-line" d="M108 86c0 8-10 12-22 12"/>
+    <% } else if (kind === 'pin') { %>
+      <path class="ea-fill ea-line" d="M80 96s-26-26-26-44a26 26 0 0 1 52 0c0 18-26 44-26 44z"/>
+      <circle class="ea-accent" cx="80" cy="52" r="9"/>
+    <% } else if (kind === 'gift') { %>
+      <rect class="ea-fill ea-line" x="46" y="54" width="68" height="40" rx="6"/>
+      <rect class="ea-fill ea-line" x="42" y="42" width="76" height="14" rx="4"/>
+      <path class="ea-accent-line ea-thick" d="M80 42v52"/>
+      <path class="ea-accent-line" d="M80 42c-6-12-22-12-20-2s20 2 20 2zm0 0c6-12 22-12 20-2s-20 2-20 2z"/>
+    <% } else if (kind === 'lock') { %>
+      <rect class="ea-fill ea-line" x="52" y="54" width="56" height="40" rx="8"/>
+      <path class="ea-line" d="M62 54v-10a18 18 0 0 1 36 0v10"/>
+      <circle class="ea-accent" cx="80" cy="72" r="6"/>
     <% } else if (kind === 'package-check') { %>
       <path class="ea-fill ea-line" d="M48 44l32-14 32 14v36L80 94 48 80z"/>
       <path class="ea-line" d="M48 44l32 14 32-14M80 58v36"/>

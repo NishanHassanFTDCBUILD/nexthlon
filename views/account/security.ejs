@@ -1,0 +1,118 @@
+<%- include('../partials/account-start', { section: 'security' }) %>
+<div class="acct-page-head" data-rise>
+  <span class="label-caps">Account</span>
+  <h1>Login &amp; security</h1>
+  <p class="muted">Your name, sign-in email and password, where you're signed in, and your account.</p>
+</div>
+
+<section class="panel acct-section" id="details" aria-labelledby="details-title" data-rise>
+  <div class="acct-section-head"><h2 id="details-title">Name and phone</h2></div>
+  <form class="form form-grid" data-profile-form novalidate>
+    <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
+    <div class="field">
+      <label for="profile-name">Full name</label>
+      <input id="profile-name" name="name" type="text" autocomplete="name" value="<%= currentUser.name %>" required maxlength="60" aria-describedby="profile-name-error">
+      <p class="field-error" id="profile-name-error" data-error-for="name"></p>
+    </div>
+    <div class="field">
+      <label for="profile-phone">Mobile number <span class="optional">(optional)</span></label>
+      <div class="input-prefix"><span>+91</span><input id="profile-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="10" value="<%= phone %>" aria-describedby="profile-phone-error"></div>
+      <p class="field-error" id="profile-phone-error" data-error-for="phone"></p>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save changes</button></div>
+  </form>
+</section>
+
+<section class="panel acct-section" id="email" aria-labelledby="email-title" data-rise>
+  <div class="acct-section-head">
+    <div><h2 id="email-title">Sign-in email</h2><small class="muted">Currently <strong><%= currentUser.email %></strong></small></div>
+  </div>
+  <form class="form form-grid" data-email-form novalidate>
+    <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
+    <div class="field">
+      <label for="new-email">New email</label>
+      <input id="new-email" name="email" type="email" autocomplete="email" required maxlength="254" aria-describedby="new-email-error">
+      <p class="field-error" id="new-email-error" data-error-for="email"></p>
+    </div>
+    <div class="field">
+      <label for="email-password">Your password</label>
+      <input id="email-password" name="password" type="password" autocomplete="current-password" required maxlength="64" aria-describedby="email-password-error">
+      <p class="field-error" id="email-password-error" data-error-for="password"></p>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Change email</button></div>
+  </form>
+</section>
+
+<section class="panel acct-section" id="password" aria-labelledby="password-title" data-rise>
+  <div class="acct-section-head">
+    <div><h2 id="password-title">Password</h2><small class="muted">Changing it signs you out on every other device.</small></div>
+  </div>
+  <form class="form form-grid" data-password-form novalidate>
+    <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
+    <div class="field field-wide field-half">
+      <label for="currentPassword">Current password</label>
+      <div class="password-wrap">
+        <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" required maxlength="64" aria-describedby="currentPassword-error">
+        <button type="button" class="reveal" data-reveal="currentPassword" aria-label="Show password"><%- icon('eye') %></button>
+      </div>
+      <p class="field-error" id="currentPassword-error" data-error-for="currentPassword"></p>
+    </div>
+    <div class="field">
+      <label for="newPassword">New password</label>
+      <div class="password-wrap">
+        <input id="newPassword" name="newPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="64" data-strength aria-describedby="newPassword-rules newPassword-error">
+        <button type="button" class="reveal" data-reveal="newPassword" aria-label="Show password"><%- icon('eye') %></button>
+      </div>
+      <div class="strength" aria-hidden="true"><span class="strength-bar" data-strength-bar></span></div>
+      <ul class="rules" id="newPassword-rules" data-rules aria-label="Password must have">
+        <li data-rule="length"><span class="rule-mark" aria-hidden="true"></span>8 to 64 characters<span class="sr-only" data-rule-state> (not yet)</span></li>
+        <li data-rule="letter"><span class="rule-mark" aria-hidden="true"></span>At least one letter<span class="sr-only" data-rule-state> (not yet)</span></li>
+        <li data-rule="number"><span class="rule-mark" aria-hidden="true"></span>At least one number<span class="sr-only" data-rule-state> (not yet)</span></li>
+      </ul>
+      <p class="field-error" id="newPassword-error" data-error-for="newPassword"></p>
+    </div>
+    <div class="field">
+      <label for="confirmNewPassword">Confirm new password</label>
+      <input id="confirmNewPassword" name="confirmPassword" type="password" autocomplete="new-password" required maxlength="64" aria-describedby="confirmPassword-error">
+      <p class="field-error" id="confirmPassword-error" data-error-for="confirmPassword"></p>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Change password</button></div>
+  </form>
+</section>
+
+<section class="panel acct-section" id="activity" aria-labelledby="activity-title" data-rise>
+  <div class="acct-section-head">
+    <div><h2 id="activity-title">Recent sign-ins</h2><small class="muted">The last <%= activity.length %> times your account was signed in to. IP addresses are partly hidden.</small></div>
+    <button type="button" class="btn btn-ghost btn-sm" data-logout-all><%- icon('logout', 'i-xs') %> Log out of all devices</button>
+  </div>
+  <% if (activity.length) { %>
+    <ul class="acct-rows">
+      <% activity.forEach(function (a, i) { %>
+        <li class="acct-row"><span class="acct-row-icon"><%- icon('monitor', 'i-sm') %></span><span><strong><%= a.browser %></strong><small class="muted"><%= a.ip || 'IP unknown' %></small></span><small class="muted"><%= formatDate(a.at) %> <%= new Date(a.at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) %><%= i === 0 ? ' · latest' : '' %></small></li>
+      <% }) %>
+    </ul>
+  <% } else { %>
+    <p class="muted acct-note">Sign-ins from now on will be listed here.</p>
+  <% } %>
+</section>
+
+<section class="panel acct-section acct-danger" id="delete" aria-labelledby="delete-title" data-rise>
+  <div class="acct-section-head">
+    <div><h2 id="delete-title">Delete your account</h2><small class="muted">You will be signed out and won't be able to sign in again. Your order records are kept for invoices and returns.</small></div>
+  </div>
+  <form class="form form-grid" data-delete-form novalidate>
+    <div class="form-alert field-wide" data-form-alert aria-live="polite"></div>
+    <div class="field">
+      <label for="delete-password">Your password</label>
+      <input id="delete-password" name="password" type="password" autocomplete="current-password" required maxlength="64">
+      <p class="field-error" data-error-for="password"></p>
+    </div>
+    <div class="field">
+      <label for="delete-confirm">Type DELETE to confirm</label>
+      <input id="delete-confirm" name="confirm" autocomplete="off" required maxlength="10" spellcheck="false">
+      <p class="field-error" data-error-for="confirm"></p>
+    </div>
+    <div class="form-actions"><button class="btn btn-danger" type="submit"><%- icon('trash', 'i-xs') %> Delete my account</button></div>
+  </form>
+</section>
+<%- include('../partials/account-end', { scripts: ['auth', 'profile'] }) %>

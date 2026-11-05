@@ -1,0 +1,25 @@
+<%- include('../partials/account-start', { section: 'help' }) %>
+<div class="acct-page-head" data-rise>
+  <a class="back-link" href="/account/help"><%- icon('chevron-left', 'i-xs') %> All requests</a>
+  <h1><%= ticket.subject %></h1>
+  <p class="muted"><%= ticket.ticketId %> · <%= ticket.topic %><% if (ticket.orderId) { %> · <a href="/orders/<%= ticket.orderId %>"><%= ticket.orderId %></a><% } %>
+    · <span class="status-pill status-<%= ticket.status %>"><span class="status-dot" aria-hidden="true"></span><%= ticket.status === 'pending' ? 'Replied' : ticket.status === 'open' ? 'Open' : 'Resolved' %></span></p>
+</div>
+<section class="panel acct-section" aria-label="Conversation" data-rise>
+  <ol class="chat">
+    <% ticket.messages.forEach(function (m, i) { %>
+      <li class="chat-msg chat-<%= m.from %>" style="--rise: <%= i %>">
+        <span class="chat-author"><%= m.from === 'admin' ? 'Nexthlon support' : 'You' %> · <%= formatDate(m.at) %></span>
+        <p><%= m.body %></p>
+      </li>
+    <% }) %>
+  </ol>
+  <form class="form chat-reply" data-ticket-reply="<%= ticket.ticketId %>" novalidate>
+    <div class="form-alert" data-form-alert aria-live="polite"></div>
+    <label class="sr-only" for="reply">Your reply</label>
+    <textarea id="reply" name="message" rows="3" maxlength="2000" required placeholder="<%= ticket.status === 'resolved' ? 'Replying reopens this request' : 'Write a reply' %>"></textarea>
+    <p class="field-error" data-error-for="message"></p>
+    <div class="form-actions"><button class="btn btn-primary btn-sm" type="submit"><%- icon('send', 'i-xs') %> Send reply</button></div>
+  </form>
+</section>
+<%- include('../partials/account-end') %>

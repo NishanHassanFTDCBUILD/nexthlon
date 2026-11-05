@@ -100,3 +100,38 @@ test("filter links keep the current filters in the URL and drop empty ones", () 
   assert.equal(link({ page: 2 }), "/products?q=trail+shoe&category=Running&page=2");
   assert.equal(link({ category: "" }), "/products?q=trail+shoe");
 });
+
+test("account helpers: masked IPs, short browser names, and audit snapshots without secrets", () => {
+  const { maskIp, clean } = require("../services/auditService");
+  const { browserName } = require("../services/accountService");
+  assert.equal(maskIp("103.21.244.17"), "103.21.x.x");
+  assert.equal(maskIp("::ffff:10.0.0.5"), "10.0.x.x");
+  assert.equal(maskIp("2405:201:abcd:1::7"), "2405:201:…");
+  assert.equal(maskIp(""), "");
+  assert.equal(browserName("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"), "Chrome on Windows");
+  assert.equal(browserName("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"), "Safari on iOS");
+  assert.equal(browserName("Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/130 Safari/537.36 Edg/130"), "Edge on Windows");
+  assert.equal(browserName(""), "Unknown browser");
+  assert.deepEqual(clean({ email: "a@b.in", password: "x", passwordHash: "y", tokenVersion: 3, otpCode: "1" }), { email: "a@b.in" });
+  assert.equal(clean(null), null);
+});
+
+test("account validators: email change, preferences, list names, tickets and deleting the account", () => {
+  const v = require("../utils/validators");
+  assert.ok(v.validateEmailChange({ email: "bad", password: "" }).errors.email);
+  assert.deepEqual(v.validateEmailChange({ email: " New@Mail.in ", password: "secret12" }).value, { email: "new@mail.in", password: "secret12" });
+  assert.ok(v.validatePreferences({ offers: "true" }).errors.offers);
+  assert.deepEqual(v.validatePreferences({ offers: false, hacker: true }).value, { offers: false });
+  assert.ok(v.validatePreferences({}).errors.form);
+  assert.ok(v.validateListName({ name: "Wishlist" }).errors.name);
+  assert.ok(v.validateListName({ name: "x".repeat(41) }).errors.name);
+  assert.equal(v.validateListName({ name: "  Gym   kit " }).value.name, "Gym kit");
+  const ticket = v.validateTicket({ topic: "Order", subject: "Late parcel", message: "It has been a week now.", orderId: "nx-2026-000001" }, ["Order"]);
+  assert.deepEqual(ticket.errors, {});
+  assert.equal(ticket.value.orderId, "NX-2026-000001");
+  assert.ok(v.validateTicket({ topic: "Order", subject: "Hi", message: "short", orderId: "<script>" }, ["Order"]).errors.orderId);
+  assert.ok(v.validateTicketReply({ message: "ok", status: "closed" }, ["open", "pending", "resolved"]).errors.status);
+  assert.ok(v.validateDeleteAccount({ password: "x", confirm: "yes" }).errors.confirm);
+  assert.deepEqual(v.validateDeleteAccount({ password: "x", confirm: "delete" }).errors, {});
+  assert.equal(v.validateAddress({ type: "Office" }).value.type, "home");
+});

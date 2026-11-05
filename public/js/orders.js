@@ -81,7 +81,14 @@
   if (returnForm) {
     returnForm.addEventListener("submit", async event => {
       event.preventDefault();
-      const reply = await Nx.submitForm(returnForm, { url: `/api/orders/${orderId}/return`, busyLabel: "Sending…" });
+      // With photos the form goes as multipart; without, as plain JSON.
+      const photos = returnForm.querySelector("[data-return-photos]");
+      if (photos && photos.files.length > 3) {
+        Nx.showErrors(returnForm, { photos: "You can add up to 3 photos." });
+        return;
+      }
+      const body = photos && photos.files.length ? new FormData(returnForm) : undefined;
+      const reply = await Nx.submitForm(returnForm, { url: `/api/orders/${orderId}/return`, body, busyLabel: "Sending…" });
       if (reply) reloadWith(reply.message);
     });
   }

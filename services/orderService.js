@@ -16,7 +16,7 @@ const LIST_FILTERS = {
   cancelled: { orderStatus: "cancelled" },
   returns: { orderStatus: { $in: ["return_requested", "returned"] } }
 };
-const PERIODS = { all: null, "30d": 30, "6m": 183, "1y": 365 };
+const PERIODS = { all: null, "30d": 30, "3m": 92, "1y": 365 };
 
 // Refunds go through refundService (to the wallet, or back to the card/UPI). Tests can swap it.
 let refundHandler = (order, amount, options) => refundService.issueRefund(order, amount, options);
@@ -112,11 +112,13 @@ async function cancelItem(userId, orderId, itemId, { reason, refundMethod } = {}
   return cancelItems(order, [item], { reason, by: "customer", refundMethod });
 }
 
-async function requestReturn(userId, orderId, { reason, note }, now = new Date()) {
+// savePhotos (optional) stores the customer's photos; it runs only once the return is allowed.
+async function requestReturn(userId, orderId, { reason, note }, now = new Date(), { savePhotos = null } = {}) {
   const order = await getOwnedOrder(userId, orderId);
   if (!rules.canRequestReturn(order, STORE.returnDays, now)) {
     throw new HttpError(400, `Returns can be requested within ${STORE.returnDays} days of delivery.`);
   }
+  if (savePhotos) order.returnPhotos = await savePhotos();
   order.items.forEach(item => {
     if (item.status === "delivered") {
       item.status = "return_requested";

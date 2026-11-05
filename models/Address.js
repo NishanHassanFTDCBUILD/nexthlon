@@ -10,6 +10,7 @@ const addressSchema = new mongoose.Schema({
   city: { type: String, required: true, trim: true, maxlength: 50 },
   state: { type: String, required: true, trim: true },
   pincode: { type: String, required: true, trim: true },
+  type: { type: String, enum: ["home", "work", "other"], default: "home" },
   isDefault: { type: Boolean, default: false }
 }, { timestamps: true });
 

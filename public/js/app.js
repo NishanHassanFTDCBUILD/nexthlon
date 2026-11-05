@@ -132,6 +132,7 @@
     for (const element of form.elements) {
       if (!element.name || element.disabled) continue;
       if (element.type === "checkbox") values[element.name] = element.checked;
+      else if (element.type === "radio") { if (element.checked) values[element.name] = element.value; }
       else if (element.type !== "submit" && element.type !== "button") values[element.name] = element.value;
     }
     return values;

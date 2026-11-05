@@ -1,9 +1,7 @@
-<%- include('../partials/head') %>
-<%- include('../partials/header') %>
 
 <%
   const tabs = [['all', 'All orders'], ['active', 'On the way'], ['delivered', 'Delivered'], ['cancelled', 'Cancelled'], ['returns', 'Returns']];
-  const periods = [['all', 'Any time'], ['30d', 'Last 30 days'], ['6m', 'Last 6 months'], ['1y', 'Last year']];
+  const periods = [['all', 'Any time'], ['30d', 'Last 30 days'], ['3m', 'Last 3 months'], ['1y', 'Last year']];
   const pillFor = function (status) {
     if (status === 'delivered') return 'pill-green';
     if (status === 'cancelled' || status === 'returned') return 'pill-red';
@@ -12,10 +10,8 @@
   };
   const filtered = filters.status !== 'all' || filters.period !== 'all' || filters.q;
 %>
-<main id="main" class="container page">
-  <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <a href="/profile">Your account</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page">Your orders</span>
-  </nav>
+<%- include('../partials/account-start', { section: 'orders' }) %>
+<div class="acct-orders">
   <div class="page-head">
     <div>
       <h1>Your orders</h1>
@@ -89,6 +85,6 @@
       <% } %>
     </div>
   <% } %>
-</main>
+</div>
 
-<%- include('../partials/footer', { scripts: ['catalog'] }) %>
+<%- include('../partials/account-end', { scripts: ['catalog'] }) %>

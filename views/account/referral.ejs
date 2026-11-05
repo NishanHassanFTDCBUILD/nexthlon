@@ -1,0 +1,40 @@
+<%- include('../partials/account-start', { section: 'referral' }) %>
+<div class="acct-page-head" data-rise>
+  <span class="label-caps">Rewards</span>
+  <h1>Refer a friend</h1>
+  <p class="muted"><%= referral.reward > 0 ? 'You both get ' + formatPrice(referral.reward) + ' in your wallets when a friend signs up with your code.' : 'Referral rewards are paused right now, but you can still share your code.' %></p>
+</div>
+
+<section class="panel acct-section referral-hero" data-rise>
+  <div class="gift-box" data-gift-box aria-hidden="true">
+    <span class="gift-lid"><span class="gift-bow"></span></span>
+    <span class="gift-body"></span>
+    <span class="gift-glow"></span>
+  </div>
+  <div class="referral-copy">
+    <span class="label-caps">Your code</span>
+    <code class="referral-code" data-referral-code><%= referral.code %></code>
+    <div class="referral-actions">
+      <button type="button" class="btn btn-primary" data-referral-share data-link="<%= referral.link %>" data-code="<%= referral.code %>"><%- icon('send', 'i-sm') %> Share</button>
+      <button type="button" class="btn btn-ghost" data-copy-code="<%= referral.code %>"><%- icon('copy', 'i-sm') %> Copy code</button>
+      <button type="button" class="btn btn-ghost" data-copy-code="<%= referral.link %>" data-copy-label="Link"><%- icon('copy', 'i-sm') %> Copy link</button>
+    </div>
+  </div>
+</section>
+
+<div class="acct-bento acct-bento-2" data-rise>
+  <div class="acct-tile" data-acct-tilt><span class="acct-tile-icon"><%- icon('users') %></span><span class="acct-tile-value" data-roll="<%= referral.joined %>"><%= referral.joined %></span><span class="acct-tile-label">Friends joined</span></div>
+  <div class="acct-tile" data-acct-tilt><span class="acct-tile-icon"><%- icon('wallet') %></span><span class="acct-tile-value" data-roll="<%= referral.earned %>" data-roll-money><%= formatPrice(referral.earned) %></span><span class="acct-tile-label">Rewards earned</span></div>
+</div>
+
+<section class="panel acct-section" aria-labelledby="friends-title" data-rise>
+  <h2 class="acct-h2" id="friends-title">Friends who joined</h2>
+  <% if (referral.friends.length) { %>
+    <ul class="acct-rows">
+      <% referral.friends.forEach(function (f) { %><li class="acct-row"><span class="avatar avatar-sm"><%= f.firstName.charAt(0).toUpperCase() %></span><strong><%= f.firstName %></strong><small class="muted">Joined <%= formatDate(f.joinedAt) %></small></li><% }) %>
+    </ul>
+  <% } else { %>
+    <%- include('../partials/account-empty', { art: 'gift', title: 'No friends yet', text: 'Share your code. Friends who join show up here.' }) %>
+  <% } %>
+</section>
+<%- include('../partials/account-end', { scripts: ['confetti'] }) %>
