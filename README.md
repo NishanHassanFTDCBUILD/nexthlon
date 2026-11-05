@@ -6,13 +6,107 @@ A sports gear store: Express, EJS, MongoDB, JWT and Razorpay, with plain CSS and
 
 The admin console lives at a private address set by `ADMIN_PATH` in `.env` (for example `/nx-console-7f3k`; it falls back to `/admin` if empty).
 
-- Sign in at `<ADMIN_PATH>/login`. Pages: `<ADMIN_PATH>/dashboard`, `/customers`, `/products`, `/tickets`, `/settings`. Sections still being built show a short "coming soon" notice.
+- Sign in at `<ADMIN_PATH>/login`. Every section in the sidebar is built; there are no placeholder pages.
 - The console has a grouped sidebar (collapsible, remembered per browser), a top bar with global search (orders, products, customers), a Ctrl+K command palette (`/` focuses search), a notification bell and the theme switch.
 - Sections switch without a page reload (`public/js/section-nav.js`, shared with My Account): with the `X-Partial: 1` header the server sends only the section content.
 - Admin APIs are under `/api/admin/*`.
 - Customers never see a link to the console. Any admin page opened by a guest or a customer is an ordinary 404, and so is `/admin` when another path is set.
 - Admins have their own session: the `nx_admin` access cookie (JWT audience `nexthlon-admin`, 15 minutes) renewed by the `nx_admin_refresh` cookie (1 day). Both are HttpOnly and SameSite=Strict. The store uses `nx_token` and `nx_refresh`, and neither pair works in the other area.
 - Admin pages send `noindex, nofollow`, and `robots.txt` never mentions the console.
+
+### The sections
+
+The sidebar is the whole console: there are no placeholder pages, so any other admin URL is an
+ordinary 404.
+
+**Overview**
+
+- **Dashboard** — a date range (Today, 7 days, 30 days, This month, This year, Custom; India time),
+  8 KPIs with the change against the period before, hand-drawn SVG charts, recent orders, what
+  needs attention, quick restock and stock health.
+- **Analytics** — revenue and orders over time with a grouping you choose (day, week or month),
+  top-selling products by revenue and by units, top categories, average order value, new vs
+  returning customers, the payment split (Razorpay / wallet / COD) and conversion from carts to
+  orders. Every chart has a table under it, and "Export CSV" downloads the lot.
+
+**Sales**
+
+- **Orders** — status tabs, filters, search, sorting, bulk status changes, CSV/Excel export, and a
+  page per order (status, cancellations, shipments, notes, manual refunds, invoice and packing slip).
+- **Returns** — return requests, with approve (restock and refund) or reject with your note.
+- **Transactions** — every Razorpay and wallet movement: status, amount, payment id, a link to the
+  order, search, filters and a CSV/Excel export, plus a daily reconciliation.
+- **Refunds** — refunds to the wallet or back to the card/UPI, with status, amount and the order.
+- **Abandoned carts** — carts untouched for 24 hours or more: customer, items, value, last
+  activity, filter by age, sort by value, and a reminder email.
+- **Coupons** — see below.
+
+**Catalog**
+
+- **Products** — add, edit, photos (up to 4, checked by their real bytes), list/unlist, stock.
+- **Inventory** — the stock view: bands (out, low, well stocked, unlisted), filters, sorting, the
+  stock value of the shelf, a correction per row (add, remove, or set the counted number) and a CSV.
+- **Reviews** — list, filter by rating or visibility, search the words, hide/unhide (which works
+  the product's stars out again) or delete. Every action is in the audit log.
+- **Q&A** — see below.
+
+**Customers**
+
+- **Customers** — search and filter, block and unblock (a blocked customer is signed out at once
+  and cannot renew their session).
+
+**System**
+
+- **Settings** — the referral reward, plus the delivery, returns and checkout rules the store runs on.
+- **System status** — whether the database answers and how fast, uptime and memory, how much data
+  there is, what is switched on (Razorpay, SMTP, secure cookies, production mode) and the session
+  lifetimes. Read-only, and it never prints a key.
+
+### Coupons
+
+`<ADMIN_PATH>/coupons` lists every coupon with its code, type (percent or flat ₹), value, minimum
+order, cap, start and expiry dates, both usage limits, how many times it has been used and one word
+for its status: running now, starts later, expired, fully used or disabled. You can search, filter
+by status and sort.
+
+Creating and editing use one form, and everything on it is checked again on the server
+(`utils/validators.js` → `validateCoupon`): the code is 3–20 capitals and must be unique, a percent
+is 1–90, a cap only applies to a percent coupon, an expiry must be after the start, and a flat
+discount cannot be larger than its own minimum order. A coupon can be disabled (reversible) or
+deleted — a soft delete, so the code can never be used again while the orders that used it keep
+their history. The detail page shows who used it, on which order, the discount each time and the
+total given. Every create, edit, enable, disable and delete is written to the audit log.
+
+On the store side nothing changed, because the rules were always applied on the server: a code is
+judged when the customer applies it, again whenever the totals are worked out, and once more as the
+order is saved (`services/couponService.js` with `utils/pricing.js` → `couponProblem`). Checkout also
+lists the coupons that customer could use. The total-uses count is claimed with one atomic update,
+so a limit can never be exceeded, and a cancelled or unpaid order releases the use again.
+
+### Questions & answers
+
+On a product page, anyone can read the "Questions & answers" section and search it. A signed-in
+customer can ask a question, answer someone else's, and mark a question or an answer as helpful
+(one vote each, and pressing again takes it back). A customer may have at most three unanswered
+questions on one product, and asking or answering is rate limited.
+
+In the console, `<ADMIN_PATH>/questions` puts the questions nobody has answered first, oldest at the
+top. Answering posts as **Nexthlon Team** and the store shows that answer with an official badge,
+above the customer answers. You can also edit the wording of a question or an answer, hide either
+(hiding the last answer puts the question back in the queue), and delete either. Filters cover
+product, answered/unanswered and whether to include hidden ones. Everything goes to the audit log.
+
+Answers are embedded in their question (`models/Question.js`): a thread is short and is always read
+whole. Nothing is ever stored or printed as HTML, so a question containing `<script>` appears as text.
+
+### Removed from the console
+
+Categories, brands, segments, offers, flash sales, email campaigns, gift cards, loyalty, the home
+page CMS, banners, the sales report, exports, delivery zones, admin roles, the audit-log viewer and
+the support-ticket screen were taken out of the admin UI, along with `views/admin/soon.ejs` and the
+"Soon" badge. The store side is untouched: categories and coupons work exactly as before, and
+customers can still raise support tickets from My Account (the `/api/admin/tickets` API is still
+there to answer them).
 
 ### Admin dashboard
 
