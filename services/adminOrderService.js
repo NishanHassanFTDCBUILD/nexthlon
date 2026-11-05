@@ -1,0 +1,348 @@
+// Admin: orders and returns. Lists with filters and search, forward-only status changes (one or in
+// bulk), item cancellation, shipments, internal notes, manual refunds and return decisions.
+// The order rules live in utils/orderRules.js and orderService; money moves through refundService.
+const mongoose = require("mongoose");
+const Order = require("../models/Order");
+const User = require("../models/User");
+const orderService = require("./orderService");
+const refundService = require("./refundService");
+const stockService = require("./stockService");
+const rules = require("../utils/orderRules");
+const { HttpError } = require("../utils/http");
+const { escapeRegex, toPositiveInt } = require("./productService");
+const { inTransaction } = require("../utils/transaction");
+
+const PAGE_SIZE = 20;
+const EXPORT_LIMIT = 20000;
+const IST_MS = 330 * 60 * 1000;
+const ORDER_SORTS = {
+  newest: { label: "Newest first", order: { createdAt: -1, _id: -1 } },
+  oldest: { label: "Oldest first", order: { createdAt: 1, _id: 1 } },
+  amount_desc: { label: "Amount: high to low", order: { total: -1, createdAt: -1 } },
+  amount_asc: { label: "Amount: low to high", order: { total: 1, createdAt: -1 } }
+};
+const METHODS = ["razorpay", "cod", "wallet"];
+const RETURN_FILTERS = ["requested", "approved", "rejected", "all"];
+
+// A YYYY-MM-DD India date as the moment it starts, or null.
+function istDay(text) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof text === "string" ? text : "");
+  if (!match) return null;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) - IST_MS);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+const rupeesToPaise = value => (/^\d{1,7}$/.test(String(value ?? "").trim()) ? Number(value) * 100 : null);
+const cleanText = (value, max) => (typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "");
+
+// Every list filter, read safely from the query string (unknown values fall back to "any").
+function readOrderFilters(query = {}) {
+  return {
+    status: rules.ORDER_STATUSES.includes(query.status) ? query.status : "all",
+    method: METHODS.includes(query.method) ? query.method : "all",
+    payment: rules.PAYMENT_STATUSES.includes(query.payment) ? query.payment : "all",
+    from: istDay(query.from) ? query.from : "",
+    to: istDay(query.to) ? query.to : "",
+    min: rupeesToPaise(query.min) !== null ? String(Number(query.min)) : "",
+    max: rupeesToPaise(query.max) !== null ? String(Number(query.max)) : "",
+    city: cleanText(query.city, 40),
+    q: cleanText(query.q, 60),
+    sort: Object.hasOwn(ORDER_SORTS, query.sort) ? query.sort : "newest",
+    page: toPositiveInt(query.page, 1)
+  };
+}
+
+// Customers whose name, email or phone matches (for searching orders by customer).
+async function matchingUserIds(q) {
+  if (!q) return [];
+  const pattern = new RegExp(escapeRegex(q), "i");
+  const users = await User.find({ role: "customer", $or: [{ name: pattern }, { email: pattern }, { phone: pattern }] }).select("_id").limit(50).lean();
+  return users.map(user => user._id);
+}
+
+async function buildOrderFilter(filters) {
+  const filter = {};
+  if (filters.status !== "all") filter.orderStatus = filters.status;
+  if (filters.method !== "all") filter.paymentMethod = filters.method;
+  if (filters.payment !== "all") filter.paymentStatus = filters.payment;
+  if (filters.from || filters.to) {
+    filter.createdAt = {};
+    if (filters.from) filter.createdAt.$gte = istDay(filters.from);
+    if (filters.to) filter.createdAt.$lt = new Date(istDay(filters.to).getTime() + 24 * 60 * 60 * 1000);
+  }
+  if (filters.min || filters.max) {
+    filter.total = {};
+    if (filters.min) filter.total.$gte = Number(filters.min) * 100;
+    if (filters.max) filter.total.$lte = Number(filters.max) * 100;
+  }
+  if (filters.city) filter["address.city"] = new RegExp(`^${escapeRegex(filters.city)}`, "i");
+  if (filters.q) {
+    const pattern = new RegExp(escapeRegex(filters.q), "i");
+    const users = await matchingUserIds(filters.q);
+    filter.$or = [{ orderId: pattern }, { "address.fullName": pattern }, { "address.phone": pattern }, ...(users.length ? [{ user: { $in: users } }] : [])];
+  }
+  return filter;
+}
+
+const LIST_FIELDS = "orderId user items.name items.quantity items.status total walletUsed refundedAmount paymentMethod paymentStatus orderStatus createdAt address.fullName address.city address.state address.phone shipments";
+
+function toListRow(order) {
+  return {
+    orderId: order.orderId,
+    customer: order.address ? order.address.fullName : "",
+    city: order.address ? order.address.city : "",
+    state: order.address ? order.address.state : "",
+    phone: order.address ? order.address.phone : "",
+    items: order.items.reduce((sum, item) => sum + item.quantity, 0),
+    firstItem: order.items[0] ? order.items[0].name : "",
+    total: order.total,
+    charged: order.total + (order.walletUsed || 0),
+    refunded: order.refundedAmount || 0,
+    method: order.paymentMethod,
+    payment: order.paymentStatus,
+    status: order.orderStatus,
+    next: rules.nextStatuses(order.orderStatus),
+    shipped: (order.shipments || []).length > 0,
+    createdAt: order.createdAt
+  };
+}
+
+async function listOrders(query = {}) {
+  const filters = readOrderFilters(query);
+  const filter = await buildOrderFilter(filters);
+  const [orders, total, statusCounts] = await Promise.all([
+    Order.find(filter).sort(ORDER_SORTS[filters.sort].order).skip((filters.page - 1) * PAGE_SIZE).limit(PAGE_SIZE).select(LIST_FIELDS).lean(),
+    Order.countDocuments(filter),
+    Order.aggregate([{ $group: { _id: "$orderStatus", count: { $sum: 1 } } }])
+  ]);
+  return {
+    orders: orders.map(toListRow),
+    filters,
+    counts: Object.fromEntries(statusCounts.map(row => [row._id, row.count])),
+    pagination: { page: filters.page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total, limit: PAGE_SIZE }
+  };
+}
+
+// For exports: the same filter and order, as a stream of rows (up to 20,000).
+async function exportOrders(query = {}) {
+  const filters = readOrderFilters(query);
+  const filter = await buildOrderFilter(filters);
+  const cursor = Order.find(filter).sort(ORDER_SORTS[filters.sort].order).limit(EXPORT_LIMIT)
+    .select(`${LIST_FIELDS} subtotal discount couponCode couponDiscount deliveryFee razorpay.paymentId`).lean().cursor();
+  return (async function* rows() {
+    for await (const order of cursor) {
+      yield {
+        ...toListRow(order),
+        subtotal: order.subtotal, discount: order.discount, couponCode: order.couponCode, couponDiscount: order.couponDiscount,
+        deliveryFee: order.deliveryFee, walletUsed: order.walletUsed, paymentId: order.razorpay ? order.razorpay.paymentId : ""
+      };
+    }
+  })();
+}
+
+async function findOrder(orderId) {
+  const id = String(orderId || "").trim().toUpperCase();
+  if (!/^NX-\d{4}-\d{6}$/.test(id)) throw new HttpError(404, "Order not found.");
+  const order = await Order.findOne({ orderId: id });
+  if (!order) throw new HttpError(404, "Order not found.");
+  return order;
+}
+
+// The order page: the order, its customer and what an admin may do next.
+async function getOrder(orderId) {
+  const order = await findOrder(orderId);
+  const customer = await User.findById(order.user).select("name email phone createdAt isBlocked").lean();
+  const paidSoFar = (order.walletUsed || 0) + (rules.PAID_STATUSES.includes(order.paymentStatus) ? order.total : 0);
+  return {
+    order,
+    customer,
+    next: rules.nextStatuses(rules.deriveOrderStatus(order.items)),
+    cancellable: order.items.filter(rules.canCancelItem).map(item => String(item._id)),
+    refundable: Math.max(0, paidSoFar - (order.refundedAmount || 0)),
+    returnItems: order.items.filter(item => item.status === "return_requested").map(item => String(item._id)),
+    returnValue: rules.refundFor(order, order.items.filter(item => item.status === "return_requested").map(item => item._id)),
+    canReverse: order.paymentMethod === "razorpay" && Boolean(order.razorpay && order.razorpay.paymentId)
+  };
+}
+
+const snapshot = order => ({ status: order.orderStatus, payment: order.paymentStatus, refunded: order.refundedAmount });
+
+// Forward-only, along placed → confirmed → shipped → out for delivery → delivered.
+async function updateStatus(orderId, status) {
+  const order = await findOrder(orderId);
+  const before = snapshot(order);
+  await orderService.advanceStatus(order, status, "admin");
+  return { order, before, after: snapshot(order) };
+}
+
+// Several orders at once. Each one is checked on its own; the ones that can't move are listed.
+async function bulkStatus(orderIds, status) {
+  const done = [];
+  const skipped = [];
+  for (const orderId of orderIds) {
+    try {
+      const { order } = await updateStatus(orderId, status);
+      done.push(order.orderId);
+    } catch (error) {
+      skipped.push({ orderId, reason: error.status ? error.message : "Something went wrong." });
+    }
+  }
+  return { done, skipped };
+}
+
+// Cancel some items (or every cancellable one): stock goes back, money is refunded as for customers.
+async function cancelItems(orderId, { itemIds, reason, refundMethod }) {
+  const order = await findOrder(orderId);
+  const before = snapshot(order);
+  const items = itemIds.length
+    ? itemIds.map(id => (mongoose.isValidObjectId(id) ? order.items.id(id) : null))
+    : order.items.filter(rules.canCancelItem);
+  if (!items.length || items.some(item => !item)) throw new HttpError(404, "That item is not in this order.");
+  const blocked = items.find(item => !rules.canCancelItem(item));
+  if (blocked) throw new HttpError(400, `${blocked.name} can no longer be cancelled (it is ${rules.STATUS_LABELS[blocked.status].toLowerCase()}).`);
+  await orderService.cancelItems(order, items, { reason: reason || "Cancelled by Nexthlon", by: "admin", refundMethod });
+  return { order, before, after: snapshot(order), names: items.map(item => item.name) };
+}
+
+async function addShipment(orderId, { courier, trackingNumber, expectedAt, markShipped }, actor) {
+  const order = await findOrder(orderId);
+  if (["cancelled", "returned"].includes(order.orderStatus)) throw new HttpError(400, "A cancelled or returned order can't be shipped.");
+  order.shipments.push({ courier, trackingNumber, expectedAt, addedBy: actor._id });
+  order.statusHistory.push({ status: "shipment_added", by: "admin", note: `${courier} ${trackingNumber}` });
+  await order.save();
+  // "Mark as shipped" moves the order forward too, when that is the next allowed step.
+  if (markShipped && rules.nextStatuses(rules.deriveOrderStatus(order.items)).includes("shipped")) {
+    await orderService.advanceStatus(order, "shipped", "admin");
+  }
+  return { order, shipment: order.shipments[order.shipments.length - 1] };
+}
+
+async function addNote(orderId, body, actor) {
+  const order = await findOrder(orderId);
+  order.notes.push({ body, by: actor._id, byName: actor.name });
+  await order.save();
+  return { order, note: order.notes[order.notes.length - 1] };
+}
+
+// A refund outside a cancellation or return (goodwill, a price adjustment...). Never more than
+// what was actually paid and not yet refunded.
+async function manualRefund(orderId, { amount, method, reason }) {
+  const order = await findOrder(orderId);
+  const { refundable } = await getOrder(orderId);
+  if (amount > refundable) throw new HttpError(400, refundable ? `At most ${(refundable / 100).toLocaleString("en-IN", { style: "currency", currency: "INR" })} can still be refunded on this order.` : "Nothing is left to refund on this order.");
+  const before = snapshot(order);
+  const refunds = await refundService.issueRefund(order, amount, { method, reason: reason || `Refund for ${order.orderId}` });
+  return { order, before, after: snapshot(order), refunds };
+}
+
+// ---------- Returns ----------
+function readReturnFilters(query = {}) {
+  return {
+    status: RETURN_FILTERS.includes(query.status) ? query.status : "requested",
+    q: cleanText(query.q, 60),
+    page: toPositiveInt(query.page, 1)
+  };
+}
+
+async function listReturns(query = {}) {
+  const filters = readReturnFilters(query);
+  const byStatus = {
+    requested: { orderStatus: "return_requested" },
+    approved: { "returnDecision.status": "approved" },
+    rejected: { "returnDecision.status": "rejected" },
+    all: { $or: [{ orderStatus: "return_requested" }, { returnDecision: { $ne: null } }] }
+  };
+  const filter = { ...byStatus[filters.status] };
+  if (filters.q) {
+    const pattern = new RegExp(escapeRegex(filters.q), "i");
+    filter.$and = [{ $or: [{ orderId: pattern }, { "address.fullName": pattern }] }];
+  }
+  const [orders, total, counts] = await Promise.all([
+    Order.find(filter).sort({ updatedAt: -1 }).skip((filters.page - 1) * PAGE_SIZE).limit(PAGE_SIZE)
+      .select("orderId items total walletUsed paymentMethod paymentStatus orderStatus returnReason returnNote returnPhotos returnDecision updatedAt deliveredAt address.fullName address.city").lean(),
+    Order.countDocuments(filter),
+    Promise.all([Order.countDocuments(byStatus.requested), Order.countDocuments(byStatus.approved), Order.countDocuments(byStatus.rejected)])
+  ]);
+  return {
+    returns: orders.map(order => {
+      const requested = order.items.filter(item => item.status === "return_requested");
+      const returned = order.items.filter(item => item.status === "returned");
+      return {
+        orderId: order.orderId,
+        customer: order.address ? order.address.fullName : "",
+        city: order.address ? order.address.city : "",
+        items: (requested.length ? requested : returned).map(item => `${item.name} × ${item.quantity}`),
+        value: rules.itemsValue(order, (requested.length ? requested : returned).map(item => item._id)),
+        reason: order.returnReason,
+        note: order.returnNote,
+        photos: order.returnPhotos || [],
+        status: order.orderStatus === "return_requested" ? "requested" : order.returnDecision ? order.returnDecision.status : "requested",
+        decision: order.returnDecision,
+        method: order.paymentMethod,
+        updatedAt: order.updatedAt
+      };
+    }),
+    filters,
+    counts: { requested: counts[0], approved: counts[1], rejected: counts[2] },
+    pagination: { page: filters.page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total, limit: PAGE_SIZE }
+  };
+}
+
+function settle(order, note) {
+  const status = rules.deriveOrderStatus(order.items);
+  if (status !== order.orderStatus) {
+    order.orderStatus = status;
+    order.statusHistory.push({ status, by: "admin", note });
+  }
+}
+
+// Approve: the items count as returned, their stock goes back on the shelf, and their value is
+// refunded (to the wallet, or to the card/UPI for online payments). Reject: the items go back to
+// "delivered" and the customer sees the note.
+async function decideReturn(orderId, { decision, note, refundMethod }, actor) {
+  const order = await findOrder(orderId);
+  const items = order.items.filter(item => item.status === "return_requested");
+  if (!items.length) throw new HttpError(400, "This order has no return waiting for a decision.");
+  const before = snapshot(order);
+  let refund = 0;
+
+  if (decision === "approve") {
+    refund = rules.refundFor(order, items.map(item => item._id));
+    await inTransaction(async (session, undo) => {
+      await stockService.returnStock(items.map(item => ({ product: item.product, quantity: item.quantity })), session);
+      undo(() => stockService.returnStock(items.map(item => ({ product: item.product, quantity: -item.quantity }))));
+      items.forEach(item => { item.status = "returned"; });
+      order.returnDecision = { status: "approved", note, refundMethod: refund > 0 ? refundMethod : "", refunded: refund, by: actor._id, at: new Date() };
+      settle(order, note || "Return approved");
+      await order.save({ session });
+    });
+    if (refund > 0) await refundService.issueRefund(order, refund, { method: refundMethod, reason: `Return approved for ${order.orderId}` });
+  } else {
+    items.forEach(item => { item.status = "delivered"; });
+    order.returnDecision = { status: "rejected", note, refundMethod: "", refunded: 0, by: actor._id, at: new Date() };
+    order.statusHistory.push({ status: "return_rejected", by: "admin", note });
+    settle(order, note);
+    await order.save();
+  }
+  return { order, before, after: snapshot(order), refund, items: items.map(item => item.name) };
+}
+
+module.exports = {
+  PAGE_SIZE,
+  ORDER_SORTS,
+  METHODS,
+  RETURN_FILTERS,
+  readOrderFilters,
+  listOrders,
+  exportOrders,
+  findOrder,
+  getOrder,
+  updateStatus,
+  bulkStatus,
+  cancelItems,
+  addShipment,
+  addNote,
+  manualRefund,
+  readReturnFilters,
+  listReturns,
+  decideReturn
+};

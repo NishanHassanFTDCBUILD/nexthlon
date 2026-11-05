@@ -1,0 +1,198 @@
+<%
+  const o = order;
+  const a = o.address || {};
+  const paymentLabels = { pending: 'Pending', paid: 'Paid', failed: 'Failed', refunded: 'Refunded', partially_refunded: 'Part refunded' };
+  const paymentPill = { pending: 'pill-amber', paid: 'pill-green', failed: 'pill-red', refunded: 'pill-grey', partially_refunded: 'pill-blue' };
+  const when = function (d) { return d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : ''; };
+  const historyLabel = function (s) { return statusLabels[s] || { item_cancelled: 'Item cancelled', shipment_added: 'Shipment added', return_rejected: 'Return rejected' }[s] || s; };
+  const paidOnline = o.paymentMethod === 'razorpay' && ['paid', 'partially_refunded'].includes(o.paymentStatus);
+  const charged = o.total + (o.walletUsed || 0);
+%>
+<%- include('../partials/admin-start', { section: 'orders', page: 'order' }) %>
+<div class="admin-order" data-admin-order="<%= o.orderId %>">
+  <header class="admin-top">
+    <div>
+      <a class="back-link" href="<%= adminPath %>/orders"><%- icon('chevron-left', 'i-xs') %> Orders</a>
+      <h1><%= o.orderId %></h1>
+      <p class="muted admin-order-meta">
+        Placed <%= when(o.createdAt) %> ·
+        <span class="status-pill status-<%= o.orderStatus %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[o.orderStatus] %></span>
+        <span class="pill <%= paymentPill[o.paymentStatus] %>"><%= paymentLabels[o.paymentStatus] %> · <%= methodLabels[o.paymentMethod] %></span>
+      </p>
+    </div>
+    <div class="admin-top-actions">
+      <a class="btn btn-ghost btn-sm" href="/api/admin/orders/<%= o.orderId %>/invoice.pdf" download data-full-load><%- icon('file-text', 'i-sm') %> Invoice</a>
+      <a class="btn btn-ghost btn-sm" href="/api/admin/orders/<%= o.orderId %>/packing-slip.pdf" download data-full-load><%- icon('box', 'i-sm') %> Packing slip</a>
+    </div>
+  </header>
+
+  <% if (next.length) { %>
+    <form class="panel admin-status-bar" data-status-form>
+      <span><strong>Next step</strong> <small class="muted">Orders only move forward. Cash on delivery is marked paid on delivery.</small></span>
+      <div class="admin-status-actions">
+        <label class="sr-only" for="next-status">Move this order to</label>
+        <select id="next-status" name="status">
+          <% next.forEach(function (s, i) { %><option value="<%= s %>" <%= i === 0 ? 'selected' : '' %>><%= statusLabels[s] %></option><% }) %>
+        </select>
+        <button class="btn btn-primary btn-sm" type="submit">Update status</button>
+      </div>
+    </form>
+  <% } %>
+
+  <div class="admin-order-grid">
+    <div class="admin-order-main">
+      <%# ---------- Items ---------- %>
+      <section class="panel admin-block" aria-labelledby="items-title">
+        <div class="dash-card-head"><h2 id="items-title">Items</h2><span class="muted"><%= o.items.length %> <%= o.items.length === 1 ? 'line' : 'lines' %></span></div>
+        <form data-cancel-form>
+          <ul class="admin-items">
+            <% o.items.forEach(function (item) { const can = cancellable.includes(String(item._id)); %>
+              <li class="<%= item.status === 'cancelled' ? 'is-cancelled' : '' %>">
+                <% if (can) { %><input type="checkbox" name="itemIds" value="<%= item._id %>" aria-label="Select <%= item.name %> to cancel"><% } else { %><span class="admin-items-gap"></span><% } %>
+                <img src="<%= item.image %>" alt="" width="48" height="48" loading="lazy">
+                <span class="admin-items-name"><a href="/products/<%= item.slug %>" data-nav-skip target="_blank" rel="noopener"><%= item.name %></a><small class="muted"><%= item.quantity %> × <%= formatPrice(item.price) %><% if (item.mrp > item.price) { %> · M.R.P. <s><%= formatPrice(item.mrp) %></s><% } %></small></span>
+                <span class="status-pill status-<%= item.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[item.status] %></span>
+                <strong class="admin-items-total"><%= formatPrice(item.lineTotal) %></strong>
+              </li>
+            <% }) %>
+          </ul>
+          <% if (cancellable.length) { %>
+            <div class="admin-inline-form">
+              <label class="admin-field"><span>Reason</span>
+                <select name="reason"><option value="Cancelled by Nexthlon">Cancelled by Nexthlon</option><option value="Out of stock">Out of stock</option><option value="Address not serviceable">Address not serviceable</option><option value="Suspected fraud">Suspected fraud</option><% cancelReasons.forEach(function (r) { %><option value="<%= r %>">Customer: <%= r %></option><% }) %></select></label>
+              <% if (paidOnline && canReverse) { %>
+                <label class="admin-field"><span>Refund to</span><select name="refundMethod"><option value="wallet">Wallet (instant)</option><option value="original">Original payment</option></select></label>
+              <% } %>
+              <button class="btn btn-danger-soft btn-sm" type="submit" data-cancel-submit><%- icon('x', 'i-sm') %> Cancel selected</button>
+              <small class="muted">No items ticked cancels everything that can still be cancelled.</small>
+            </div>
+          <% } %>
+        </form>
+      </section>
+
+      <%# ---------- Return ---------- %>
+      <% if (returnItems.length || o.returnDecision) { %>
+        <section class="panel admin-block admin-return<%= returnItems.length ? ' is-open' : '' %>" id="return" aria-labelledby="return-title">
+          <div class="dash-card-head"><h2 id="return-title"><%- icon('rotate-ccw', 'i-sm') %> Return</h2>
+            <% if (o.returnDecision) { %><span class="pill <%= o.returnDecision.status === 'approved' ? 'pill-green' : 'pill-red' %>"><%= o.returnDecision.status === 'approved' ? 'Approved' : 'Rejected' %> <%= formatDate(o.returnDecision.at) %></span><% } else { %><span class="pill pill-amber">Waiting for a decision</span><% } %></div>
+          <dl class="admin-facts">
+            <div><dt>Reason</dt><dd><%= o.returnReason || 'Not given' %></dd></div>
+            <div><dt>Delivered</dt><dd><%= o.deliveredAt ? formatDate(o.deliveredAt) : '—' %></dd></div>
+            <% if (returnItems.length) { %><div><dt>Refund if approved</dt><dd><%= formatPrice(returnValue) %></dd></div><% } %>
+            <% if (o.returnDecision && o.returnDecision.refunded) { %><div><dt>Refunded</dt><dd><%= formatPrice(o.returnDecision.refunded) %> to <%= o.returnDecision.refundMethod === 'original' ? 'card/UPI' : 'wallet' %></dd></div><% } %>
+          </dl>
+          <% if (o.returnNote) { %><p class="admin-quote">“<%= o.returnNote %>”</p><% } %>
+          <% if (o.returnPhotos && o.returnPhotos.length) { %>
+            <div class="admin-photos"><% o.returnPhotos.forEach(function (src, i) { %><a href="<%= src %>" target="_blank" rel="noopener" data-nav-skip><img src="<%= src %>" alt="Return photo <%= i + 1 %>" width="96" height="96" loading="lazy"></a><% }) %></div>
+          <% } %>
+          <% if (o.returnDecision && o.returnDecision.note) { %><p class="muted">Note to the customer: <%= o.returnDecision.note %></p><% } %>
+          <% if (returnItems.length) { %>
+            <form class="admin-decision" data-return-form>
+              <label class="admin-field admin-field-wide"><span>Note to the customer <small class="muted">(needed when rejecting)</small></span><textarea name="note" rows="2" maxlength="500"></textarea></label>
+              <% if (canReverse && paidOnline) { %>
+                <label class="admin-field"><span>Refund to</span><select name="refundMethod"><option value="wallet">Wallet (instant)</option><option value="original">Original payment</option></select></label>
+              <% } %>
+              <div class="admin-decision-actions">
+                <button class="btn btn-primary btn-sm" type="submit" name="decision" value="approve"><%- icon('check', 'i-sm') %> Approve, restock and refund</button>
+                <button class="btn btn-danger-soft btn-sm" type="submit" name="decision" value="reject"><%- icon('x', 'i-sm') %> Reject</button>
+              </div>
+            </form>
+          <% } %>
+        </section>
+      <% } %>
+
+      <%# ---------- Shipments ---------- %>
+      <section class="panel admin-block" aria-labelledby="ship-title">
+        <div class="dash-card-head"><h2 id="ship-title"><%- icon('truck', 'i-sm') %> Shipments</h2></div>
+        <% if (o.shipments.length) { %>
+          <ul class="admin-list">
+            <% o.shipments.forEach(function (s) { %>
+              <li><strong><%= s.courier %></strong> <code><%= s.trackingNumber %></code><small class="muted">Added <%= when(s.at) %><%= s.expectedAt ? ' · expected ' + formatDate(s.expectedAt) : '' %></small></li>
+            <% }) %>
+          </ul>
+        <% } else { %><p class="muted">No shipment yet.</p><% } %>
+        <% if (!['cancelled', 'returned'].includes(o.orderStatus)) { %>
+          <form class="admin-inline-form" data-shipment-form novalidate>
+            <label class="admin-field"><span>Courier</span><input name="courier" maxlength="60" required placeholder="e.g. Delhivery" list="couriers"></label>
+            <datalist id="couriers"><option value="Delhivery"><option value="Blue Dart"><option value="DTDC"><option value="Ekart"><option value="India Post"><option value="Shadowfax"></datalist>
+            <label class="admin-field"><span>Tracking number</span><input name="trackingNumber" maxlength="40" required></label>
+            <label class="admin-field"><span>Expected</span><input type="date" name="expectedAt"></label>
+            <% if (next.includes('shipped')) { %><label class="admin-check"><input type="checkbox" name="markShipped" value="true" checked> Mark as shipped</label><% } %>
+            <button class="btn btn-secondary btn-sm" type="submit"><%- icon('plus', 'i-sm') %> Add shipment</button>
+          </form>
+        <% } %>
+      </section>
+
+      <%# ---------- Timeline ---------- %>
+      <section class="panel admin-block" aria-labelledby="timeline-title">
+        <div class="dash-card-head"><h2 id="timeline-title"><%- icon('history', 'i-sm') %> Timeline</h2></div>
+        <ol class="admin-timeline">
+          <li><strong>Order placed</strong><small class="muted"><%= when(o.createdAt) %> · customer</small></li>
+          <% o.statusHistory.forEach(function (h) { %>
+            <li><strong><%= historyLabel(h.status) %></strong><small class="muted"><%= when(h.at) %> · <%= h.by %><%= h.note ? ' · ' + h.note : '' %></small></li>
+          <% }) %>
+        </ol>
+      </section>
+    </div>
+
+    <aside class="admin-order-side">
+      <section class="panel admin-block" aria-labelledby="customer-title">
+        <div class="dash-card-head"><h2 id="customer-title">Customer</h2></div>
+        <% if (customer) { %>
+          <p class="admin-who"><span class="avatar avatar-sm"><%= customer.name.charAt(0).toUpperCase() %></span><span><a href="<%= adminPath %>/customers?q=<%= encodeURIComponent(customer.email) %>"><%= customer.name %></a><small class="muted"><%= customer.email %></small><% if (customer.phone) { %><small class="muted">+91 <%= customer.phone %></small><% } %></span></p>
+          <% if (customer.isBlocked) { %><span class="pill pill-red">Blocked</span><% } %>
+        <% } else { %><p class="muted">The account no longer exists.</p><% } %>
+        <h3 class="admin-h3">Deliver to</h3>
+        <address class="admin-address"><strong><%= a.fullName %></strong><br><%= a.line1 %><%= a.line2 ? ', ' + a.line2 : '' %><br><% if (a.landmark) { %>Near <%= a.landmark %><br><% } %><%= a.city %>, <%= a.state %> <%= a.pincode %><br>+91 <%= a.phone %></address>
+      </section>
+
+      <section class="panel admin-block" aria-labelledby="pay-title">
+        <div class="dash-card-head"><h2 id="pay-title">Payment</h2></div>
+        <dl class="summary-list">
+          <div><dt>Items</dt><dd><%= formatPrice(o.subtotal) %></dd></div>
+          <% if (o.couponDiscount) { %><div class="summary-savings"><dt>Coupon <%= o.couponCode %></dt><dd>−<%= formatPrice(o.couponDiscount) %></dd></div><% } %>
+          <div><dt>Delivery</dt><dd><%= o.deliveryFee ? formatPrice(o.deliveryFee) : 'Free' %></dd></div>
+          <% if (o.walletUsed) { %><div><dt>From wallet</dt><dd><%= formatPrice(o.walletUsed) %></dd></div><% } %>
+          <div class="summary-total"><dt><%= o.paymentMethod === 'cod' ? 'To collect' : 'Charged' %></dt><dd><%= formatPrice(o.total) %></dd></div>
+          <% if (o.refundedAmount) { %><div class="summary-savings"><dt>Refunded</dt><dd><%= formatPrice(o.refundedAmount) %></dd></div><% } %>
+        </dl>
+        <% if (o.razorpay && (o.razorpay.paymentId || o.razorpay.orderId)) { %>
+          <p class="admin-ref"><small class="muted">Razorpay payment</small><code><%= o.razorpay.paymentId || '—' %></code><small class="muted">Razorpay order</small><code><%= o.razorpay.orderId || '—' %></code></p>
+        <% } %>
+        <% if (o.refunds.length) { %>
+          <h3 class="admin-h3">Refunds</h3>
+          <ul class="admin-list">
+            <% o.refunds.forEach(function (r) { %><li><strong><%= formatPrice(r.amount) %></strong> to <%= r.method === 'original' ? 'card/UPI' : 'wallet' %> <span class="pill <%= r.status === 'processed' ? 'pill-green' : r.status === 'pending' ? 'pill-amber' : 'pill-red' %>"><%= r.status %></span><small class="muted"><%= when(r.at) %><%= r.reason ? ' · ' + r.reason : '' %></small></li><% }) %>
+          </ul>
+        <% } %>
+        <% if (refundable > 0) { %>
+          <details class="admin-refund">
+            <summary><%- icon('wallet', 'i-sm') %> Issue a refund <small class="muted">(up to <%= formatPrice(refundable) %>)</small></summary>
+            <form class="admin-stack-form" data-refund-form data-max="<%= refundable %>" novalidate>
+              <div class="form-alert" data-form-alert aria-live="polite"></div>
+              <label class="admin-field"><span>Amount (₹)</span><input name="amount" type="number" min="1" step="0.01" max="<%= refundable / 100 %>" inputmode="decimal" required></label>
+              <p class="field-error" data-error-for="amount"></p>
+              <label class="admin-field"><span>Refund to</span><select name="method"><option value="wallet">Customer wallet (instant)</option><% if (canReverse && paidOnline) { %><option value="original">Original payment (5 to 7 days)</option><% } %></select></label>
+              <label class="admin-field"><span>Reason</span><input name="reason" maxlength="200" required placeholder="e.g. Late delivery goodwill"></label>
+              <p class="field-error" data-error-for="reason"></p>
+              <button class="btn btn-primary btn-sm" type="submit">Refund</button>
+            </form>
+          </details>
+        <% } %>
+      </section>
+
+      <section class="panel admin-block" aria-labelledby="notes-title">
+        <div class="dash-card-head"><h2 id="notes-title"><%- icon('edit', 'i-sm') %> Internal notes</h2><span class="muted">Only admins see these</span></div>
+        <% if (o.notes.length) { %>
+          <ul class="admin-notes"><% o.notes.slice().reverse().forEach(function (n) { %><li><p><%= n.body %></p><small class="muted"><%= n.byName || 'Admin' %> · <%= when(n.at) %></small></li><% }) %></ul>
+        <% } %>
+        <form class="admin-stack-form" data-note-form novalidate>
+          <label class="sr-only" for="order-note">New note</label>
+          <textarea id="order-note" name="body" rows="2" maxlength="1000" required placeholder="Add a note for the team"></textarea>
+          <button class="btn btn-secondary btn-sm" type="submit">Add note</button>
+        </form>
+      </section>
+    </aside>
+  </div>
+</div>
+<%- include('../partials/admin-end') %>

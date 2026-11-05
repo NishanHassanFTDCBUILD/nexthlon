@@ -1,0 +1,41 @@
+<%
+  const e = entry;
+  const methodName = { razorpay: 'Razorpay (UPI, cards, net banking)', cod: 'Cash on delivery', wallet: 'Nexthlon wallet', original: 'Back to card/UPI' }[e.method] || '—';
+  const direction = { in: 'Money in', out: 'Money out', none: 'Not counted in totals' }[e.direction];
+%>
+<%- include('../partials/admin-start', { section: 'transactions', page: 'transaction' }) %>
+<header class="admin-top">
+  <div>
+    <a class="back-link" href="<%= adminPath %>/transactions"><%- icon('chevron-left', 'i-xs') %> Transactions</a>
+    <h1><%= typeLabels[e.type] %></h1>
+    <p class="muted"><%= new Date(e.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) %> · <%= direction %></p>
+  </div>
+</header>
+<div class="admin-order-grid">
+  <section class="panel admin-block" aria-labelledby="tx-title">
+    <div class="dash-card-head"><h2 id="tx-title">Details</h2><strong class="admin-amt admin-amt-lg is-<%= e.direction %>"><%= e.direction === 'in' ? '+' : e.direction === 'out' ? '−' : '' %><%= formatPrice(e.amount) %></strong></div>
+    <dl class="admin-facts">
+      <div><dt>Status</dt><dd><%= e.status %></dd></div>
+      <div><dt>Method</dt><dd><%= methodName %></dd></div>
+      <div><dt>Reference</dt><dd><code class="admin-code"><%= e.reference || '—' %></code></dd></div>
+      <% if (e.note) { %><div><dt>Note</dt><dd><%= e.note %></dd></div><% } %>
+      <div><dt>Entry id</dt><dd><code class="admin-code"><%= e.id %></code></dd></div>
+    </dl>
+  </section>
+  <aside class="admin-order-side">
+    <section class="panel admin-block" aria-labelledby="tx-who">
+      <div class="dash-card-head"><h2 id="tx-who">Customer and order</h2></div>
+      <% if (e.customer) { %><p class="admin-who"><span class="avatar avatar-sm"><%= e.customer.name.charAt(0).toUpperCase() %></span><span><a href="<%= adminPath %>/customers?q=<%= encodeURIComponent(e.customer.email) %>"><%= e.customer.name %></a><small class="muted"><%= e.customer.email %></small></span></p><% } %>
+      <% if (order) { %>
+        <dl class="summary-list">
+          <div><dt>Order</dt><dd><a href="<%= adminPath %>/orders/<%= order.orderId %>"><%= order.orderId %></a></dd></div>
+          <div><dt>Status</dt><dd><%= statusLabels[order.orderStatus] %></dd></div>
+          <div><dt>Payment</dt><dd><%= methodLabels[order.paymentMethod] %> · <%= order.paymentStatus %></dd></div>
+          <div><dt>Charged</dt><dd><%= formatPrice(order.total + (order.walletUsed || 0)) %></dd></div>
+          <% if (order.refundedAmount) { %><div><dt>Refunded</dt><dd><%= formatPrice(order.refundedAmount) %></dd></div><% } %>
+        </dl>
+      <% } else { %><p class="muted">Not linked to an order.</p><% } %>
+    </section>
+  </aside>
+</div>
+<%- include('../partials/admin-end') %>

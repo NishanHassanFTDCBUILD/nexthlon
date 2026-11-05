@@ -207,8 +207,9 @@
   document.addEventListener("submit", event => {
     const form = event.target;
     if (event.defaultPrevented || !(form instanceof HTMLFormElement)) return;
-    if (form.method.toLowerCase() !== "get" || !form.hasAttribute("action")) return;
-    const url = new URL(form.action, location.href);
+    // Read the attributes: a field named "method" or "action" would hide form.method / form.action.
+    if ((form.getAttribute("method") || "get").toLowerCase() !== "get" || !form.hasAttribute("action")) return;
+    const url = new URL(form.getAttribute("action"), location.href);
     if (!inArea(url)) return;
     event.preventDefault();
     const params = new URLSearchParams();

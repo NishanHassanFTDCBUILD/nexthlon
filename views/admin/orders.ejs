@@ -1,0 +1,129 @@
+<%
+  const tabs = [['all', 'All'], ['placed', 'To confirm'], ['confirmed', 'To ship'], ['shipped', 'Shipped'], ['out_for_delivery', 'Out for delivery'], ['delivered', 'Delivered'], ['return_requested', 'Returns'], ['cancelled', 'Cancelled']];
+  const allCount = Object.values(counts).reduce(function (a, b) { return a + b; }, 0);
+  const paymentLabels = { pending: 'Pending', paid: 'Paid', failed: 'Failed', refunded: 'Refunded', partially_refunded: 'Part refunded' };
+  const paymentPill = { pending: 'pill-amber', paid: 'pill-green', failed: 'pill-red', refunded: 'pill-grey', partially_refunded: 'pill-blue' };
+  const chipLabels = {
+    method: function (v) { return 'Method: ' + (methodLabels[v] || v); },
+    payment: function (v) { return 'Payment: ' + (paymentLabels[v] || v); },
+    from: function (v) { return 'From ' + v; }, to: function (v) { return 'To ' + v; },
+    min: function (v) { return 'Over ₹' + Number(v).toLocaleString('en-IN'); }, max: function (v) { return 'Under ₹' + Number(v).toLocaleString('en-IN'); },
+    city: function (v) { return 'City: ' + v; }, q: function (v) { return '"' + v + '"'; }
+  };
+  const chips = Object.keys(chipLabels).filter(function (key) { return filters[key] && filters[key] !== 'all'; });
+  const sortLink = function (asc, desc) { return link({ sort: filters.sort === desc ? asc : desc, page: '' }); };
+  const sortMark = function (asc, desc) { return filters.sort === desc ? '↓' : filters.sort === asc ? '↑' : ''; };
+  const bulkTargets = [['confirmed', 'Confirmed'], ['shipped', 'Shipped'], ['out_for_delivery', 'Out for delivery'], ['delivered', 'Delivered']];
+%>
+<%- include('../partials/admin-start', { section: 'orders' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Orders</h1>
+    <p class="muted"><%= pagination.total.toLocaleString('en-IN') %> <%= pagination.total === 1 ? 'order' : 'orders' %><%= chips.length || filters.status !== 'all' ? ' match your filters' : '' %>.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-ghost btn-sm" href="/api/admin/orders/export.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> CSV</a>
+    <a class="btn btn-ghost btn-sm" href="/api/admin/orders/export.xlsx?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Excel</a>
+  </div>
+</header>
+
+<nav class="segmented admin-tabs" aria-label="Order status">
+  <% tabs.forEach(function ([key, label]) { const n = key === 'all' ? allCount : (counts[key] || 0); %>
+    <a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="true"' : '' %>><%= label %> <span class="admin-tab-count"><%= n %></span></a>
+  <% }) %>
+</nav>
+
+<form class="admin-filterbar" action="<%= adminPath %>/orders" method="get" data-filter-form>
+  <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="orders-q">Search orders</label>
+    <input id="orders-q" type="search" name="q" value="<%= filters.q %>" maxlength="60" placeholder="Order number, customer name, email or phone">
+  </div>
+  <label class="admin-field"><span>Method</span>
+    <select name="method" data-auto-submit><option value="">Any</option><% methods.forEach(function (m) { %><option value="<%= m %>" <%= filters.method === m ? 'selected' : '' %>><%= methodLabels[m] %></option><% }) %></select></label>
+  <label class="admin-field"><span>Payment</span>
+    <select name="payment" data-auto-submit><option value="">Any</option><% paymentStatuses.forEach(function (p) { %><option value="<%= p %>" <%= filters.payment === p ? 'selected' : '' %>><%= paymentLabels[p] %></option><% }) %></select></label>
+  <label class="admin-field"><span>From</span><input type="date" name="from" value="<%= filters.from %>"></label>
+  <label class="admin-field"><span>To</span><input type="date" name="to" value="<%= filters.to %>"></label>
+  <label class="admin-field admin-field-sm"><span>Min ₹</span><input type="number" name="min" min="0" max="9999999" step="1" inputmode="numeric" value="<%= filters.min %>"></label>
+  <label class="admin-field admin-field-sm"><span>Max ₹</span><input type="number" name="max" min="0" max="9999999" step="1" inputmode="numeric" value="<%= filters.max %>"></label>
+  <label class="admin-field"><span>City</span><input type="text" name="city" maxlength="40" value="<%= filters.city %>" placeholder="Any city"></label>
+  <label class="admin-field"><span>Sort</span>
+    <select name="sort" data-auto-submit><% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %></select></label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<% if (chips.length) { %>
+  <div class="admin-chips" aria-label="Active filters">
+    <% chips.forEach(function (key) { const remove = {}; remove[key] = ''; remove.page = ''; %>
+      <a class="admin-chip" href="<%= link(remove) %>"><%= chipLabels[key](filters[key]) %> <%- icon('x', 'i-xs') %><span class="sr-only"> (remove filter)</span></a>
+    <% }) %>
+    <a class="link-btn" href="<%= adminPath %>/orders<%= filters.status !== 'all' ? '?status=' + filters.status : '' %>">Clear all</a>
+  </div>
+<% } %>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Orders" data-orders>
+  <div class="admin-table-tools">
+    <div class="admin-bulk" data-bulk-bar hidden>
+      <strong data-bulk-count>0 selected</strong>
+      <label class="sr-only" for="bulk-status">Move the selected orders to</label>
+      <select id="bulk-status" data-bulk-status>
+        <option value="">Move to…</option>
+        <% bulkTargets.forEach(function ([key, label]) { %><option value="<%= key %>"><%= label %></option><% }) %>
+      </select>
+      <button type="button" class="btn btn-primary btn-sm" data-bulk-apply>Apply</button>
+      <button type="button" class="link-btn" data-bulk-clear>Clear selection</button>
+    </div>
+    <div class="admin-columns" data-menu>
+      <button type="button" class="btn btn-ghost btn-sm" data-menu-toggle aria-expanded="false" aria-controls="orders-columns"><%- icon('sliders', 'i-sm') %> Columns</button>
+      <div class="menu admin-columns-menu" id="orders-columns" data-menu-panel tabindex="-1" hidden>
+        <% [['customer', 'Customer'], ['items', 'Items'], ['placed', 'Placed'], ['amount', 'Amount'], ['payment', 'Payment'], ['status', 'Status']].forEach(function ([key, label]) { %>
+          <label class="admin-col-toggle"><input type="checkbox" data-col-toggle="<%= key %>" checked> <%= label %></label>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+  <% if (orders.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table" data-table="orders">
+        <thead>
+          <tr>
+            <th scope="col" class="cell-check"><input type="checkbox" data-select-all aria-label="Select every order on this page"></th>
+            <th scope="col">Order</th>
+            <th scope="col" data-col="customer">Customer</th>
+            <th scope="col" data-col="items">Items</th>
+            <th scope="col" data-col="placed"><a href="<%= sortLink('oldest', 'newest') %>">Placed <%= sortMark('oldest', 'newest') %></a></th>
+            <th scope="col" data-col="amount"><a href="<%= sortLink('amount_asc', 'amount_desc') %>">Amount <%= sortMark('amount_asc', 'amount_desc') %></a></th>
+            <th scope="col" data-col="payment">Payment</th>
+            <th scope="col" data-col="status">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% orders.forEach(function (o) { %>
+            <tr data-row-href="<%= adminPath %>/orders/<%= o.orderId %>">
+              <td class="cell-check"><input type="checkbox" data-select="<%= o.orderId %>" aria-label="Select <%= o.orderId %>"></td>
+              <td data-label="Order"><a href="<%= adminPath %>/orders/<%= o.orderId %>"><strong><%= o.orderId %></strong></a><% if (o.shipped) { %> <span class="admin-flag" title="Shipment added"><%- icon('truck', 'i-xs') %></span><% } %></td>
+              <td data-label="Customer" data-col="customer"><%= o.customer %><small class="muted admin-sub"><%= o.city %><%= o.state ? ', ' + o.state : '' %></small></td>
+              <td data-label="Items" data-col="items"><%= o.items %> <small class="muted admin-sub"><%= o.firstItem.length > 28 ? o.firstItem.slice(0, 27) + '…' : o.firstItem %></small></td>
+              <td data-label="Placed" data-col="placed"><%= formatDate(o.createdAt) %><small class="muted admin-sub"><%= new Date(o.createdAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) %></small></td>
+              <td data-label="Amount" data-col="amount"><strong><%= formatPrice(o.charged) %></strong><% if (o.refunded) { %><small class="muted admin-sub">−<%= formatPrice(o.refunded) %> refunded</small><% } %></td>
+              <td data-label="Payment" data-col="payment"><span class="pill <%= paymentPill[o.payment] %>"><%= paymentLabels[o.payment] %></span><small class="muted admin-sub"><%= methodLabels[o.method] %></small></td>
+              <td data-label="Status" data-col="status"><span class="status-pill status-<%= o.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[o.status] %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat">
+      <%- include('../partials/empty-art', { art: 'package-check' }) %>
+      <h2><%= chips.length || filters.status !== 'all' ? 'No orders match these filters' : 'No orders yet' %></h2>
+      <p><%= chips.length || filters.status !== 'all' ? 'Try fewer filters or another status.' : 'New orders appear here as soon as they are placed.' %></p>
+      <% if (chips.length || filters.status !== 'all') { %><a class="btn btn-primary" href="<%= adminPath %>/orders">Show all orders</a><% } %>
+    </div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

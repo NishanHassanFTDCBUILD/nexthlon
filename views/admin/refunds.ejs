@@ -1,0 +1,59 @@
+<%
+  const tabs = [['all', 'All'], ['pending', 'Pending'], ['processed', 'Processed'], ['failed', 'Failed']];
+  const pill = { processed: 'pill-green', pending: 'pill-amber', failed: 'pill-red' };
+  const sum = function (key) { return byStatus[key] || { amount: 0, count: 0 }; };
+%>
+<%- include('../partials/admin-start', { section: 'refunds' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Refunds</h1>
+    <p class="muted">Refunds from cancellations, approved returns and manual refunds. Refunds to cards and UPI stay "pending" until Razorpay confirms them.</p>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Refund totals">
+  <div class="admin-total is-out"><span>Processed</span><strong><%= formatPrice(sum('processed').amount) %></strong><small class="muted"><%= sum('processed').count %> refunds</small></div>
+  <div class="admin-total"><span>Pending</span><strong><%= formatPrice(sum('pending').amount) %></strong><small class="muted"><%= sum('pending').count %> waiting for the bank</small></div>
+  <div class="admin-total"><span>Failed</span><strong><%= formatPrice(sum('failed').amount) %></strong><small class="muted"><%= sum('failed').count %></small></div>
+</section>
+
+<details class="panel admin-block admin-refund-new">
+  <summary><%- icon('plus', 'i-sm') %> Issue a refund for an order</summary>
+  <form class="admin-inline-form" data-refund-lookup novalidate>
+    <label class="admin-field"><span>Order number</span><input name="orderId" required placeholder="NX-2026-000123" maxlength="14" pattern="NX-\d{4}-\d{6}"></label>
+    <button class="btn btn-secondary btn-sm" type="submit">Open the order</button>
+    <small class="muted">Refunds are issued from the order page, where you can see what was paid and what can still be refunded.</small>
+  </form>
+</details>
+
+<nav class="segmented admin-tabs" aria-label="Refund status">
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>"><%= label %></a><% }) %>
+</nav>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Refunds">
+  <% if (refunds.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr><th scope="col">Date</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col" class="cell-num">Amount</th><th scope="col">To</th><th scope="col">Status</th><th scope="col">Reason</th></tr></thead>
+        <tbody>
+          <% refunds.forEach(function (r) { %>
+            <tr data-row-href="<%= adminPath %>/transactions/<%= r.id %>">
+              <td data-label="Date"><a href="<%= adminPath %>/transactions/<%= r.id %>"><%= formatDate(r.at) %></a></td>
+              <td data-label="Order"><a href="<%= adminPath %>/orders/<%= r.orderId %>"><%= r.orderId %></a></td>
+              <td data-label="Customer"><%= r.customer ? r.customer.name : '—' %></td>
+              <td data-label="Amount" class="cell-num"><strong><%= formatPrice(r.amount) %></strong></td>
+              <td data-label="To"><%= r.method === 'original' ? 'Card/UPI' : 'Wallet' %><% if (r.reference) { %><small class="muted admin-sub"><code><%= r.reference %></code></small><% } %></td>
+              <td data-label="Status"><span class="pill <%= pill[r.status] || 'pill-grey' %>"><%= r.status %></span></td>
+              <td data-label="Reason"><%= r.note || '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'wallet' }) %><h2>No refunds here</h2><p>Refunds appear when orders are cancelled, returns are approved or you refund an order.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

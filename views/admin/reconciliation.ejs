@@ -1,0 +1,61 @@
+<%- include('../partials/admin-start', { section: 'transactions', page: 'reconciliation' }) %>
+<header class="admin-top">
+  <div>
+    <a class="back-link" href="<%= adminPath %>/transactions"><%- icon('chevron-left', 'i-xs') %> Transactions</a>
+    <h1>Daily reconciliation</h1>
+    <p class="muted">Online orders marked paid against the Razorpay payments recorded for them (by checkout or the webhook). For bank-level checks, compare with the settlement report in your Razorpay dashboard.</p>
+  </div>
+  <nav class="segmented" aria-label="Period">
+    <% [7, 30, 90].forEach(function (n) { %><a href="<%= adminPath %>/transactions/reconciliation?days=<%= n %>" class="<%= days === n ? 'is-active' : '' %>"><%= n %> days</a><% }) %>
+  </nav>
+</header>
+
+<section class="admin-totals" aria-label="Summary">
+  <div class="admin-total <%= mismatchedDays ? 'is-out' : 'is-in' %>"><span>Days that don't match</span><strong><%= mismatchedDays %></strong><small class="muted">out of <%= days %></small></div>
+  <div class="admin-total <%= issues.length ? 'is-out' : 'is-in' %>"><span>Orders to check</span><strong><%= issues.length %></strong><small class="muted">listed below</small></div>
+</section>
+
+<% if (issues.length) { %>
+  <section class="panel panel-flush admin-table-panel" aria-labelledby="issues-title">
+    <div class="dash-card-head dash-pad"><h2 id="issues-title"><%- icon('alert', 'i-sm') %> Orders to check</h2></div>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr><th scope="col">Order</th><th scope="col">Problem</th><th scope="col">Amount</th><th scope="col">Payment status</th><th scope="col">Placed</th></tr></thead>
+        <tbody>
+          <% issues.forEach(function (i) { %>
+            <tr class="is-flagged" data-row-href="<%= adminPath %>/orders/<%= i.orderId %>">
+              <td data-label="Order"><a href="<%= adminPath %>/orders/<%= i.orderId %>"><strong><%= i.orderId %></strong></a></td>
+              <td data-label="Problem"><%= i.label %><% if (i.reference) { %><small class="muted admin-sub"><code><%= i.reference %></code></small><% } %></td>
+              <td data-label="Amount"><%= formatPrice(i.amount) %></td>
+              <td data-label="Payment status"><%= i.status %></td>
+              <td data-label="Placed"><%= formatDate(i.at) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+<% } else { %>
+  <div class="alert alert-info admin-ok" role="status"><%- icon('check') %><span>Every online order in this period matches its recorded payment, and every delivered cash order is marked paid.</span></div>
+<% } %>
+
+<section class="panel panel-flush admin-table-panel" aria-labelledby="days-title">
+  <div class="dash-card-head dash-pad"><h2 id="days-title">By day</h2></div>
+  <div class="table-wrap admin-table-scroll">
+    <table class="table table-stack admin-table">
+      <thead><tr><th scope="col">Day</th><th scope="col">Orders marked paid</th><th scope="col">Payments recorded</th><th scope="col" class="cell-num">Difference</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <% rows.forEach(function (r) { %>
+          <tr class="<%= r.matched ? '' : 'is-flagged' %>">
+            <td data-label="Day"><%= formatDate(r.date) %></td>
+            <td data-label="Orders marked paid"><%= r.markedPaid %> · <%= formatPrice(r.markedPaidAmount) %></td>
+            <td data-label="Payments recorded"><%= r.recorded %> · <%= formatPrice(r.recordedAmount) %></td>
+            <td data-label="Difference" class="cell-num"><%= r.difference ? formatPrice(r.difference) : '—' %></td>
+            <td data-label="Result"><% if (r.matched) { %><span class="pill pill-green">Matches</span><% } else { %><span class="pill pill-red">Check</span><% } %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<%- include('../partials/admin-end') %>

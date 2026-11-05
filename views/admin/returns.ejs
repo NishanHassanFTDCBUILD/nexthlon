@@ -1,0 +1,54 @@
+<%
+  const tabs = [['requested', 'Waiting', counts.requested], ['approved', 'Approved', counts.approved], ['rejected', 'Rejected', counts.rejected], ['all', 'All', counts.requested + counts.approved + counts.rejected]];
+  const pill = { requested: 'pill-amber', approved: 'pill-green', rejected: 'pill-red' };
+%>
+<%- include('../partials/admin-start', { section: 'returns' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Returns</h1>
+    <p class="muted">Approving restocks the items and refunds them. Rejecting sends your note to the customer.</p>
+  </div>
+</header>
+
+<nav class="segmented admin-tabs" aria-label="Return status">
+  <% tabs.forEach(function ([key, label, n]) { %>
+    <a href="<%= link({ status: key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="true"' : '' %>><%= label %> <span class="admin-tab-count"><%= n %></span></a>
+  <% }) %>
+</nav>
+
+<form class="admin-filterbar" action="<%= adminPath %>/returns" method="get">
+  <input type="hidden" name="status" value="<%= filters.status %>">
+  <div class="admin-filter-search"><%- icon('search', 'i-sm') %><label class="sr-only" for="returns-q">Search returns</label><input id="returns-q" type="search" name="q" value="<%= filters.q %>" maxlength="60" placeholder="Order number or customer"></div>
+  <button class="btn btn-secondary btn-sm" type="submit">Search</button>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Returns">
+  <% if (returns.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Items</th><th scope="col">Reason</th><th scope="col">Value</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+          <% returns.forEach(function (r) { %>
+            <tr data-row-href="<%= adminPath %>/orders/<%= r.orderId %>#return">
+              <td data-label="Order"><a href="<%= adminPath %>/orders/<%= r.orderId %>#return"><strong><%= r.orderId %></strong></a><small class="muted admin-sub"><%= formatDate(r.updatedAt) %></small></td>
+              <td data-label="Customer"><%= r.customer %><small class="muted admin-sub"><%= r.city %></small></td>
+              <td data-label="Items"><%= r.items.join(', ') %><% if (r.photos.length) { %><small class="muted admin-sub"><%- icon('image', 'i-xs') %> <%= r.photos.length %> <%= r.photos.length === 1 ? 'photo' : 'photos' %></small><% } %></td>
+              <td data-label="Reason"><%= r.reason || '—' %><% if (r.note) { %><small class="muted admin-sub">“<%= r.note.length > 60 ? r.note.slice(0, 59) + '…' : r.note %>”</small><% } %></td>
+              <td data-label="Value"><%= formatPrice(r.value) %><small class="muted admin-sub"><%= methodLabels[r.method] %></small></td>
+              <td data-label="Status"><span class="pill <%= pill[r.status] %>"><%= r.status === 'requested' ? 'Waiting' : r.status === 'approved' ? 'Approved' : 'Rejected' %></span><% if (r.decision && r.decision.refunded) { %><small class="muted admin-sub"><%= formatPrice(r.decision.refunded) %> refunded</small><% } %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat">
+      <%- include('../partials/empty-art', { art: 'box' }) %>
+      <h2><%= filters.status === 'requested' ? 'No returns waiting' : 'No returns here' %></h2>
+      <p><%= filters.status === 'requested' ? 'New return requests from customers appear here.' : 'Try another tab.' %></p>
+    </div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

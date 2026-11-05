@@ -9,11 +9,11 @@ const ADMIN_NAV = [
     { key: "analytics", label: "Analytics", icon: "trending-up", part: 5 }
   ] },
   { group: "Sales", items: [
-    { key: "orders", label: "Orders", icon: "package-check", part: 4 },
-    { key: "returns", label: "Returns", icon: "rotate-ccw", part: 4 },
-    { key: "transactions", label: "Transactions", icon: "credit-card", part: 4 },
-    { key: "refunds", label: "Refunds", icon: "wallet", part: 4 },
-    { key: "abandoned-carts", label: "Abandoned carts", icon: "cart", part: 4 }
+    { key: "orders", label: "Orders", icon: "package-check", ready: true },
+    { key: "returns", label: "Returns", icon: "rotate-ccw", ready: true },
+    { key: "transactions", label: "Transactions", icon: "credit-card", ready: true },
+    { key: "refunds", label: "Refunds", icon: "wallet", ready: true },
+    { key: "abandoned-carts", label: "Abandoned carts", icon: "cart", ready: true }
   ] },
   { group: "Catalog", items: [
     { key: "products", label: "Products", icon: "box", ready: true },

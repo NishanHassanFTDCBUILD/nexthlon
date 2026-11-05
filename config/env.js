@@ -42,8 +42,20 @@ function readConfig() {
     adminPath: readAdminPath(),
     // Admin sessions are short: 8 hours, in their own cookie.
     adminJwtExpiresIn: "8h",
-    adminJwtExpiresInMs: durationToMs("8h")
+    adminJwtExpiresInMs: durationToMs("8h"),
+    // Email (order emails, cart reminders, campaigns). Optional: without SMTP the emails are
+    // written to the console in development. The values are never logged.
+    mail: readMail()
   };
+}
+
+function readMail() {
+  const host = (process.env.SMTP_HOST || "").trim();
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const user = (process.env.SMTP_USER || "").trim();
+  const pass = process.env.SMTP_PASS || "";
+  const from = (process.env.MAIL_FROM || "").trim() || (user ? `Nexthlon <${user}>` : "Nexthlon <no-reply@localhost>");
+  return { host, port, user, pass, from, secure: port === 465, enabled: Boolean(host) };
 }
 
 // Paths the store already uses can't be the admin path.

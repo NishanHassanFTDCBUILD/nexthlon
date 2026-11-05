@@ -214,3 +214,29 @@ test("restock input: whole units from 1 to 10,000 only", () => {
   assert.ok(v.validateAdminSearch({ q: "a" }).errors.q);
   assert.equal(v.validateAdminSearch({ q: "  Asha   Nair " }).value.q, "Asha Nair");
 });
+
+// ---------- Admin Part 4: order action input, email masking ----------
+test("admin order actions validate their input", () => {
+  assert.ok(v.validateStatusChange({ status: "placed" }).errors.status);
+  assert.deepEqual(v.validateStatusChange({ status: "shipped" }).errors, {});
+  assert.deepEqual(v.validateBulkStatus({ orderIds: ["nx-2026-000001", "NX-2026-000001"], status: "confirmed" }).value.orderIds, ["NX-2026-000001"]);
+  assert.ok(v.validateBulkStatus({ orderIds: Array.from({ length: 101 }, (_, i) => `NX-2026-${String(i).padStart(6, "0")}`), status: "confirmed" }).errors.orderIds);
+  assert.ok(v.validateAdminCancel({ itemIds: ["not-an-id"] }).errors.itemIds);
+  assert.equal(v.validateAdminCancel({ refundMethod: "bitcoin" }).value.refundMethod, "wallet");
+  const now = new Date("2026-11-05T10:00:00Z");
+  assert.deepEqual(v.validateShipment({ courier: "Blue Dart", trackingNumber: "bd-1234" }, now).errors, {});
+  assert.ok(v.validateShipment({ courier: "Blue Dart", trackingNumber: "<script>" }, now).errors.trackingNumber);
+  assert.ok(v.validateShipment({ courier: "Blue Dart", trackingNumber: "BD1234", expectedAt: "2026-10-01" }, now).errors.expectedAt);
+  assert.ok(v.validateShipment({ courier: "Blue Dart", trackingNumber: "BD1234", expectedAt: "2027-06-01" }, now).errors.expectedAt);
+  assert.equal(v.validateManualRefund({ amount: "250.50", method: "wallet", reason: "Goodwill" }).value.amount, 25050);
+  assert.ok(v.validateManualRefund({ amount: "0.5", method: "wallet", reason: "Goodwill" }).errors.amount);
+  assert.ok(v.validateManualRefund({ amount: "100", method: "cash", reason: "Goodwill" }).errors.method);
+  assert.ok(v.validateReturnDecision({ decision: "reject", note: "no" }).errors.note);
+  assert.deepEqual(v.validateReturnDecision({ decision: "approve" }).errors, {});
+  assert.ok(v.validateOrderNote({ body: " " }).errors.body);
+});
+
+test("emails are masked in logs", () => {
+  const { maskEmail } = require("../services/mailService");
+  assert.equal(maskEmail("asha.nair@example.com"), "a***@example.com");
+});

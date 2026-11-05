@@ -1,0 +1,69 @@
+<%
+  const dirMark = { in: '+', out: '−', none: '' };
+  const statusPill = { captured: 'pill-green', collected: 'pill-green', processed: 'pill-green', completed: 'pill-green', applied: 'pill-grey', pending: 'pill-amber', failed: 'pill-red' };
+  const methodName = function (m) { return { razorpay: 'Razorpay', cod: 'Cash', wallet: 'Wallet', original: 'Card/UPI' }[m] || '—'; };
+  const filtered = filters.type !== 'all' || filters.status !== 'all' || filters.method !== 'all' || filters.from || filters.to || filters.q;
+%>
+<%- include('../partials/admin-start', { section: 'transactions' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Transactions</h1>
+    <p class="muted">Every money movement: online payments, cash on delivery, refunds, wallet credits and coupons.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/transactions/reconciliation"><%- icon('check', 'i-sm') %> Daily reconciliation</a>
+    <a class="btn btn-ghost btn-sm" href="/api/admin/transactions/export.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> CSV</a>
+    <a class="btn btn-ghost btn-sm" href="/api/admin/transactions/export.xlsx?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Excel</a>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Totals for these filters">
+  <div class="admin-total is-in"><span>Money in</span><strong><%= formatPrice(totals.in) %></strong><small class="muted">Captured online payments and cash collected</small></div>
+  <div class="admin-total is-out"><span>Money out</span><strong><%= formatPrice(totals.out) %></strong><small class="muted">Refunds and wallet credits given</small></div>
+  <div class="admin-total"><span>Net</span><strong><%= formatPrice(totals.net) %></strong><small class="muted">In minus out</small></div>
+  <div class="admin-total is-other"><span>Not counted</span><strong><%= formatPrice(totals.other) %></strong><small class="muted">Coupons, wallet spends, pending and failed</small></div>
+</section>
+
+<form class="admin-filterbar" action="<%= adminPath %>/transactions" method="get" data-filter-form>
+  <div class="admin-filter-search"><%- icon('search', 'i-sm') %><label class="sr-only" for="tx-q">Search</label><input id="tx-q" type="search" name="q" value="<%= filters.q %>" maxlength="60" placeholder="Order number, payment id or customer"></div>
+  <label class="admin-field"><span>Type</span><select name="type" data-auto-submit><option value="">Any type</option><% types.forEach(function (t) { %><option value="<%= t %>" <%= filters.type === t ? 'selected' : '' %>><%= typeLabels[t] %></option><% }) %></select></label>
+  <label class="admin-field"><span>Status</span><select name="status" data-auto-submit><option value="">Any status</option><% txStatuses.forEach(function (s) { %><option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= s.charAt(0).toUpperCase() + s.slice(1) %></option><% }) %></select></label>
+  <label class="admin-field"><span>Method</span><select name="method" data-auto-submit><option value="">Any method</option><% txMethods.forEach(function (m) { %><option value="<%= m %>" <%= filters.method === m ? 'selected' : '' %>><%= methodName(m) %></option><% }) %></select></label>
+  <label class="admin-field"><span>From</span><input type="date" name="from" value="<%= filters.from %>"></label>
+  <label class="admin-field"><span>To</span><input type="date" name="to" value="<%= filters.to %>"></label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+  <% if (filtered) { %><a class="link-btn" href="<%= adminPath %>/transactions">Clear</a><% } %>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Transactions">
+  <% if (transactions.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Method</th><th scope="col" class="cell-num">Amount</th><th scope="col">Status</th><th scope="col">Reference</th></tr></thead>
+        <tbody>
+          <% transactions.forEach(function (t) { %>
+            <tr data-row-href="<%= adminPath %>/transactions/<%= t.id %>">
+              <td data-label="Date"><a href="<%= adminPath %>/transactions/<%= t.id %>"><%= formatDate(t.at) %></a><small class="muted admin-sub"><%= new Date(t.at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) %></small></td>
+              <td data-label="Type"><%= typeLabels[t.type] %></td>
+              <td data-label="Order"><% if (t.orderId) { %><a href="<%= adminPath %>/orders/<%= t.orderId %>"><%= t.orderId %></a><% } else { %>—<% } %></td>
+              <td data-label="Customer"><%= t.customer ? t.customer.name : '—' %></td>
+              <td data-label="Method"><%= methodName(t.method) %></td>
+              <td data-label="Amount" class="cell-num"><strong class="admin-amt is-<%= t.direction %>"><%= dirMark[t.direction] %><%= formatPrice(t.amount) %></strong></td>
+              <td data-label="Status"><span class="pill <%= statusPill[t.status] || 'pill-grey' %>"><%= t.status %></span></td>
+              <td data-label="Reference"><code class="admin-code"><%= t.reference || '—' %></code></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat">
+      <%- include('../partials/empty-art', { art: 'wallet' }) %>
+      <h2><%= filtered ? 'Nothing matches these filters' : 'No money movements yet' %></h2>
+      <p><%= filtered ? 'Try fewer filters.' : 'Payments, refunds and wallet credits will appear here.' %></p>
+    </div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

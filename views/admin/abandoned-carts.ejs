@@ -1,0 +1,48 @@
+<%- include('../partials/admin-start', { section: 'abandoned-carts' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Abandoned carts</h1>
+    <p class="muted">Carts nobody has touched for 24 hours or more, valued at today's prices. Reminders go only to customers who accept offer emails, at most once a day.</p>
+  </div>
+  <nav class="segmented" aria-label="Sort">
+    <% Object.entries(sorts).forEach(function ([key, label]) { %><a href="<%= link({ sort: key === 'value' ? '' : key, page: '' }) %>" class="<%= filters.sort === key ? 'is-active' : '' %>"><%= label %></a><% }) %>
+  </nav>
+</header>
+
+<section class="admin-totals" aria-label="Abandoned cart totals">
+  <div class="admin-total"><span>Abandoned carts</span><strong><%= stats.carts %></strong><small class="muted">idle for 24 hours or more</small></div>
+  <div class="admin-total"><span>Value left in carts</span><strong><%= formatPrice(stats.value) %></strong><small class="muted">at today's prices</small></div>
+  <div class="admin-total is-in"><span>Recovery rate</span><strong><%= stats.rate.toFixed(1) %>%</strong><small class="muted"><%= stats.recovered %> of <%= stats.reminded %> reminded carts ordered (30 days)</small></div>
+</section>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Abandoned carts">
+  <% if (carts.length) { %>
+    <ul class="admin-carts">
+      <% carts.forEach(function (c) { %>
+        <li class="admin-cart" data-cart="<%= c.id %>">
+          <div class="admin-cart-who">
+            <% if (c.customer) { %><span class="avatar avatar-sm"><%= c.customer.name.charAt(0).toUpperCase() %></span><span><a href="<%= adminPath %>/customers?q=<%= encodeURIComponent(c.customer.email) %>"><strong><%= c.customer.name %></strong></a><small class="muted"><%= c.customer.email %></small></span><% } %>
+          </div>
+          <div class="admin-cart-items">
+            <% c.lines.slice(0, 4).forEach(function (l) { %>
+              <span class="admin-cart-item<%= l.available ? '' : ' is-gone' %>" title="<%= l.name %>"><img src="<%= l.image %>" alt="" width="36" height="36" loading="lazy"><span><%= l.name.length > 26 ? l.name.slice(0, 25) + '…' : l.name %> × <%= l.quantity %></span></span>
+            <% }) %>
+            <% if (c.lines.length > 4) { %><small class="muted">+<%= c.lines.length - 4 %> more</small><% } %>
+          </div>
+          <div class="admin-cart-value"><strong><%= formatPrice(c.value) %></strong><small class="muted">idle <%= c.idleHours >= 48 ? Math.floor(c.idleHours / 24) + ' days' : c.idleHours + ' hours' %></small></div>
+          <div class="admin-cart-act">
+            <% if (c.reminderSentAt) { %><small class="muted" data-reminded>Reminded <%= formatDate(c.reminderSentAt) %><%= c.reminderCount > 1 ? ' (' + c.reminderCount + '×)' : '' %></small><% } %>
+            <% if (c.canRemind) { %>
+              <button type="button" class="btn btn-secondary btn-sm" data-remind="<%= c.id %>" data-name="<%= c.customer ? c.customer.name : '' %>"><%- icon('mail', 'i-sm') %> Send reminder</button>
+            <% } else { %><span class="pill pill-grey"><%= c.whyNot %></span><% } %>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'cart' }) %><h2>No abandoned carts</h2><p>Carts left untouched for 24 hours or more appear here.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

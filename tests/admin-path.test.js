@@ -174,13 +174,13 @@ test("store settings hold the referral reward (moved from the dashboard); unbuil
   assert.match(settings.data, /data-referral-form/);
   assert.doesNotMatch((await call("GET", `${ADMIN}/dashboard`, { cookie })).data, /data-referral-form/);
 
-  const soon = await call("GET", `${ADMIN}/transactions`, { cookie });
+  const soon = await call("GET", `${ADMIN}/analytics`, { cookie });
   assert.equal(soon.status, 200);
-  assert.match(soon.data, /Coming in Part 4/);
+  assert.match(soon.data, /Coming in Part 5/);
   assert.equal((await call("GET", `${ADMIN}/not-a-section`, { cookie })).status, 404);
   // Still invisible to everyone else.
   assert.equal((await call("GET", `${ADMIN}/settings`)).status, 404);
-  assert.equal((await call("GET", `${ADMIN}/transactions`)).status, 404);
+  assert.equal((await call("GET", `${ADMIN}/analytics`)).status, 404);
 });
 
 test("global search finds orders, products and customers; it is admin-only and validated", async () => {

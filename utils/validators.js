@@ -363,7 +363,90 @@ function validateRestock(body = {}) {
   return { errors, value: { add } };
 }
 
+// ---------- Admin: orders, returns, refunds ----------
+const ORDER_ID = /^NX-\d{4}-\d{6}$/;
+const FORWARD = ["confirmed", "shipped", "out_for_delivery", "delivered"];
+const REFUND_METHODS = ["wallet", "original"];
+
+// One order's next status (forward-only is checked against the order itself in the service).
+function validateStatusChange(body = {}) {
+  const status = text(body.status);
+  return { errors: FORWARD.includes(status) ? {} : { status: "Choose the next status." }, value: { status } };
+}
+
+// Bulk status: 1 to 100 order numbers and one next status.
+function validateBulkStatus(body = {}) {
+  const errors = {};
+  const ids = Array.isArray(body.orderIds) ? [...new Set(body.orderIds.map(id => text(String(id)).toUpperCase()))] : [];
+  if (!ids.length || ids.length > 100 || !ids.every(id => ORDER_ID.test(id))) errors.orderIds = "Select between 1 and 100 orders.";
+  const { errors: statusErrors, value } = validateStatusChange(body);
+  return { errors: { ...errors, ...statusErrors }, value: { orderIds: ids, status: value.status } };
+}
+
+// Admin cancellation: no item ids means every item that can still be cancelled.
+function validateAdminCancel(body = {}) {
+  const errors = {};
+  const itemIds = Array.isArray(body.itemIds) ? body.itemIds.map(String) : [];
+  if (itemIds.length > 50 || !itemIds.every(id => OBJECT_ID.test(id))) errors.itemIds = "Pick the items to cancel.";
+  const reason = text(body.reason).slice(0, 200);
+  const refundMethod = REFUND_METHODS.includes(body.refundMethod) ? body.refundMethod : "wallet";
+  return { errors, value: { itemIds, reason, refundMethod } };
+}
+
+function validateShipment(body = {}, now = new Date()) {
+  const errors = {};
+  const courier = text(body.courier);
+  const trackingNumber = text(body.trackingNumber).replace(/\s/g, "");
+  if (courier.length < 2 || courier.length > 60) errors.courier = "Enter the courier (2 to 60 characters).";
+  if (!/^[A-Za-z0-9-]{4,40}$/.test(trackingNumber)) errors.trackingNumber = "Enter the tracking number (4 to 40 letters, numbers or -).";
+  let expectedAt = null;
+  const day = text(body.expectedAt);
+  if (day) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+    expectedAt = match ? new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12)) : null;
+    if (!expectedAt || Number.isNaN(expectedAt.getTime())) errors.expectedAt = "Pick a valid date.";
+    else if (expectedAt.getTime() < now.getTime() - 2 * 24 * 60 * 60 * 1000) errors.expectedAt = "The expected date can't be in the past.";
+    else if (expectedAt.getTime() > now.getTime() + 60 * 24 * 60 * 60 * 1000) errors.expectedAt = "Pick a date within the next 60 days.";
+  }
+  return { errors, value: { courier, trackingNumber: trackingNumber.toUpperCase(), expectedAt, markShipped: body.markShipped === true || body.markShipped === "true" } };
+}
+
+function validateOrderNote(body = {}) {
+  const note = longText(body.body);
+  return { errors: note.length >= 2 && note.length <= 1000 ? {} : { body: "Write a note (2 to 1,000 characters)." }, value: { body: note } };
+}
+
+// A manual refund in rupees (₹1 to ₹10,00,000), to the wallet or back to the card/UPI, with a reason.
+function validateManualRefund(body = {}) {
+  const errors = {};
+  const amount = readMoney(body.amount);
+  if (amount === null || amount < 100 || amount > 100_000_000) errors.amount = "Enter an amount from ₹1 to ₹10,00,000.";
+  const method = text(body.method);
+  if (!REFUND_METHODS.includes(method)) errors.method = "Choose where the money goes.";
+  const reason = text(body.reason);
+  if (reason.length < 3 || reason.length > 200) errors.reason = "Give a reason (3 to 200 characters).";
+  return { errors, value: { amount, method, reason } };
+}
+
+// Approve or reject a return. Rejecting needs a note, because the customer sees it.
+function validateReturnDecision(body = {}) {
+  const errors = {};
+  const decision = text(body.decision);
+  if (!["approve", "reject"].includes(decision)) errors.decision = "Approve or reject the return.";
+  const note = longText(body.note).slice(0, 500);
+  if (decision === "reject" && note.length < 5) errors.note = "Tell the customer why (at least 5 characters).";
+  const refundMethod = REFUND_METHODS.includes(body.refundMethod) ? body.refundMethod : "wallet";
+  return { errors, value: { decision, note, refundMethod } };
+}
+
 module.exports = {
+  validateStatusChange,
+  validateBulkStatus,
+  validateAdminCancel,
+  validateShipment,
+  validateOrderNote,
+  validateManualRefund,
+  validateReturnDecision,
   validateRestock,
   validateAdminSearch,
   hasErrors,

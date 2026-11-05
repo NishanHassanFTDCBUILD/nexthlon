@@ -5,6 +5,7 @@ const router = require("express").Router();
 const config = require("../config/env");
 const pages = require("../controllers/pageController");
 const account = require("../controllers/accountPageController");
+const sales = require("../controllers/adminSalesPageController");
 const { ADMIN_NAV, findSection } = require("../config/adminNav");
 const { adminPage, adminGuestOnly } = require("../middleware/auth");
 const { adminShell } = require("../middleware/shell");
@@ -39,6 +40,14 @@ router.get("/products", pages.adminProducts);
 router.get("/products/new", pages.adminProductNew);
 router.get("/products/:productId/edit", pages.adminProductEdit);
 router.get("/settings", pages.adminSettings);
+router.get("/orders", sales.orders);
+router.get("/orders/:orderId", sales.order);
+router.get("/returns", sales.returns);
+router.get("/transactions", sales.transactions);
+router.get("/transactions/reconciliation", sales.reconciliation);
+router.get("/transactions/:id", sales.transaction);
+router.get("/refunds", sales.refunds);
+router.get("/abandoned-carts", sales.abandonedCarts);
 
 // Sections that are still being built show a short notice instead of a 404.
 const PROFILE = { key: "profile", label: "Your profile", icon: "user", group: "Account", part: 6 };

@@ -51,4 +51,24 @@ const sensitiveLimiter = rateLimit({
   message: { message: "Too many changes in a short time. Please wait a few minutes and try again." }
 });
 
-module.exports = { authLimiter, adminLoginLimiter, formLimiter, reviewLimiter, sensitiveLimiter };
+// Admin changes (status updates, notes, shipments...): 300 per 15 minutes per admin.
+const adminWriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: req => (req.user ? `admin:${req.user._id}` : `ip:${req.ip}`),
+  message: { message: "Too many changes in a short time. Please wait a few minutes." }
+});
+
+// Money and email actions (refunds, return approvals, cart reminders): 40 per 15 minutes per admin.
+const adminMoneyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 40,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: req => (req.user ? `admin-money:${req.user._id}` : `ip:${req.ip}`),
+  message: { message: "Too many refunds or emails in a short time. Please wait a few minutes." }
+});
+
+module.exports = { authLimiter, adminLoginLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
