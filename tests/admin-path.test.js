@@ -37,7 +37,9 @@ test.before(async () => {
   if (!/test/i.test(dbUrl.pathname)) throw new Error("The test database must have 'test' in its name.");
   await mongoose.connect(dbUrl.href);
   await mongoose.connection.dropDatabase();
-  await User.syncIndexes();
+  // Build every model's indexes now (unique, text). Background index builds could race with the
+  // drop above and make index-dependent tests flaky.
+  await Promise.all(Object.values(mongoose.models).map(model => model.syncIndexes()));
   await User.create({ name: "Console Admin", email: "admin@path.test", passwordHash: await hashPassword("AdminPass123"), role: "admin" });
   server = app.listen(0);
   await new Promise(resolve => server.once("listening", resolve));
@@ -210,4 +212,101 @@ test("notifications count what needs attention, for admins only", async () => {
   assert.equal(byKey["low-stock"], 1);
   assert.equal(byKey["new-orders"], 1);
   assert.equal(res.data.total, byKey["to-confirm"] + byKey.returns + byKey["low-stock"] + byKey["out-of-stock"] + byKey.tickets);
+});
+
+// ---------- Part 3: the dashboard ----------
+const AuditLog = require("../models/AuditLog");
+const WalletTransaction = require("../models/WalletTransaction");
+
+test("dashboard KPIs, previous-period change and charts come from real orders", async () => {
+  const cookie = await adminSession();
+  const lina = await User.findOne({ email: "lina@path.test" });
+  const product = await Product.findOne({ slug: "path-finder-boots" });
+  const now = Date.now();
+  const base = { user: lina._id, items: [{ product: product._id, name: product.name, slug: product.slug, price: 100000, mrp: 120000, quantity: 2, lineTotal: 200000, status: "delivered" }], address: { fullName: "Lina Paul", phone: "9876543210", line1: "1 Road", city: "Kochi", state: "Kerala", pincode: "682001" }, mrpTotal: 240000, subtotal: 200000, statusHistory: [] };
+  // This period: two paid orders (one with a refund and a coupon) and one cancelled.
+  await Order.create([
+    { ...base, orderId: "NX-2026-888001", total: 150000, walletUsed: 50000, couponDiscount: 10000, paymentMethod: "razorpay", paymentStatus: "partially_refunded", orderStatus: "delivered", refundedAmount: 20000, refunds: [{ amount: 20000, method: "wallet", status: "processed", at: new Date(now - 3600000) }] },
+    { ...base, orderId: "NX-2026-888002", total: 200000, paymentMethod: "cod", paymentStatus: "paid", orderStatus: "delivered" },
+    { ...base, orderId: "NX-2026-888003", total: 90000, couponDiscount: 5000, paymentMethod: "razorpay", paymentStatus: "failed", orderStatus: "cancelled" }
+  ]);
+  // The previous period: one paid order 40 days ago (outside "30 days", inside the period before it).
+  const old = await Order.create({ ...base, orderId: "NX-2026-888004", total: 100000, paymentMethod: "cod", paymentStatus: "paid", orderStatus: "delivered" });
+  await Order.collection.updateOne({ _id: old._id }, { $set: { createdAt: new Date(now - 40 * 86400000) } });
+  await WalletTransaction.create({ user: lina._id, type: "credit", amount: 10000, kind: "referral", reason: "Referral", balanceAfter: 10000 });
+
+  const res = await call("GET", "/api/admin/dashboard?range=30d", { cookie });
+  assert.equal(res.status, 200);
+  const kpi = Object.fromEntries(res.data.kpis.map(k => [k.key, k]));
+  // Paid revenue = (1500 + 500 wallet - 200 refunded) + 2000 = ₹3,800. The unpaid test order from earlier doesn't count.
+  assert.equal(kpi.revenue.value, 380000);
+  assert.equal(kpi.revenue.previous, 100000);
+  assert.equal(kpi.revenue.change, 280);
+  assert.equal(kpi.orders.value, 4); // 3 above + the pending one from the search test
+  assert.equal(kpi.aov.value, 190000);
+  assert.equal(kpi.refunds.value, 20000);
+  assert.equal(kpi.coupons.value, 10000); // the cancelled order's coupon is not counted
+  assert.equal(kpi.credits.value, 10000);
+  assert.equal(kpi.revenue.spark.length, 30);
+  assert.equal(res.data.kpis.length, 8);
+
+  const charts = res.data.charts;
+  assert.equal(charts.timeline.length, 30);
+  assert.equal(charts.timeline.reduce((sum, b) => sum + b.revenue, 0), 380000);
+  assert.equal(charts.statuses.find(s => s.key === "delivered").count, 2);
+  assert.equal(charts.payments.find(p => p.key === "razorpay").count, 2);
+  assert.equal(charts.topByRevenue[0].name, "Path Finder Boots");
+  assert.equal(charts.topByRevenue[0].units, 4); // cancelled order excluded
+  assert.equal(charts.cities[0].city, "Kochi");
+  assert.equal(charts.heatmap.length, 7);
+  assert.equal(charts.heatmap.flat().reduce((a, b) => a + b, 0), 4);
+  // Lina ordered 40 days ago, so every order this period is from a returning customer.
+  assert.equal(charts.newReturning.reduce((sum, b) => sum + b.returning, 0), 4);
+  assert.ok(res.data.panels.actions.find(a => a.key === "failed"));
+
+  // The page renders every chart holder and the KPIs, with data for the charts.
+  const page = await call("GET", `${ADMIN}/dashboard?range=30d`, { cookie });
+  assert.equal(page.status, 200);
+  for (const chart of ["timeline", "statuses", "payments", "newReturning", "categories", "heatmap"]) assert.match(page.data, new RegExp(`data-chart="${chart}"`));
+  assert.match(page.data, /data-dashboard="\{/);
+  assert.match(page.data, /Show as a table/);
+  assert.match(page.data, /₹3,800/);
+  // A bad custom range falls back with a message instead of failing.
+  assert.match((await call("GET", `${ADMIN}/dashboard?range=custom&from=2026-10-10&to=2026-10-01`, { cookie })).data, /start date must be on or before/);
+});
+
+test("quick restock adds stock atomically, is validated and audit-logged", async () => {
+  const cookie = await adminSession();
+  const product = await Product.findOne({ slug: "path-finder-boots" });
+  const url = `/api/admin/products/${product._id}/stock`;
+  assert.equal((await call("PATCH", url, { body: { add: 5 } })).status, 401);
+  assert.equal((await call("PATCH", url, { body: { add: 0 }, cookie })).status, 400);
+  assert.equal((await call("PATCH", url, { body: { add: "5; drop" }, cookie })).status, 400);
+  assert.equal((await call("PATCH", "/api/admin/products/not-an-id/stock", { body: { add: 5 }, cookie })).status, 404);
+  const before = product.stock;
+  const ok = await call("PATCH", url, { body: { add: 5 }, cookie });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.product.stock, before + 5);
+  assert.equal((await Product.findById(product._id)).stock, before + 5);
+  const log = await AuditLog.findOne({ action: "product.restock" }).lean();
+  assert.equal(log.target, `product:${product._id}`);
+  assert.equal(log.before.stock, before);
+  assert.equal(log.after.stock, before + 5);
+});
+
+test("sales export: CSV of the range's orders, admin only, formulas neutralised", async () => {
+  const cookie = await adminSession();
+  assert.equal((await call("GET", "/api/admin/reports/sales.csv?range=30d")).status, 401);
+  await Order.collection.updateOne({ orderId: "NX-2026-888002" }, { $set: { "address.fullName": "=HYPERLINK(\"http://evil\")" } });
+  const res = await fetch(`${base}/api/admin/reports/sales.csv?range=30d`, { headers: { Cookie: cookie } });
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-type"), /text\/csv/);
+  assert.match(res.headers.get("content-disposition"), /attachment; filename="nexthlon-sales-.*\.csv"/);
+  const text = await res.text();
+  const lines = text.trim().split("\r\n");
+  assert.match(lines[0], /Order.*Placed \(IST\).*Total charged/);
+  assert.equal(lines.length, 5); // header + 4 orders in the last 30 days
+  assert.match(text, /"NX-2026-888001"/);
+  assert.match(text, /"'=HYPERLINK/);
+  assert.doesNotMatch(text, /"NX-2026-888004"/); // 40 days ago
 });

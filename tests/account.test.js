@@ -68,7 +68,9 @@ test.before(async () => {
   if (!/test/i.test(dbUrl.pathname)) throw new Error("The account test database must have 'test' in its name.");
   await mongoose.connect(dbUrl.href);
   await mongoose.connection.dropDatabase();
-  await Promise.all([User.syncIndexes(), Product.syncIndexes(), Review.syncIndexes()]);
+  // Build every model's indexes now (unique, text). Background index builds could race with the
+  // drop above and make index-dependent tests flaky.
+  await Promise.all(Object.values(mongoose.models).map(model => model.syncIndexes()));
   await User.create({ name: "Store Admin", email: "admin@account.test", passwordHash: await hashPassword("AdminPass123"), role: "admin" });
   const running = await categoryService.ensureCategory("Running");
   categoryService.invalidate();

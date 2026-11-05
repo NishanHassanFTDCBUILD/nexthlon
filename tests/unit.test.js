@@ -147,3 +147,70 @@ test("account validators: email change, preferences, list names, tickets and del
   assert.deepEqual(v.validateDeleteAccount({ password: "x", confirm: "delete" }).errors, {});
   assert.equal(v.validateAddress({ type: "Office" }).value.type, "home");
 });
+
+// ---------- Admin dashboard: date ranges, CSV safety, restock input ----------
+const dashboardService = require("../services/dashboardService");
+const csv = require("../utils/csv");
+
+test("dashboard ranges are India-time periods with a previous period of the same length", () => {
+  // 5 Nov 2026, 15:30 in India (10:00 UTC).
+  const now = new Date("2026-11-05T10:00:00.000Z");
+  const week = dashboardService.readRange({ range: "7d" }, now);
+  assert.equal(week.from.toISOString(), "2026-10-29T18:30:00.000Z"); // 30 Oct 00:00 IST
+  assert.equal(week.to.getTime(), now.getTime());
+  assert.equal(week.prevTo.getTime(), now.getTime() - 7 * 86400000);
+  assert.equal(week.bucket, "day");
+  assert.equal(dashboardService.bucketStarts(week).length, 7);
+
+  const today = dashboardService.readRange({ range: "today" }, now);
+  assert.equal(today.from.toISOString(), "2026-11-04T18:30:00.000Z");
+  assert.equal(today.bucket, "hour");
+  assert.equal(dashboardService.bucketStarts(today).length, 16); // 00:00 to 15:00
+
+  const month = dashboardService.readRange({ range: "month" }, now);
+  assert.equal(month.from.toISOString(), "2026-10-31T18:30:00.000Z"); // 1 Nov IST
+  assert.equal(month.prevFrom.toISOString(), "2026-09-30T18:30:00.000Z"); // 1 Oct IST
+
+  const year = dashboardService.readRange({ range: "year" }, now);
+  assert.equal(year.bucket, "month");
+  assert.equal(dashboardService.bucketStarts(year).length, 11);
+
+  const custom = dashboardService.readRange({ range: "custom", from: "2026-10-01", to: "2026-10-10" }, now);
+  assert.equal(custom.key, "custom");
+  assert.equal(custom.fromDay, "2026-10-01");
+  assert.equal(custom.toDay, "2026-10-10");
+  assert.equal(custom.prevFrom.toISOString(), "2026-09-20T18:30:00.000Z"); // 10 days before
+  assert.equal(dashboardService.bucketStarts(custom).length, 10);
+
+  // Bad input never breaks the page: it falls back to 7 days with a message.
+  for (const query of [{ range: "custom", from: "2026-10-10", to: "2026-10-01" }, { range: "custom", from: "2026-02-31", to: "2026-03-01" },
+    { range: "custom", from: "2026-11-01", to: "2026-12-01" }, { range: "custom", from: "2024-01-01", to: "2026-11-01" }, { range: "custom" }]) {
+    const r = dashboardService.readRange(query, now);
+    assert.equal(r.key, "7d", JSON.stringify(query));
+    assert.ok(r.error, JSON.stringify(query));
+  }
+  assert.equal(dashboardService.readRange({ range: "$where" }, now).key, "7d");
+  assert.equal(dashboardService.change(150, 100), 50);
+  assert.equal(dashboardService.change(50, 100), -50);
+  assert.equal(dashboardService.change(10, 0), null);
+  assert.equal(dashboardService.change(0, 0), 0);
+});
+
+test("CSV cells are quoted and spreadsheet formulas are neutralised", () => {
+  assert.equal(csv.cell('Say "hi"'), '"Say ""hi"""');
+  assert.equal(csv.cell("=HYPERLINK(\"x\")"), "\"'=HYPERLINK(\"\"x\"\")\"");
+  assert.equal(csv.cell("+91 98765"), "\"'+91 98765\"");
+  assert.equal(csv.cell("-5"), "\"'-5\"");
+  assert.equal(csv.cell("@SUM(A1)"), "\"'@SUM(A1)\"");
+  assert.equal(csv.cell(-5), '"-5"'); // real numbers stay numbers
+  assert.equal(csv.cell(null), '""');
+  assert.equal(csv.row(["a", 1]), '"a","1"\r\n');
+});
+
+test("restock input: whole units from 1 to 10,000 only", () => {
+  assert.equal(v.validateRestock({ add: 5 }).value.add, 5);
+  assert.equal(v.validateRestock({ add: "10000" }).value.add, 10000);
+  for (const add of [0, -1, 10001, 2.5, "abc", "", null, "1e3", { $gt: 0 }]) assert.ok(v.validateRestock({ add }).errors.add, String(add));
+  assert.ok(v.validateAdminSearch({ q: "a" }).errors.q);
+  assert.equal(v.validateAdminSearch({ q: "  Asha   Nair " }).value.q, "Asha Nair");
+});

@@ -2,13 +2,16 @@ const supportService = require("../services/supportService");
 const auditService = require("../services/auditService");
 const SupportTicket = require("../models/SupportTicket");
 const adminService = require("../services/adminService");
+const dashboardService = require("../services/dashboardService");
 const settingsService = require("../services/settingsService");
 const { validateReferralSetting, validateTicketReply, validateAdminSearch, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 
-// GET /api/admin/dashboard
+// GET /api/admin/dashboard?range=today|7d|30d|month|year|custom&from=&to=
+// The store counts (stats) plus KPIs, chart series and panels for the date range.
 const dashboard = asyncHandler(async (req, res) => {
-  res.json(await adminService.getDashboardStats());
+  const [stats, data] = await Promise.all([adminService.getDashboardStats(), dashboardService.dashboard(req.query)]);
+  res.json({ ...stats, ...data });
 });
 
 // GET /api/admin/customers?q=&status=all|active|blocked&page=

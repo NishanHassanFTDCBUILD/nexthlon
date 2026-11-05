@@ -1,134 +1,277 @@
-
 <%
-  const healthy = Math.max(stats.products - stats.lowStock - stats.outOfStock, 0);
-  const stockTotal = Math.max(stats.products, 1);
+  const presets = [['today', 'Today'], ['7d', '7 days'], ['30d', '30 days'], ['month', 'This month'], ['year', 'This year']];
+  const paymentLabels = { razorpay: 'Razorpay (UPI, cards)', wallet: 'Wallet', cod: 'Cash on delivery' };
+  const rangeQuery = range.key === 'custom' ? 'range=custom&from=' + range.fromDay + '&to=' + range.toDay : 'range=' + range.key;
+  const fmt = function (value, format) {
+    if (format === 'money') return formatPrice(value);
+    if (format === 'percent') return value.toFixed(1) + '%';
+    return Number(value).toLocaleString('en-IN');
+  };
+  const chartData = {
+    kpis: kpis.map(function (k) { return { key: k.key, format: k.format, spark: k.spark, goodWhenUp: k.goodWhenUp }; }),
+    charts: charts,
+    statusLabels: statusLabels,
+    paymentLabels: paymentLabels
+  };
+  const totalOrders = charts.statuses.reduce(function (sum, s) { return sum + s.count; }, 0);
+  const totalPayments = charts.payments.reduce(function (sum, p) { return sum + p.count; }, 0);
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const stock = panels.stock;
+  const stockTotal = Math.max(stock.products, 1);
 %>
 <%- include('../partials/admin-start', { section: 'dashboard' }) %>
-    <header class="admin-top">
-      <div>
-        <span class="section-kicker">Overview</span>
-        <h1>Dashboard</h1>
-        <p class="muted">Welcome back, <%= firstName(currentUser.name) %>. Here is how Nexthlon looks today.</p>
-      </div>
-      <div class="admin-top-actions">
-        <a class="btn btn-ghost btn-sm" href="/"><%- icon('home', 'i-sm') %> View store</a>
-        <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/products"><%- icon('box', 'i-sm') %> Manage products</a>
-        <a class="btn btn-primary btn-sm" href="<%= adminPath %>/customers"><%- icon('users', 'i-sm') %> Manage customers</a>
-      </div>
-    </header>
-
-    <section aria-labelledby="customers-stats">
-      <h2 class="admin-section-title" data-reveal id="customers-stats">Customers</h2>
-      <div class="stat-grid">
-        <a class="stat" data-reveal href="<%= adminPath %>/customers">
-          <span class="stat-icon"><%- icon('users') %></span>
-          <span class="stat-label">Customers</span>
-          <strong class="stat-value" data-count-to="<%= stats.customers %>"><%= stats.customers %></strong>
-          <span class="stat-link">View all <%- icon('arrow-right', 'i-xs') %></span>
-        </a>
-        <a class="stat" data-reveal href="<%= adminPath %>/customers">
-          <span class="stat-icon stat-icon-green"><%- icon('plus') %></span>
-          <span class="stat-label">New this week</span>
-          <strong class="stat-value" data-count-to="<%= stats.newCustomers %>"><%= stats.newCustomers %></strong>
-          <span class="stat-link">In the last 7 days</span>
-        </a>
-        <a class="stat" data-reveal href="<%= adminPath %>/customers?status=blocked">
-          <span class="stat-icon stat-icon-red"><%- icon('lock') %></span>
-          <span class="stat-label">Blocked customers</span>
-          <strong class="stat-value" data-count-to="<%= stats.blockedCustomers %>"><%= stats.blockedCustomers %></strong>
-          <span class="stat-link">Review <%- icon('arrow-right', 'i-xs') %></span>
-        </a>
-      </div>
-    </section>
-
-    <section aria-labelledby="catalogue-stats">
-      <h2 class="admin-section-title" data-reveal id="catalogue-stats">Catalogue</h2>
-      <div class="stat-grid">
-        <div class="stat" data-reveal>
-          <span class="stat-icon"><%- icon('box') %></span>
-          <span class="stat-label">Active products</span>
-          <strong class="stat-value" data-count-to="<%= stats.products %>"><%= stats.products %></strong>
-        </div>
-        <div class="stat" data-reveal>
-          <span class="stat-icon stat-icon-amber"><%- icon('alert') %></span>
-          <span class="stat-label">Low stock (5 or fewer)</span>
-          <strong class="stat-value" data-count-to="<%= stats.lowStock %>"><%= stats.lowStock %></strong>
-        </div>
-        <div class="stat" data-reveal>
-          <span class="stat-icon stat-icon-red"><%- icon('x') %></span>
-          <span class="stat-label">Out of stock</span>
-          <strong class="stat-value" data-count-to="<%= stats.outOfStock %>"><%= stats.outOfStock %></strong>
-        </div>
-      </div>
-      <% if (stats.products) { %>
-        <div class="stock-health panel" data-reveal>
-          <div class="stock-health-head">
-            <strong>Stock health</strong>
-            <span class="muted"><%= Math.round(healthy / stockTotal * 100) %>% of products are well stocked</span>
-          </div>
-          <div class="stock-bar" role="img" aria-label="<%= healthy %> well stocked, <%= stats.lowStock %> low, <%= stats.outOfStock %> out of stock">
-            <% if (healthy) { %><span class="stock-bar-ok" style="flex-grow: <%= healthy %>"></span><% } %>
-            <% if (stats.lowStock) { %><span class="stock-bar-low" style="flex-grow: <%= stats.lowStock %>"></span><% } %>
-            <% if (stats.outOfStock) { %><span class="stock-bar-out" style="flex-grow: <%= stats.outOfStock %>"></span><% } %>
-          </div>
-          <ul class="stock-legend">
-            <li><span class="dot dot-ok"></span> Well stocked <strong><%= healthy %></strong></li>
-            <li><span class="dot dot-low"></span> Low <strong><%= stats.lowStock %></strong></li>
-            <li><span class="dot dot-out"></span> Out <strong><%= stats.outOfStock %></strong></li>
-          </ul>
-        </div>
-      <% } %>
-    </section>
-
-
-    <div class="admin-panels">
-      <section class="panel panel-flush" data-reveal aria-labelledby="newest-title">
-        <div class="panel-head panel-head-row">
-          <h2 id="newest-title">Newest customers</h2>
-          <a href="<%= adminPath %>/customers">Manage customers <%- icon('chevron-right', 'i-sm') %></a>
-        </div>
-        <% if (recentCustomers.length) { %>
-          <div class="table-wrap">
-            <table class="table table-stack">
-              <thead><tr><th scope="col">Customer</th><th scope="col">Joined</th><th scope="col">Status</th></tr></thead>
-              <tbody>
-                <% recentCustomers.forEach(function (c) { %>
-                  <tr>
-                    <td><div class="person"><span class="avatar avatar-sm"><%= c.name.charAt(0).toUpperCase() %></span><div><strong><%= c.name %></strong><span><%= c.email %></span></div></div></td>
-                    <td data-label="Joined"><%= formatDate(c.createdAt) %></td>
-                    <td data-label="Status"><span class="pill <%= c.isBlocked ? 'pill-red' : 'pill-green' %>"><%= c.isBlocked ? 'Blocked' : 'Active' %></span></td>
-                  </tr>
-                <% }) %>
-              </tbody>
-            </table>
-          </div>
-        <% } else { %>
-          <div class="panel-empty"><%- include('../partials/empty-art', { art: 'users' }) %><p>No customers have signed up yet.</p></div>
-        <% } %>
-      </section>
-
-      <section class="panel" data-reveal aria-labelledby="lowstock-title">
-        <div class="panel-head panel-head-row">
-          <h2 id="lowstock-title">Low stock</h2>
-          <span class="muted">5 or fewer left</span>
-        </div>
-        <% if (lowStockProducts.length) { %>
-          <ul class="stock-list">
-            <% lowStockProducts.forEach(function (p) { %>
-              <li>
-                <img src="<%= p.image %>" alt="" width="48" height="48" loading="lazy">
-                <div class="stock-list-info">
-                  <a href="<%= adminPath %>/products/<%= p._id %>/edit"><%= p.name %></a>
-                  <span><%= p.category ? p.category.name : "" %></span>
-                  <span class="mini-meter" aria-hidden="true"><span class="<%= p.stock === 0 ? 'is-out' : '' %>" style="--fill: <%= Math.min(p.stock, 5) / 5 %>"></span></span>
-                </div>
-                <span class="pill <%= p.stock === 0 ? 'pill-red' : 'pill-amber' %>"><%= p.stock === 0 ? 'Out of stock' : p.stock + ' left' %></span>
-              </li>
-            <% }) %>
-          </ul>
-        <% } else { %>
-          <div class="panel-empty"><%- include('../partials/empty-art', { art: 'check' }) %><p>Every product is well stocked.</p></div>
-        <% } %>
-      </section>
+<div class="dash" data-dashboard="<%= JSON.stringify(chartData) %>">
+  <header class="admin-top">
+    <div>
+      <span class="section-kicker">Overview</span>
+      <h1>Dashboard</h1>
+      <p class="muted"><%= range.label %> · <%= formatDate(range.from) %> to <%= formatDate(new Date(range.to.getTime() - 1)) %>, compared with the period before.</p>
     </div>
+    <div class="admin-top-actions dash-quick" aria-label="Quick actions">
+      <a class="btn btn-primary btn-sm" href="<%= adminPath %>/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
+      <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/coupons"><%- icon('ticket', 'i-sm') %> Create coupon</a>
+      <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/orders"><%- icon('package-check', 'i-sm') %> View orders</a>
+      <a class="btn btn-ghost btn-sm" href="/api/admin/reports/sales.csv?<%= rangeQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Export sales</a>
+    </div>
+  </header>
+
+  <%# ---------- Date range ---------- %>
+  <div class="dash-range" role="group" aria-label="Date range">
+    <nav class="segmented dash-presets" aria-label="Quick ranges">
+      <% presets.forEach(function ([key, label]) { %>
+        <a href="<%= adminPath %>/dashboard?range=<%= key %>" class="<%= range.key === key ? 'is-active' : '' %>" <%- range.key === key ? 'aria-current="true"' : '' %>><%= label %></a>
+      <% }) %>
+    </nav>
+    <form class="dash-custom<%= range.key === 'custom' ? ' is-active' : '' %>" action="<%= adminPath %>/dashboard" method="get">
+      <input type="hidden" name="range" value="custom">
+      <label><span>From</span><input type="date" name="from" value="<%= range.fromDay %>" required></label>
+      <label><span>To</span><input type="date" name="to" value="<%= range.toDay %>" required></label>
+      <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+    </form>
+  </div>
+  <% if (range.error) { %><div class="alert alert-danger" role="alert"><%- icon('alert') %><span><%= range.error %> Showing the last 7 days instead.</span></div><% } %>
+
+  <%# ---------- KPIs ---------- %>
+  <section class="dash-kpis" aria-label="Key numbers">
+    <% kpis.forEach(function (k) {
+         const up = k.change !== null && k.change > 0;
+         const down = k.change !== null && k.change < 0;
+         const good = (up && k.goodWhenUp) || (down && !k.goodWhenUp);
+         const bad = (up && !k.goodWhenUp) || (down && k.goodWhenUp); %>
+      <article class="dash-kpi" data-kpi="<%= k.key %>">
+        <div class="dash-kpi-head">
+          <h2><%= k.label %></h2>
+          <% if (k.hint) { %><span class="dash-hint" title="<%= k.hint %>" aria-label="<%= k.hint %>"><%- icon('info', 'i-xs') %></span><% } %>
+        </div>
+        <strong class="dash-kpi-value" data-count="<%= k.value %>" data-format="<%= k.format %>"><%= fmt(k.value, k.format) %></strong>
+        <div class="dash-kpi-foot">
+          <span class="dash-change<%= good ? ' is-good' : bad ? ' is-bad' : '' %>">
+            <% if (k.change === null) { %>New<% } else { %><%- up ? icon('arrow-up', 'i-xs') : down ? icon('arrow-down', 'i-xs') : '' %><%= Math.abs(k.change).toFixed(1) %>%<% } %>
+            <span class="sr-only"><%= k.change === null ? 'no earlier figure' : up ? 'up' : down ? 'down' : 'no change' %> compared with the previous period</span>
+          </span>
+          <small class="muted">vs <%= fmt(k.previous, k.format) %></small>
+        </div>
+        <span class="dash-spark" data-spark="<%= k.key %>" aria-hidden="true"></span>
+      </article>
+    <% }) %>
+  </section>
+
+  <%# ---------- Revenue over time + pending actions ---------- %>
+  <div class="dash-row dash-row-main">
+    <section class="panel dash-card" aria-labelledby="chart-timeline-title">
+      <div class="dash-card-head">
+        <h2 id="chart-timeline-title">Revenue and orders</h2>
+        <span class="dash-legend"><i class="dash-dot dash-dot-line"></i> Revenue (paid) <i class="dash-dot dash-dot-bar"></i> Orders</span>
+      </div>
+      <div class="dash-chart dash-chart-tall" data-chart="timeline" role="img" tabindex="0" aria-label="Revenue and orders per <%= charts.bucket %> for <%= range.label.toLowerCase() %>. Use the arrow keys to read each value, or open the table below."></div>
+      <details class="dash-table">
+        <summary>Show as a table</summary>
+        <div class="table-wrap"><table class="table"><thead><tr><th scope="col"><%= charts.bucket === 'hour' ? 'Hour' : charts.bucket === 'day' ? 'Day' : 'Month' %></th><th scope="col">Revenue</th><th scope="col">Orders</th></tr></thead>
+          <tbody><% charts.timeline.forEach(function (b) { %><tr><td><%= b.label %></td><td><%= formatPrice(b.revenue) %></td><td><%= b.orders %></td></tr><% }) %></tbody></table></div>
+      </details>
+    </section>
+
+    <section class="panel dash-card" aria-labelledby="actions-title">
+      <div class="dash-card-head"><h2 id="actions-title">Needs your attention</h2></div>
+      <ul class="dash-actions">
+        <% panels.actions.forEach(function (a) { %>
+          <li><a class="dash-action<%= a.count ? ' has-count' : '' %>" href="<%= adminPath %>/<%= a.href %>"><%- icon(a.icon, 'i-sm') %><span><%= a.label %></span><strong><%= a.count %></strong></a></li>
+        <% }) %>
+      </ul>
+    </section>
+  </div>
+
+  <%# ---------- Splits ---------- %>
+  <div class="dash-row dash-row-3">
+    <section class="panel dash-card" aria-labelledby="chart-status-title">
+      <div class="dash-card-head"><h2 id="chart-status-title">Orders by status</h2><span class="muted"><%= totalOrders %> orders</span></div>
+      <div class="dash-chart dash-chart-donut" data-chart="statuses" role="img" tabindex="0" aria-label="Orders by status: <%= charts.statuses.map(function (s) { return (statusLabels[s.key] || s.key) + ' ' + s.count; }).join(', ') || 'no orders' %>."></div>
+      <details class="dash-table"><summary>Show as a table</summary>
+        <table class="table"><thead><tr><th scope="col">Status</th><th scope="col">Orders</th></tr></thead><tbody><% charts.statuses.forEach(function (s) { %><tr><td><%= statusLabels[s.key] || s.key %></td><td><%= s.count %></td></tr><% }) %></tbody></table>
+      </details>
+    </section>
+    <section class="panel dash-card" aria-labelledby="chart-pay-title">
+      <div class="dash-card-head"><h2 id="chart-pay-title">Payment methods</h2><span class="muted"><%= totalPayments %> orders</span></div>
+      <div class="dash-chart dash-chart-donut" data-chart="payments" role="img" tabindex="0" aria-label="Payment methods: <%= charts.payments.map(function (p) { return (paymentLabels[p.key] || p.key) + ' ' + p.count; }).join(', ') || 'no orders' %>."></div>
+      <details class="dash-table"><summary>Show as a table</summary>
+        <table class="table"><thead><tr><th scope="col">Method</th><th scope="col">Orders</th><th scope="col">Amount</th></tr></thead><tbody><% charts.payments.forEach(function (p) { %><tr><td><%= paymentLabels[p.key] || p.key %></td><td><%= p.count %></td><td><%= formatPrice(p.amount) %></td></tr><% }) %></tbody></table>
+      </details>
+    </section>
+    <section class="panel dash-card" aria-labelledby="chart-nr-title">
+      <div class="dash-card-head"><h2 id="chart-nr-title">New vs returning</h2><span class="dash-legend"><i class="dash-dot dash-dot-new"></i> New <i class="dash-dot dash-dot-ret"></i> Returning</span></div>
+      <div class="dash-chart" data-chart="newReturning" role="img" tabindex="0" aria-label="Orders from new and returning customers per <%= charts.bucket %>. Use the arrow keys to read each value."></div>
+      <details class="dash-table"><summary>Show as a table</summary>
+        <div class="table-wrap"><table class="table"><thead><tr><th scope="col">Period</th><th scope="col">New</th><th scope="col">Returning</th></tr></thead><tbody><% charts.newReturning.forEach(function (b) { %><tr><td><%= b.label %></td><td><%= b.newCustomers %></td><td><%= b.returning %></td></tr><% }) %></tbody></table></div>
+      </details>
+    </section>
+  </div>
+
+  <%# ---------- What sells ---------- %>
+  <div class="dash-row dash-row-2">
+    <section class="panel dash-card" aria-labelledby="chart-cat-title">
+      <div class="dash-card-head"><h2 id="chart-cat-title">Sales by category</h2></div>
+      <div class="dash-chart" data-chart="categories" role="img" tabindex="0" aria-label="Sales by category: <%= charts.categories.map(function (c) { return c.name + ' ' + formatPrice(c.revenue); }).join(', ') || 'no sales' %>."></div>
+      <details class="dash-table"><summary>Show as a table</summary>
+        <table class="table"><thead><tr><th scope="col">Category</th><th scope="col">Revenue</th><th scope="col">Units</th></tr></thead><tbody><% charts.categories.forEach(function (c) { %><tr><td><%= c.name %></td><td><%= formatPrice(c.revenue) %></td><td><%= c.units %></td></tr><% }) %></tbody></table>
+      </details>
+    </section>
+    <section class="panel dash-card" aria-labelledby="top-title" data-dash-top>
+      <div class="dash-card-head">
+        <h2 id="top-title">Top 10 products</h2>
+        <div class="segmented dash-tabs" role="tablist" aria-label="Rank by">
+          <button type="button" role="tab" aria-selected="true" aria-controls="top-revenue" id="tab-top-revenue" class="is-active" data-dash-tab="revenue">Revenue</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="top-units" id="tab-top-units" data-dash-tab="units" tabindex="-1">Units</button>
+        </div>
+      </div>
+      <% [['revenue', charts.topByRevenue], ['units', charts.topByUnits]].forEach(function ([kind, list], index) {
+           const max = Math.max.apply(null, list.map(function (p) { return kind === 'revenue' ? p.revenue : p.units; }).concat([1])); %>
+        <div class="dash-top" id="top-<%= kind %>" role="tabpanel" aria-labelledby="tab-top-<%= kind %>" <%= index ? 'hidden' : '' %>>
+          <% if (list.length) { %>
+            <ol class="dash-rank">
+              <% list.forEach(function (p, i) { const value = kind === 'revenue' ? p.revenue : p.units; %>
+                <li>
+                  <span class="dash-rank-n"><%= i + 1 %></span>
+                  <span class="dash-rank-name"><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a>
+                    <span class="dash-bar" aria-hidden="true"><span style="width: <%= Math.max(2, Math.round(value / max * 100)) %>%"></span></span></span>
+                  <span class="dash-rank-value"><strong><%= kind === 'revenue' ? formatPrice(p.revenue) : p.units + ' units' %></strong><small class="muted"><%= kind === 'revenue' ? p.units + ' units' : formatPrice(p.revenue) %></small></span>
+                </li>
+              <% }) %>
+            </ol>
+          <% } else { %><p class="muted dash-empty">No sales in this period.</p><% } %>
+        </div>
+      <% }) %>
+    </section>
+  </div>
+
+  <%# ---------- When and where ---------- %>
+  <div class="dash-row dash-row-2">
+    <section class="panel dash-card" aria-labelledby="chart-heat-title">
+      <div class="dash-card-head"><h2 id="chart-heat-title">When orders come in</h2><span class="muted">Day of week × hour (IST)</span></div>
+      <div class="dash-chart dash-chart-heat" data-chart="heatmap" role="img" tabindex="0" aria-label="Orders by day of the week and hour of the day. Use the arrow keys to read each cell, or open the table below."></div>
+      <details class="dash-table"><summary>Show as a table</summary>
+        <div class="table-wrap"><table class="table dash-heat-table"><thead><tr><th scope="col">Day</th><% for (let h = 0; h < 24; h++) { %><th scope="col"><%= h %></th><% } %></tr></thead>
+          <tbody><% charts.heatmap.forEach(function (row, d) { %><tr><th scope="row"><%= days[d] %></th><% row.forEach(function (n) { %><td><%= n %></td><% }) %></tr><% }) %></tbody></table></div>
+      </details>
+    </section>
+    <section class="panel dash-card" aria-labelledby="where-title">
+      <div class="dash-card-head"><h2 id="where-title">Top cities</h2><span class="muted">By sales</span></div>
+      <% if (charts.cities.length) { const maxCity = Math.max.apply(null, charts.cities.map(function (c) { return c.revenue; }).concat([1])); %>
+        <ol class="dash-rank">
+          <% charts.cities.forEach(function (c, i) { %>
+            <li><span class="dash-rank-n"><%= i + 1 %></span>
+              <span class="dash-rank-name"><%= c.city %><small class="muted"><%= c.state %></small><span class="dash-bar" aria-hidden="true"><span style="width: <%= Math.max(2, Math.round(c.revenue / maxCity * 100)) %>%"></span></span></span>
+              <span class="dash-rank-value"><strong><%= formatPrice(c.revenue) %></strong><small class="muted"><%= c.orders %> <%= c.orders === 1 ? 'order' : 'orders' %></small></span></li>
+          <% }) %>
+        </ol>
+        <details class="dash-table"><summary>By state</summary>
+          <table class="table"><thead><tr><th scope="col">State</th><th scope="col">Orders</th><th scope="col">Sales</th></tr></thead><tbody><% charts.states.forEach(function (s) { %><tr><td><%= s.state %></td><td><%= s.orders %></td><td><%= formatPrice(s.revenue) %></td></tr><% }) %></tbody></table>
+        </details>
+      <% } else { %><p class="muted dash-empty">No orders in this period.</p><% } %>
+    </section>
+  </div>
+
+  <%# ---------- Recent orders + stock ---------- %>
+  <div class="dash-row dash-row-main">
+    <section class="panel panel-flush dash-card" aria-labelledby="recent-orders-title">
+      <div class="dash-card-head dash-pad"><h2 id="recent-orders-title">Recent orders</h2><a class="section-link" href="<%= adminPath %>/orders">All orders <%- icon('chevron-right', 'i-sm') %></a></div>
+      <% if (panels.recentOrders.length) { %>
+        <div class="table-wrap">
+          <table class="table table-stack dash-orders">
+            <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Placed</th><th scope="col">Amount</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+              <% panels.recentOrders.forEach(function (o) { %>
+                <tr data-row-href="<%= adminPath %>/orders?q=<%= o.orderId %>">
+                  <td data-label="Order"><a href="<%= adminPath %>/orders?q=<%= o.orderId %>"><strong><%= o.orderId %></strong></a></td>
+                  <td data-label="Customer"><%= o.customer %><% if (o.city) { %> <small class="muted">· <%= o.city %></small><% } %></td>
+                  <td data-label="Placed"><%= formatDate(o.createdAt) %></td>
+                  <td data-label="Amount"><%= formatPrice(o.amount) %></td>
+                  <td data-label="Status"><span class="status-pill status-<%= o.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[o.status] || o.status %></span></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %><p class="muted dash-empty dash-pad">No orders yet.</p><% } %>
+    </section>
+
+    <section class="panel dash-card" aria-labelledby="restock-title">
+      <div class="dash-card-head"><h2 id="restock-title">Low and out of stock</h2><a class="section-link" href="<%= adminPath %>/products?status=low">See all <%- icon('chevron-right', 'i-sm') %></a></div>
+      <% if (panels.stockList.length) { %>
+        <ul class="dash-stock">
+          <% panels.stockList.forEach(function (p) { %>
+            <li>
+              <img src="<%= p.image %>" alt="" width="40" height="40" loading="lazy">
+              <span class="dash-stock-name"><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a><span class="pill <%= p.stock ? 'pill-amber' : 'pill-red' %>" data-stock-label><%= p.stock ? p.stock + ' left' : 'Out of stock' %></span></span>
+              <form class="dash-restock" data-restock="<%= p.id %>" novalidate>
+                <label class="sr-only" for="restock-<%= p.id %>">Units to add to <%= p.name %></label>
+                <input id="restock-<%= p.id %>" name="add" type="number" inputmode="numeric" min="1" max="10000" step="1" placeholder="+ units" required>
+                <button class="btn btn-secondary btn-sm" type="submit">Restock</button>
+              </form>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %><p class="muted dash-empty">Every product is well stocked.</p><% } %>
+    </section>
+  </div>
+
+  <%# ---------- People and stock health ---------- %>
+  <div class="dash-row dash-row-3">
+    <section class="panel dash-card" aria-labelledby="new-cust-title">
+      <div class="dash-card-head"><h2 id="new-cust-title">Recent customers</h2><a class="section-link" href="<%= adminPath %>/customers">All <%- icon('chevron-right', 'i-sm') %></a></div>
+      <p class="muted dash-sub"><%= panels.people.customers %> customers · <%= panels.people.newCustomers %> new this week · <%= panels.people.blockedCustomers %> blocked</p>
+      <ul class="dash-people">
+        <% panels.recentCustomers.forEach(function (c) { %>
+          <li><span class="avatar avatar-sm"><%= c.name.charAt(0).toUpperCase() %></span><span><a href="<%= adminPath %>/customers?q=<%= encodeURIComponent(c.email) %>"><%= c.name %></a><small class="muted"><%= c.email %></small></span><small class="muted"><%= formatDate(c.createdAt) %></small></li>
+        <% }) %>
+      </ul>
+    </section>
+    <section class="panel dash-card" aria-labelledby="reviews-title">
+      <div class="dash-card-head"><h2 id="reviews-title">Latest reviews</h2><a class="section-link" href="<%= adminPath %>/reviews">Moderate <%- icon('chevron-right', 'i-sm') %></a></div>
+      <% if (panels.latestReviews.length) { %>
+        <ul class="dash-reviews">
+          <% panels.latestReviews.forEach(function (r) { %>
+            <li><span class="rating" style="--rating: <%= r.rating %>" role="img" aria-label="Rated <%= r.rating %> out of 5"></span>
+              <strong><%= r.title || (r.product ? r.product.name : 'Review') %></strong>
+              <p class="muted"><%= r.body.length > 110 ? r.body.slice(0, 110) + '…' : r.body %></p>
+              <small class="muted"><%= r.author %><%= r.product ? ' on ' + r.product.name : '' %> · <%= formatDate(r.createdAt) %></small></li>
+          <% }) %>
+        </ul>
+      <% } else { %><p class="muted dash-empty">No reviews yet.</p><% } %>
+    </section>
+    <section class="panel dash-card" aria-labelledby="health-title">
+      <div class="dash-card-head"><h2 id="health-title">Stock health</h2><span class="muted"><%= Math.round(stock.healthy / stockTotal * 100) %>% well stocked</span></div>
+      <div class="stock-bar" role="img" aria-label="<%= stock.healthy %> well stocked, <%= stock.lowStock %> low, <%= stock.outOfStock %> out of stock">
+        <% if (stock.healthy) { %><span class="stock-bar-ok" style="flex-grow: <%= stock.healthy %>"></span><% } %>
+        <% if (stock.lowStock) { %><span class="stock-bar-low" style="flex-grow: <%= stock.lowStock %>"></span><% } %>
+        <% if (stock.outOfStock) { %><span class="stock-bar-out" style="flex-grow: <%= stock.outOfStock %>"></span><% } %>
+      </div>
+      <ul class="stock-legend">
+        <li><span class="dot dot-ok"></span>Well stocked <strong><%= stock.healthy %></strong></li>
+        <li><span class="dot dot-low"></span>Low <strong><%= stock.lowStock %></strong></li>
+        <li><span class="dot dot-out"></span>Out <strong><%= stock.outOfStock %></strong></li>
+      </ul>
+      <p class="muted dash-sub"><%= stock.products %> products listed in the store.</p>
+    </section>
+  </div>
+</div>
 <%- include('../partials/admin-end') %>

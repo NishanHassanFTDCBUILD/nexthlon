@@ -354,7 +354,17 @@ function validateAdminSearch(query = {}) {
   return { errors, value: { q } };
 }
 
+// Admin quick restock: a whole number of units to add, 1 to 10,000.
+function validateRestock(body = {}) {
+  const raw = typeof body.add === "number" ? String(body.add) : typeof body.add === "string" ? body.add.trim() : "";
+  const add = /^\d{1,5}$/.test(raw) ? Number(raw) : NaN;
+  const errors = {};
+  if (!Number.isInteger(add) || add < 1 || add > 10000) errors.add = "Enter how many units to add (1 to 10,000).";
+  return { errors, value: { add } };
+}
+
 module.exports = {
+  validateRestock,
   validateAdminSearch,
   hasErrors,
   readFlag,

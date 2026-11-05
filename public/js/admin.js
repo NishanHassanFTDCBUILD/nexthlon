@@ -283,7 +283,6 @@
 
   // ================= Section modules =================
 
-  Pages.define("admin-dashboard", () => {});
   Pages.define("admin-soon", () => {});
 
   // ---------- Customers: block and unblock without reloading ----------

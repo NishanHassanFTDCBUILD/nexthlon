@@ -231,7 +231,25 @@ async function setListed(productId, isListed) {
   return toAdminProduct(product);
 }
 
+// Restock: adds units in one atomic update (no read-then-write race with checkout).
+// Returns the stock before and after, for the audit log.
+const MAX_STOCK = 100000;
+async function restock(productId, add) {
+  if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
+  const product = await Product.findOneAndUpdate(
+    { _id: productId, stock: { $lte: MAX_STOCK - add } },
+    { $inc: { stock: add } },
+    { new: true }
+  );
+  if (!product) {
+    if (await Product.exists({ _id: productId })) throw new HttpError(400, `Stock can't go above ${MAX_STOCK.toLocaleString("en-IN")}.`);
+    throw new HttpError(404, "Product not found.");
+  }
+  return { product: toAdminProduct(product), before: product.stock - add, after: product.stock };
+}
+
 module.exports = {
+  restock,
   PAGE_SIZE,
   ADMIN_SORTS,
   STATUSES,

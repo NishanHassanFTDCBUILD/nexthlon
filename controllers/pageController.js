@@ -1,4 +1,5 @@
 const config = require("../config/env");
+const dashboardService = require("../services/dashboardService");
 const productService = require("../services/productService");
 const profileService = require("../services/profileService");
 const adminService = require("../services/adminService");
@@ -215,8 +216,8 @@ function adminLogin(req, res) {
 }
 
 const adminDashboard = asyncHandler(async (req, res) => {
-  const [data, settings] = await Promise.all([adminService.getDashboardStats(), settingsService.getAll()]);
-  res.render("admin/dashboard", { title: "Dashboard | Nexthlon Admin", ...data, settings });
+  const data = await dashboardService.dashboard(req.query);
+  res.render("admin/dashboard", { title: "Dashboard | Nexthlon Admin", ...data, statusLabels: orderRules.STATUS_LABELS });
 });
 
 const adminSettings = asyncHandler(async (req, res) => {

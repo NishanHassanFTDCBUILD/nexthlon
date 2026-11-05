@@ -66,7 +66,9 @@ test.before(async () => {
   if (!/test/i.test(name)) throw new Error("TEST_MONGODB_URI must point at a database with 'test' in its name.");
   await mongoose.connect(process.env.TEST_MONGODB_URI);
   await mongoose.connection.dropDatabase();
-  await User.syncIndexes();
+  // Build every model's indexes now (unique, text). Background index builds could race with the
+  // drop above and make index-dependent tests flaky.
+  await Promise.all(Object.values(mongoose.models).map(model => model.syncIndexes()));
   await User.create({ name: "Store Admin", email: "admin@nexthlon.test", passwordHash: await hashPassword("AdminPass123"), role: "admin" });
   await Product.syncIndexes();
   await makeProduct({

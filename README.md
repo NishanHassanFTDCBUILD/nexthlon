@@ -14,6 +14,15 @@ The admin console lives at a private address set by `ADMIN_PATH` in `.env` (for 
 - Admins have their own session: the `nx_admin` cookie (JWT audience `nexthlon-admin`, 8 hours, HttpOnly, SameSite=Strict). The store uses `nx_token`, and neither cookie works in the other area.
 - Admin pages send `noindex, nofollow`, and `robots.txt` never mentions the console.
 
+### Admin dashboard
+
+`<ADMIN_PATH>/dashboard` has a date range picker (Today, 7 days, 30 days, This month, This year, Custom; India time) that updates everything. It shows:
+
+- 8 KPIs, each with the % change against the period before and a sparkline.
+- Hand-drawn SVG charts: revenue and orders over time, orders by status, payment methods, new vs returning customers, sales by category, top 10 products (by revenue or units), top cities and states, and an hourly heatmap. Each chart has a hover and keyboard tooltip and a data-table alternative.
+- Panels: recent orders, what needs attention, quick restock, recent customers, latest reviews, and stock health.
+- "Export sales" downloads a CSV of the range's orders (`/api/admin/reports/sales.csv`, with spreadsheet formulas neutralised).
+
 ## Environment variables
 
 Names only; copy `.env.example` to `.env` and fill them in:
