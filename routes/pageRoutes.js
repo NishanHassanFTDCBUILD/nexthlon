@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const pages = require("../controllers/pageController");
 const account = require("../controllers/accountPageController");
-const { customerPage, adminPage, guestOnly } = require("../middleware/auth");
+const { customerPage, guestOnly } = require("../middleware/auth");
 const { accountShell } = require("../middleware/accountShell");
 
 // My Account pages: signed-in customers only, without the store's motion layer.
@@ -44,15 +44,5 @@ router.get(["/account/wallet", "/wallet"], accountPage, pages.wallet);
 router.get("/orders/:orderId", accountPage, pages.orderDetail);
 router.get("/orders/:orderId/success", customerPage, pages.orderSuccess);
 router.get("/orders/:orderId/invoice", customerPage, pages.orderInvoice);
-
-// Admin console
-router.get("/admin/login", guestOnly, pages.adminLogin);
-router.get("/admin", adminPage, pages.adminDashboard);
-router.get("/admin/users", adminPage, pages.adminUsers);
-router.get("/admin/tickets", adminPage, account.adminTickets);
-router.get("/admin/tickets/:ticketId", adminPage, account.adminTicket);
-router.get("/admin/products", adminPage, pages.adminProducts);
-router.get("/admin/products/new", adminPage, pages.adminProductNew);
-router.get("/admin/products/:productId/edit", adminPage, pages.adminProductEdit);
 
 module.exports = router;

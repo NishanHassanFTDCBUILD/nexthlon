@@ -20,7 +20,9 @@
   // go to the right sign-in page and come back here afterwards.
   function sendToLogin(reason) {
     const here = window.location.pathname + window.location.search;
-    const loginPath = window.location.pathname.startsWith("/admin") ? "/admin/login" : "/login";
+    // Admin pages carry their private base path on <body>; everything else is the store.
+    const admin = document.body.dataset.adminPath;
+    const loginPath = admin ? `${admin}/login` : "/login";
     const params = new URLSearchParams({ next: here, reason });
     window.location.replace(`${loginPath}?${params}`);
   }
@@ -348,7 +350,8 @@
           await Nx.api(endpoint, { method: "POST" });
           Nx.flash("You have been signed out.");
           // replace, not assign: the signed-in page is dropped from history, so Back cannot return to it.
-          window.location.replace(endpoint === "/api/admin/logout" ? "/admin/login" : "/");
+          const admin = document.body.dataset.adminPath;
+          window.location.replace(endpoint === "/api/admin/logout" && admin ? `${admin}/login` : "/");
         } catch (error) {
           button.disabled = false;
           Nx.toast(error.message, "error");

@@ -1,6 +1,6 @@
 <%
-  const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
-  const shops = !isAdmin;
+  // The store only ever sees customers (admins have their own session in the console).
+  const shops = true;
   const count = typeof cartCount === 'number' ? cartCount : 0;
   const savedIds = typeof wishIds !== 'undefined' ? wishIds : [];
   const searchText = typeof query.q === 'string' ? query.q : '';
@@ -65,7 +65,7 @@
               <span class="avatar avatar-sm account-avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span>
               <span class="account-text">
                 <small>Hello, <span data-user-first><%= firstName(currentUser.name) %></span></small>
-                <strong><%= isAdmin ? 'Admin' : 'Account & Orders' %> <%- icon('chevron-down', 'i-xs account-caret') %></strong>
+                <strong>Account &amp; Orders <%- icon('chevron-down', 'i-xs account-caret') %></strong>
               </span>
               <span class="sr-only">Open account menu</span>
             </button>
@@ -76,14 +76,8 @@
                   <strong><%= currentUser.name %></strong>
                   <span><%= currentUser.email %></span>
                 </span>
-                <% if (isAdmin) { %><span class="pill pill-blue menu-role">Admin</span><% } %>
               </div>
               <div class="menu-group">
-                <% if (isAdmin) { %>
-                  <a href="/admin"><%- icon('grid') %> Admin dashboard</a>
-                  <a href="/admin/products"><%- icon('box') %> Manage products</a>
-                  <a href="/admin/users"><%- icon('users') %> Manage users</a>
-                <% } else { %>
                   <a href="/account"><%- icon('user') %> Your account</a>
                   <a href="/account/orders"><%- icon('package-check') %> Your orders</a>
                   <a href="/account/wallet"><%- icon('wallet') %> Wallet</a>
@@ -93,11 +87,10 @@
                   <a href="/account/addresses"><%- icon('pin') %> Saved addresses</a>
                   <a href="/account/security"><%- icon('lock') %> Login &amp; security</a>
                   <a href="/account/help"><%- icon('headset') %> Help &amp; support</a>
-                <% } %>
               </div>
               <div class="menu-group">
                 <button type="button" class="menu-logout"
-                        data-logout="<%= isAdmin ? '/api/admin/logout' : '/api/logout' %>">
+                        data-logout="/api/logout">
                   <%- icon('logout') %> Sign out
                 </button>
               </div>
@@ -200,10 +193,7 @@
         <a href="/products?category=<%= c.slug %>"><span class="mega-initial" aria-hidden="true"><%= name.charAt(0) %></span> <%= name %></a>
       <% }) %>
       <h3>Your account</h3>
-      <% if (isAdmin) { %>
-        <a href="/admin"><%- icon('grid', 'i-sm') %> Admin dashboard</a>
-        <a href="/admin/products"><%- icon('box', 'i-sm') %> Manage products</a>
-      <% } else if (currentUser) { %>
+      <% if (currentUser) { %>
         <a href="/account"><%- icon('user', 'i-sm') %> Your account</a>
         <a href="/account/orders"><%- icon('package-check', 'i-sm') %> Your orders</a>
         <a href="/account/wallet"><%- icon('wallet', 'i-sm') %> Wallet</a>
@@ -224,7 +214,7 @@
         <span data-theme-label>Theme: System</span>
       </button>
       <% if (currentUser) { %>
-        <button type="button" class="drawer-logout" data-logout="<%= isAdmin ? '/api/admin/logout' : '/api/logout' %>"><%- icon('logout', 'i-sm') %> Sign out</button>
+        <button type="button" class="drawer-logout" data-logout="/api/logout"><%- icon('logout', 'i-sm') %> Sign out</button>
       <% } %>
     </nav>
   </div>

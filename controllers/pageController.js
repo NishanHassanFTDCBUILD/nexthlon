@@ -1,3 +1,4 @@
+const config = require("../config/env");
 const productService = require("../services/productService");
 const profileService = require("../services/profileService");
 const adminService = require("../services/adminService");
@@ -203,9 +204,12 @@ const orderInvoice = asyncHandler(async (req, res) => {
 // ---------- Admin pages ----------
 
 function adminLogin(req, res) {
+  const home = `${config.adminPath}/dashboard`;
+  const next = safeNextPath(req.query.next, home);
   res.render("admin/login", {
     title: "Admin sign in | Nexthlon",
-    next: safeNextPath(req.query.next, "/admin"),
+    // After signing in, only pages inside the console are allowed as the next stop.
+    next: next.toLowerCase().startsWith(`${config.adminPath}/`) ? next : home,
     reason: req.query.reason
   });
 }
@@ -217,7 +221,7 @@ const adminDashboard = asyncHandler(async (req, res) => {
 
 const adminUsers = asyncHandler(async (req, res) => {
   const data = await adminService.listCustomers(req.query);
-  const link = linkBuilder("/admin/users", {
+  const link = linkBuilder(`${config.adminPath}/users`, {
     q: data.filters.q,
     status: data.filters.status === "all" ? "" : data.filters.status
   });
@@ -227,7 +231,7 @@ const adminUsers = asyncHandler(async (req, res) => {
 const adminProducts = asyncHandler(async (req, res) => {
   const data = await adminProductService.listAdminProducts(req.query);
   const { q, category, status, sort } = data.filters;
-  const link = linkBuilder("/admin/products", {
+  const link = linkBuilder(`${config.adminPath}/products`, {
     q, category, status: status === "all" ? "" : status, sort: sort === "newest" ? "" : sort
   });
   res.render("admin/products", {

@@ -16,11 +16,11 @@
         <p class="muted"><%= pagination.total %> <%= pagination.total === 1 ? 'product' : 'products' %> found. Unlisted products are hidden from the store but kept here.</p>
       </div>
       <div class="admin-top-actions">
-        <a class="btn btn-primary btn-sm" href="/admin/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
+        <a class="btn btn-primary btn-sm" href="<%= adminPath %>/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
       </div>
     </header>
 
-    <form class="toolbar admin-filters" action="/admin/products" method="get" data-admin-filters>
+    <form class="toolbar admin-filters" action="<%= adminPath %>/products" method="get" data-admin-filters>
       <div class="toolbar-search">
         <label class="sr-only" for="product-search">Search products by name</label>
         <%- icon('search', 'i-sm') %>
@@ -64,7 +64,7 @@
     </form>
 
     <% if (filtered) { %>
-      <p class="filter-note">Filters are on · <a href="/admin/products">Show all products</a></p>
+      <p class="filter-note">Filters are on · <a href="<%= adminPath %>/products">Show all products</a></p>
     <% } %>
 
     <section class="panel panel-flush" aria-label="Product list" data-results>
@@ -94,7 +94,7 @@
                   <td data-label="Stock"><span class="<%= p.stock === 0 ? 'text-red' : p.isLowStock ? 'text-amber' : '' %>"><%= p.stock %></span></td>
                   <td data-label="Status"><span class="pill <%= STATUS_PILLS[p.status] %>" data-status><%= STATUS_LABELS[p.status] %></span></td>
                   <td class="cell-action"><div class="row-actions">
-                    <a class="btn btn-ghost btn-sm" href="/admin/products/<%= p.id %>/edit" aria-label="Edit <%= p.name %>"><%- icon('edit', 'i-xs') %> Edit</a>
+                    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/products/<%= p.id %>/edit" aria-label="Edit <%= p.name %>"><%- icon('edit', 'i-xs') %> Edit</a>
                     <button type="button" class="btn btn-sm <%= p.isListed ? 'btn-danger-soft' : 'btn-secondary' %>"
                             data-toggle-listing="<%= p.id %>" data-listed="<%= p.isListed %>" data-name="<%= p.name %>" data-stock="<%= p.stock %>"
                             aria-label="<%= p.isListed ? 'Unlist' : 'List' %> <%= p.name %>"><%= p.isListed ? 'Unlist' : 'List' %></button>
@@ -110,9 +110,9 @@
           <h2>No products found</h2>
           <p><%= filtered ? 'Try a different search or filter.' : 'Add your first product to start selling.' %></p>
           <% if (filtered) { %>
-            <a class="btn btn-secondary" href="/admin/products">Show all products</a>
+            <a class="btn btn-secondary" href="<%= adminPath %>/products">Show all products</a>
           <% } else { %>
-            <a class="btn btn-primary" href="/admin/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
+            <a class="btn btn-primary" href="<%= adminPath %>/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
           <% } %>
         </div>
       <% } %>

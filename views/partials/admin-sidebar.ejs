@@ -1,16 +1,16 @@
 <aside class="admin-sidebar">
-  <a class="brand brand-light" href="/admin" aria-label="Nexthlon admin dashboard">
+  <a class="brand brand-light" href="<%= adminPath %>/dashboard" aria-label="Nexthlon admin dashboard">
     <span class="brand-mark"><%- icon('bolt') %></span>
     <span class="brand-word">NEXTHLON<small>Admin console</small></span>
   </a>
   <nav class="admin-nav" aria-label="Admin">
     <span class="admin-nav-label">Manage</span>
-    <a href="/admin" class="<%= path === '/admin' ? 'is-active' : '' %>" <%- path === '/admin' ? 'aria-current="page"' : '' %>><%- icon('grid') %> Dashboard</a>
-    <a href="/admin/users" class="<%= path === '/admin/users' ? 'is-active' : '' %>" <%- path === '/admin/users' ? 'aria-current="page"' : '' %>><%- icon('users') %> Users</a>
-    <% const onProducts = path.startsWith('/admin/products'); %>
-    <% const onTickets = path.startsWith('/admin/tickets'); %>
-    <a href="/admin/tickets" class="<%= onTickets ? 'is-active' : '' %>" <%- onTickets ? 'aria-current="page"' : '' %>><%- icon('headset') %> Support tickets</a>
-    <a href="/admin/products" class="<%= onProducts ? 'is-active' : '' %>" <%- onProducts ? 'aria-current="page"' : '' %>><%- icon('box') %> Products</a>
+    <a href="<%= adminPath %>/dashboard" class="<%= path === adminPath + '/dashboard' ? 'is-active' : '' %>" <%- path === adminPath + '/dashboard' ? 'aria-current="page"' : '' %>><%- icon('grid') %> Dashboard</a>
+    <a href="<%= adminPath %>/users" class="<%= path === adminPath + '/users' ? 'is-active' : '' %>" <%- path === adminPath + '/users' ? 'aria-current="page"' : '' %>><%- icon('users') %> Users</a>
+    <% const onProducts = path.startsWith(adminPath + '/products'); %>
+    <% const onTickets = path.startsWith(adminPath + '/tickets'); %>
+    <a href="<%= adminPath %>/tickets" class="<%= onTickets ? 'is-active' : '' %>" <%- onTickets ? 'aria-current="page"' : '' %>><%- icon('headset') %> Support tickets</a>
+    <a href="<%= adminPath %>/products" class="<%= onProducts ? 'is-active' : '' %>" <%- onProducts ? 'aria-current="page"' : '' %>><%- icon('box') %> Products</a>
   </nav>
   <div class="admin-sidebar-foot">
     <div class="admin-sidebar-user">

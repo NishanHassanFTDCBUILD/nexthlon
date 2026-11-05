@@ -1,5 +1,5 @@
 const authService = require("../services/authService");
-const { signToken, setAuthCookie, clearAuthCookie } = require("../services/tokenService");
+const { signToken, setAuthCookie, clearAuthCookie, kindOf } = require("../services/tokenService");
 const { validateSignup, validateLogin, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { formatPaise } = require("../utils/money");
@@ -15,10 +15,11 @@ async function noteLogin(req, user) {
   }
 }
 
-// Issues the JWT, stores it in the httpOnly cookie, and also returns it for API tools like Postman.
+// Issues the JWT, stores it in the httpOnly cookie (nx_token for customers, nx_admin for admins),
+// and also returns it for API tools like Postman.
 function sendSignedIn(res, user, status, message) {
   const token = signToken(user);
-  setAuthCookie(res, token);
+  setAuthCookie(res, token, kindOf(user));
   res.status(status).json({ message, user: user.toSafeJSON(), token });
 }
 
@@ -55,11 +56,17 @@ function me(req, res) {
   res.json({ user: req.user.toSafeJSON() });
 }
 
-// POST /api/logout and POST /api/admin/logout
+// POST /api/logout
 // JWTs are stateless, so signing out means deleting the cookie that holds the token.
 function logout(req, res) {
-  clearAuthCookie(res);
+  clearAuthCookie(res, "customer");
   res.json({ message: "You have been signed out." });
 }
 
-module.exports = { signup, login, adminLogin, me, logout };
+// POST /api/admin/logout (only the admin session ends; a customer session in the same browser stays)
+function adminLogout(req, res) {
+  clearAuthCookie(res, "admin");
+  res.json({ message: "You have been signed out of the admin console." });
+}
+
+module.exports = { signup, login, adminLogin, me, logout, adminLogout };

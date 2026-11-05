@@ -1,3 +1,4 @@
+const config = require("../config/env");
 // My Account pages (server-rendered, customer only), the public page for a shared list, and the
 // admin's support-ticket pages. The rules live in the services; these only pick the data to show.
 const accountService = require("../services/accountService");
@@ -106,7 +107,7 @@ const sharedList = asyncHandler(async (req, res) => {
 
 const adminTickets = asyncHandler(async (req, res) => {
   const data = await supportService.listAll(req.query);
-  const link = linkBuilder("/admin/tickets", { status: data.filters.status === "all" ? "" : data.filters.status });
+  const link = linkBuilder(`${config.adminPath}/tickets`, { status: data.filters.status === "all" ? "" : data.filters.status });
   res.render("admin/tickets", { title: "Support tickets | Nexthlon Admin", link, statuses: SupportTicket.STATUSES, ...data });
 });
 

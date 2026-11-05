@@ -54,6 +54,18 @@ test("tokens carry id, role and version, and reject tampering", () => {
   assert.ok(body);
 });
 
+test("customer and admin tokens are separate: each only works for its own session", () => {
+  const customer = signToken({ _id: "64b000000000000000000002", role: "customer", tokenVersion: 0 });
+  const admin = signToken({ _id: "64b000000000000000000003", role: "admin", tokenVersion: 0 });
+  assert.equal(verifyToken(customer, "customer").aud, "nexthlon-web");
+  assert.equal(verifyToken(admin, "admin").aud, "nexthlon-admin");
+  assert.throws(() => verifyToken(customer, "admin"));
+  assert.throws(() => verifyToken(admin, "customer"));
+  // Admin sessions last 8 hours.
+  const { exp, iat } = verifyToken(admin, "admin");
+  assert.equal(exp - iat, 8 * 60 * 60);
+});
+
 function runOriginCheck(req) {
   let result;
   originCheck(req, {}, error => { result = error || "ok"; });

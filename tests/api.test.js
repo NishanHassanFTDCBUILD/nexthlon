@@ -49,7 +49,7 @@ async function call(method, path, { body, cookie, origin = true, bearer } = {}) 
     body: body === undefined ? undefined : JSON.stringify(body)
   });
   const setCookie = response.headers.get("set-cookie") || "";
-  const match = setCookie.match(/nx_token=([^;]*)/);
+  const match = setCookie.match(/(nx_token|nx_admin)=([^;]*)/);
   const type = response.headers.get("content-type") || "";
   const data = type.includes("json") ? await response.json() : await response.text();
   return {
@@ -57,7 +57,7 @@ async function call(method, path, { body, cookie, origin = true, bearer } = {}) 
     data,
     location: response.headers.get("location"),
     setCookie,
-    cookie: match && match[1] ? `nx_token=${match[1]}` : null
+    cookie: match && match[2] ? `${match[1]}=${match[2]}` : null
   };
 }
 
@@ -182,7 +182,9 @@ test("address book: add, default rules, edit, ownership and delete", async () =>
 });
 
 test("customers cannot use admin APIs", async () => {
-  assert.equal((await call("GET", "/api/admin/customers", { cookie: ashaCookie })).status, 403);
+  // The admin API never reads the customer cookie, so a customer is simply not signed in there.
+  assert.equal((await call("GET", "/api/admin/customers", { cookie: ashaCookie })).status, 401);
+  assert.equal((await call("GET", "/api/admin/customers", { cookie: ashaCookie.replace("nx_token", "nx_admin") })).status, 401);
   assert.equal((await call("GET", "/api/admin/dashboard")).status, 401);
 });
 
@@ -250,8 +252,11 @@ test("pages: guards and redirects", async () => {
   const fresh = await call("POST", "/api/login", { body: { email: "ravi@nexthlon.test", password: "pitch2024" } });
   assert.equal((await call("GET", "/login", { cookie: fresh.cookie })).location, "/");
   assert.equal((await call("GET", "/profile", { cookie: fresh.cookie })).status, 200);
-  assert.equal((await call("GET", "/admin", { cookie: fresh.cookie })).status, 403);
-  assert.equal((await call("GET", "/admin")).location, "/admin/login?next=%2Fadmin");
+  // The admin console is invisible to customers and guests: a plain 404, no redirect to its login.
+  assert.equal((await call("GET", "/admin", { cookie: fresh.cookie })).status, 404);
+  assert.equal((await call("GET", "/admin/dashboard", { cookie: fresh.cookie })).status, 404);
+  assert.equal((await call("GET", "/admin/dashboard")).status, 404);
+  assert.equal((await call("GET", "/admin/dashboard")).location, null);
 
   for (const path of ["/", "/products", "/products?q=trail&sort=price_asc", "/products/nexthlon-trail-shoe", "/login", "/signup", "/admin/login"]) {
     assert.equal((await call("GET", path)).status, 200, path);
@@ -267,7 +272,7 @@ test("signed-in pages and the API are never cached, static files still are", asy
   assert.equal(profile.status, 200);
   assert.match(profile.headers.get("cache-control") || "", /no-store/);
 
-  const dashboard = await fetch(base + "/admin", { headers: { Cookie: admin.cookie }, redirect: "manual" });
+  const dashboard = await fetch(base + "/admin/dashboard", { headers: { Cookie: admin.cookie }, redirect: "manual" });
   assert.equal(dashboard.status, 200);
   assert.match(dashboard.headers.get("cache-control") || "", /no-store/);
 
@@ -304,8 +309,8 @@ test("admin product APIs are for admins only", async () => {
   productFields.category = String(await categoryId("Hiking"));
   assert.equal((await call("GET", "/api/admin/products")).status, 401);
   const customer = await call("POST", "/api/login", { body: { email: "ravi@nexthlon.test", password: "pitch2024" } });
-  assert.equal((await call("GET", "/api/admin/products", { cookie: customer.cookie })).status, 403);
-  assert.equal((await sendForm("POST", "/api/admin/products", { fields: productFields, files: [{ name: "a.png", data: PNG }], cookie: customer.cookie })).status, 403);
+  assert.equal((await call("GET", "/api/admin/products", { cookie: customer.cookie })).status, 401);
+  assert.equal((await sendForm("POST", "/api/admin/products", { fields: productFields, files: [{ name: "a.png", data: PNG }], cookie: customer.cookie })).status, 401);
   adminCookieForProducts = (await call("POST", "/api/admin/login", { body: { email: "admin@nexthlon.test", password: "AdminPass123" } })).cookie;
 });
 
@@ -394,7 +399,9 @@ test("unlisting hides a product from shoppers but keeps it for admins", async ()
 });
 
 test("admin product pages are guarded and render", async () => {
-  assert.equal((await call("GET", "/admin/products")).location, "/admin/login?next=%2Fadmin%2Fproducts");
+  const guest = await call("GET", "/admin/products");
+  assert.equal(guest.status, 404);
+  assert.equal(guest.location, null);
   for (const path of ["/admin/products", `/admin/products?status=out&category=${productFields.category}`, "/admin/products/new", `/admin/products/${createdProduct.id}/edit`]) {
     assert.equal((await call("GET", path, { cookie: adminCookieForProducts })).status, 200, path);
   }
@@ -439,7 +446,8 @@ test("cart: only signed-in customers, and guests are sent to sign in", async () 
   shoeId = String((await Product.findOne({ slug: "nexthlon-trail-shoe" }))._id);
   assert.equal((await call("GET", "/api/cart")).status, 401);
   assert.equal((await call("POST", "/api/cart/items", { body: { productId: shoeId } })).status, 401);
-  assert.equal((await call("GET", "/api/cart", { cookie: adminCookieForProducts })).status, 403);
+  // The store never reads the admin cookie: an admin there is just a guest.
+  assert.equal((await call("GET", "/api/cart", { cookie: adminCookieForProducts })).status, 401);
   assert.equal((await call("GET", "/cart")).location, "/login?next=%2Fcart");
   const guestPage = await call("GET", "/products/nexthlon-trail-shoe");
   assert.match(guestPage.data, /href="\/login\?next=%2Fproducts%2Fnexthlon-trail-shoe"[^>]*>[\s\S]*?Add to cart/);
@@ -766,7 +774,7 @@ test("wishlist: customers only, guests are sent to sign in and come back", async
   assert.equal((await call("GET", "/api/wishlist")).status, 401);
   assert.equal((await call("GET", "/wishlist")).location, "/login?next=%2Fwishlist");
   const admin = await call("POST", "/api/admin/login", { body: { email: "admin@nexthlon.test", password: "AdminPass123" } });
-  assert.equal((await call("GET", "/api/wishlist", { cookie: admin.cookie })).status, 403);
+  assert.equal((await call("GET", "/api/wishlist", { cookie: admin.cookie })).status, 401);
 });
 
 test("wishlist: add, no duplicates, newest first, hidden products refused, remove", async () => {
@@ -1221,7 +1229,7 @@ test("referrals: a code for everyone, both wallets credited once, bad codes refu
   assert.equal(history.data.referral.joined, 1);
 
   // Only admins change the reward.
-  assert.equal((await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 50 }, cookie: inviter.cookie })).status, 403);
+  assert.equal((await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 50 }, cookie: inviter.cookie })).status, 401);
   const admin = await adminCookie();
   assert.equal((await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 5000 }, cookie: admin })).status, 400);
   const saved = await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: "50" }, cookie: admin });

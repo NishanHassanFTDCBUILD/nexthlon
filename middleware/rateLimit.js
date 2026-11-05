@@ -12,6 +12,16 @@ const authLimiter = rateLimit({
   message: { message: "Too many attempts. Please wait 15 minutes and try again." }
 });
 
+// Admin sign-in is stricter and counted on its own: 10 failed attempts per 15 minutes per IP.
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many attempts. Please wait 15 minutes and try again." }
+});
+
 // Contact form and newsletter: 8 messages per 15 minutes per IP address, so the inbox cannot be flooded.
 const formLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -41,4 +51,4 @@ const sensitiveLimiter = rateLimit({
   message: { message: "Too many changes in a short time. Please wait a few minutes and try again." }
 });
 
-module.exports = { authLimiter, formLimiter, reviewLimiter, sensitiveLimiter };
+module.exports = { authLimiter, adminLoginLimiter, formLimiter, reviewLimiter, sensitiveLimiter };

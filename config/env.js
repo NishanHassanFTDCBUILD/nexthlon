@@ -37,8 +37,27 @@ function readConfig() {
     cookieSecure: isProduction || process.env.COOKIE_SECURE === "true",
     // Online payments (Razorpay). Optional: without the keys the store still runs, and the
     // online payment option shows as unavailable. The secrets never leave the server.
-    razorpay: readRazorpay()
+    razorpay: readRazorpay(),
+    // The admin console lives under a private path (ADMIN_PATH, e.g. /nx-console-7f3k).
+    adminPath: readAdminPath(),
+    // Admin sessions are short: 8 hours, in their own cookie.
+    adminJwtExpiresIn: "8h",
+    adminJwtExpiresInMs: durationToMs("8h")
   };
+}
+
+// Paths the store already uses can't be the admin path.
+const RESERVED_PATHS = ["/api", "/account", "/products", "/cart", "/checkout", "/orders", "/login", "/signup", "/wallet",
+  "/profile", "/wishlist", "/lists", "/css", "/js", "/img", "/uploads", "/about", "/contact", "/privacy", "/terms"];
+
+function readAdminPath() {
+  const raw = (process.env.ADMIN_PATH || "/admin").trim().replace(/\/+$/, "");
+  const path = (raw.startsWith("/") ? raw : `/${raw}`).toLowerCase();
+  if (!/^\/[a-z0-9_-]{3,64}$/.test(path)) {
+    throw new Error("ADMIN_PATH must be one path segment of 3 to 64 letters, numbers, - or _ (for example /nx-console-7f3k).");
+  }
+  if (RESERVED_PATHS.includes(path)) throw new Error("ADMIN_PATH can't be a path the store already uses.");
+  return path;
 }
 
 function readRazorpay() {

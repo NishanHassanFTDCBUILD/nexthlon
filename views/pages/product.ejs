@@ -102,7 +102,7 @@
         <%# Guests are sent to sign in, then straight back to this product. %>
         <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent('/products/' + product.slug) %>"><%- icon('cart', 'i-sm') %> Add to cart</a>
         <p class="muted">Sign in to add items to your cart. New here? <a href="/signup?next=<%= encodeURIComponent('/products/' + product.slug) %>">Create an account</a>.</p>
-      <% } else if (currentUser.role === 'customer') { %>
+      <% } else { %>
         <form class="add-to-cart" data-add-to-cart data-product-id="<%= product._id %>" novalidate>
           <div class="qty-row">
             <label for="qty">Quantity</label>
@@ -116,9 +116,6 @@
           <button class="btn btn-primary btn-block btn-lg" type="submit"><%- icon('cart', 'i-sm') %> Add to cart</button>
         </form>
         <a class="btn btn-ghost btn-block" href="/cart">View cart</a>
-      <% } else { %>
-        <p class="muted">You are signed in as an administrator.</p>
-        <a class="btn btn-primary btn-block" href="/admin">Go to dashboard</a>
       <% } %>
       <div class="buy-actions">
         <% if (shopper) { %>

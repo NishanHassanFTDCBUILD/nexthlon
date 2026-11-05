@@ -41,10 +41,10 @@ async function call(method, path, { body, cookie, form, headers: extra = {} } = 
     body: form || (body === undefined ? undefined : JSON.stringify(body))
   });
   const setCookie = response.headers.get("set-cookie") || "";
-  const match = setCookie.match(/nx_token=([^;]*)/);
+  const match = setCookie.match(/(nx_token|nx_admin)=([^;]*)/);
   const type = response.headers.get("content-type") || "";
   const data = type.includes("json") ? await response.json() : await response.text();
-  return { status: response.status, data, location: response.headers.get("location"), setCookie, cookie: match && match[1] ? `nx_token=${match[1]}` : null };
+  return { status: response.status, data, location: response.headers.get("location"), setCookie, cookie: match && match[2] ? `${match[1]}=${match[2]}` : null };
 }
 
 async function signUp(name, email, password = "account2024") {
@@ -296,7 +296,7 @@ test("help requests: own orders only, the admin replies, and other customers can
 
   assert.equal((await call("GET", `/account/help/${ticketId}`, { cookie: other.cookie })).status, 404);
   assert.equal((await call("POST", `/api/support/tickets/${ticketId}/messages`, { body: { message: "Let me in" }, cookie: other.cookie })).status, 404);
-  assert.equal((await call("POST", `/api/admin/tickets/${ticketId}/reply`, { body: { message: "Hi" }, cookie: customer.cookie })).status, 403);
+  assert.equal((await call("POST", `/api/admin/tickets/${ticketId}/reply`, { body: { message: "Hi" }, cookie: customer.cookie })).status, 401);
 
   const admin = await call("POST", "/api/admin/login", { body: { email: "admin@account.test", password: "AdminPass123" } });
   const reply = await call("POST", `/api/admin/tickets/${ticketId}/reply`, { body: { message: "Yes, we will arrange it.", status: "pending" }, cookie: admin.cookie });

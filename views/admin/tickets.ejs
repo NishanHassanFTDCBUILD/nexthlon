@@ -19,7 +19,7 @@
       <ul class="ticket-list admin-tickets">
         <% tickets.forEach(function (t, i) { %>
           <li data-rise style="--rise: <%= Math.min(i, 10) %>">
-            <a class="ticket-row" href="/admin/tickets/<%= t.ticketId %>">
+            <a class="ticket-row" href="<%= adminPath %>/tickets/<%= t.ticketId %>">
               <span class="ticket-row-main">
                 <strong><%= t.subject %></strong>
                 <small class="muted"><%= t.ticketId %> · <%= t.topic %><%= t.orderId ? ' · ' + t.orderId : '' %> · <%= t.customer ? t.customer.name : 'Customer' %> · updated <%= formatDate(t.updatedAt) %></small>

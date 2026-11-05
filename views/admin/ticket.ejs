@@ -4,7 +4,7 @@
   <main id="main" class="admin-main">
     <header class="admin-top">
       <div>
-        <a class="back-link" href="/admin/tickets"><%- icon('chevron-left', 'i-xs') %> All tickets</a>
+        <a class="back-link" href="<%= adminPath %>/tickets"><%- icon('chevron-left', 'i-xs') %> All tickets</a>
         <h1><%= ticket.subject %></h1>
         <p class="muted"><%= ticket.ticketId %> · <%= ticket.topic %><%= ticket.orderId ? ' · ' + ticket.orderId : '' %><% if (ticket.customer) { %> · <%= ticket.customer.name %> (<%= ticket.customer.email %>)<% } %></p>
       </div>

@@ -78,7 +78,9 @@ app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api", require("./routes/contactRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 
-// EJS pages
+// EJS pages. The admin console lives at its private path (ADMIN_PATH); /admin is just a 404
+// when another path is set.
+app.use(config.adminPath, require("./routes/adminPageRoutes"));
 app.use("/", require("./routes/pageRoutes"));
 
 app.use(notFound);

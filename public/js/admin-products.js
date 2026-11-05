@@ -207,7 +207,7 @@
     });
     if (result) {
       Nx.flash(result.message);
-      window.location.assign("/admin/products");
+      window.location.assign(`${document.body.dataset.adminPath}/products`);
     }
   });
 

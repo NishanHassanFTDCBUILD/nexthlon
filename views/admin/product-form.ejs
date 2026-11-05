@@ -9,7 +9,7 @@
 
   <main id="main" class="admin-main">
     <nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
-      <a href="/admin/products">Products</a> <%- icon('chevron-right', 'i-xs') %>
+      <a href="<%= adminPath %>/products">Products</a> <%- icon('chevron-right', 'i-xs') %>
       <span aria-current="page"><%= isEdit ? p.name : 'Add product' %></span>
     </nav>
     <header class="admin-top">
@@ -116,7 +116,7 @@
       </div>
 
       <div class="form-actions product-form-actions">
-        <a class="btn btn-ghost" href="/admin/products">Cancel</a>
+        <a class="btn btn-ghost" href="<%= adminPath %>/products">Cancel</a>
         <button class="btn btn-primary" type="submit"><%= isEdit ? 'Save changes' : 'Add product' %></button>
       </div>
     </form>
