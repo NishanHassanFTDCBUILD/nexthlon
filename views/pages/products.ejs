@@ -9,6 +9,9 @@
   const moreBrands = facets.brands.slice(BRAND_PREVIEW);
   const low = facets.priceLow;
   const high = Math.max(facets.priceHigh, low + 1);
+  const brandPicked = moreBrands.some(function (b) { return filters.brands.includes(b.name); });
+  // Groups open by default, and any group holding a choice stays open.
+  const openIf = function (condition) { return condition ? ' open' : ''; };
 %>
 <main id="main" class="container page">
   <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -22,100 +25,129 @@
 
   <div class="catalog" data-catalog>
     <div class="drawer-backdrop" data-filter-close hidden></div>
+
+    <%#
+      The filter sidebar. On a desktop it sits beside the results; on a phone the same markup
+      slides in as a drawer (public/js/catalog.js). Each group is a <details>, so the groups
+      collapse, take the keyboard and report aria-expanded even with JavaScript switched off.
+    %>
     <aside class="filters" id="filter-drawer" aria-label="Filters" data-filter-drawer>
       <div class="filter-panel">
         <div class="filter-head">
           <h2><%- icon('sliders', 'i-sm') %> Filters</h2>
-          <% if (chips.length) { %><a class="clear-link" href="/products<%= filters.q ? '?q=' + encodeURIComponent(filters.q) : '' %>">Clear all</a><% } %>
+          <span class="count-badge" data-filter-count <%= chips.length ? '' : 'hidden' %>><%= chips.length %></span>
+          <a class="clear-link" href="/products<%= filters.q ? '?q=' + encodeURIComponent(filters.q) : '' %>" data-clear-filters <%= chips.length ? '' : 'hidden' %>>Clear all</a>
           <button type="button" class="icon-btn filter-close" data-filter-close aria-label="Close filters"><%- icon('x') %></button>
         </div>
-        <form id="filters" class="filter-form" action="/products" method="get" data-auto-submit>
-          <% if (filters.q) { %><input type="hidden" name="q" value="<%= filters.q %>"><% } %>
-          <% if (filters.sort !== 'relevance') { %><input type="hidden" name="sort" value="<%= filters.sort %>"><% } %>
-          <% if (filters.view === 'list') { %><input type="hidden" name="view" value="list"><% } %>
 
-          <fieldset>
-            <legend>Category</legend>
-            <label class="choice">
-              <input type="radio" name="category" value="" <%= !category ? 'checked' : '' %>>
-              <span>All categories</span>
-            </label>
-            <% categories.forEach(function (c) { %>
+        <form id="filters" class="filter-form" action="/products" method="get" data-filter-form>
+          <%# Carried along so a filter change never drops the search, sort or layout. %>
+          <input type="hidden" name="q" value="<%= filters.q %>">
+          <input type="hidden" name="sort" value="<%= filters.sort === 'relevance' ? '' : filters.sort %>">
+          <input type="hidden" name="view" value="<%= filters.view === 'list' ? 'list' : '' %>">
+
+          <details class="filter-group" data-filter-group="category"<%- openIf(true) %>>
+            <summary class="filter-group-head"><span>Category</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
+            <fieldset class="filter-group-body">
+              <legend class="sr-only">Category</legend>
               <label class="choice">
-                <input type="radio" name="category" value="<%= c.slug %>" <%= category && category.slug === c.slug ? 'checked' : '' %>>
-                <span><%= c.name %></span><em><%= c.count %></em>
+                <input type="radio" name="category" value="" <%= !category ? 'checked' : '' %>>
+                <span>All categories</span>
               </label>
-            <% }) %>
-          </fieldset>
-
-          <% if (facets.brands.length) { %>
-            <fieldset>
-              <legend>Brand</legend>
-              <% shownBrands.forEach(function (b) { %>
+              <% categories.forEach(function (c) { %>
                 <label class="choice">
-                  <input type="checkbox" name="brand" value="<%= b.name %>" <%= filters.brands.includes(b.name) ? 'checked' : '' %>>
-                  <span><%= b.name %></span><em><%= b.count %></em>
+                  <input type="radio" name="category" value="<%= c.slug %>" <%= category && category.slug === c.slug ? 'checked' : '' %>>
+                  <span><%= c.name %></span><em><%= c.count %></em>
                 </label>
               <% }) %>
-              <% if (moreBrands.length) { %>
-                <details class="more-choices" <%= moreBrands.some(function (b) { return filters.brands.includes(b.name); }) ? 'open' : '' %>>
-                  <summary><%= moreBrands.length %> more brands</summary>
-                  <% moreBrands.forEach(function (b) { %>
-                    <label class="choice">
-                      <input type="checkbox" name="brand" value="<%= b.name %>" <%= filters.brands.includes(b.name) ? 'checked' : '' %>>
-                      <span><%= b.name %></span><em><%= b.count %></em>
-                    </label>
-                  <% }) %>
-                </details>
-              <% } %>
             </fieldset>
+          </details>
+
+          <details class="filter-group" data-filter-group="price"<%- openIf(true) %>>
+            <summary class="filter-group-head"><span>Price</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
+            <fieldset class="filter-group-body price-filter" data-price-filter data-low="<%= low %>" data-high="<%= high %>">
+              <legend class="sr-only">Price range in rupees</legend>
+              <div class="range-slider" data-range hidden>
+                <div class="range-track" aria-hidden="true"><span class="range-fill" data-range-fill></span></div>
+                <label class="sr-only" for="min-range">Lowest price</label>
+                <input id="min-range" type="range" min="<%= low %>" max="<%= high %>" step="1" value="<%= filters.min !== null ? Math.max(low, Math.min(filters.min, high)) : low %>" data-range-min>
+                <label class="sr-only" for="max-range">Highest price</label>
+                <input id="max-range" type="range" min="<%= low %>" max="<%= high %>" step="1" value="<%= filters.max !== null ? Math.max(low, Math.min(filters.max, high)) : high %>" data-range-max>
+              </div>
+              <div class="price-inputs">
+                <label class="sr-only" for="min-price">Minimum price in rupees</label>
+                <input id="min-price" type="number" name="min" min="0" step="1" inputmode="numeric" placeholder="₹<%= low.toLocaleString('en-IN') %>" value="<%= filters.min !== null ? filters.min : '' %>" data-price-min>
+                <span aria-hidden="true">to</span>
+                <label class="sr-only" for="max-price">Maximum price in rupees</label>
+                <input id="max-price" type="number" name="max" min="0" step="1" inputmode="numeric" placeholder="₹<%= high.toLocaleString('en-IN') %>" value="<%= filters.max !== null ? filters.max : '' %>" data-price-max>
+              </div>
+              <button type="submit" class="btn btn-secondary btn-sm btn-block">Apply price</button>
+            </fieldset>
+          </details>
+
+          <% if (facets.brands.length) { %>
+            <details class="filter-group" data-filter-group="brand"<%- openIf(true) %>>
+              <summary class="filter-group-head"><span>Brand</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
+              <fieldset class="filter-group-body">
+                <legend class="sr-only">Brand</legend>
+                <% shownBrands.forEach(function (b) { %>
+                  <label class="choice">
+                    <input type="checkbox" name="brand" value="<%= b.name %>" <%= filters.brands.includes(b.name) ? 'checked' : '' %>>
+                    <span><%= b.name %></span><em><%= b.count %></em>
+                  </label>
+                <% }) %>
+                <% if (moreBrands.length) { %>
+                  <details class="more-choices"<%- openIf(brandPicked) %>>
+                    <summary><%= moreBrands.length %> more brands</summary>
+                    <% moreBrands.forEach(function (b) { %>
+                      <label class="choice">
+                        <input type="checkbox" name="brand" value="<%= b.name %>" <%= filters.brands.includes(b.name) ? 'checked' : '' %>>
+                        <span><%= b.name %></span><em><%= b.count %></em>
+                      </label>
+                    <% }) %>
+                  </details>
+                <% } %>
+              </fieldset>
+            </details>
           <% } %>
 
-          <fieldset class="price-filter" data-price-filter data-low="<%= low %>" data-high="<%= high %>">
-            <legend>Price</legend>
-            <div class="range-slider" data-range hidden>
-              <div class="range-track" aria-hidden="true"><span class="range-fill" data-range-fill></span></div>
-              <label class="sr-only" for="min-range">Lowest price</label>
-              <input id="min-range" type="range" min="<%= low %>" max="<%= high %>" step="1" value="<%= filters.min !== null ? Math.max(low, Math.min(filters.min, high)) : low %>" data-range-min>
-              <label class="sr-only" for="max-range">Highest price</label>
-              <input id="max-range" type="range" min="<%= low %>" max="<%= high %>" step="1" value="<%= filters.max !== null ? Math.max(low, Math.min(filters.max, high)) : high %>" data-range-max>
-            </div>
-            <div class="price-inputs">
-              <label class="sr-only" for="min-price">Minimum price in rupees</label>
-              <input id="min-price" type="number" name="min" min="0" step="1" inputmode="numeric" placeholder="₹<%= low.toLocaleString('en-IN') %>" value="<%= filters.min !== null ? filters.min : '' %>" data-price-min>
-              <span aria-hidden="true">to</span>
-              <label class="sr-only" for="max-price">Maximum price in rupees</label>
-              <input id="max-price" type="number" name="max" min="0" step="1" inputmode="numeric" placeholder="₹<%= high.toLocaleString('en-IN') %>" value="<%= filters.max !== null ? filters.max : '' %>" data-price-max>
-            </div>
-            <button type="submit" class="btn btn-secondary btn-sm btn-block">Apply price</button>
-          </fieldset>
+          <details class="filter-group" data-filter-group="rating"<%- openIf(true) %>>
+            <summary class="filter-group-head"><span>Customer rating</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
+            <fieldset class="filter-group-body">
+              <legend class="sr-only">Customer rating</legend>
+              <label class="choice"><input type="radio" name="rating" value="" <%= !filters.rating ? 'checked' : '' %>><span>Any rating</span></label>
+              <% ratingSteps.forEach(function (step) { %>
+                <label class="choice">
+                  <input type="radio" name="rating" value="<%= step %>" <%= filters.rating === step ? 'checked' : '' %>>
+                  <span class="rating" style="--rating: <%= step %>" aria-hidden="true"></span><span><%= step %>★ and up</span>
+                </label>
+              <% }) %>
+            </fieldset>
+          </details>
 
-          <fieldset>
-            <legend>Discount</legend>
-            <label class="choice"><input type="radio" name="discount" value="" <%= !filters.discount ? 'checked' : '' %>><span>Any discount</span></label>
-            <% discountSteps.forEach(function (step) { %>
-              <label class="choice"><input type="radio" name="discount" value="<%= step %>" <%= filters.discount === step ? 'checked' : '' %>><span><%= step %>% off or more</span></label>
-            <% }) %>
-          </fieldset>
+          <details class="filter-group" data-filter-group="discount"<%- openIf(Boolean(filters.discount)) %>>
+            <summary class="filter-group-head"><span>Discount</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
+            <fieldset class="filter-group-body">
+              <legend class="sr-only">Discount</legend>
+              <label class="choice"><input type="radio" name="discount" value="" <%= !filters.discount ? 'checked' : '' %>><span>Any discount</span></label>
+              <% discountSteps.forEach(function (step) { %>
+                <label class="choice"><input type="radio" name="discount" value="<%= step %>" <%= filters.discount === step ? 'checked' : '' %>><span><%= step %>% off or more</span></label>
+              <% }) %>
+            </fieldset>
+          </details>
 
-          <fieldset>
-            <legend>Customer rating</legend>
-            <label class="choice"><input type="radio" name="rating" value="" <%= !filters.rating ? 'checked' : '' %>><span>Any rating</span></label>
-            <% ratingSteps.forEach(function (step) { %>
-              <label class="choice">
-                <input type="radio" name="rating" value="<%= step %>" <%= filters.rating === step ? 'checked' : '' %>>
-                <span class="rating" style="--rating: <%= step %>" aria-hidden="true"></span><span><%= step %>★ and up</span>
+          <details class="filter-group" data-filter-group="availability"<%- openIf(true) %>>
+            <summary class="filter-group-head"><span>Availability</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
+            <fieldset class="filter-group-body">
+              <legend class="sr-only">Availability</legend>
+              <label class="choice choice-switch">
+                <input type="checkbox" name="inStock" value="1" <%= filters.inStock ? 'checked' : '' %>>
+                <span>Hide out-of-stock items</span>
               </label>
-            <% }) %>
-          </fieldset>
+            </fieldset>
+          </details>
 
-          <fieldset>
-            <legend>Availability</legend>
-            <label class="choice choice-switch">
-              <input type="checkbox" name="inStock" value="1" <%= filters.inStock ? 'checked' : '' %>>
-              <span>Hide out-of-stock items</span>
-            </label>
-          </fieldset>
+          <%# Without JavaScript every choice still works: this submits the form as a plain GET. %>
           <noscript><button type="submit" class="btn btn-primary btn-block">Apply filters</button></noscript>
         </form>
       </div>
@@ -123,10 +155,10 @@
 
     <section class="results" aria-labelledby="results-heading" data-results>
       <div class="results-head">
-        <h1 id="results-heading"><%= heading %></h1>
-        <p class="muted" aria-live="polite">
+        <h1 id="results-heading" tabindex="-1"><%= heading %></h1>
+        <p class="muted result-count" aria-live="polite" data-results-summary>
           <% if (pagination.total) { %>
-            Showing <%= firstItem %>–<%= lastItem %> of <%= pagination.total %> <%= pagination.total === 1 ? 'result' : 'results' %>
+            Showing <%= firstItem %>–<%= lastItem %> of <strong><%= pagination.total %></strong> <%= pagination.total === 1 ? 'result' : 'results' %>
           <% } else { %>
             0 results
           <% } %>
@@ -138,22 +170,19 @@
 
       <div class="toolbar-sticky" data-sticky-toolbar>
         <button type="button" class="btn btn-ghost btn-sm filter-open" data-filter-open aria-controls="filter-drawer" aria-expanded="false">
-          <%- icon('sliders', 'i-sm') %> Filters<% if (chips.length) { %> <span class="count-badge"><%= chips.length %></span><% } %>
+          <%- icon('sliders', 'i-sm') %> Filters<span class="count-badge" data-filter-count <%= chips.length ? '' : 'hidden' %>><%= chips.length %></span>
         </button>
-        <% if (chips.length) { %>
-          <ul class="chips" aria-label="Active filters">
-            <% chips.forEach(function (chip) { %>
-              <li><a class="chip" href="<%= chip.href %>" aria-label="Remove filter: <%= chip.label %>"><%= chip.label %> <%- icon('x', 'i-xs') %></a></li>
-            <% }) %>
-            <li><a class="chip chip-clear" href="/products">Clear all</a></li>
-          </ul>
-        <% } else { %>
-          <span class="toolbar-hint">Narrow down by sport, brand, price, discount or rating.</span>
-        <% } %>
+        <ul class="chips" aria-label="Active filters" data-active-chips <%= chips.length ? '' : 'hidden' %>>
+          <% chips.forEach(function (chip) { %>
+            <li><a class="chip" href="<%= chip.href %>" aria-label="Remove filter: <%= chip.label %>"><%= chip.label %> <%- icon('x', 'i-xs') %></a></li>
+          <% }) %>
+          <% if (chips.length) { %><li><a class="chip chip-clear" href="/products" data-clear-filters>Clear all</a></li><% } %>
+        </ul>
+        <span class="toolbar-hint" <%= chips.length ? 'hidden' : '' %>>Narrow down by sport, brand, price, rating or availability.</span>
         <label class="sort">
           <span>Sort by</span>
           <span class="select-wrap">
-            <select name="sort" form="filters" data-auto-submit-field>
+            <select name="sort" data-filter-field>
               <% Object.entries(sorts).forEach(function ([key, option]) { %>
                 <option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= option.label %></option>
               <% }) %>
@@ -168,6 +197,7 @@
         <span class="loading-bar" aria-hidden="true"></span>
       </div>
 
+      <div data-results-content>
       <% if (products.length) { %>
         <div class="product-grid product-grid-3 <%= filters.view === 'list' ? 'is-list' : '' %>">
           <% products.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
@@ -182,6 +212,7 @@
       <% } %>
 
       <%- include('../partials/pagination') %>
+      </div>
     </section>
   </div>
 </main>

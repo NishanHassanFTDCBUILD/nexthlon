@@ -1,6 +1,7 @@
 const path = require("path");
 const express = require("express");
-//. It sets various HTTP security headers to help protect our website against common browser-based attacks.
+//. It sets various HTTP security 
+// headers to help protect our website against common browser-based attacks.
 const helmet = require("helmet");
 //Load the tool that reads cookies into req.cookies. We need it to read the JWT cookie.
 const cookieParser = require("cookie-parser");
@@ -13,7 +14,7 @@ const { noCache } = require("./middleware/noCache");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
-//Hide the header that says "Express", so attackers learn less.
+//Hide the header that says "Express", so attackers learn less. This reveals less technology information to attackers.
 app.disable("x-powered-by");
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));

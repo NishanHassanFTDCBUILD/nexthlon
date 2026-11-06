@@ -1,62 +1,391 @@
 // Product list filters, the phone filter drawer, and the product photo gallery.
+//
+// Architecture: ONE filter state object is the single source of truth. It is read from the URL on
+// load, every change patches it, and it is written straight back to the URL — so a refresh, the
+// Back button and a shared link all give the same page. Render functions only ever read from the
+// state; nothing scrapes values back out of the DOM.
+//
+// Without JavaScript the same markup is an ordinary GET form, so the server-rendered catalogue is
+// the complete fallback.
 (function () {
   "use strict";
 
-  // While the next page of results loads, show a loading bar over the product grid.
   const results = document.querySelector("[data-results]");
-  function showLoading() {
-    if (!results) return;
-    results.classList.add("is-loading");
-    results.setAttribute("aria-busy", "true");
-  }
-  // Coming back with the browser's back button restores the page from cache; clear the loading look.
-  window.addEventListener("pageshow", () => {
-    if (!results) return;
-    results.classList.remove("is-loading");
-    results.removeAttribute("aria-busy");
-  });
+  const catalog = document.querySelector("[data-catalog]");
+  const filterForm = document.querySelector("[data-filter-form]");
+  const resultsContent = document.querySelector("[data-results-content]");
+  const resultsSummary = document.querySelector("[data-results-summary]");
+  const resultsHeading = document.getElementById("results-heading");
+  const chipList = document.querySelector("[data-active-chips]");
+  const toolbarHint = document.querySelector(".toolbar-hint");
 
-  // Filters apply as soon as a choice changes. Price waits for its Apply button.
-  const filterForm = document.querySelector("[data-auto-submit]");
-  if (filterForm) {
-    filterForm.addEventListener("change", event => {
-      if (event.target.type === "radio" || event.target.type === "checkbox") filterForm.requestSubmit();
+  // ---------- The filter state ----------
+
+  const DEFAULTS = {
+    q: "", category: "", brands: [], min: null, max: null,
+    discount: 0, rating: 0, inStock: false, sort: "relevance", view: "grid", page: 1
+  };
+  const SORTS = ["relevance", "price_asc", "price_desc", "newest", "rating", "discount", "name_asc"];
+  // The server validates all of this again (services/productService.js readFilters); these checks
+  // only keep a hand-typed URL from putting nonsense on screen before the answer comes back.
+  // null when the value is missing or empty — Number(null) and Number("") are both 0, which would
+  // otherwise turn "no price given" into "price 0" and put ?min=0 in every URL.
+  const whole = (value, max) => {
+    if (value === null || value === undefined || String(value).trim() === "") return null;
+    const number = Number(value);
+    return Number.isInteger(number) && number >= 0 && number <= max ? number : null;
+  };
+  const oneOf = (value, allowed, fallback) => (allowed.includes(Number(value)) ? Number(value) : fallback);
+
+  let state = { ...DEFAULTS };
+  // Set by the price-slider block below; renderControls() calls it once it exists.
+  let paintPrice = null;
+
+  function readState(search) {
+    const params = new URLSearchParams(search);
+    const next = {
+      ...DEFAULTS,
+      q: (params.get("q") || "").trim().slice(0, 80),
+      category: (params.get("category") || "").trim().toLowerCase().slice(0, 80),
+      brands: [...new Set(params.getAll("brand").map(name => name.trim()).filter(Boolean))].slice(0, 20),
+      min: whole(params.get("min"), 10000000),
+      max: whole(params.get("max"), 10000000),
+      discount: oneOf(params.get("discount"), [10, 20, 30, 40, 50], 0),
+      rating: oneOf(params.get("rating"), [4, 3, 2], 0),
+      inStock: params.get("inStock") === "1" || params.get("inStock") === "true",
+      sort: SORTS.includes(params.get("sort")) ? params.get("sort") : "relevance",
+      view: params.get("view") === "list" ? "list" : "grid",
+      page: whole(params.get("page"), 10000) || 1
+    };
+    // A back-to-front range is simply swapped, as the server does.
+    if (next.min !== null && next.max !== null && next.min > next.max) [next.min, next.max] = [next.max, next.min];
+    return next;
+  }
+
+  // The state as a query string. Defaults are left out, so the URL stays short and shareable.
+  function toQuery(from = state) {
+    const query = new URLSearchParams();
+    if (from.q) query.set("q", from.q);
+    if (from.category) query.set("category", from.category);
+    from.brands.forEach(brand => query.append("brand", brand));
+    if (from.min !== null) query.set("min", String(from.min));
+    if (from.max !== null) query.set("max", String(from.max));
+    if (from.discount) query.set("discount", String(from.discount));
+    if (from.rating) query.set("rating", String(from.rating));
+    if (from.inStock) query.set("inStock", "1");
+    if (from.sort !== "relevance") query.set("sort", from.sort);
+    if (from.view === "list") query.set("view", "list");
+    if (from.page > 1) query.set("page", String(from.page));
+    return query;
+  }
+
+  const urlFor = from => {
+    const search = toQuery(from).toString();
+    return `/products${search ? `?${search}` : ""}`;
+  };
+  // The link that removes one filter: a copy of the state with that part cleared.
+  const without = patch => urlFor({ ...state, ...patch, page: 1 });
+
+  // How many filters are on, for the badges. Sort, view, page and the search box are not filters.
+  const activeCount = () =>
+    (state.category ? 1 : 0) + state.brands.length + (state.min !== null ? 1 : 0) + (state.max !== null ? 1 : 0) +
+    (state.discount ? 1 : 0) + (state.rating ? 1 : 0) + (state.inStock ? 1 : 0) + (state.q ? 1 : 0);
+
+  // ---------- Reading the controls ----------
+
+  // One place that turns a changed control into a state patch, so no other code reads the DOM.
+  function patchFromControl(field) {
+    switch (field.name) {
+      case "category": return { category: field.value };
+      case "discount": return { discount: Number(field.value) || 0 };
+      case "rating": return { rating: Number(field.value) || 0 };
+      case "inStock": return { inStock: field.checked };
+      case "sort": return { sort: SORTS.includes(field.value) ? field.value : "relevance" };
+      case "brand": {
+        const brands = field.checked
+          ? [...new Set([...state.brands, field.value])]
+          : state.brands.filter(name => name !== field.value);
+        return { brands };
+      }
+      default: return null;
+    }
+  }
+
+  // The price boxes are read together, and only when the shopper applies them.
+  function pricePatch() {
+    const minBox = filterForm.querySelector("[data-price-min]");
+    const maxBox = filterForm.querySelector("[data-price-max]");
+    let min = minBox.value === "" ? null : whole(minBox.value, 10000000);
+    let max = maxBox.value === "" ? null : whole(maxBox.value, 10000000);
+    if (min !== null && max !== null && min > max) [min, max] = [max, min];
+    return { min, max };
+  }
+
+  // ---------- Rendering, all of it from the state ----------
+
+  function renderControls() {
+    if (!filterForm) return;
+    filterForm.querySelectorAll("input[type=radio], input[type=checkbox]").forEach(field => {
+      if (field.name === "category") field.checked = field.value === state.category;
+      else if (field.name === "brand") field.checked = state.brands.includes(field.value);
+      else if (field.name === "discount") field.checked = field.value === (state.discount ? String(state.discount) : "");
+      else if (field.name === "rating") field.checked = field.value === (state.rating ? String(state.rating) : "");
+      else if (field.name === "inStock") field.checked = state.inStock;
     });
-    // Empty fields are left out, so the URL only holds filters that are really set
-    // ("?category=running&max=3000", not "?category=running&min=&max=3000&rating=").
-    filterForm.addEventListener("submit", () => {
-      const fields = [...filterForm.elements, ...document.querySelectorAll('[form="filters"]')];
-      fields.forEach(field => {
-        if (!field.name || field.disabled) return;
-        const unchecked = (field.type === "radio" || field.type === "checkbox") && !field.checked;
-        if (unchecked) return;
-        if (field.value === "" || (field.name === "sort" && field.value === "relevance")) {
-          field.disabled = true;
-          field.dataset.wasEmpty = "1";
-        }
-      });
-      showLoading();
+    // The hidden fields keep the no-JavaScript submit carrying the search, sort and layout.
+    const hidden = (name, value) => {
+      const field = filterForm.querySelector(`input[type=hidden][name="${name}"]`);
+      if (field) field.value = value;
+    };
+    hidden("q", state.q);
+    hidden("sort", state.sort === "relevance" ? "" : state.sort);
+    hidden("view", state.view === "list" ? "list" : "");
+
+    const minBox = filterForm.querySelector("[data-price-min]");
+    const maxBox = filterForm.querySelector("[data-price-max]");
+    if (minBox) minBox.value = state.min === null ? "" : state.min;
+    if (maxBox) maxBox.value = state.max === null ? "" : state.max;
+    if (paintPrice) paintPrice();
+
+    document.querySelectorAll('select[data-filter-field][name="sort"]').forEach(field => { field.value = state.sort; });
+    document.querySelectorAll("[data-view-link]").forEach(link => {
+      const active = link.dataset.viewLink === state.view;
+      link.classList.toggle("is-active", active);
+      if (active) link.setAttribute("aria-current", "true");
+      else link.removeAttribute("aria-current");
+      link.href = urlFor({ ...state, view: link.dataset.viewLink, page: 1 });
     });
-    // Coming back to this page: switch those fields on again.
-    window.addEventListener("pageshow", () => {
-      document.querySelectorAll("[data-was-empty]").forEach(field => {
-        field.disabled = false;
-        delete field.dataset.wasEmpty;
-      });
-    });
-    document.querySelectorAll("[data-auto-submit-field]").forEach(field => {
-      field.addEventListener("change", () => filterForm.requestSubmit());
+    // Every group reports whether it is open, for screen readers and for tests.
+    document.querySelectorAll("[data-filter-group] > summary").forEach(summary => {
+      summary.setAttribute("aria-expanded", String(summary.parentElement.open));
     });
   }
-  document.querySelectorAll(".chip, .pagination a").forEach(link => {
-    link.addEventListener("click", event => {
-      if (!event.metaKey && !event.ctrlKey && !event.shiftKey) showLoading();
+
+  // The label a category chip shows, taken from the radio the server rendered.
+  function categoryLabel() {
+    const field = filterForm && filterForm.querySelector(`input[name="category"][value="${CSS.escape(state.category)}"]`);
+    const text = field && field.parentElement.querySelector("span");
+    return text ? text.textContent.trim() : state.category;
+  }
+
+  function renderChips() {
+    const count = activeCount();
+    document.querySelectorAll("[data-filter-count]").forEach(badge => {
+      badge.textContent = String(count);
+      badge.hidden = count === 0;
     });
-  });
+    document.querySelectorAll("[data-clear-filters]").forEach(link => {
+      link.hidden = count === 0;
+      link.href = "/products";
+    });
+    if (toolbarHint) toolbarHint.hidden = count > 0;
+    if (!chipList) return;
+
+    const entries = [];
+    const add = (label, patch) => entries.push({ label, href: without(patch) });
+    if (state.q) add(`“${state.q}”`, { q: "" });
+    if (state.category) add(categoryLabel(), { category: "" });
+    state.brands.forEach(brand => add(brand, { brands: state.brands.filter(name => name !== brand) }));
+    if (state.min !== null) add(`From ₹${state.min.toLocaleString("en-IN")}`, { min: null });
+    if (state.max !== null) add(`Up to ₹${state.max.toLocaleString("en-IN")}`, { max: null });
+    if (state.rating) add(`${state.rating}★ and up`, { rating: 0 });
+    if (state.discount) add(`${state.discount}% off or more`, { discount: 0 });
+    if (state.inStock) add("In stock", { inStock: false });
+
+    chipList.replaceChildren(...entries.map(({ label, href }) => {
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.className = "chip";
+      link.href = href;
+      link.setAttribute("aria-label", `Remove filter: ${label}`);
+      link.append(document.createTextNode(`${label} ×`));
+      item.append(link);
+      return item;
+    }));
+    if (entries.length) {
+      const item = document.createElement("li");
+      const clear = document.createElement("a");
+      clear.className = "chip chip-clear";
+      clear.href = "/products";
+      clear.dataset.clearFilters = "";
+      clear.textContent = "Clear all";
+      item.append(clear);
+      chipList.append(item);
+    }
+    chipList.hidden = entries.length === 0;
+  }
+
+  function renderPagination(pagination) {
+    const old = resultsContent.querySelector(".pagination");
+    if (old) old.remove();
+    if (pagination.pages <= 1) return;
+    const nav = document.createElement("nav");
+    nav.className = "pagination";
+    nav.setAttribute("aria-label", "Pages");
+    const add = (label, page, className, current) => {
+      const link = document.createElement("a");
+      link.className = className;
+      link.href = urlFor({ ...state, page });
+      link.textContent = label;
+      if (current) link.setAttribute("aria-current", "page");
+      nav.append(link);
+    };
+    if (pagination.page > 1) add("Previous", pagination.page - 1, "page-step");
+    const pages = [...new Set([1, pagination.page - 1, pagination.page, pagination.page + 1, pagination.pages]
+      .filter(page => page >= 1 && page <= pagination.pages))];
+    pages.forEach((page, index) => {
+      if (index && page > pages[index - 1] + 1) {
+        const gap = document.createElement("span");
+        gap.className = "page-gap";
+        gap.textContent = "…";
+        nav.append(gap);
+      }
+      add(String(page), page, `page-num${page === pagination.page ? " is-current" : ""}`, page === pagination.page);
+    });
+    if (pagination.page < pagination.pages) add("Next", pagination.page + 1, "page-step");
+    resultsContent.append(nav);
+  }
+
+  function renderCount(pagination) {
+    if (!resultsSummary) return;
+    resultsSummary.replaceChildren();
+    if (!pagination.total) {
+      resultsSummary.textContent = "0 results";
+      return;
+    }
+    const first = (pagination.page - 1) * pagination.limit + 1;
+    const last = Math.min(pagination.page * pagination.limit, pagination.total);
+    const total = document.createElement("strong");
+    total.textContent = String(pagination.total);
+    resultsSummary.append(`Showing ${first}–${last} of `, total, ` ${pagination.total === 1 ? "result" : "results"}`);
+  }
+
+  function renderResults(data) {
+    const { products, pagination } = data;
+    if (resultsHeading) {
+      resultsHeading.textContent = state.q ? `Results for “${state.q}”` : state.category ? categoryLabel() : "All sports gear";
+    }
+    renderCount(pagination);
+    const body = document.createDocumentFragment();
+    if (products.length) {
+      const grid = document.createElement("div");
+      grid.className = `product-grid product-grid-3${state.view === "list" ? " is-list" : ""}`;
+      products.forEach(product => grid.append(window.Nx.productCard(product)));
+      body.append(grid);
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      const title = document.createElement("h2");
+      title.textContent = `No gear matches ${state.q ? `“${state.q}”` : "those filters"}`;
+      const copy = document.createElement("p");
+      copy.textContent = "Check the spelling, try a more general word, or remove a filter.";
+      const browse = document.createElement("a");
+      browse.className = "btn btn-primary";
+      browse.href = "/products";
+      browse.textContent = "Browse all gear";
+      empty.append(title, copy, browse);
+      body.append(empty);
+    }
+    resultsContent.replaceChildren(body);
+    renderPagination(pagination);
+    renderChips();
+    renderControls();
+    if (document.querySelector("[data-wish-link]")) {
+      resultsContent.querySelectorAll("[data-wish-id]").forEach(button => { button.hidden = false; });
+    }
+  }
+
+  // ---------- Loading ----------
+
+  let request = null;
+  const setLoading = on => {
+    if (!results) return;
+    results.classList.toggle("is-loading", on);
+    if (on) results.setAttribute("aria-busy", "true");
+    else results.removeAttribute("aria-busy");
+  };
+  // Coming back with the browser's Back button restores the page from cache; clear the busy look.
+  window.addEventListener("pageshow", () => setLoading(false));
+
+  async function load({ history = "push", focusResults = false } = {}) {
+    if (!filterForm || !resultsContent) return;
+    if (request) request.abort();
+    const controller = new AbortController();
+    request = controller;
+    const query = toQuery();
+    // The chips, badges and controls follow the state at once, before the answer arrives.
+    renderChips();
+    renderControls();
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/products${query.toString() ? `?${query}` : ""}`, { credentials: "same-origin", signal: controller.signal });
+      if (!response.ok) throw new Error("Couldn’t update the catalogue.");
+      const data = await response.json();
+      if (history === "push") window.history.pushState({}, "", urlFor());
+      renderResults(data);
+      if (focusResults && resultsHeading) resultsHeading.focus({ preventScroll: true });
+    } catch (error) {
+      if (error.name !== "AbortError" && window.Nx && window.Nx.toast) window.Nx.toast(error.message, "error");
+    } finally {
+      if (request === controller) {
+        request = null;
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+  }
+
+  // Every change goes through here: patch the state, then reload. A new filter always starts at
+  // page 1, because page 7 of the old results means nothing once the filter has changed.
+  function apply(patch, { keepPage = false, focusResults = true } = {}) {
+    state = { ...state, ...patch };
+    if (!keepPage) state.page = 1;
+    load({ focusResults });
+  }
+
+  // ---------- Events ----------
+
+  if (filterForm) {
+    state = readState(window.location.search);
+
+    filterForm.addEventListener("change", event => {
+      const patch = patchFromControl(event.target);
+      if (patch) apply(patch);
+    });
+    // The price group applies on its own button (and on Enter inside a price box).
+    filterForm.addEventListener("submit", event => {
+      event.preventDefault();
+      apply(pricePatch());
+    });
+    document.querySelectorAll("[data-filter-field]").forEach(field => {
+      field.addEventListener("change", () => {
+        const patch = patchFromControl(field);
+        if (patch) apply(patch);
+      });
+    });
+    // Chips, pagination, the view toggle and "Clear all" are real links: their href already holds
+    // the state they mean, so the click just reads it back.
+    catalog.addEventListener("click", event => {
+      const link = event.target.closest(".chip, .pagination a, [data-view-link], [data-clear-filters]");
+      if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.button) return;
+      event.preventDefault();
+      state = readState(new URL(link.href, window.location.origin).search);
+      load({ focusResults: true });
+    });
+    window.addEventListener("popstate", () => {
+      state = readState(window.location.search);
+      load({ history: "none" });
+    });
+    // Keep the open/closed state of each group reported correctly.
+    filterForm.addEventListener("toggle", event => {
+      const group = event.target.closest("[data-filter-group]");
+      if (group) group.querySelector("summary").setAttribute("aria-expanded", String(group.open));
+    }, true);
+    renderControls();
+  }
 
   // ---------- Price range slider ----------
-  // Two range handles drive the min/max boxes. Only the boxes are sent, and a box left at
-  // the end of the range is sent empty, so the URL stays clean.
+  // Two range handles drive the min/max boxes. Only the boxes are read into the state, and a box
+  // left at the end of the range is cleared, so the URL stays clean.
   const priceBox = document.querySelector("[data-price-filter]");
   if (priceBox) {
     const slider = priceBox.querySelector("[data-range]");
@@ -67,9 +396,13 @@
     const fill = priceBox.querySelector("[data-range-fill]");
     const low = Number(priceBox.dataset.low);
     const high = Number(priceBox.dataset.high);
+    const clamp = value => Math.min(Math.max(value, low), high);
     const rupees = value => `₹${Number(value).toLocaleString("en-IN")}`;
 
-    const paint = () => {
+    // Draws the filled part of the track and keeps the handles in step with the boxes.
+    paintPrice = () => {
+      lowRange.value = minBox.value === "" ? low : clamp(Number(minBox.value));
+      highRange.value = maxBox.value === "" ? high : clamp(Number(maxBox.value));
       const span = high - low || 1;
       fill.style.setProperty("--from", String((Number(lowRange.value) - low) / span));
       fill.style.setProperty("--to", String((Number(highRange.value) - low) / span));
@@ -83,27 +416,21 @@
       }
       minBox.value = Number(lowRange.value) <= low ? "" : lowRange.value;
       maxBox.value = Number(highRange.value) >= high ? "" : highRange.value;
-      paint();
-    };
-    const fromBoxes = () => {
-      lowRange.value = minBox.value === "" ? low : Math.min(Math.max(Number(minBox.value), low), high);
-      highRange.value = maxBox.value === "" ? high : Math.min(Math.max(Number(maxBox.value), low), high);
-      paint();
+      paintPrice();
     };
     if (high > low) {
       slider.hidden = false;
       lowRange.addEventListener("input", () => fromRanges(lowRange));
       highRange.addEventListener("input", () => fromRanges(highRange));
       // Letting go of a handle applies the new range.
-      [lowRange, highRange].forEach(range => range.addEventListener("change", () => filterForm && filterForm.requestSubmit()));
-      minBox.addEventListener("input", fromBoxes);
-      maxBox.addEventListener("input", fromBoxes);
-      paint();
+      [lowRange, highRange].forEach(range => range.addEventListener("change", () => apply(pricePatch())));
+      minBox.addEventListener("input", paintPrice);
+      maxBox.addEventListener("input", paintPrice);
+      paintPrice();
     }
   }
 
   // ---------- Filter drawer (phones and small tablets) ----------
-  const catalog = document.querySelector("[data-catalog]");
   const drawer = document.querySelector("[data-filter-drawer]");
   const openButton = document.querySelector("[data-filter-open]");
   if (catalog && drawer && openButton) {
@@ -111,7 +438,7 @@
     catalog.classList.add("is-enhanced");
     const backdrop = catalog.querySelector(".drawer-backdrop");
     const small = window.matchMedia("(max-width: 900px)");
-    const focusable = () => [...drawer.querySelectorAll("a[href], button, input, select")]
+    const focusable = () => [...drawer.querySelectorAll("a[href], button, input, select, summary")]
       .filter(el => !el.disabled && el.offsetParent !== null);
 
     const open = () => {

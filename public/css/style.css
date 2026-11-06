@@ -1,4 +1,5 @@
 /* ---------- Catalogue ---------- */
+
 .catalog { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: var(--sp-6); align-items: start; }
 .filters { position: sticky; top: calc(var(--header-h) + var(--sp-4)); max-height: calc(100vh - var(--header-h) - var(--sp-8)); overflow-y: auto; border-radius: var(--r); scrollbar-width: thin; }
 .filter-panel { background: var(--surface); border-radius: var(--r); box-shadow: var(--sh-sm); border: 1px solid var(--hairline); }

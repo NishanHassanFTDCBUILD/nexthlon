@@ -73,6 +73,25 @@ async function searchClause(base, q) {
   return { clause: { $or: [{ name: pattern }, { brand: pattern }, { description: pattern }] }, mode: "contains" };
 }
 
+// The one place a validated filter becomes a database query. readFilters() has already thrown
+// away anything unsafe (bad numbers, unknown sorts, junk arrays), so every value here is a known
+// shape and nothing from the URL reaches MongoDB raw. scope is the search/category the shopper is
+// already inside; the facets are built from that same scope, so choosing a brand never hides the rest.
+function toProductQuery(filters, scope = {}) {
+  const query = { ...scope };
+  if (filters.brands.length) query.brand = { $in: filters.brands };
+  if (filters.min !== null || filters.max !== null) {
+    // Prices are whole rupees in the URL and paise in the database.
+    query.price = {};
+    if (filters.min !== null) query.price.$gte = filters.min * 100;
+    if (filters.max !== null) query.price.$lte = filters.max * 100;
+  }
+  if (filters.discount) query.discountPercent = { $gte: filters.discount };
+  if (filters.rating) query.ratingAverage = { $gte: filters.rating };
+  if (filters.inStock) query.stock = { $gt: 0 };
+  return query;
+}
+
 async function listProducts(query) {
   const filters = readFilters(query);
   let category = null;
@@ -88,16 +107,7 @@ async function listProducts(query) {
   // so picking a brand never hides the other brands.
   const scope = { ...base, ...clause };
 
-  const filter = { ...scope };
-  if (filters.brands.length) filter.brand = { $in: filters.brands };
-  if (filters.min !== null || filters.max !== null) {
-    filter.price = {};
-    if (filters.min !== null) filter.price.$gte = filters.min * 100;
-    if (filters.max !== null) filter.price.$lte = filters.max * 100;
-  }
-  if (filters.discount) filter.discountPercent = { $gte: filters.discount };
-  if (filters.rating) filter.ratingAverage = { $gte: filters.rating };
-  if (filters.inStock) filter.stock = { $gt: 0 };
+  const filter = toProductQuery(filters, scope);
 
   const useScore = filters.sort === "relevance" && mode === "text";
   const order = useScore ? { score: { $meta: "textScore" }, _id: 1 } : SORTS[filters.sort].order;
@@ -250,6 +260,7 @@ module.exports = {
   escapeRegex,
   toPositiveInt,
   readFilters,
+  toProductQuery,
   listProducts,
   getFacets,
   getCategorySummaries,
