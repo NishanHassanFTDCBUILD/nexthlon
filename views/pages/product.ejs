@@ -7,7 +7,6 @@
   const cat = product.category || {};
   const maxQty = Math.min(product.stock, 5);
   const shopper = !currentUser || currentUser.role === 'customer';
-  const reviewTotal = reviews.pagination.total;
 %>
 <main id="main" class="container page">
   <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -46,9 +45,7 @@
       <h1><%= product.name %></h1>
       <div class="pdp-tags">
         <% if (product.ratingCount > 0) { %>
-          <a class="pdp-rating" href="#reviews"><span class="rating" style="--rating: <%= product.ratingAverage %>" aria-hidden="true"></span> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %> <%= product.ratingCount === 1 ? 'review' : 'reviews' %>)</span><span class="sr-only">, rated <%= product.ratingAverage.toFixed(1) %> out of 5</span></a>
-        <% } else { %>
-          <a class="pdp-rating muted" href="#reviews">No reviews yet</a>
+          <span class="pdp-rating"><span class="rating" style="--rating: <%= product.ratingAverage %>" aria-hidden="true"></span> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %> <%= product.ratingCount === 1 ? 'review' : 'reviews' %>)</span><span class="sr-only">, rated <%= product.ratingAverage.toFixed(1) %> out of 5</span></span>
         <% } %>
         <a class="pill" href="/products?category=<%= cat.slug %>"><%= cat.name %></a>
         <%- include('../partials/stock', { stock: product.stock }) %>
@@ -172,201 +169,6 @@
     </div>
   </section>
 
-  <section class="section section-box reviews" id="reviews" aria-labelledby="reviews-title" data-reviews data-product-id="<%= product._id %>">
-    <div class="section-head">
-      <div>
-        <span class="section-kicker">From verified buyers</span>
-        <h2 id="reviews-title">Ratings and reviews</h2>
-      </div>
-    </div>
-    <div class="reviews-layout">
-      <div class="review-summary">
-        <% if (reviewTotal) { %>
-          <p class="review-average"><strong><%= product.ratingAverage.toFixed(1) %></strong><span class="muted">out of 5</span></p>
-          <span class="rating rating-lg" style="--rating: <%= product.ratingAverage %>" role="img" aria-label="Rated <%= product.ratingAverage.toFixed(1) %> out of 5"></span>
-          <p class="muted"><%= reviewTotal %> <%= reviewTotal === 1 ? 'review' : 'reviews' %></p>
-          <ul class="review-bars" aria-label="How customers rated it">
-            <% reviews.breakdown.forEach(function (row) { %>
-              <li><span><%= row.stars %>★</span><span class="review-bar" aria-hidden="true"><span style="--fill: <%= reviewTotal ? row.count / reviewTotal : 0 %>"></span></span><span class="muted"><%= row.count %><span class="sr-only"> <%= row.count === 1 ? 'review' : 'reviews' %> with <%= row.stars %> stars</span></span></li>
-            <% }) %>
-          </ul>
-        <% } else { %>
-          <p class="review-average"><strong>–</strong><span class="muted">No ratings yet</span></p>
-        <% } %>
-
-        <div class="review-gate">
-          <% if (reviewState.canReview) { %>
-            <button type="button" class="btn btn-primary btn-block" data-review-open aria-expanded="false" aria-controls="review-form"><%- icon('edit', 'i-sm') %> Write a review</button>
-          <% } else if (reviewState.reason === 'signin') { %>
-            <p class="muted">Bought this? <a href="/login?next=<%= encodeURIComponent('/products/' + product.slug + '#reviews') %>">Sign in</a> to review it.</p>
-          <% } else if (reviewState.reason === 'reviewed') { %>
-            <p class="muted"><%- icon('check', 'i-xs') %> Thanks, you have reviewed this product.</p>
-          <% } else if (reviewState.reason === 'not_received') { %>
-            <p class="muted">Only customers who received this product can review it.</p>
-          <% } %>
-        </div>
-      </div>
-
-      <div class="review-main">
-        <% if (reviewState.canReview) { %>
-          <form class="form review-form" id="review-form" data-review-form hidden novalidate>
-            <div class="form-alert" data-form-alert aria-live="assertive"></div>
-            <fieldset class="star-input" aria-describedby="rating-error">
-              <legend>Your rating</legend>
-              <div class="star-choices">
-                <% for (let s = 5; s >= 1; s--) { %>
-                  <input type="radio" id="star-<%= s %>" name="rating" value="<%= s %>"><label for="star-<%= s %>" title="<%= s %> <%= s === 1 ? 'star' : 'stars' %>"><%- icon('star') %><span class="sr-only"><%= s %> <%= s === 1 ? 'star' : 'stars' %></span></label>
-                <% } %>
-              </div>
-              <p class="field-error" id="rating-error" data-error-for="rating"></p>
-            </fieldset>
-            <div class="float-field">
-              <input id="review-title" name="title" maxlength="80" placeholder=" " aria-describedby="review-title-error">
-              <label for="review-title">Title (optional)</label>
-              <p class="field-error" id="review-title-error" data-error-for="title"></p>
-            </div>
-            <div class="float-field">
-              <textarea id="review-body" name="body" required minlength="10" maxlength="1000" rows="5" placeholder=" " aria-describedby="review-body-error"></textarea>
-              <label for="review-body">What did you like or dislike?</label>
-              <p class="field-error" id="review-body-error" data-error-for="body"></p>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-ghost" data-review-cancel>Cancel</button>
-              <button type="submit" class="btn btn-primary">Post review</button>
-            </div>
-          </form>
-        <% } %>
-
-        <ol class="review-list" data-review-list>
-          <% reviews.reviews.forEach(function (r) { %>
-            <li class="review">
-              <div class="review-top">
-                <span class="rating-chip"><%= r.rating %> <%- icon('star', 'i-xs') %></span>
-                <% if (r.title) { %><strong><%= r.title %></strong><% } %>
-              </div>
-              <p class="review-body"><%= r.body %></p>
-              <p class="review-meta"><%= r.author %> · <%= formatDate(r.createdAt) %> · <%- icon('package-check', 'i-xs') %> Verified buyer</p>
-            </li>
-          <% }) %>
-        </ol>
-        <% if (!reviewTotal) { %>
-          <div class="state-box" data-review-empty><%- icon('star', 'i-sm') %> No reviews yet. Customers who receive this product can review it.</div>
-        <% } %>
-        <% if (reviews.pagination.pages > 1) { %>
-          <button type="button" class="btn btn-ghost btn-block" data-review-more data-next-page="2"><%- icon('chevron-down', 'i-sm') %> Show more reviews</button>
-        <% } %>
-        <p class="state-box is-error" data-review-error hidden>We couldn't load more reviews. <button type="button" class="link-btn" data-review-retry>Try again</button></p>
-      </div>
-    </div>
-  </section>
-
-
-  <%# ---------- Questions & answers ---------- %>
-  <%# Anyone may read. Signed-in customers can ask, answer and mark answers helpful. Every piece of
-      text is printed escaped, so a question containing markup is shown as text, never run. %>
-  <section class="section section-box qa" id="questions" aria-labelledby="qa-title" data-qa data-product-id="<%= product._id %>">
-    <div class="section-head" data-reveal>
-      <div>
-        <span class="section-kicker">Ask the community</span>
-        <h2 id="qa-title">Questions &amp; answers</h2>
-        <p class="muted"><%= questions.total %> <%= questions.total === 1 ? 'question' : 'questions' %><%= questions.answeredCount ? ', ' + questions.answeredCount + ' answered' : '' %>. Answers from <strong><%= teamName %></strong> carry an official badge.</p>
-      </div>
-    </div>
-
-    <div class="qa-tools">
-      <form class="qa-search" data-qa-search role="search" novalidate>
-        <label class="sr-only" for="qa-find">Search the questions</label>
-        <div class="qa-search-box">
-          <%- icon('search', 'i-sm') %>
-          <input id="qa-find" type="search" name="q" maxlength="60" placeholder="Search these questions" value="<%= questions.search %>" autocomplete="off">
-        </div>
-        <button class="btn btn-ghost btn-sm" type="submit">Search</button>
-      </form>
-      <% if (shopper) { %>
-        <button type="button" class="btn btn-secondary btn-sm" data-qa-ask-open aria-expanded="false" aria-controls="qa-ask"><%- icon('help', 'i-sm') %> Ask a question</button>
-      <% } else { %>
-        <a class="btn btn-secondary btn-sm" href="/login?next=<%= encodeURIComponent('/products/' + product.slug + '#questions') %>"><%- icon('help', 'i-sm') %> Sign in to ask</a>
-      <% } %>
-    </div>
-
-    <% if (shopper) { %>
-      <form class="form qa-ask" id="qa-ask" data-qa-ask hidden novalidate>
-        <div class="form-alert" data-form-alert aria-live="polite"></div>
-        <div class="field">
-          <label for="qa-body">Your question</label>
-          <textarea id="qa-body" name="body" rows="3" required minlength="10" maxlength="300" placeholder="e.g. Does this shoe suit a wide foot?" aria-describedby="qa-body-error"></textarea>
-          <p class="field-error" id="qa-body-error" data-error-for="body"></p>
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-primary" type="submit"><%- icon('send', 'i-sm') %> Post the question</button>
-          <button type="button" class="btn btn-ghost" data-qa-ask-cancel>Cancel</button>
-        </div>
-      </form>
-    <% } %>
-
-    <ol class="qa-list" data-qa-list>
-      <% questions.questions.forEach(function (q) { %>
-        <li class="qa-entry" data-qa-item="<%= q.id %>">
-          <p class="qa-q"><span class="qa-mark" aria-hidden="true">Q</span><span><%= q.body %></span></p>
-          <p class="qa-meta">
-            <%= q.author %> · <%= formatDate(q.createdAt) %>
-            <% if (shopper) { %>
-              · <button type="button" class="link-btn qa-vote<%= q.votedByMe ? ' is-voted' : '' %>" data-qa-helpful="<%= q.id %>" aria-pressed="<%= q.votedByMe %>">
-                  <%- icon('check', 'i-xs') %> Helpful <span data-qa-count><%= q.helpful %></span>
-                </button>
-            <% } else if (q.helpful) { %>
-              · <%= q.helpful %> found this helpful
-            <% } %>
-          </p>
-
-          <% if (q.answers.length) { %>
-            <ul class="qa-answers">
-              <% q.answers.forEach(function (a) { %>
-                <li class="qa-a<%= a.byTeam ? ' is-official' : '' %>" data-qa-answer-item="<%= a.id %>">
-                  <p><span class="qa-mark" aria-hidden="true">A</span><span><%= a.body %></span></p>
-                  <p class="qa-meta">
-                    <strong><%= a.author %></strong>
-                    <% if (a.byTeam) { %><span class="qa-badge"><%- icon('shield', 'i-xs') %> Nexthlon</span><% } %>
-                    · <%= formatDate(a.at) %>
-                    <% if (shopper) { %>
-                      · <button type="button" class="link-btn qa-vote<%= a.votedByMe ? ' is-voted' : '' %>" data-qa-helpful="<%= q.id %>" data-answer-id="<%= a.id %>" aria-pressed="<%= a.votedByMe %>">
-                          <%- icon('check', 'i-xs') %> Helpful <span data-qa-count><%= a.helpful %></span>
-                        </button>
-                    <% } else if (a.helpful) { %>
-                      · <%= a.helpful %> found this helpful
-                    <% } %>
-                  </p>
-                </li>
-              <% }) %>
-            </ul>
-          <% } else { %>
-            <p class="qa-waiting muted"><%- icon('clock', 'i-xs') %> No answer yet.</p>
-          <% } %>
-
-          <% if (shopper) { %>
-            <form class="qa-reply-form" data-qa-reply="<%= q.id %>" novalidate>
-              <label class="sr-only" for="qa-reply-<%= q.id %>">Answer this question</label>
-              <input id="qa-reply-<%= q.id %>" name="body" maxlength="1000" placeholder="Know the answer? Help another shopper" autocomplete="off">
-              <button class="btn btn-ghost btn-sm" type="submit">Answer</button>
-            </form>
-          <% } %>
-        </li>
-      <% }) %>
-    </ol>
-
-    <% if (!questions.total) { %>
-      <div class="state-box" data-qa-empty>
-        <%- icon('help', 'i-sm') %>
-        <%= questions.search ? 'No question matches "' + questions.search + '".' : 'No questions yet. Be the first to ask about this product.' %>
-      </div>
-    <% } %>
-
-    <% if (questions.pagination.pages > 1) { %>
-      <button type="button" class="btn btn-ghost btn-block" data-qa-more data-next-page="2"><%- icon('chevron-down', 'i-sm') %> Show more questions</button>
-    <% } %>
-    <p class="state-box is-error" data-qa-error hidden>We couldn't load the questions. <button type="button" class="link-btn" data-qa-retry>Try again</button></p>
-  </section>
-
   <% if (related.length) { %>
     <section class="section" aria-labelledby="related-title">
       <div class="section-head" data-reveal>
@@ -395,4 +197,4 @@
   </div>
 </dialog>
 
-<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart', 'questions'] }) %>
+<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart'] }) %>

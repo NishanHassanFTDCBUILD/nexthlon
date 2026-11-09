@@ -11,8 +11,6 @@ const Order = require("../models/Order");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const Cart = require("../models/Cart");
-const Review = require("../models/Review");
-const Question = require("../models/Question");
 const Coupon = require("../models/Coupon");
 const RefreshToken = require("../models/RefreshToken");
 
@@ -50,13 +48,11 @@ async function database() {
 // How much data there is. Cheap estimates are not used: these are exact counts, and the
 // collections are small enough for that to be fine.
 async function counts() {
-  const [orders, products, customers, carts, reviews, questions, coupons, sessions] = await Promise.all([
+  const [orders, products, customers, carts, coupons, sessions] = await Promise.all([
     Order.estimatedDocumentCount(),
     Product.estimatedDocumentCount(),
     User.countDocuments({ role: "customer" }),
     Cart.estimatedDocumentCount(),
-    Review.estimatedDocumentCount(),
-    Question.estimatedDocumentCount(),
     Coupon.countDocuments({ isDeleted: { $ne: true } }),
     RefreshToken.countDocuments({ revoked: false, expiresAt: { $gt: new Date() } })
   ]);
@@ -65,8 +61,6 @@ async function counts() {
     { label: "Products", value: products, section: "products" },
     { label: "Customers", value: customers, section: "customers" },
     { label: "Live carts", value: carts, section: "abandoned-carts" },
-    { label: "Reviews", value: reviews, section: "reviews" },
-    { label: "Questions", value: questions, section: "questions" },
     { label: "Coupons", value: coupons, section: "coupons" },
     { label: "Signed-in devices", value: sessions, section: "" }
   ];

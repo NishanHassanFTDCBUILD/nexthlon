@@ -42,8 +42,8 @@ const lists = asyncHandler(async (req, res) => {
 
 // GET /account/reviews
 const reviews = asyncHandler(async (req, res) => {
-  const [mine, waiting] = await Promise.all([reviewService.listMine(req.user._id), reviewService.waitingForReview(req.user._id)]);
-  res.render("account/reviews", { title: "Your reviews | Nexthlon", mine, waiting });
+  const mine = await reviewService.listMine(req.user._id);
+  res.render("account/reviews", { title: "Your reviews | Nexthlon", mine });
 });
 
 // GET /account/recent

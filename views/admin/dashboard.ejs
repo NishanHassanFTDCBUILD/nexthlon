@@ -211,7 +211,7 @@
   </div>
 
   <%# ---------- People and stock health ---------- %>
-  <div class="dash-row dash-row-3">
+  <div class="dash-row dash-row-2">
     <section class="panel dash-card" aria-labelledby="new-cust-title">
       <div class="dash-card-head"><h2 id="new-cust-title">Recent customers</h2><a class="section-link" href="<%= adminPath %>/customers">All <%- icon('chevron-right', 'i-sm') %></a></div>
       <p class="muted dash-sub"><%= panels.people.customers %> customers · <%= panels.people.newCustomers %> new this week · <%= panels.people.blockedCustomers %> blocked</p>
@@ -220,19 +220,6 @@
           <li><span class="avatar avatar-sm"><%= c.name.charAt(0).toUpperCase() %></span><span><a href="<%= adminPath %>/customers?q=<%= encodeURIComponent(c.email) %>"><%= c.name %></a><small class="muted"><%= c.email %></small></span><small class="muted"><%= formatDate(c.createdAt) %></small></li>
         <% }) %>
       </ul>
-    </section>
-    <section class="panel dash-card" aria-labelledby="reviews-title">
-      <div class="dash-card-head"><h2 id="reviews-title">Latest reviews</h2><a class="section-link" href="<%= adminPath %>/reviews">Moderate <%- icon('chevron-right', 'i-sm') %></a></div>
-      <% if (panels.latestReviews.length) { %>
-        <ul class="dash-reviews">
-          <% panels.latestReviews.forEach(function (r) { %>
-            <li><span class="rating" style="--rating: <%= r.rating %>" role="img" aria-label="Rated <%= r.rating %> out of 5"></span>
-              <strong><%= r.title || (r.product ? r.product.name : 'Review') %></strong>
-              <p class="muted"><%= r.body.length > 110 ? r.body.slice(0, 110) + '…' : r.body %></p>
-              <small class="muted"><%= r.author %><%= r.product ? ' on ' + r.product.name : '' %> · <%= formatDate(r.createdAt) %></small></li>
-          <% }) %>
-        </ul>
-      <% } else { %><p class="muted dash-empty">No reviews yet.</p><% } %>
     </section>
     <section class="panel dash-card" aria-labelledby="health-title">
       <div class="dash-card-head"><h2 id="health-title">Stock health</h2><span class="muted"><%= Math.round(stock.healthy / stockTotal * 100) %>% well stocked</span></div>

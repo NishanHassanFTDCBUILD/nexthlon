@@ -120,22 +120,6 @@
 .admin-facts div { padding: var(--space-1h) var(--space-2); border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); }
 .admin-facts dt { font-size: var(--text-xs); color: var(--muted); }
 .admin-facts dd { margin: 2px 0 0; font-weight: var(--weight-semibold); }
-/* ---------- Q&A moderation ---------- */
-.qa-admin { display: flex; flex-direction: column; gap: var(--space-2); }
-.qa-item.is-hidden { opacity: 0.6; }
-.qa-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-1h); }
-.qa-head-text { min-width: 0; flex: 1 1 320px; }
-.qa-head-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.qa-question { margin: 0 0 4px; font-size: 15px; font-weight: var(--weight-semibold); color: var(--ink); }
-.qa-item .qa-answers { list-style: none; margin: var(--space-1h) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1h); }
-.qa-item .qa-answer { padding: var(--space-1h); border-left: 2px solid var(--line); background: var(--surface-2); border-radius: var(--radius-sm); }
-.qa-item .qa-answer.is-hidden { opacity: 0.6; }
-.qa-item .qa-answer > p:first-child { margin: 0 0 4px; font-size: 14px; }
-.qa-item .qa-answer small { display: block; margin-bottom: 6px; }
-.qa-reply { margin-top: var(--space-2); padding-top: var(--space-1h); border-top: 1px solid var(--line); }
-.qa-reply textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; resize: vertical; }
-.qa-reply textarea:focus { border-color: var(--brand); outline: none; box-shadow: var(--ring); }
-.qa-reply-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1h); margin-top: var(--space-1h); }
 /* Analytics: the carts-to-orders steps read as a list, not as links. */
 .an-funnel .dash-action { cursor: default; }
 .an-funnel a.dash-action { cursor: pointer; }
@@ -301,7 +285,7 @@ body.admin-menu-open { overflow: hidden; }
 .dash-action.has-count strong { background: var(--brand); color: var(--on-brand); }
 .dash-action:hover { background: var(--surface-2); color: var(--ink); text-decoration: none; }
 
-/* Recent orders, stock, people, reviews */
+/* Recent orders, stock, people */
 .dash-orders tbody tr[data-row-href] { cursor: pointer; }
 .dash-stock { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .dash-stock li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
@@ -312,13 +296,11 @@ body.admin-menu-open { overflow: hidden; }
 .dash-restock { grid-column: 2; display: flex; gap: 6px; }
 .dash-restock input { width: 96px; min-height: 34px; padding: 0 10px; border-radius: var(--radius-xs); border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--ink); }
 .dash-restock input:focus { outline: none; border-color: var(--brand); box-shadow: var(--ring); }
-.dash-people, .dash-reviews { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.dash-people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .dash-people li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-.dash-people li:last-child, .dash-reviews li:last-child { border-bottom: 0; }
+.dash-people li:last-child { border-bottom: 0; }
 .dash-people li > span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; }
 .dash-people small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dash-reviews li { display: flex; flex-direction: column; gap: 3px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-.dash-reviews p { margin: 0; font-size: 13px; }
 
 @media (max-width: 1200px) {
   .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }

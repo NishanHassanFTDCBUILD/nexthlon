@@ -2,7 +2,7 @@
 // command palette and the notification bell), plus the small sections that need no file of their
 // own (customers, settings, system status). No animation: everything appears and disappears
 // instantly. The bigger sections live in their own files: admin-dashboard.js (dashboard and
-// analytics), admin-products.js, admin-orders.js, admin-catalog.js (inventory, reviews, Q&A)
+// analytics), admin-products.js, admin-orders.js, admin-catalog.js (inventory)
 // and admin-coupons.js.
 // Section modules use window.NxPages (section-nav.js) with init(root)/destroy(), so they keep
 // working when sections switch without a reload.

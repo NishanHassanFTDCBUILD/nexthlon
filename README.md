@@ -46,9 +46,6 @@ ordinary 404.
 - **Products** — add, edit, photos (up to 4, checked by their real bytes), list/unlist, stock.
 - **Inventory** — the stock view: bands (out, low, well stocked, unlisted), filters, sorting, the
   stock value of the shelf, a correction per row (add, remove, or set the counted number) and a CSV.
-- **Reviews** — list, filter by rating or visibility, search the words, hide/unhide (which works
-  the product's stars out again) or delete. Every action is in the audit log.
-- **Q&A** — see below.
 
 **Customers**
 
@@ -83,22 +80,6 @@ order is saved (`services/couponService.js` with `utils/pricing.js` → `couponP
 lists the coupons that customer could use. The total-uses count is claimed with one atomic update,
 so a limit can never be exceeded, and a cancelled or unpaid order releases the use again.
 
-### Questions & answers
-
-On a product page, anyone can read the "Questions & answers" section and search it. A signed-in
-customer can ask a question, answer someone else's, and mark a question or an answer as helpful
-(one vote each, and pressing again takes it back). A customer may have at most three unanswered
-questions on one product, and asking or answering is rate limited.
-
-In the console, `<ADMIN_PATH>/questions` puts the questions nobody has answered first, oldest at the
-top. Answering posts as **Nexthlon Team** and the store shows that answer with an official badge,
-above the customer answers. You can also edit the wording of a question or an answer, hide either
-(hiding the last answer puts the question back in the queue), and delete either. Filters cover
-product, answered/unanswered and whether to include hidden ones. Everything goes to the audit log.
-
-Answers are embedded in their question (`models/Question.js`): a thread is short and is always read
-whole. Nothing is ever stored or printed as HTML, so a question containing `<script>` appears as text.
-
 ### Removed from the console
 
 Categories, brands, segments, offers, flash sales, email campaigns, gift cards, loyalty, the home
@@ -108,13 +89,19 @@ the support-ticket screen were taken out of the admin UI, along with `views/admi
 customers can still raise support tickets from My Account (the `/api/admin/tickets` API is still
 there to answer them).
 
+Reviews and Questions & answers were also removed from the console. Q&A is gone from the store
+too: the product page has no Q&A section and the `/api/products/:id/questions` and
+`/api/questions/*` APIs no longer exist. Product reviews stay on the store exactly as before: only
+customers whose order was delivered can review, once per product, and they can edit or delete their
+own review from My Account → Reviews. There is no admin screen to hide or delete reviews.
+
 ### Admin dashboard
 
 `<ADMIN_PATH>/dashboard` has a date range picker (Today, 7 days, 30 days, This month, This year, Custom; India time) that updates everything. It shows:
 
 - 8 KPIs, each with the % change against the period before and a sparkline.
 - Hand-drawn SVG charts: revenue and orders over time, orders by status, payment methods, new vs returning customers, sales by category, top 10 products (by revenue or units), top cities and states, and an hourly heatmap. Each chart has a hover and keyboard tooltip and a data-table alternative.
-- Panels: recent orders, what needs attention, quick restock, recent customers, latest reviews, and stock health.
+- Panels: recent orders, what needs attention, quick restock, recent customers and stock health.
 - "Export sales" downloads a CSV of the range's orders (`/api/admin/reports/sales.csv`, with spreadsheet formulas neutralised).
 
 ### Sales: orders, returns, money

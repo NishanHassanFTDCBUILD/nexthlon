@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const User = require("../models/User");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
-const Question = require("../models/Question");
 const { LOW_STOCK_LIMIT } = require("../config/catalog");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
@@ -109,24 +108,22 @@ async function globalSearch(term) {
 // What needs the team's attention. Each item links to a section of the console (by key).
 async function notifications(now = new Date()) {
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const [newOrders, toConfirm, returns, lowStock, outOfStock, unanswered] = await Promise.all([
+  const [newOrders, toConfirm, returns, lowStock, outOfStock] = await Promise.all([
     Order.countDocuments({ createdAt: { $gte: dayAgo } }),
     Order.countDocuments({ orderStatus: "placed" }),
     Order.countDocuments({ orderStatus: "return_requested" }),
     Product.countDocuments({ ...Product.LISTED, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
-    Product.countDocuments({ ...Product.LISTED, stock: 0 }),
-    Question.countDocuments({ isHidden: false, answered: false })
+    Product.countDocuments({ ...Product.LISTED, stock: 0 })
   ]);
   const items = [
     { key: "new-orders", label: "New orders in the last 24 hours", count: newOrders, section: "orders", icon: "package-check" },
     { key: "to-confirm", label: "Orders waiting to be confirmed", count: toConfirm, section: "orders", icon: "clock" },
     { key: "returns", label: "Return requests", count: returns, section: "returns", icon: "rotate-ccw" },
     { key: "low-stock", label: "Products low on stock", count: lowStock, section: "products?status=low", icon: "alert" },
-    { key: "out-of-stock", label: "Products out of stock", count: outOfStock, section: "products?status=out", icon: "box" },
-    { key: "questions", label: "Questions waiting for an answer", count: unanswered, section: "questions?answered=no", icon: "help" }
+    { key: "out-of-stock", label: "Products out of stock", count: outOfStock, section: "products?status=out", icon: "box" }
   ];
   // The badge counts what someone has to act on (new orders are only news).
-  const total = toConfirm + returns + lowStock + outOfStock + unanswered;
+  const total = toConfirm + returns + lowStock + outOfStock;
   return { items, total };
 }
 

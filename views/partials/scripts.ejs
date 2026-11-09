@@ -19,9 +19,7 @@
 <script src="/js/header.js" defer></script>
 <script src="/js/store.js" defer></script>
 <% if (typeof motion === 'undefined' || motion !== false) { %>
-<script src="/js/motion.js" defer></script>
-<script src="/js/footer-wave.js" defer></script>
-<% } %>
+<script src="/js/motion.js" defer></script><% } %>
 <% (typeof scripts !== 'undefined' ? scripts : []).forEach(function (name) { %>
   <script src="/js/<%= name %>.js" defer></script>
 <% }) %>

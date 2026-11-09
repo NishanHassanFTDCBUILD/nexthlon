@@ -19,9 +19,7 @@ const ADMIN_NAV = [
   ] },
   { group: "Catalog", items: [
     { key: "products", label: "Products", icon: "box" },
-    { key: "inventory", label: "Inventory", icon: "archive" },
-    { key: "reviews", label: "Reviews", icon: "star" },
-    { key: "questions", label: "Q&A", icon: "help" }
+    { key: "inventory", label: "Inventory", icon: "archive" }
   ] },
   { group: "Customers", items: [
     { key: "customers", label: "Customers", icon: "users" }

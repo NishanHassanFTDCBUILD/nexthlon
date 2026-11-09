@@ -68,18 +68,6 @@ router.get("/inventory", catalog.listInventory);
 router.get("/inventory/export.csv", catalog.exportInventory);
 router.patch("/inventory/:productId", adminWriteLimiter, catalog.adjustStock);
 
-// Reviews: hide (reversible, and it changes the product stars) or delete (final).
-router.get("/reviews", catalog.listReviews);
-router.patch("/reviews/:reviewId/hidden", adminWriteLimiter, catalog.setReviewHidden);
-router.delete("/reviews/:reviewId", adminWriteLimiter, catalog.deleteReview);
-
-// Questions & answers.
-router.get("/questions", catalog.listQuestions);
-router.post("/questions/:questionId/answer", adminWriteLimiter, catalog.answerQuestion);
-router.patch("/questions/:questionId/hidden", adminWriteLimiter, catalog.setQuestionHidden);
-router.patch("/questions/:questionId", adminWriteLimiter, catalog.editQuestion);
-router.delete("/questions/:questionId", adminWriteLimiter, catalog.deleteQuestion);
-
 // Coupons. Creating and changing one is money, so these use the stricter limiter.
 router.get("/coupons", coupons.listCoupons);
 router.post("/coupons", adminMoneyLimiter, coupons.createCoupon);

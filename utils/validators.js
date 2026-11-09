@@ -512,7 +512,7 @@ function validateCoupon(body = {}) {
   };
 }
 
-// ---------- Admin: inventory, reviews and Q&A ----------
+// ---------- Admin: inventory ----------
 
 // One stock correction: add units, remove units, or set the exact count on the shelf.
 function validateStockChange(body = {}) {
@@ -527,42 +527,9 @@ function validateStockChange(body = {}) {
   return { errors, value: { action, units, note } };
 }
 
-// Hiding a review: the reason is for the audit log, never shown to the customer.
-function validateReviewHide(body = {}) {
-  const errors = {};
-  const isHidden = readFlag(body.isHidden);
-  const reason = text(body.reason).slice(0, 200);
-  if (typeof body.isHidden !== "boolean" && body.isHidden !== "true" && body.isHidden !== "false") {
-    errors.isHidden = "isHidden must be true or false.";
-  }
-  if (isHidden && reason.length < 3) errors.reason = "Say briefly why it is being hidden (3 characters or more).";
-  return { errors, value: { isHidden, reason } };
-}
-
-// A customer asking a question on a product page.
-function validateQuestion(body = {}) {
-  const errors = {};
-  const value = { body: longText(body.body) };
-  if (value.body.length < 10) errors.body = "Please write a question of at least 10 characters.";
-  else if (value.body.length > 300) errors.body = "Please keep the question under 300 characters.";
-  return { errors, value };
-}
-
-// An answer, whether from a customer or from the store team.
-function validateAnswer(body = {}) {
-  const errors = {};
-  const value = { body: longText(body.body) };
-  if (value.body.length < 2) errors.body = "Please write an answer.";
-  else if (value.body.length > 1000) errors.body = "Please keep the answer under 1,000 characters.";
-  return { errors, value };
-}
-
 module.exports = {
   validateCoupon,
   validateStockChange,
-  validateReviewHide,
-  validateQuestion,
-  validateAnswer,
   validateStatusChange,
   validateBulkStatus,
   validateAdminCancel,

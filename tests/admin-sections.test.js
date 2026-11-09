@@ -1,4 +1,4 @@
-// The trimmed admin console: Analytics, Inventory, Reviews, Q&A (store side and admin side),
+// The trimmed admin console: Analytics, Inventory, the removed Reviews and Q&A sections,
 // Coupons (admin side and the rules the store applies), and System status.
 require("./helpers");
 const test = require("node:test");
@@ -14,8 +14,6 @@ const app = require("../app");
 const User = require("../models/User");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
-const Review = require("../models/Review");
-const Question = require("../models/Question");
 const Coupon = require("../models/Coupon");
 const CouponRedemption = require("../models/CouponRedemption");
 const AuditLog = require("../models/AuditLog");
@@ -256,261 +254,24 @@ test("inventory: add, remove and set the exact count, and stock can never go neg
   await change(socks._id, { action: "add", units: 0 }).catch(() => {});
 });
 
-// ======================= Reviews =======================
+// ======================= Removed: admin Reviews, and Q&A everywhere =======================
 
-let ashaReview;
-
-test("reviews: list, filter and search, for admins only", async () => {
-  // Both customers had the product delivered, so both may review it.
-  await makeOrder(asha, shoe);
-  await makeOrder(ravi, shoe);
-  const first = await call("POST", `/api/products/${shoe._id}/reviews`, { body: { rating: 5, title: "Superb grip", body: "Brilliant on wet trails, very grippy." }, cookie: ashaCookie });
-  assert.equal(first.status, 201);
-  ashaReview = first.data.review.id;
-  const second = await call("POST", `/api/products/${shoe._id}/reviews`, { body: { rating: 2, title: "Runs small", body: "Had to send them back, far too narrow for me." }, cookie: raviCookie });
-  assert.equal(second.status, 201);
-
-  assert.equal((await call("GET", "/api/admin/reviews")).status, 401);
-  const all = await call("GET", "/api/admin/reviews", { cookie: adminCookie });
-  assert.equal(all.status, 200);
-  assert.equal(all.data.totals.all, 2);
-  assert.equal(all.data.totals.hidden, 0);
-  assert.equal(all.data.totals.average, 3.5);
-
-  const by = async query => (await call("GET", `/api/admin/reviews?${query}`, { cookie: adminCookie })).data.reviews.map(r => r.rating);
-  assert.deepEqual(await by("rating=2"), [2]);
-  assert.deepEqual(await by("sort=rating_asc"), [2, 5]);
-  assert.deepEqual(await by("q=grippy"), [5]);
-  assert.deepEqual(await by("q=narrow"), [2]);
-  // Both were written in the same instant, so the newer _id decides: Ravi's 2-star first.
-  assert.deepEqual(await by(`product=${shoe._id}`), [2, 5]);
-  assert.equal((await by("rating=99&visibility=%24ne")).length, 2); // junk filters are ignored
-
-  const page = await call("GET", `${ADMIN}/reviews`, { cookie: adminCookie });
+test("Q&A is gone from the store and the console, and the admin has no Reviews section", async () => {
+  // The store: no Q&A API, and no Q&A or review area on the product page.
+  assert.equal((await call("GET", `/api/products/${shoe._id}/questions`)).status, 404);
+  assert.equal((await call("POST", `/api/products/${shoe._id}/questions`, { body: { body: "Is this waterproof at all?" }, cookie: ashaCookie })).status, 404);
+  const page = await call("GET", `/products/${shoe.slug}`, { cookie: ashaCookie });
   assert.equal(page.status, 200);
-  assert.match(page.data, /data-review-toggle/);
-  assert.match(page.data, /Superb grip/);
-});
+  assert.doesNotMatch(page.data, /data-qa|Questions &amp; answers|Ask a question/);
+  assert.doesNotMatch(page.data, /id="reviews"|Write a review/);
 
-test("reviews: hiding one takes it off the store and out of the stars; showing it puts it back", async () => {
-  const before = await Product.findById(shoe._id).lean();
-  assert.equal(before.ratingAverage, 3.5);
-  assert.equal(before.ratingCount, 2);
-
-  // A reason is required, so the audit log always says why.
-  assert.equal((await call("PATCH", `/api/admin/reviews/${ashaReview}/hidden`, { body: { isHidden: true }, cookie: adminCookie })).status, 400);
-
-  const hidden = await call("PATCH", `/api/admin/reviews/${ashaReview}/hidden`, { body: { isHidden: true, reason: "Mentions a competitor" }, cookie: adminCookie });
-  assert.equal(hidden.status, 200);
-  assert.equal(hidden.data.review.isHidden, true);
-  // The stars are worked out again from the visible reviews only.
-  assert.equal(hidden.data.rating.average, 2);
-  assert.equal(hidden.data.rating.count, 1);
-
-  // The store no longer shows it, in the API or on the page.
-  const storeList = await call("GET", `/api/products/${shoe._id}/reviews`);
-  assert.equal(storeList.data.reviews.length, 1);
-  assert.equal(storeList.data.pagination.total, 1);
-  assert.ok(!storeList.data.reviews.some(r => r.id === ashaReview));
-  assert.doesNotMatch((await call("GET", `/products/${shoe.slug}`)).data, /Superb grip/);
-  // The star breakdown drops it too.
-  assert.equal(storeList.data.breakdown.find(row => row.stars === 5).count, 0);
-
-  assert.ok(await AuditLog.exists({ action: "review.hidden", target: `review:${ashaReview}` }));
-
-  const shown = await call("PATCH", `/api/admin/reviews/${ashaReview}/hidden`, { body: { isHidden: false }, cookie: adminCookie });
-  assert.equal(shown.data.rating.average, 3.5);
-  assert.equal((await call("GET", `/api/products/${shoe._id}/reviews`)).data.reviews.length, 2);
-  assert.ok(await AuditLog.exists({ action: "review.shown", target: `review:${ashaReview}` }));
-});
-
-test("reviews: deleting one is final and the stars follow", async () => {
-  assert.equal((await call("DELETE", `/api/admin/reviews/${ashaReview}`, { cookie: ashaCookie })).status, 401);
-  const gone = await call("DELETE", `/api/admin/reviews/${ashaReview}`, { cookie: adminCookie });
-  assert.equal(gone.status, 200);
-  assert.equal(gone.data.rating.count, 1);
-  assert.equal(gone.data.rating.average, 2);
-  assert.equal(await Review.countDocuments({ _id: ashaReview }), 0);
-  assert.ok(await AuditLog.exists({ action: "review.deleted", target: `review:${ashaReview}` }));
-  assert.equal((await call("DELETE", `/api/admin/reviews/${ashaReview}`, { cookie: adminCookie })).status, 404);
-});
-
-// ======================= Questions & answers =======================
-
-let questionId;
-
-test("Q&A store side: anyone reads, customers ask, and the text is never treated as markup", async () => {
-  // Guests may read but not ask.
-  assert.equal((await call("GET", `/api/products/${shoe._id}/questions`)).status, 200);
-  assert.equal((await call("POST", `/api/products/${shoe._id}/questions`, { body: { body: "Is this waterproof at all?" } })).status, 401);
-
-  // Validation: too short, and too long.
-  assert.equal((await call("POST", `/api/products/${shoe._id}/questions`, { body: { body: "short" }, cookie: ashaCookie })).status, 400);
-  assert.equal((await call("POST", `/api/products/${shoe._id}/questions`, { body: { body: "x".repeat(301) }, cookie: ashaCookie })).status, 400);
-
-  const asked = await call("POST", `/api/products/${shoe._id}/questions`, { body: { body: "Does this shoe suit a wide foot? <script>alert(1)</script>" }, cookie: ashaCookie });
-  assert.equal(asked.status, 201);
-  questionId = asked.data.question.id;
-  assert.equal(asked.data.question.author, "Asha N.");
-  assert.equal(asked.data.question.answerCount, 0);
-
-  // The product page shows the question as text: the tag is escaped, never a real script.
-  const page = await call("GET", `/products/${shoe.slug}`);
-  assert.match(page.data, /Questions &amp; answers|Questions &amp;amp; answers/);
-  assert.match(page.data, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
-  assert.doesNotMatch(page.data, /<script>alert\(1\)<\/script>/);
-
-  // A missing or unlisted product is a 404, not a way to create stray questions.
-  assert.equal((await call("POST", "/api/products/64b000000000000000000001/questions", { body: { body: "Anyone there at all?" }, cookie: ashaCookie })).status, 404);
-});
-
-test("Q&A store side: another customer answers, once, and Helpful is one vote each", async () => {
-  const answered = await call("POST", `/api/questions/${questionId}/answers`, { body: { body: "Yes, I have wide feet and they fit well." }, cookie: raviCookie });
-  assert.equal(answered.status, 201);
-  assert.equal(answered.data.question.answerCount, 1);
-  assert.equal(answered.data.question.answers[0].author, "Ravi M.");
-  assert.equal(answered.data.question.answers[0].byTeam, false);
-  const answerId = answered.data.question.answers[0].id;
-
-  // One answer per customer per question.
-  assert.equal((await call("POST", `/api/questions/${questionId}/answers`, { body: { body: "Saying it twice for effect." }, cookie: raviCookie })).status, 409);
-  assert.equal((await call("POST", `/api/questions/${questionId}/answers`, { body: { body: "x" }, cookie: ashaCookie })).status, 400);
-  assert.equal((await call("POST", `/api/questions/${questionId}/answers`, { body: { body: "Guests cannot answer." } })).status, 401);
-
-  // Helpful on the answer: a vote, then the same press takes it back.
-  const voted = await call("POST", `/api/questions/${questionId}/helpful`, { body: { answerId }, cookie: ashaCookie });
-  assert.equal(voted.status, 200);
-  assert.equal(voted.data.voted, true);
-  assert.equal(voted.data.question.answers[0].helpful, 1);
-  assert.equal(voted.data.question.answers[0].votedByMe, true);
-
-  const again = await call("POST", `/api/questions/${questionId}/helpful`, { body: { answerId }, cookie: ashaCookie });
-  assert.equal(again.data.voted, false);
-  assert.equal(again.data.question.answers[0].helpful, 0);
-
-  // Two different customers make two votes, not one.
-  await call("POST", `/api/questions/${questionId}/helpful`, { body: { answerId }, cookie: ashaCookie });
-  await call("POST", `/api/questions/${questionId}/helpful`, { body: { answerId }, cookie: raviCookie });
-  const list = await call("GET", `/api/products/${shoe._id}/questions`, { cookie: ashaCookie });
-  assert.equal(list.data.questions[0].answers[0].helpful, 2);
-
-  // Helpful on the question itself works too, and guests cannot vote.
-  assert.equal((await call("POST", `/api/questions/${questionId}/helpful`, { body: {}, cookie: ashaCookie })).data.question.helpful, 1);
-  assert.equal((await call("POST", `/api/questions/${questionId}/helpful`, { body: {} })).status, 401);
-  assert.equal((await call("POST", `/api/questions/${questionId}/helpful`, { body: { answerId: "64b000000000000000000009" }, cookie: ashaCookie })).status, 404);
-});
-
-test("Q&A store side: search, paging and the answered-first order", async () => {
-  await call("POST", `/api/products/${shoe._id}/questions`, { body: { body: "How long does delivery usually take?" }, cookie: raviCookie });
-  const found = await call("GET", `/api/products/${shoe._id}/questions?q=delivery`);
-  assert.equal(found.data.questions.length, 1);
-  assert.match(found.data.questions[0].body, /delivery/);
-  assert.equal(found.data.search, "delivery");
-  assert.equal((await call("GET", `/api/products/${shoe._id}/questions?q=nothinglikethis`)).data.total, 0);
-
-  // Answered questions come first, because they help the next shopper most.
-  const all = await call("GET", `/api/products/${shoe._id}/questions`);
-  assert.equal(all.data.total, 2);
-  assert.equal(all.data.answeredCount, 1);
-  assert.equal(all.data.questions[0].id, questionId);
-  // A silly page number falls back to the first page.
-  assert.equal((await call("GET", `/api/products/${shoe._id}/questions?page=abc`)).data.pagination.page, 1);
-});
-
-test("Q&A admin side: unanswered first, answer as the team, edit, hide and delete", async () => {
-  assert.equal((await call("GET", "/api/admin/questions")).status, 401);
-  const waiting = await call("GET", "/api/admin/questions", { cookie: adminCookie });
-  assert.equal(waiting.status, 200);
-  assert.equal(waiting.data.totals.all, 2);
-  assert.equal(waiting.data.totals.waiting, 1);
-  // The default sort puts the question nobody has answered at the top.
-  assert.equal(waiting.data.questions[0].answered, false);
-
-  const by = async query => (await call("GET", `/api/admin/questions?${query}`, { cookie: adminCookie })).data.questions.map(q => q.answered);
-  assert.deepEqual(await by("answered=no"), [false]);
-  assert.deepEqual(await by("answered=yes"), [true]);
-  assert.equal((await by(`product=${shoe._id}`)).length, 2);
-  assert.equal((await by("q=delivery")).length, 1);
-
-  // Answering posts as the team and is shown with the official badge.
-  const unanswered = waiting.data.questions[0].id;
-  const answered = await call("POST", `/api/admin/questions/${unanswered}/answer`, { body: { body: "Orders reach most PIN codes in 3 to 7 working days." }, cookie: adminCookie });
-  assert.equal(answered.status, 200);
-  const teamAnswer = answered.data.question.answers.find(a => a.byTeam);
-  assert.ok(teamAnswer);
-  assert.equal(teamAnswer.author, "Nexthlon Team");
-  assert.equal(answered.data.question.answered, true);
-  assert.ok(await AuditLog.exists({ action: "question.answered" }));
-
-  // The store shows it, with the badge, above the customer answers.
-  const storeView = await call("GET", `/api/products/${shoe._id}/questions`);
-  const shown = storeView.data.questions.find(q => q.id === unanswered);
-  assert.equal(shown.answers[0].byTeam, true);
-  assert.equal(shown.answers[0].author, "Nexthlon Team");
-
-  // Answering again edits that one answer, so the team never appears twice.
-  const edited = await call("POST", `/api/admin/questions/${unanswered}/answer`, { body: { body: "Usually 3 to 5 working days." }, cookie: adminCookie });
-  assert.equal(edited.data.question.answers.filter(a => a.byTeam).length, 1);
-  assert.match(edited.data.question.answers.find(a => a.byTeam).body, /3 to 5/);
-
-  // Editing the question's own wording.
-  const reworded = await call("PATCH", `/api/admin/questions/${unanswered}`, { body: { body: "How long does delivery take to Kerala?" }, cookie: adminCookie });
-  assert.equal(reworded.status, 200);
-  assert.match(reworded.data.question.body, /Kerala/);
-  assert.equal((await call("PATCH", `/api/admin/questions/${unanswered}`, { body: { body: "tiny" }, cookie: adminCookie })).status, 400);
-
-  // Hiding the team answer puts the question back in the queue.
-  const answerId = edited.data.question.answers.find(a => a.byTeam).id;
-  const hiddenAnswer = await call("PATCH", `/api/admin/questions/${unanswered}/hidden`, { body: { isHidden: true, answerId }, cookie: adminCookie });
-  assert.equal(hiddenAnswer.status, 200);
-  assert.equal(hiddenAnswer.data.question.answered, false);
-  const afterHide = await call("GET", `/api/products/${shoe._id}/questions`);
-  assert.equal(afterHide.data.questions.find(q => q.id === unanswered).answers.length, 0);
-  await call("PATCH", `/api/admin/questions/${unanswered}/hidden`, { body: { isHidden: false, answerId }, cookie: adminCookie });
-
-  // Hiding a whole question takes it off the store but keeps it for the admin.
-  const hiddenQuestion = await call("PATCH", `/api/admin/questions/${unanswered}/hidden`, { body: { isHidden: true }, cookie: adminCookie });
-  assert.equal(hiddenQuestion.data.question.isHidden, true);
-  assert.equal((await call("GET", `/api/products/${shoe._id}/questions`)).data.total, 1);
-  assert.equal((await call("GET", "/api/admin/questions?hidden=yes", { cookie: adminCookie })).data.totals.hidden, 1);
-  // A hidden question cannot be answered or voted on from the store.
-  assert.equal((await call("POST", `/api/questions/${unanswered}/answers`, { body: { body: "Trying to sneak in." }, cookie: raviCookie })).status, 404);
-  assert.equal((await call("POST", `/api/questions/${unanswered}/helpful`, { body: {}, cookie: ashaCookie })).status, 404);
-
-  // Deleting one answer, then the whole question.
-  const customerAnswer = (await call("GET", "/api/admin/questions?answered=yes", { cookie: adminCookie })).data.questions[0];
-  const toDelete = customerAnswer.answers[0].id;
-  const answerGone = await call("DELETE", `/api/admin/questions/${customerAnswer.id}?answerId=${toDelete}`, { cookie: adminCookie });
-  assert.equal(answerGone.status, 200);
-  assert.equal(answerGone.data.deleted, "answer");
-  assert.ok(await AuditLog.exists({ action: "question.answer_deleted" }));
-
-  const questionGone = await call("DELETE", `/api/admin/questions/${unanswered}`, { cookie: adminCookie });
-  assert.equal(questionGone.data.deleted, "question");
-  assert.equal(await Question.countDocuments({ _id: unanswered }), 0);
-  assert.ok(await AuditLog.exists({ action: "question.deleted" }));
-
-  // Admin-only throughout.
-  assert.equal((await call("POST", `/api/admin/questions/${questionId}/answer`, { body: { body: "Not an admin." }, cookie: ashaCookie })).status, 401);
-  assert.equal((await call("DELETE", `/api/admin/questions/${questionId}`, { cookie: ashaCookie })).status, 401);
-
-  const page = await call("GET", `${ADMIN}/questions`, { cookie: adminCookie });
-  assert.equal(page.status, 200);
-  assert.match(page.data, /data-qa-answer="/);
-  assert.match(page.data, /Nexthlon Team/);
-});
-
-test("Q&A: a customer cannot pile up unanswered questions on one product", async () => {
-  // Three waiting questions is the limit; the fourth is refused.
-  for (let n = 0; n < 3; n += 1) {
-    const res = await call("POST", `/api/products/${socks._id}/questions`, { body: { body: `Waiting question number ${n} about these socks?` }, cookie: ashaCookie });
-    assert.equal(res.status, 201);
+  // The console: no Reviews or Q&A pages, APIs or sidebar links.
+  for (const section of ["reviews", "questions"]) {
+    assert.equal((await call("GET", `${ADMIN}/${section}`, { cookie: adminCookie })).status, 404, `${section} page should be gone`);
+    assert.equal((await call("GET", `/api/admin/${section}`, { cookie: adminCookie })).status, 404, `${section} API should be gone`);
   }
-  const blocked = await call("POST", `/api/products/${socks._id}/questions`, { body: { body: "One question too many about these socks?" }, cookie: ashaCookie });
-  assert.equal(blocked.status, 429);
-  assert.match(blocked.data.message, /already have 3 questions waiting/);
-  // Another customer is unaffected, and so is another product.
-  assert.equal((await call("POST", `/api/products/${socks._id}/questions`, { body: { body: "Ravi still has a question to ask here?" }, cookie: raviCookie })).status, 201);
+  const dashboard = await call("GET", `${ADMIN}/dashboard`, { cookie: adminCookie });
+  assert.doesNotMatch(dashboard.data, /data-nav-link="(reviews|questions)"|Latest reviews|Questions to answer/);
 });
 
 // ======================= Coupons =======================

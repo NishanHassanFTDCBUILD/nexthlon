@@ -580,7 +580,7 @@ test("home page: 3D hero, trust badges, flip deals and countdown, sport ring, ra
   assert.match(res.data, /Best sellers/);
   assert.match(res.data, /New arrivals/);
   assert.match(res.data, /data-recent hidden/);
-  assert.match(res.data, /class="brand-chip"[^>]*>Strike</);
+  assert.doesNotMatch(res.data, /Brands we stock/);
   assert.match(res.data, /data-wish-id="[a-f0-9]{24}"/);
   assert.doesNotMatch(res.data, /Retired Bat/);
 });
@@ -712,13 +712,14 @@ test("reviews: only customers who received the product, once each, and the avera
   const before = await call("POST", `/api/products/${racket._id}/reviews`, { body: review, cookie: buyer.cookie });
   assert.equal(before.status, 403);
   let page = await call("GET", "/products/smash-racket", { cookie: buyer.cookie });
-  assert.match(page.data, /Only customers who received this product can review it/);
+  // Product pages have no review area any more.
+  assert.doesNotMatch(page.data, /id="reviews"|Write a review/);
 
   // A delivered order line for this product makes the customer eligible.
   const kiran = await User.findOne({ email: "kiran@nexthlon.test" });
   await mongoose.connection.collection("orders").insertOne({ user: kiran._id, items: [{ product: racket._id, status: "delivered", quantity: 1 }] });
   page = await call("GET", "/products/smash-racket", { cookie: buyer.cookie });
-  assert.match(page.data, /data-review-open/);
+  assert.doesNotMatch(page.data, /data-review-open/);
   assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, rating: 7 }, cookie: buyer.cookie })).status, 400);
   const posted = await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, user: "someone-else", rating: 4 }, cookie: buyer.cookie });
   assert.equal(posted.status, 201);
@@ -743,7 +744,7 @@ test("product page: lightbox, share, delivery check, reviews and related product
   assert.match(res.data, /data-lightbox-open/);
   assert.match(res.data, /data-share/);
   assert.match(res.data, /data-delivery-check/);
-  assert.match(res.data, /id="reviews"/);
+  assert.doesNotMatch(res.data, /id="reviews"|data-reviews/);
   assert.match(res.data, /More Running gear/);
   assert.match(res.data, /href="\/products\/trail-socks"/);
 });

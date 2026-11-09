@@ -1,9 +1,7 @@
-// Admin pages for the Catalog group (inventory, reviews, Q&A) and for System status.
+// Admin pages for the Catalog group (inventory) and for System status.
 // Thin handlers: every number comes from a service, and these only choose what the page shows.
 const config = require("../config/env");
 const inventoryService = require("../services/inventoryService");
-const adminReviewService = require("../services/adminReviewService");
-const questionService = require("../services/questionService");
 const systemService = require("../services/systemService");
 const { linkBuilder } = require("../utils/queryString");
 const { asyncHandler } = require("../utils/http");
@@ -27,34 +25,9 @@ const inventory = asyncHandler(async (req, res) => {
   });
 });
 
-// GET <ADMIN_PATH>/reviews
-const reviews = asyncHandler(async (req, res) => {
-  const data = await adminReviewService.listReviews(req.query);
-  const current = without(data.filters, { sort: "newest" });
-  res.render("admin/reviews", {
-    title: "Reviews | Nexthlon Admin",
-    ...data,
-    products: await adminReviewService.reviewedProducts(),
-    link: linkBuilder(base("reviews"), current)
-  });
-});
-
-// GET <ADMIN_PATH>/questions
-const questions = asyncHandler(async (req, res) => {
-  const data = await questionService.listForAdmin(req.query);
-  const current = without(data.filters, { sort: "waiting", hidden: "no" });
-  res.render("admin/questions", {
-    title: "Q&A | Nexthlon Admin",
-    ...data,
-    teamName: questionService.TEAM_NAME,
-    products: await questionService.askedProducts(),
-    link: linkBuilder(base("questions"), current)
-  });
-});
-
 // GET <ADMIN_PATH>/system
 const system = asyncHandler(async (req, res) => {
   res.render("admin/system", { title: "System status | Nexthlon Admin", ...await systemService.status() });
 });
 
-module.exports = { inventory, reviews, questions, system };
+module.exports = { inventory, system };

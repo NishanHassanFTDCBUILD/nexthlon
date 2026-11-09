@@ -400,22 +400,6 @@
     </section>
   <% } %>
 
-  <% if (brands.length) { %>
-    <section class="container section" aria-labelledby="brands-title">
-      <div class="section-head">
-        <div>
-          <span class="section-kicker">Genuine gear</span>
-          <h2 id="brands-title">Brands we stock</h2>
-        </div>
-      </div>
-      <ul class="brand-strip">
-        <% brands.forEach(function (name) { %>
-          <li><a class="brand-chip" href="/products?q=<%= encodeURIComponent(name) %>"><%= name %></a></li>
-        <% }) %>
-      </ul>
-    </section>
-  <% } %>
-
   <% if (!deals.length && !newest.length) { %>
     <section class="container section">
       <div class="empty-state">

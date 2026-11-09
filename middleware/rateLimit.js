@@ -50,16 +50,6 @@ const reviewLimiter = rateLimit({
   message: { message: "Too many reviews in a short time. Please try again later." }
 });
 
-// Questions and answers: 15 posts per 15 minutes per IP. Enough for a real shopper, far too
-// slow to flood a product page.
-const questionLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 15,
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-  message: { message: "Too many questions or answers in a short time. Please wait a few minutes." }
-});
-
 // Sensitive account actions (change email or password, sign out everywhere, delete the account,
 // support requests): 15 per 15 minutes for each signed-in account (or IP address).
 const sensitiveLimiter = rateLimit({
@@ -91,4 +81,4 @@ const adminMoneyLimiter = rateLimit({
   message: { message: "Too many refunds or emails in a short time. Please wait a few minutes." }
 });
 
-module.exports = { authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, questionLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
+module.exports = { authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };

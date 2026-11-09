@@ -264,8 +264,8 @@ test("reviews: only the author can edit or delete, and the product rating follow
   const author = await signUp("Sara Khan", "sara@account.test");
   const other = await signUp("Vikram Joshi", "vikram@account.test");
   await deliveredOrder(author.user, socks, "NX-2026-900002");
-  // Waiting for a review: delivered and not yet reviewed.
-  assert.match((await call("GET", "/account/reviews", { cookie: author.cookie })).data, /Waiting for your review/);
+  // There is no review area on product pages, so My Account no longer offers "Write a review".
+  assert.doesNotMatch((await call("GET", "/account/reviews", { cookie: author.cookie })).data, /Waiting for your review|Write a review/);
   const added = await call("POST", `/api/products/${socks._id}/reviews`, { body: { rating: 4, title: "Comfy", body: "Soft and warm on long runs." }, cookie: author.cookie });
   assert.equal(added.status, 201, JSON.stringify(added.data));
   const reviewId = added.data.review.id;

@@ -50,6 +50,10 @@ code { font: 0.9em/1 Consolas, monospace; background: var(--brand-soft); padding
 
 /* One clear keyboard focus ring everywhere: volt with a soft glow. Always-dark areas use bright volt. */
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; box-shadow: 0 0 0 6px rgba(var(--brand-rgb), 0.18); }
+/* Typing fields skip that ring: their own border (or their wrapper's) shows focus instead, so no
+   second box appears inside a search bar or coupon field. :where() keeps this at the same weight as
+   the ring above, so any field's own :focus style still wins. */
+:where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus-visible { outline: none; box-shadow: none; }
 .on-dark, .promo-bar, .site-header, .join-banner, .site-footer, .admin-sidebar, .toast { --focus: var(--accent); }
 
 .container { width: 100%; max-width: 1440px; margin: 0 auto; padding-left: max(var(--space-2), env(safe-area-inset-left)); padding-right: max(var(--space-2), env(safe-area-inset-right)); }

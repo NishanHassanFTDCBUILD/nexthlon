@@ -57,8 +57,6 @@ router.get("/products", pages.adminProducts);
 router.get("/products/new", pages.adminProductNew);
 router.get("/products/:productId/edit", pages.adminProductEdit);
 router.get("/inventory", catalog.inventory);
-router.get("/reviews", catalog.reviews);
-router.get("/questions", catalog.questions);
 
 // ---------- Customers ----------
 router.get("/customers", pages.adminUsers);

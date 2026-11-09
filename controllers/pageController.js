@@ -7,8 +7,6 @@ const adminService = require("../services/adminService");
 const adminProductService = require("../services/adminProductService");
 const cartService = require("../services/cartService");
 const homeService = require("../services/homeService");
-const reviewService = require("../services/reviewService");
-const questionService = require("../services/questionService");
 const checkoutService = require("../services/checkoutService");
 const orderService = require("../services/orderService");
 const invoiceService = require("../services/invoiceService");
@@ -103,24 +101,13 @@ const productDetail = asyncHandler(async (req, res) => {
   if (req.user && req.user.role === "customer") {
     accountService.recordView(req.user._id, product._id).catch(() => {});
   }
-  const shopper = req.user && req.user.role === "customer" ? req.user : null;
-  const [related, reviews, reviewState, questions] = await Promise.all([
-    productService.getRelatedProducts(product),
-    reviewService.listReviews(product._id, 1),
-    reviewService.reviewStatus(req.user, product._id),
-    // Q&A: anyone may read it, so it is loaded for guests too.
-    questionService.publicList(product._id, { page: 1 }, shopper)
-  ]);
+  const related = await productService.getRelatedProducts(product);
   res.render("pages/product", {
     title: `${product.name} | Nexthlon`,
     metaDescription: (product.description || product.name).slice(0, 155),
     product,
     offer: productService.offerLabel(product),
-    related,
-    reviews,
-    reviewState,
-    questions,
-    teamName: questionService.TEAM_NAME
+    related
   });
 });
 

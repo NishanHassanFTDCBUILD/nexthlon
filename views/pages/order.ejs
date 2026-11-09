@@ -66,7 +66,6 @@
                 <strong><%= formatPrice(item.lineTotal) %></strong>
                 <% if (item.status === 'delivered') { %>
                   <button type="button" class="btn btn-ghost btn-xs" data-quick-cart="<%= item.product %>"><%- icon('rotate-ccw', 'i-xs') %> Buy it again</button>
-                  <a class="link-btn" href="/products/<%= item.slug %>#reviews"><%- icon('star', 'i-xs') %> Write a review</a>
                 <% } %>
                 <% if (['placed', 'confirmed'].includes(item.status) && activeItems.length > 1) { %>
                   <button type="button" class="link-btn cart-remove" data-open-dialog="cancel-dialog" data-cancel-scope="item" data-item-id="<%= item._id %>" data-item-name="<%= item.name %>">Cancel item</button>

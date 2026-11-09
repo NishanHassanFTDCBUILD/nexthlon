@@ -1,4 +1,4 @@
-// Product page: full-screen photos, delivery date by PIN code, sharing, and reviews.
+// Product page: full-screen photos, delivery date by PIN code, and sharing.
 (function () {
   "use strict";
 
@@ -125,77 +125,4 @@
       }
     });
   });
-
-  // ---------- Reviews ----------
-  const reviews = document.querySelector("[data-reviews]");
-  if (!reviews) return;
-  const productId = reviews.dataset.productId;
-  const list = reviews.querySelector("[data-review-list]");
-  const form = reviews.querySelector("[data-review-form]");
-  const openForm = reviews.querySelector("[data-review-open]");
-
-  const formatDate = value => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
-  const starIcon = '<svg class="i i-xs" aria-hidden="true" focusable="false"><use href="/img/icons.svg#star"></use></svg>';
-
-  function reviewItem(r) {
-    const item = document.createElement("li");
-    item.className = "review";
-    item.innerHTML = `<div class="review-top"><span class="rating-chip"></span></div><p class="review-body"></p><p class="review-meta"></p>`;
-    const chip = item.querySelector(".rating-chip");
-    chip.textContent = `${r.rating} `;
-    chip.insertAdjacentHTML("beforeend", starIcon);
-    if (r.title) {
-      const title = document.createElement("strong");
-      title.textContent = r.title;
-      item.querySelector(".review-top").append(title);
-    }
-    item.querySelector(".review-body").textContent = r.body;
-    item.querySelector(".review-meta").textContent = `${r.author} · ${formatDate(r.createdAt)} · Verified buyer`;
-    return item;
-  }
-
-  const more = reviews.querySelector("[data-review-more]");
-  const failed = reviews.querySelector("[data-review-error]");
-  const loadMore = async () => {
-    const page = Number(more.dataset.nextPage);
-    failed.hidden = true;
-    Nx.busy(more, true, "Loading reviews…");
-    try {
-      const data = await Nx.api(`/api/products/${productId}/reviews?page=${page}`);
-      data.reviews.forEach(r => list.append(reviewItem(r)));
-      if (page >= data.pagination.pages) more.remove();
-      else more.dataset.nextPage = String(page + 1);
-    } catch {
-      failed.hidden = false;
-    } finally {
-      if (more.isConnected) Nx.busy(more, false);
-    }
-  };
-  if (more) more.addEventListener("click", loadMore);
-  const retry = reviews.querySelector("[data-review-retry]");
-  if (retry && more) retry.addEventListener("click", loadMore);
-
-  if (form && openForm) {
-    const toggle = show => {
-      form.hidden = !show;
-      openForm.setAttribute("aria-expanded", String(show));
-      if (show) form.querySelector('input[name="rating"]').focus();
-      else openForm.focus();
-    };
-    openForm.addEventListener("click", () => toggle(form.hidden));
-    form.querySelector("[data-review-cancel]").addEventListener("click", () => toggle(false));
-    form.addEventListener("submit", async event => {
-      event.preventDefault();
-      const checked = form.querySelector('input[name="rating"]:checked');
-      const body = {
-        rating: checked ? Number(checked.value) : 0,
-        title: form.elements.title.value,
-        body: form.elements.body.value
-      };
-      const reply = await Nx.submitForm(form, { url: `/api/products/${productId}/reviews`, body, busyLabel: "Posting…" });
-      if (!reply) return;
-      Nx.flash(reply.message);
-      window.location.reload();
-    });
-  }
 })();

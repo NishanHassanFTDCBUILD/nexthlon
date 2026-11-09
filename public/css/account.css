@@ -12,7 +12,6 @@
 /* The only thing that moves: the loading spinner. */
 .acct-body .spinner, .acct-body .btn.is-loading::before, .acct-body .acct-loading-spin { animation: acct-spin 0.7s linear infinite !important; }
 @keyframes acct-spin { to { transform: rotate(360deg); } }
-.acct-body .footer-wave { display: none; }
 
 /* ---------- Shell ---------- */
 .acct { padding-top: var(--space-3); padding-bottom: var(--space-6); }

@@ -151,10 +151,10 @@ test("admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
   const full = await call("GET", `${ADMIN}/products`, { cookie });
   for (const group of ["Overview", "Sales", "Catalog", "Customers", "System"]) assert.match(full.data, new RegExp(`data-admin-group="${group}"`));
   // Only these sections exist, and every one of them is built.
-  for (const key of ["dashboard", "analytics", "orders", "returns", "transactions", "refunds", "abandoned-carts", "coupons", "products", "inventory", "reviews", "questions", "customers", "settings", "system"]) {
+  for (const key of ["dashboard", "analytics", "orders", "returns", "transactions", "refunds", "abandoned-carts", "coupons", "products", "inventory", "customers", "settings", "system"]) {
     assert.match(full.data, new RegExp(`data-nav-link="${key}"`));
   }
-  for (const gone of ["categories", "brands", "segments", "offers", "flash-sales", "campaigns", "gift-cards", "loyalty", "cms", "banners", "sales-report", "exports", "delivery-zones", "admins", "audit-log", "tickets", "analytics-soon"]) {
+  for (const gone of ["categories", "brands", "segments", "offers", "flash-sales", "campaigns", "gift-cards", "loyalty", "cms", "banners", "sales-report", "exports", "delivery-zones", "admins", "audit-log", "tickets", "analytics-soon", "reviews", "questions"]) {
     assert.doesNotMatch(full.data, new RegExp(`data-nav-link="${gone}"`));
   }
   assert.doesNotMatch(full.data, /admin-soon|>Soon</);
@@ -187,13 +187,13 @@ test("every section in the sidebar opens; anything else is a plain 404", async (
   assert.doesNotMatch((await call("GET", `${ADMIN}/dashboard`, { cookie })).data, /data-settings-form/);
 
   // No placeholders any more: each of these renders a real page.
-  for (const key of ["dashboard", "analytics", "orders", "returns", "transactions", "refunds", "abandoned-carts", "coupons", "products", "inventory", "reviews", "questions", "customers", "settings", "system"]) {
+  for (const key of ["dashboard", "analytics", "orders", "returns", "transactions", "refunds", "abandoned-carts", "coupons", "products", "inventory", "customers", "settings", "system"]) {
     const page = await call("GET", `${ADMIN}/${key}`, { cookie });
     assert.equal(page.status, 200, `${key} should render`);
     assert.doesNotMatch(page.data, /Coming in Part|admin-soon-panel/);
   }
   // Sections that were removed are ordinary 404s, like any unknown URL.
-  for (const gone of ["categories", "brands", "marketing", "offers", "cms", "banners", "admins", "audit-log", "tickets", "profile", "not-a-section"]) {
+  for (const gone of ["categories", "brands", "marketing", "offers", "cms", "banners", "admins", "audit-log", "tickets", "profile", "reviews", "questions", "not-a-section"]) {
     assert.equal((await call("GET", `${ADMIN}/${gone}`, { cookie })).status, 404, `${gone} should be gone`);
   }
   // Still invisible to everyone else.
@@ -229,10 +229,10 @@ test("notifications count what needs attention, for admins only", async () => {
   assert.equal(byKey["to-confirm"], 1);
   assert.equal(byKey["low-stock"], 1);
   assert.equal(byKey["new-orders"], 1);
-  // Support tickets have no admin screen any more; the last row is questions waiting for an answer.
+  // Support tickets and Q&A have no admin screen any more, so they are not counted.
   assert.equal(byKey.tickets, undefined);
-  assert.equal(typeof byKey.questions, "number");
-  assert.equal(res.data.total, byKey["to-confirm"] + byKey.returns + byKey["low-stock"] + byKey["out-of-stock"] + byKey.questions);
+  assert.equal(byKey.questions, undefined);
+  assert.equal(res.data.total, byKey["to-confirm"] + byKey.returns + byKey["low-stock"] + byKey["out-of-stock"]);
 });
 
 // ---------- Part 3: the dashboard ----------
