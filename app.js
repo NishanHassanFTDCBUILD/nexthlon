@@ -45,7 +45,16 @@ app.use(helmet({
       //"Upgrade-insecure-requests is enabled only in production. It instructs the browser to upgrade insecure HTTP resource requests to HTTPS, improving transport security."
       "upgrade-insecure-requests": config.isProduction ? [] : null
     }
-  }
+  },
+  // Razorpay opens netbanking, wallet and card-authentication (3-D Secure / OTP) pages in a
+  // pop-up and then fills it in. helmet's default "same-origin" cuts the page off from any
+  // pop-up on another site, so the pop-up stayed about:blank and the payment failed.
+  // "same-origin-allow-popups" keeps that link for pop-ups this page opens, and still keeps
+  // other sites that open Nexthlon from reaching into it.
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+  // Send only our origin (never the full URL) to other sites. Razorpay checks which website a
+  // payment comes from; "no-referrer" (helmet's default) hides even that.
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 }));
 
 app.use(express.static(path.join(__dirname, "public"), { maxAge: config.isProduction ? "7d" : 0 }));

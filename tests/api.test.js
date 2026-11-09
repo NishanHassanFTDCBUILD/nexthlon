@@ -1056,6 +1056,14 @@ test("CSP allows only what Razorpay Checkout needs", async () => {
   assert.doesNotMatch(csp, /\*/);
 });
 
+test("Razorpay's bank and OTP pop-ups stay connected to the checkout page", async () => {
+  const response = await fetch(`${base}/`);
+  // "same-origin" would cut the page off from Razorpay's pop-up, which then stays about:blank.
+  assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin-allow-popups");
+  // Other sites see only our origin, never the full URL.
+  assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+});
+
 test("creating a payment: server prices, a pending order, and only four fields for the browser", async () => {
   payer = await newCustomer("Online Payer", "payer@nexthlon.test");
   racket = await makeProduct({ name: "Pro Racket", slug: "pro-racket", category: "Tennis", price: 4500, mrp: 6000, stock: 3, image: "/img/favicon.svg" });
