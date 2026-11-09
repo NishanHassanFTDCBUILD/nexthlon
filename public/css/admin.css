@@ -224,12 +224,6 @@ body.admin-menu-open { overflow: hidden; }
 .dash-dot-ret { background: var(--chart-3); }
 
 /* Data tables under charts */
-.dash-table summary { cursor: pointer; width: fit-content; font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--muted); padding: 4px 0; }
-.dash-table summary:hover { color: var(--ink); }
-.dash-table[open] summary { margin-bottom: 8px; }
-.dash-table .table { font-size: 13px; }
-.dash-table .table th, .dash-table .table td { padding: 8px 12px; }
-.admin-body .dash-heat-table th, .admin-body .dash-heat-table td { padding: 4px 6px; text-align: center; min-width: 0; }
 
 /* Charts */
 .dash-chart { position: relative; width: 100%; min-height: 160px; border-radius: var(--radius-xs); }

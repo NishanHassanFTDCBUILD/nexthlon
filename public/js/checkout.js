@@ -245,8 +245,6 @@
   const couponForm = couponBox.querySelector("[data-coupon-form]");
   const applied = couponBox.querySelector("[data-coupon-applied]");
   const notice = couponBox.querySelector("[data-coupon-notice]");
-  const toggle = couponBox.querySelector("[data-coupon-toggle]");
-  const list = couponBox.querySelector("[data-coupon-list]");
 
   function renderCoupon(quote) {
     applied.hidden = !quote.coupon;
@@ -257,7 +255,6 @@
     }
     notice.hidden = !quote.couponNotice;
     notice.querySelector("span").textContent = quote.couponNotice || "";
-    if (!list.hidden) loadCoupons();
   }
 
   async function applyCoupon(code, button) {
@@ -304,75 +301,6 @@
     } finally {
       Nx.busy(button, false);
     }
-  });
-
-  function couponItem(coupon) {
-    const item = document.createElement("li");
-    item.className = `coupon-item${coupon.eligible ? "" : " is-off"}`;
-    const body = document.createElement("div");
-    const code = document.createElement("strong");
-    code.className = "coupon-tag";
-    code.textContent = coupon.code;
-    const title = document.createElement("span");
-    title.className = "coupon-title";
-    title.textContent = coupon.title;
-    const note = document.createElement("small");
-    note.className = coupon.eligible ? "text-success" : "muted";
-    note.textContent = coupon.eligible ? `You save ${Nx.formatPrice(coupon.saving)}` : coupon.problem;
-    body.append(code, title);
-    if (coupon.description) {
-      const description = document.createElement("small");
-      description.className = "muted";
-      description.textContent = coupon.description;
-      body.append(description);
-    }
-    body.append(note);
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "btn btn-ghost btn-sm";
-    button.textContent = "Apply";
-    button.disabled = !coupon.eligible;
-    button.setAttribute("aria-label", `Apply coupon ${coupon.code}`);
-    button.addEventListener("click", () => applyCoupon(coupon.code, button));
-    item.append(body, button);
-    return item;
-  }
-
-  async function loadCoupons() {
-    list.innerHTML = '<div class="coupon-skeleton" aria-hidden="true"><span class="skeleton"></span><span class="skeleton"></span></div><p class="sr-only" role="status">Loading coupons…</p>';
-    try {
-      const { coupons, applied: current } = await Nx.api("/api/coupons");
-      const shown = coupons.filter(coupon => coupon.code !== current);
-      list.innerHTML = "";
-      if (!shown.length) {
-        list.innerHTML = '<p class="coupon-empty muted">No other coupons right now. Check back soon.</p>';
-        return;
-      }
-      const ul = document.createElement("ul");
-      ul.className = "coupon-list";
-      shown.forEach(coupon => ul.append(couponItem(coupon)));
-      list.append(ul);
-    } catch (error) {
-      list.innerHTML = "";
-      const message = document.createElement("p");
-      message.className = "coupon-empty text-danger";
-      message.textContent = error.message;
-      const retry = document.createElement("button");
-      retry.type = "button";
-      retry.className = "link-btn";
-      retry.textContent = "Try again";
-      retry.addEventListener("click", loadCoupons);
-      message.append(" ", retry);
-      list.append(message);
-    }
-  }
-
-  toggle.addEventListener("click", () => {
-    const opening = list.hidden;
-    list.hidden = !opening;
-    toggle.setAttribute("aria-expanded", String(opening));
-    toggle.classList.toggle("is-open", opening);
-    if (opening) loadCoupons();
   });
 
   // ---------- Place the order ----------

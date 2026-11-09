@@ -202,13 +202,14 @@
         </div>
         <form class="coupon-form" data-coupon-form novalidate <%= quote.coupon ? 'hidden' : '' %>>
           <label class="sr-only" for="coupon-code">Coupon code</label>
-          <input id="coupon-code" name="code" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter coupon code" aria-describedby="code-error">
-          <button class="btn btn-secondary" type="submit">Apply</button>
+          <div class="coupon-field">
+            <span class="coupon-field-icon" aria-hidden="true"><%- icon('tag', 'i-sm') %></span>
+            <input id="coupon-code" name="code" type="text" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter coupon code" aria-describedby="code-error">
+            <button class="btn btn-primary btn-sm coupon-apply" type="submit">Apply</button>
+          </div>
           <p class="field-error" id="code-error" data-error-for="code"></p>
         </form>
         <p class="coupon-notice" data-coupon-notice role="status" <%= quote.couponNotice ? '' : 'hidden' %>><%- icon('alert', 'i-xs') %> <span><%= quote.couponNotice %></span></p>
-        <button type="button" class="link-btn coupon-toggle" data-coupon-toggle aria-expanded="false" aria-controls="coupon-list">View available coupons <%- icon('chevron-down', 'i-xs') %></button>
-        <div id="coupon-list" class="coupon-list-wrap" data-coupon-list hidden></div>
       </section>
     </div>
   </div>

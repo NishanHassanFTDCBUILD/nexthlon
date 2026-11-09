@@ -83,12 +83,7 @@
         <h2 id="chart-timeline-title">Revenue and orders</h2>
         <span class="dash-legend"><i class="dash-dot dash-dot-line"></i> Revenue (paid) <i class="dash-dot dash-dot-bar"></i> Orders</span>
       </div>
-      <div class="dash-chart dash-chart-tall" data-chart="timeline" role="img" tabindex="0" aria-label="Revenue and orders per <%= charts.bucket %> for <%= range.label.toLowerCase() %>. Use the arrow keys to read each value, or open the table below."></div>
-      <details class="dash-table">
-        <summary>Show as a table</summary>
-        <div class="table-wrap"><table class="table"><thead><tr><th scope="col"><%= charts.bucket === 'hour' ? 'Hour' : charts.bucket === 'day' ? 'Day' : 'Month' %></th><th scope="col">Revenue</th><th scope="col">Orders</th></tr></thead>
-          <tbody><% charts.timeline.forEach(function (b) { %><tr><td><%= b.label %></td><td><%= formatPrice(b.revenue) %></td><td><%= b.orders %></td></tr><% }) %></tbody></table></div>
-      </details>
+      <div class="dash-chart dash-chart-tall" data-chart="timeline" role="img" tabindex="0" aria-label="Revenue and orders per <%= charts.bucket %> for <%= range.label.toLowerCase() %>. Use the arrow keys to read each value."></div>
     </section>
 
     <section class="panel dash-card" aria-labelledby="actions-title">
@@ -106,23 +101,14 @@
     <section class="panel dash-card" aria-labelledby="chart-status-title">
       <div class="dash-card-head"><h2 id="chart-status-title">Orders by status</h2><span class="muted"><%= totalOrders %> orders</span></div>
       <div class="dash-chart dash-chart-donut" data-chart="statuses" role="img" tabindex="0" aria-label="Orders by status: <%= charts.statuses.map(function (s) { return (statusLabels[s.key] || s.key) + ' ' + s.count; }).join(', ') || 'no orders' %>."></div>
-      <details class="dash-table"><summary>Show as a table</summary>
-        <table class="table"><thead><tr><th scope="col">Status</th><th scope="col">Orders</th></tr></thead><tbody><% charts.statuses.forEach(function (s) { %><tr><td><%= statusLabels[s.key] || s.key %></td><td><%= s.count %></td></tr><% }) %></tbody></table>
-      </details>
     </section>
     <section class="panel dash-card" aria-labelledby="chart-pay-title">
       <div class="dash-card-head"><h2 id="chart-pay-title">Payment methods</h2><span class="muted"><%= totalPayments %> orders</span></div>
       <div class="dash-chart dash-chart-donut" data-chart="payments" role="img" tabindex="0" aria-label="Payment methods: <%= charts.payments.map(function (p) { return (paymentLabels[p.key] || p.key) + ' ' + p.count; }).join(', ') || 'no orders' %>."></div>
-      <details class="dash-table"><summary>Show as a table</summary>
-        <table class="table"><thead><tr><th scope="col">Method</th><th scope="col">Orders</th><th scope="col">Amount</th></tr></thead><tbody><% charts.payments.forEach(function (p) { %><tr><td><%= paymentLabels[p.key] || p.key %></td><td><%= p.count %></td><td><%= formatPrice(p.amount) %></td></tr><% }) %></tbody></table>
-      </details>
     </section>
     <section class="panel dash-card" aria-labelledby="chart-nr-title">
       <div class="dash-card-head"><h2 id="chart-nr-title">New vs returning</h2><span class="dash-legend"><i class="dash-dot dash-dot-new"></i> New <i class="dash-dot dash-dot-ret"></i> Returning</span></div>
       <div class="dash-chart" data-chart="newReturning" role="img" tabindex="0" aria-label="Orders from new and returning customers per <%= charts.bucket %>. Use the arrow keys to read each value."></div>
-      <details class="dash-table"><summary>Show as a table</summary>
-        <div class="table-wrap"><table class="table"><thead><tr><th scope="col">Period</th><th scope="col">New</th><th scope="col">Returning</th></tr></thead><tbody><% charts.newReturning.forEach(function (b) { %><tr><td><%= b.label %></td><td><%= b.newCustomers %></td><td><%= b.returning %></td></tr><% }) %></tbody></table></div>
-      </details>
     </section>
   </div>
 
@@ -131,9 +117,6 @@
     <section class="panel dash-card" aria-labelledby="chart-cat-title">
       <div class="dash-card-head"><h2 id="chart-cat-title">Sales by category</h2></div>
       <div class="dash-chart" data-chart="categories" role="img" tabindex="0" aria-label="Sales by category: <%= charts.categories.map(function (c) { return c.name + ' ' + formatPrice(c.revenue); }).join(', ') || 'no sales' %>."></div>
-      <details class="dash-table"><summary>Show as a table</summary>
-        <table class="table"><thead><tr><th scope="col">Category</th><th scope="col">Revenue</th><th scope="col">Units</th></tr></thead><tbody><% charts.categories.forEach(function (c) { %><tr><td><%= c.name %></td><td><%= formatPrice(c.revenue) %></td><td><%= c.units %></td></tr><% }) %></tbody></table>
-      </details>
     </section>
     <section class="panel dash-card" aria-labelledby="top-title" data-dash-top>
       <div class="dash-card-head">
@@ -167,11 +150,7 @@
   <div class="dash-row dash-row-2">
     <section class="panel dash-card" aria-labelledby="chart-heat-title">
       <div class="dash-card-head"><h2 id="chart-heat-title">When orders come in</h2><span class="muted">Day of week × hour (IST)</span></div>
-      <div class="dash-chart dash-chart-heat" data-chart="heatmap" role="img" tabindex="0" aria-label="Orders by day of the week and hour of the day. Use the arrow keys to read each cell, or open the table below."></div>
-      <details class="dash-table"><summary>Show as a table</summary>
-        <div class="table-wrap"><table class="table dash-heat-table"><thead><tr><th scope="col">Day</th><% for (let h = 0; h < 24; h++) { %><th scope="col"><%= h %></th><% } %></tr></thead>
-          <tbody><% charts.heatmap.forEach(function (row, d) { %><tr><th scope="row"><%= days[d] %></th><% row.forEach(function (n) { %><td><%= n %></td><% }) %></tr><% }) %></tbody></table></div>
-      </details>
+      <div class="dash-chart dash-chart-heat" data-chart="heatmap" role="img" tabindex="0" aria-label="Orders by day of the week and hour of the day. Use the arrow keys to read each cell."></div>
     </section>
     <section class="panel dash-card" aria-labelledby="where-title">
       <div class="dash-card-head"><h2 id="where-title">Top cities</h2><span class="muted">By sales</span></div>
@@ -183,9 +162,6 @@
               <span class="dash-rank-value"><strong><%= formatPrice(c.revenue) %></strong><small class="muted"><%= c.orders %> <%= c.orders === 1 ? 'order' : 'orders' %></small></span></li>
           <% }) %>
         </ol>
-        <details class="dash-table"><summary>By state</summary>
-          <table class="table"><thead><tr><th scope="col">State</th><th scope="col">Orders</th><th scope="col">Sales</th></tr></thead><tbody><% charts.states.forEach(function (s) { %><tr><td><%= s.state %></td><td><%= s.orders %></td><td><%= formatPrice(s.revenue) %></td></tr><% }) %></tbody></table>
-        </details>
       <% } else { %><p class="muted dash-empty">No orders in this period.</p><% } %>
     </section>
   </div>

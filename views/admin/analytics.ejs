@@ -85,14 +85,7 @@
         <h2 id="an-timeline-title">Revenue and orders over time</h2>
         <span class="dash-legend"><i class="dash-dot dash-dot-line"></i> Revenue (paid) <i class="dash-dot dash-dot-bar"></i> Orders</span>
       </div>
-      <div class="dash-chart dash-chart-tall" data-chart="timeline" role="img" tabindex="0" aria-label="Revenue and orders per <%= periodHead.toLowerCase() %>. Use the arrow keys to read each value, or open the table below."></div>
-      <details class="dash-table">
-        <summary>Show as a table</summary>
-        <div class="table-wrap"><table class="table">
-          <thead><tr><th scope="col"><%= periodHead %></th><th scope="col">Revenue</th><th scope="col">Orders</th><th scope="col">Average order value</th></tr></thead>
-          <tbody><% timeline.forEach(function (b) { %><tr><td><%= b.label %></td><td><%= formatPrice(b.revenue) %></td><td><%= b.orders %></td><td><%= formatPrice(b.aov) %></td></tr><% }) %></tbody>
-        </table></div>
-      </details>
+      <div class="dash-chart dash-chart-tall" data-chart="timeline" role="img" tabindex="0" aria-label="Revenue and orders per <%= periodHead.toLowerCase() %>. Use the arrow keys to read each value."></div>
     </section>
 
     <%# Conversion: how many filled baskets turned into orders. %>
@@ -116,20 +109,12 @@
     <section class="panel dash-card" aria-labelledby="an-pay-title">
       <div class="dash-card-head"><h2 id="an-pay-title">Payment methods</h2><span class="muted"><%= totalPayments %> orders</span></div>
       <div class="dash-chart dash-chart-donut" data-chart="payments" role="img" tabindex="0" aria-label="Payment methods: <%= payments.map(function (p) { return (paymentLabels[p.key] || p.key) + ' ' + p.count; }).join(', ') || 'no orders' %>."></div>
-      <details class="dash-table"><summary>Show as a table</summary>
-        <table class="table"><thead><tr><th scope="col">Method</th><th scope="col">Orders</th><th scope="col">Paid</th><th scope="col">Share</th><th scope="col">Charged</th></tr></thead>
-          <tbody><% payments.forEach(function (p) { %><tr><td><%= paymentLabels[p.key] || p.key %></td><td><%= p.count %></td><td><%= p.paid %></td><td><%= p.share.toFixed(1) %>%</td><td><%= formatPrice(p.amount) %></td></tr><% }) %></tbody></table>
-      </details>
       <% if (!payments.length) { %><p class="muted dash-empty">No orders in this period.</p><% } %>
     </section>
 
     <section class="panel dash-card" aria-labelledby="an-nr-title">
       <div class="dash-card-head"><h2 id="an-nr-title">New vs returning customers</h2><span class="dash-legend"><i class="dash-dot dash-dot-new"></i> New <i class="dash-dot dash-dot-ret"></i> Returning</span></div>
       <div class="dash-chart" data-chart="newReturning" role="img" tabindex="0" aria-label="Orders from new and returning customers per <%= periodHead.toLowerCase() %>. Use the arrow keys to read each value."></div>
-      <details class="dash-table"><summary>Show as a table</summary>
-        <div class="table-wrap"><table class="table"><thead><tr><th scope="col"><%= periodHead %></th><th scope="col">New</th><th scope="col">Returning</th></tr></thead>
-          <tbody><% newReturning.forEach(function (b) { %><tr><td><%= b.label %></td><td><%= b.newCustomers %></td><td><%= b.returning %></td></tr><% }) %></tbody></table></div>
-      </details>
     </section>
   </div>
 
@@ -138,10 +123,6 @@
     <section class="panel dash-card" aria-labelledby="an-cat-title">
       <div class="dash-card-head"><h2 id="an-cat-title">Top categories</h2></div>
       <div class="dash-chart" data-chart="categories" role="img" tabindex="0" aria-label="Top categories: <%= topCategories.map(function (c) { return c.name + ' ' + formatPrice(c.revenue); }).join(', ') || 'no sales' %>."></div>
-      <details class="dash-table"><summary>Show as a table</summary>
-        <table class="table"><thead><tr><th scope="col">Category</th><th scope="col">Revenue</th><th scope="col">Units</th></tr></thead>
-          <tbody><% topCategories.forEach(function (c) { %><tr><td><%= c.name %></td><td><%= formatPrice(c.revenue) %></td><td><%= c.units %></td></tr><% }) %></tbody></table>
-      </details>
     </section>
 
     <section class="panel dash-card" aria-labelledby="an-top-title" data-dash-top>

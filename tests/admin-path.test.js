@@ -290,7 +290,7 @@ test("dashboard KPIs, previous-period change and charts come from real orders", 
   assert.equal(page.status, 200);
   for (const chart of ["timeline", "statuses", "payments", "newReturning", "categories", "heatmap"]) assert.match(page.data, new RegExp(`data-chart="${chart}"`));
   assert.match(page.data, /data-dashboard="\{/);
-  assert.match(page.data, /Show as a table/);
+  assert.doesNotMatch(page.data, /Show as a table/);
   assert.match(page.data, /₹3,800/);
   // A bad custom range falls back with a message instead of failing.
   assert.match((await call("GET", `${ADMIN}/dashboard?range=custom&from=2026-10-10&to=2026-10-01`, { cookie })).data, /start date must be on or before/);
