@@ -258,7 +258,9 @@
         currency: checkout.currency,
         name: "Nexthlon",
         description: "Secure payment for your Nexthlon order",
-        image: `${window.location.origin}/img/favicon.svg`,
+        // Razorpay's window is https, so it can only show a logo from an https address
+        // (on http://localhost it would be blocked as mixed content).
+        ...(window.location.protocol === "https:" ? { image: `${window.location.origin}/img/favicon.svg` } : {}),
         prefill,
         theme: { color: BRAND },
         handler: response => {

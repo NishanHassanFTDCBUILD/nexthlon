@@ -1047,9 +1047,13 @@ let racket;
 test("CSP allows only what Razorpay Checkout needs", async () => {
   const response = await fetch(`${base}/`);
   const csp = response.headers.get("content-security-policy");
-  assert.match(csp, /script-src 'self' https:\/\/checkout\.razorpay\.com;/);
+  // checkout.js, plus the fraud-check script it loads from cdn.razorpay.com (blocking it breaks payments).
+  assert.match(csp, /script-src 'self' https:\/\/checkout\.razorpay\.com https:\/\/cdn\.razorpay\.com;/);
   assert.match(csp, /frame-src https:\/\/api\.razorpay\.com https:\/\/checkout\.razorpay\.com;/);
-  assert.match(csp, /connect-src 'self' https:\/\/api\.razorpay\.com https:\/\/lumberjack\.razorpay\.com(;|$)/);
+  assert.match(csp, /connect-src 'self' https:\/\/api\.razorpay\.com https:\/\/lumberjack\.razorpay\.com https:\/\/lumberjack-cx\.razorpay\.com https:\/\/cdn\.razorpay\.com(;|$)/);
+  assert.match(csp, /form-action 'self' https:\/\/api\.razorpay\.com;/);
+  // Nothing else from outside: no wildcards.
+  assert.doesNotMatch(csp, /\*/);
 });
 
 test("creating a payment: server prices, a pending order, and only four fields for the browser", async () => {

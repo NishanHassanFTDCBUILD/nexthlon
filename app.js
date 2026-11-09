@@ -27,16 +27,19 @@ app.use(helmet({
     //contains rules that control where different resources can come from.
     directives: {
       "default-src": ["'self'"],
-      "script-src": ["'self'", "https://checkout.razorpay.com"],
+      // checkout.razorpay.com serves checkout.js; it then loads its fraud-check script
+      // (razorpay-risk-detection) from cdn.razorpay.com. Blocking that script breaks payments.
+      "script-src": ["'self'", "https://checkout.razorpay.com", "https://cdn.razorpay.com"],
       // Razorpay Checkout opens in its own frame.
       "frame-src": ["https://api.razorpay.com", "https://checkout.razorpay.com"],
       "style-src": ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
-      "img-src": ["'self'", "data:", "https://images.unsplash.com"],
+      "img-src": ["'self'", "data:", "https://images.unsplash.com", "https://cdn.razorpay.com"],
       //Controls where JavaScript can connect to fetch data.
-      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
-      //Controls where HTML forms are allowed to submit data.
-      "form-action": ["'self'"],
+      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://lumberjack-cx.razorpay.com", "https://cdn.razorpay.com"],
+      //Controls where HTML forms are allowed to submit data. Razorpay posts to its own API when a
+      // bank page has to open in a new window and the browser blocks the pop-up.
+      "form-action": ["'self'", "https://api.razorpay.com"],
       //Controls whether another website can embed Nexthlon inside an iframe.
       "frame-ancestors": ["'none'"],
       //"Upgrade-insecure-requests is enabled only in production. It instructs the browser to upgrade insecure HTTP resource requests to HTTPS, improving transport security."
