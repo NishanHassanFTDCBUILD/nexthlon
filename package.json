@@ -13,6 +13,7 @@
     "seed:coupons": "node scripts/seedCoupons.js",
     "db:check": "node scripts/checkDb.js",
     "admin:reset-2fa": "node scripts/resetTwoFactor.js",
+    "setup:check": "node scripts/setupCheck.js",
     "worker": "node scripts/worker.js",
     "jobs:status": "node scripts/jobsStatus.js",
     "jobs:retry": "node scripts/jobsStatus.js --retry",

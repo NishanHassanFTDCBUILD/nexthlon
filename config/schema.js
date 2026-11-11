@@ -132,8 +132,14 @@ function checkEnv(env = process.env) {
   // local: files in public/uploads (development; a host's disk is wiped on every deploy unless it has a volume).
   // s3:    any S3-compatible bucket: Cloudflare R2, Amazon S3, Backblaze B2... served from STORAGE_PUBLIC_URL.
   const driver = text(env, "STORAGE_DRIVER").toLowerCase() || "local";
-  if (!["local", "s3"].includes(driver)) {
-    fail("STORAGE_DRIVER", `"${driver}" must be local or s3.`);
+  if (!["local", "s3", "cloudinary"].includes(driver)) {
+    fail("STORAGE_DRIVER", `"${driver}" must be local, s3 or cloudinary.`);
+  } else if (driver === "cloudinary") {
+    for (const name of ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"]) {
+      if (!text(env, name)) fail(name, "is missing. It is needed when STORAGE_DRIVER=cloudinary (Cloudinary dashboard > API keys).");
+    }
+    const cloud = text(env, "CLOUDINARY_CLOUD_NAME");
+    if (cloud && !/^[a-z0-9_-]+$/i.test(cloud)) fail("CLOUDINARY_CLOUD_NAME", `"${cloud}" should be just the cloud name from the dashboard, for example dxyz12abc.`);
   } else if (driver === "s3") {
     for (const name of ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"]) {
       if (!text(env, name)) fail(name, "is missing. It is needed when STORAGE_DRIVER=s3.");
@@ -148,7 +154,7 @@ function checkEnv(env = process.env) {
       fail("STORAGE_PUBLIC_URL", `"${publicUrl}" must be an https address, for example https://cdn.nexthlon.in`);
     }
   } else if (production) {
-    warn("STORAGE_DRIVER", "is local: uploaded photos are written to the server's disk, which many hosts wipe on every deploy. Use s3 (Cloudflare R2 or Amazon S3).");
+    warn("STORAGE_DRIVER", "is local: uploaded photos are written to the server's disk, which many hosts wipe on every deploy. Use cloudinary, or s3 (Cloudflare R2 or Amazon S3).");
   }
 
   // ---------- Background jobs ----------

@@ -364,7 +364,7 @@ const bucket = { STORAGE_DRIVER: "s3", S3_ENDPOINT: "https://abc.r2.cloudflarest
 
 test("storage settings: a bucket needs everything, and a typo in the driver is caught", () => {
   assert.deepEqual(checkEnv({ ...base, ...bucket }), { errors: [], warnings: [] });
-  assert.match(checkEnv({ ...base, STORAGE_DRIVER: "gcs" }).errors[0], /STORAGE_DRIVER: "gcs" must be local or s3/);
+  assert.match(checkEnv({ ...base, STORAGE_DRIVER: "gcs" }).errors[0], /STORAGE_DRIVER: "gcs" must be local, s3 or cloudinary/);
   const missing = checkEnv({ ...base, STORAGE_DRIVER: "s3" }).errors.map(line => line.split(":")[0]);
   for (const name of ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY", "S3_REGION", "STORAGE_PUBLIC_URL"]) assert.ok(missing.includes(name), name);
   // Amazon S3 (no endpoint) needs a region; R2 does not.

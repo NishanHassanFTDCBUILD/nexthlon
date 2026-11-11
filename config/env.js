@@ -81,13 +81,19 @@ function readConfig() {
 
 function readStorage() {
   const text = name => String(process.env[name] ?? "").trim();
-  const driver = text("STORAGE_DRIVER").toLowerCase() === "s3" ? "s3" : "local";
-  const publicUrl = text("STORAGE_PUBLIC_URL").replace(/\/+$/, "");
+  const wanted = text("STORAGE_DRIVER").toLowerCase();
+  const driver = ["s3", "cloudinary"].includes(wanted) ? wanted : "local";
+  const cloudName = text("CLOUDINARY_CLOUD_NAME");
+  // Cloudinary serves from a fixed address built from the cloud name; a bucket from STORAGE_PUBLIC_URL.
+  const publicUrl = driver === "cloudinary" ? (cloudName ? `https://res.cloudinary.com/${cloudName}/image/upload` : "") : text("STORAGE_PUBLIC_URL").replace(/\/+$/, "");
   return {
     driver,
     // The address photos are served from (no trailing slash), and its origin for the Content Security Policy.
-    publicUrl: driver === "s3" ? publicUrl : "",
-    origin: driver === "s3" && publicUrl ? new URL(publicUrl).origin : "",
+    publicUrl: driver === "local" ? "" : publicUrl,
+    origin: driver !== "local" && publicUrl ? new URL(publicUrl).origin : "",
+    cloudName,
+    apiKey: text("CLOUDINARY_API_KEY"),
+    apiSecret: String(process.env.CLOUDINARY_API_SECRET ?? ""),
     endpoint: text("S3_ENDPOINT").replace(/\/+$/, ""),
     region: text("S3_REGION") || "auto",
     bucket: text("S3_BUCKET"),

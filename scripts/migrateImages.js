@@ -11,7 +11,7 @@ async function main() {
   await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10_000 });
   const report = await migrateImages({ dryRun });
 
-  console.log(`Photos go to: ${report.driver === "s3" ? `the bucket (${config.storage.publicUrl})` : "this server's disk (public/uploads)"}`);
+  console.log(`Photos go to: ${report.driver === "local" ? "this server's disk (public/uploads)" : `${report.driver === "cloudinary" ? "Cloudinary" : "the bucket"} (${config.storage.publicUrl})`}`);
   console.log(`${dryRun ? "[dry run, nothing was changed] " : ""}Photos to move: ${report.found}`);
   for (const { from, to } of report.moves) console.log(`  ${from}\n    -> ${to}`);
   if (report.missing.length) {

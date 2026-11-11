@@ -3,7 +3,7 @@
 Two things must live outside your computer (and outside the server) before Nexthlon can go live:
 
 1. **The database**: MongoDB Atlas.
-2. **The product photos**: Cloudflare R2 (or Amazon S3), a bucket the site uploads to and visitors download from.
+2. **The product photos**: Cloudinary (no card needed), or Cloudflare R2 / Amazon S3, a bucket the site uploads to and visitors download from.
 
 You do the clicking in each service's website (they need your account, card and passwords, which only you
 should enter). The code side is done: you put the values into settings, then run two check commands.
@@ -103,7 +103,27 @@ better to start clean and not carry test customers and orders over.
 
 ---
 
-## Part 2: Cloudflare R2 (the product photos)
+## Part 2 (no card needed): Cloudinary for the product photos
+
+Cloudinary stores the photos and serves them from its own fast network. The free plan needs no payment card.
+
+1. Sign up at <https://cloudinary.com/users/register_free>.
+2. On the dashboard, open **Settings > API Keys** (or "Go to API Keys"). Note the **Cloud name**, the **API Key** and
+   the **API Secret**.
+3. In `.env` (on a host: its settings page) set:
+   ```
+   STORAGE_DRIVER=cloudinary
+   CLOUDINARY_CLOUD_NAME=<cloud name>
+   CLOUDINARY_API_KEY=<api key>
+   CLOUDINARY_API_SECRET=<api secret>
+   ```
+4. Test it: `npm run setup:check`. It uploads and deletes a tiny test file.
+5. Move the photos you already have: `npm run images:migrate`.
+
+Later, when you have a business card, you can switch to Cloudflare R2 or Amazon S3 (below): change the settings and run
+`npm run images:migrate` again. Nothing else changes.
+
+## Part 2b: Cloudflare R2 (the product photos)
 
 Why not just the server's disk? A hosting platform wipes the disk at every deploy, so uploaded photos would
 vanish. A bucket keeps them, and serves them quickly. **R2 is recommended because Cloudflare does not charge for

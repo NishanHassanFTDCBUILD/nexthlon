@@ -1,11 +1,12 @@
 // Where uploaded photos live. Two places can hold them at once:
-//   current()  the provider new uploads go to, chosen by STORAGE_DRIVER (local or s3);
+//   current()  the provider new uploads go to, chosen by STORAGE_DRIVER (local, s3 or cloudinary);
 //   local()    this server's disk (public/uploads). It always exists, because photos uploaded before the
 //              switch to cloud storage are still there, and deleting or migrating them must find them.
 // A stored photo URL says which one holds it: "/uploads/..." is local, STORAGE_PUBLIC_URL/... is cloud.
 const config = require("../../config/env");
 const { createLocalStorage } = require("./local");
 const { createS3Storage } = require("./s3");
+const { createCloudinaryStorage } = require("./cloudinary");
 
 let localProvider = null;
 let currentProvider = null;
@@ -17,7 +18,8 @@ function local() {
 
 function current() {
   if (!currentProvider) {
-    currentProvider = config.storage.driver === "s3" ? createS3Storage(config.storage) : local();
+    const { driver } = config.storage;
+    currentProvider = driver === "s3" ? createS3Storage(config.storage) : driver === "cloudinary" ? createCloudinaryStorage(config.storage) : local();
   }
   return currentProvider;
 }
