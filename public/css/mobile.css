@@ -21,6 +21,17 @@
   .flip-off { font-size: var(--text-3xl); }
   .flip-toggle { width: 40px; height: 40px; right: 8px; bottom: 8px; }
 
+  /* ---------- Home: "Pick your sport" ---------- */
+  /* The tab row scrolls sideways: fade its right edge so it is clear there is more to swipe. */
+  .sport-tabs { -webkit-mask: linear-gradient(90deg, #000 82%, transparent); mask: linear-gradient(90deg, #000 82%, transparent); padding-right: 40px; }
+  /* The big outlined sport name behind the card was almost invisible on a small screen. */
+  .sport-ring-word { -webkit-text-stroke-color: rgba(255, 255, 255, 0.22); }
+
+  /* ---------- Home: showcase labels stay whole (they were squeezed to 3 lines and clipped) ---------- */
+  .showcase-label { max-width: 48%; }
+  .showcase-label .showcase-line { display: none; }
+  .showcase-label span { padding: 5px 10px; font-size: 12px; white-space: nowrap; }
+
   /* ---------- Product cards: price line, then the saving; delivery note on one line ---------- */
   .product-body { padding: 10px 12px 12px; }
   .product-card .price-row { gap: 0 6px; }
