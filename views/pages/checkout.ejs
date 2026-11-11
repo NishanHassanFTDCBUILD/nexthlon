@@ -82,7 +82,7 @@
           <ul class="checkout-items">
             <% quote.lines.forEach(function (item) { %>
               <li>
-                <img src="<%= item.image %>" alt="" width="64" height="64" loading="lazy">
+                <img src="<%= sizedUrl(item.image, 200) %>" alt="" width="64" height="64" loading="lazy">
                 <div>
                   <strong><%= item.name %></strong>
                   <span class="muted">Qty <%= item.quantity %> · <%= formatPrice(item.price) %> each</span>

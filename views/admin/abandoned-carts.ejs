@@ -26,7 +26,7 @@
           </div>
           <div class="admin-cart-items">
             <% c.lines.slice(0, 4).forEach(function (l) { %>
-              <span class="admin-cart-item<%= l.available ? '' : ' is-gone' %>" title="<%= l.name %>"><img src="<%= l.image %>" alt="" width="36" height="36" loading="lazy"><span><%= l.name.length > 26 ? l.name.slice(0, 25) + '…' : l.name %> × <%= l.quantity %></span></span>
+              <span class="admin-cart-item<%= l.available ? '' : ' is-gone' %>" title="<%= l.name %>"><img src="<%= sizedUrl(l.image, 200) %>" alt="" width="36" height="36" loading="lazy"><span><%= l.name.length > 26 ? l.name.slice(0, 25) + '…' : l.name %> × <%= l.quantity %></span></span>
             <% }) %>
             <% if (c.lines.length > 4) { %><small class="muted">+<%= c.lines.length - 4 %> more</small><% } %>
           </div>

@@ -99,7 +99,7 @@
       img.width = 44;
       img.height = 44;
       img.loading = "lazy";
-      if (/^(\/|https:\/\/)/.test(product.image || "")) img.src = product.image;
+      if (/^(\/|https:\/\/)/.test(product.image || "")) img.src = Nx.photoSized(product.image, 96);
       const text = document.createElement("span");
       text.className = "suggest-text";
       const name = document.createElement("span");

@@ -1,7 +1,8 @@
 const { STORE, PRICE_BANDS } = require("../config/store");
 const categoryService = require("../services/categoryService");
 const { formatPaise } = require("../utils/money");
-const { srcsetFor, sizedUrl, CARD_SIZES } = require("../utils/images");
+const { srcsetFor, sizedUrl, gallerySource, CARD_SIZES } = require("../utils/images");
+const config = require("../config/env");
 const { assetUrl, styleBundleUrl } = require("../utils/assets");
 
 const shortDate = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -29,6 +30,9 @@ function viewLocals(req, res, next) {
   res.locals.srcsetFor = srcsetFor;
   res.locals.cardSizes = CARD_SIZES;
   res.locals.sizedUrl = sizedUrl;
+  res.locals.gallerySource = gallerySource;
+  // Where uploaded photos are served from when they live in a bucket ("" on local disk), for preconnect.
+  res.locals.storageOrigin = config.storage.origin;
   // Versioned URL for the site's own CSS and JS (utils/assets.js): asset("/css/style.css").
   res.locals.asset = assetUrl;
   // One stylesheet request for a page: styleBundle(["tokens", "components", ...]).

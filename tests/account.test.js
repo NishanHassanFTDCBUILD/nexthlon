@@ -323,7 +323,8 @@ test("returns can carry up to 3 real photos, saved only for the owner's returnab
   const customer = await signUp("Farah Ali", "farah@account.test");
   const other = await signUp("Gita Rao", "gita@account.test");
   await deliveredOrder(customer.user, socks, "NX-2026-900005");
-  const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(32)]);
+  // A real 1x1 PNG: photos are now decoded and re-saved as WebP, so a bare PNG signature would be refused.
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   const formWith = files => {
     const form = new FormData();
     form.append("reason", "Damaged or defective");
@@ -344,7 +345,7 @@ test("returns can carry up to 3 real photos, saved only for the owner's returnab
   assert.equal(ok.status, 200, JSON.stringify(ok.data));
   const order = await Order.findOne({ orderId: "NX-2026-900005" }).lean();
   assert.equal(order.returnPhotos.length, 1);
-  assert.match(order.returnPhotos[0], /^\/uploads\/returns\/[a-f0-9]{32}\.png$/);
+  assert.match(order.returnPhotos[0], /^\/uploads\/returns\/[a-f0-9]{32}\.webp$/);
   const fs = require("fs/promises");
   const path = require("path");
   await fs.unlink(path.join(__dirname, "..", "public", order.returnPhotos[0]));

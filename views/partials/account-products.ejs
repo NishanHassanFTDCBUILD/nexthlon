@@ -2,7 +2,7 @@
 <div class="acct-products">
   <% products.forEach(function (p, i) { %>
     <a class="acct-product" href="/products/<%= p.slug %>">
-      <span class="acct-product-media"><img src="<%= p.image %>" alt="" width="200" height="200" loading="lazy" decoding="async"></span>
+      <span class="acct-product-media"><img src="<%= sizedUrl(p.image, 400) %>" alt="" width="200" height="200" loading="lazy" decoding="async"></span>
       <span class="acct-product-name"><%= p.name %></span>
       <span class="acct-product-price"><strong><%= formatPrice(p.price) %></strong><% if (p.discountPercent > 0) { %> <em><%= p.discountPercent %>% off</em><% } %></span>
     </a>

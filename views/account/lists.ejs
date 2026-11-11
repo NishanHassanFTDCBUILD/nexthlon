@@ -50,7 +50,7 @@
       <div class="acct-grid list-items">
         <% l.items.forEach(function (item, i) { %>
           <article class="list-item<%= item.available ? '' : ' is-unavailable' %>" draggable="true" data-list-item="<%= item.productId %>" data-from="<%= l.id %>">
-            <a class="list-item-media" href="/products/<%= item.slug %>" draggable="false"><img src="<%= item.image %>" alt="<%= item.name %>" width="240" height="240" loading="lazy" decoding="async" draggable="false"></a>
+            <a class="list-item-media" href="/products/<%= item.slug %>" draggable="false"><img src="<%= sizedUrl(item.image, 400) %>" alt="<%= item.name %>" width="240" height="240" loading="lazy" decoding="async" draggable="false"></a>
             <div class="list-item-body">
               <a class="list-item-name" href="/products/<%= item.slug %>" draggable="false"><%= item.name %></a>
               <p class="acct-buy-price"><strong><%= formatPrice(item.price) %></strong><% if (item.discountPercent > 0) { %> <s><%= formatPrice(item.mrp) %></s> <em><%= item.discountPercent %>% off</em><% } %></p>

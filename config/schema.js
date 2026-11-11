@@ -47,6 +47,16 @@ function checkEnv(env = process.env) {
   const mongo = text(env, "MONGODB_URI");
   if (!mongo) fail("MONGODB_URI", "is missing. Copy .env.example to .env and set it (for Atlas: the mongodb+srv:// connection string).");
   else if (!/^mongodb(\+srv)?:\/\//.test(mongo)) fail("MONGODB_URI", "must start with mongodb:// or mongodb+srv://.");
+  else {
+    // Atlas shows the string with a placeholder where the password goes, and without a database name.
+    if (/<[^>]*(password|db_password)[^>]*>/i.test(mongo)) fail("MONGODB_URI", "still has the <password> placeholder from Atlas. Replace it, including the < >, with the database user's password (special characters such as @ : / ? # must be URL-encoded).");
+    // Everything after the last / and before ?: the database name. Without it MongoDB uses "test".
+    const database = (mongo.replace(/^mongodb(\+srv)?:\/\/[^/]*/, "").split("?")[0] || "").replace(/^\//, "");
+    if (!database) warn("MONGODB_URI", "has no database name, so MongoDB would use one called \"test\". Put it after the host, for example ...mongodb.net/nexthlon?retryWrites=true");
+    else if (production && /(^|[-_])test$/i.test(database)) warn("MONGODB_URI", `uses the database "${database}", which looks like a test database.`);
+  }
+  const pool = text(env, "MONGODB_MAX_POOL");
+  if (pool && !(/^\d+$/.test(pool) && Number(pool) >= 1 && Number(pool) <= 100)) fail("MONGODB_MAX_POOL", `"${pool}" must be a number from 1 to 100 (connections per server copy; the default is 20).`);
 
   const secret = String(env.JWT_SECRET ?? "");
   if (Buffer.byteLength(secret) < 32) {
@@ -110,6 +120,29 @@ function checkEnv(env = process.env) {
     if (!text(env, "RAZORPAY_WEBHOOK_SECRET")) warn("RAZORPAY_WEBHOOK_SECRET", "is not set, so payment confirmations from Razorpay's webhook can't be checked.");
   } else if (production) {
     warn("RAZORPAY_KEY_ID", "is not set, so online payments are switched off (cash on delivery and the wallet still work).");
+  }
+
+  // ---------- Photo storage ----------
+  // local: files in public/uploads (development; a host's disk is wiped on every deploy unless it has a volume).
+  // s3:    any S3-compatible bucket: Cloudflare R2, Amazon S3, Backblaze B2... served from STORAGE_PUBLIC_URL.
+  const driver = text(env, "STORAGE_DRIVER").toLowerCase() || "local";
+  if (!["local", "s3"].includes(driver)) {
+    fail("STORAGE_DRIVER", `"${driver}" must be local or s3.`);
+  } else if (driver === "s3") {
+    for (const name of ["S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"]) {
+      if (!text(env, name)) fail(name, "is missing. It is needed when STORAGE_DRIVER=s3.");
+    }
+    const endpoint = text(env, "S3_ENDPOINT");
+    if (endpoint && !/^https:\/\/[^/]+\/?$/.test(endpoint)) fail("S3_ENDPOINT", `"${endpoint}" must be an https address with no path, for example https://<account>.r2.cloudflarestorage.com`);
+    if (!endpoint && !text(env, "S3_REGION")) fail("S3_REGION", "is missing. Set it for Amazon S3 (for example ap-south-1), or set S3_ENDPOINT for R2 and other services.");
+    const publicUrl = text(env, "STORAGE_PUBLIC_URL");
+    if (!publicUrl) {
+      fail("STORAGE_PUBLIC_URL", "is missing. It is the address the photos are served from, for example https://cdn.nexthlon.in");
+    } else if (!/^https:\/\/[^/\s]+(\/[^\s]*)?$/.test(publicUrl.replace(/\/+$/, "")) || /[?#]/.test(publicUrl)) {
+      fail("STORAGE_PUBLIC_URL", `"${publicUrl}" must be an https address, for example https://cdn.nexthlon.in`);
+    }
+  } else if (production) {
+    warn("STORAGE_DRIVER", "is local: uploaded photos are written to the server's disk, which many hosts wipe on every deploy. Use s3 (Cloudflare R2 or Amazon S3).");
   }
 
   // ---------- Email ----------

@@ -11,6 +11,8 @@
     "seed:admin": "node scripts/seedAdmin.js",
     "seed:products": "node scripts/seedProducts.js",
     "seed:coupons": "node scripts/seedCoupons.js",
+    "db:check": "node scripts/checkDb.js",
+    "images:migrate": "node scripts/migrateImages.js",
     "test": "node --test"
   },
   "engines": {
@@ -18,6 +20,7 @@
   },
   "dependencies": {
     "@sentry/node": "11.12.0",
+    "aws4fetch": "1.0.20",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",

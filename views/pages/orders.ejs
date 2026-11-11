@@ -61,7 +61,7 @@
           <div class="order-card-body">
             <ul class="order-thumbs">
               <% order.items.slice(0, 4).forEach(function (item) { %>
-                <li class="<%= item.status === 'cancelled' ? 'is-cancelled' : '' %>"><img src="<%= item.image %>" alt="" width="56" height="56" loading="lazy"><span><%= item.name %><span class="muted"> × <%= item.quantity %></span></span></li>
+                <li class="<%= item.status === 'cancelled' ? 'is-cancelled' : '' %>"><img src="<%= sizedUrl(item.image, 200) %>" alt="" width="56" height="56" loading="lazy"><span><%= item.name %><span class="muted"> × <%= item.quantity %></span></span></li>
               <% }) %>
               <% if (order.items.length > 4) { %><li class="muted">+<%= order.items.length - 4 %> more</li><% } %>
             </ul>

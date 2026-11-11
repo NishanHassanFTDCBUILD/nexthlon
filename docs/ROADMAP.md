@@ -100,7 +100,7 @@ start-up checks for every environment variable, request IDs in logs, Sentry erro
 MongoDB service. Follow the Nexthlon bar. Plan first, then wait for my go-ahead.
 ```
 
-### [ ] A3. Photos in cloud storage, with sizes for every screen · M
+### [x] A3. Photos in cloud storage, with sizes for every screen · M
 - **Goal:** uploads survive redeploys and load fast. Every uploaded photo gets 400, 800 and 1600px WebP copies with `srcset`.
 - **Files:** `providers/storage/{local,r2}.js`, `services/imageService.js`, `utils/images.js`, `public/js/store.js`, a migration for existing uploads, and image deletes.
 - **Done when:** product cards download a card-sized photo, the `/products` mobile LCP is under 2.5s in Lighthouse, and photo storage can switch between local and R2 (or S3) through config.

@@ -81,7 +81,7 @@
                 <tr data-product-row="<%= p.id %>" class="<%= p.isListed ? '' : 'is-unlisted' %>">
                   <td>
                     <div class="person product-person">
-                      <img class="product-thumb" src="<%= p.image %>" alt="" width="48" height="48" loading="lazy">
+                      <img class="product-thumb" src="<%= sizedUrl(p.image, 200) %>" alt="" width="48" height="48" loading="lazy">
                       <div><strong><%= p.name %></strong><span><%= p.categoryName %> · <%= p.brand %></span></div>
                     </div>
                   </td>

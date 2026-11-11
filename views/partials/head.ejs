@@ -11,6 +11,7 @@
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
   <%# Most product photos come from Unsplash: open that connection while the page is still loading. %>
   <link rel="preconnect" href="https://images.unsplash.com">
+  <% if (typeof storageOrigin !== 'undefined' && storageOrigin) { %><link rel="preconnect" href="<%= storageOrigin %>"><% } %>
   <%# Sets the dark theme before the first paint (the store has no light mode). %>
   <script src="<%= asset('/js/theme.js') %>"></script>
   <%# The fonts come from this site (tokens.css). The three the first screen needs load straight away. %>

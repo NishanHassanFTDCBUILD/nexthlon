@@ -1,14 +1,23 @@
 const crypto = require("crypto");
-const fs = require("fs/promises");
-const path = require("path");
+const storage = require("../providers/storage");
+const { VARIANT_WIDTHS } = require("../utils/images");
+const { HttpError } = require("../utils/http");
+const logger = require("../utils/logger");
 
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-// Uploads live in public/uploads/<folder>: products (admin photos) and returns (customer photos).
+// Uploads live in a storage provider (providers/storage): local disk in development, an S3-compatible
+// bucket (Cloudflare R2, Amazon S3) in production. Folders: products (admin photos) and returns (customer photos).
 const FOLDERS = new Set(["products", "returns"]);
-const UPLOAD_DIR = path.join(__dirname, "..", "public", "uploads", "products");
 const MAX_RETURN_PHOTOS = 3;
+// Largest side of the saved photo. Product photos keep up to 2000px so the product page zoom shows real
+// detail; customer return photos only need to be readable.
+const FULL_SIDE = { products: 2000, returns: 1200 };
+// A photo that decodes to more pixels than this is refused (a small file can hide a huge image).
+const MAX_PIXELS = 64_000_000;
+const WEBP_FULL = { quality: 82, effort: 4 };
+const WEBP_SMALL = { quality: 78, effort: 4 };
 
 // Works out the real image type from the first bytes of the file, not from its name.
 function detectImageType(buffer) {
@@ -24,61 +33,102 @@ function findFakeImages(files = []) {
   return files.filter(file => !detectImageType(file.buffer)).map(file => file.originalname);
 }
 
-// Uploads are shrunk to web size before saving: at most 2000px (products) or 1200px (returns) on the longest side, re-compressed
-// in the same format, turned the right way up, and with camera details (location, device) removed.
-// A photo that cannot be processed, or would not get smaller, is kept exactly as uploaded.
-// Product photos keep up to 2000px so the product page zoom shows real detail; customer return
-// photos only need to be readable, so they stay at 1200px.
-const MAX_SIDE = { products: 2000, returns: 1200 };
-async function shrinkImage(buffer, type, maxSide = MAX_SIDE.products) {
-  try {
-    const sharp = require("sharp");
-    const image = sharp(buffer, { failOn: "none" }).rotate().resize({ width: maxSide, height: maxSide, fit: "inside", withoutEnlargement: true });
-    const out = await (type === "png" ? image.png({ compressionLevel: 9, palette: true, quality: 85 })
-      : type === "webp" ? image.webp({ quality: 80 })
-        : image.jpeg({ quality: 82, mozjpeg: true })).toBuffer();
-    return out.length < buffer.length ? out : buffer;
-  } catch {
-    return buffer;
-  }
+// Turns an upload into what gets saved: one WebP "full" copy (turned the right way up, camera details such
+// as location and device removed, at most 2000px or 1200px on the longest side) and, for product photos,
+// smaller WebP copies at each width in VARIANT_WIDTHS. A photo narrower than a width is not enlarged, so
+// that copy is simply the same size: the file always exists, and a srcset never points at nothing.
+async function renderImage(buffer, folder = "products") {
+  const sharp = require("sharp");
+  const side = FULL_SIDE[folder];
+  const full = await sharp(buffer, { failOn: "none", limitInputPixels: MAX_PIXELS })
+    .rotate()
+    .resize({ width: side, height: side, fit: "inside", withoutEnlargement: true })
+    .webp(WEBP_FULL)
+    .toBuffer();
+  if (folder !== "products") return { full, variants: [] };
+  const variants = await Promise.all(VARIANT_WIDTHS.map(async width => ({
+    width,
+    buffer: await sharp(full).resize({ width, withoutEnlargement: true }).webp(WEBP_SMALL).toBuffer()
+  })));
+  return { full, variants };
 }
 
-// Saves checked uploads with random names and returns their public URLs, in the same order.
+// Saves checked uploads under random names and returns their public URLs, in the same order.
+//   products: products/<id>-full.webp plus -200, -400, -800 and -1600 copies. The URL is the -full one.
+//   returns:  returns/<id>.webp
+// If anything fails part-way, what was already written is removed again.
 async function saveImages(files = [], folder = "products") {
   if (!files.length) return [];
   if (!FOLDERS.has(folder)) throw new Error(`Unknown upload folder: ${folder}`);
-  const dir = path.join(__dirname, "..", "public", "uploads", folder);
-  await fs.mkdir(dir, { recursive: true });
+  const store = storage.current();
+  const written = [];
   const urls = [];
-  for (const file of files) {
-    const type = detectImageType(file.buffer);
-    const name = `${crypto.randomBytes(16).toString("hex")}.${type}`;
-    await fs.writeFile(path.join(dir, name), await shrinkImage(file.buffer, type, MAX_SIDE[folder]), { flag: "wx" });
-    urls.push(`/uploads/${folder}/${name}`);
+  try {
+    for (const file of files) {
+      const id = crypto.randomBytes(16).toString("hex");
+      let rendered;
+      try {
+        rendered = await renderImage(file.buffer, folder);
+      } catch (error) {
+        logger.warn("image.render_failed", { error });
+        const message = "That photo could not be processed. Try a different file.";
+        throw new HttpError(400, message, { [folder === "products" ? "images" : "photos"]: message });
+      }
+      const parts = folder === "products"
+        ? [[`products/${id}-full.webp`, rendered.full], ...rendered.variants.map(v => [`products/${id}-${v.width}.webp`, v.buffer])]
+        : [[`returns/${id}.webp`, rendered.full]];
+      written.push(...parts.map(([key]) => key));
+      await Promise.all(parts.map(([key, body]) => store.put(key, body, { contentType: "image/webp" })));
+      urls.push(store.publicUrl(parts[0][0]));
+    }
+    return urls;
+  } catch (error) {
+    await store.remove(written).catch(() => {});
+    throw error;
   }
-  return urls;
 }
 
+// One of our own product photos: new ("<id>-full.webp") or from before small copies existed ("<id>.jpg").
+// It must be in local storage ("/uploads/...") or in the configured bucket (STORAGE_PUBLIC_URL/...).
+const PRODUCT_KEY = /^products\/[a-f0-9]{32}(-full\.webp|\.(jpg|png|webp))$/;
 function isUploadedImage(url) {
-  return typeof url === "string" && /^\/uploads\/products\/[a-f0-9]{32}\.(jpg|png|webp)$/.test(url);
+  const backend = storage.backendFor(url);
+  const key = backend ? backend.keyFromUrl(url) : null;
+  return key !== null && PRODUCT_KEY.test(key);
 }
 
-// Deletes our own uploaded files only. Outside photo links (like Unsplash) are simply forgotten.
+// Every file behind one stored photo address: the photo itself, and its smaller copies when it has them.
+function keysFor(key) {
+  if (!key.endsWith("-full.webp")) return [key];
+  return [key, ...VARIANT_WIDTHS.map(width => key.replace(/-full\.webp$/, `-${width}.webp`))];
+}
+
+// Deletes our own uploaded files only, wherever they are (disk or bucket), with their small copies.
+// Outside photo links (like Unsplash) are simply forgotten. Never throws: a photo that can't be removed
+// costs a little storage, and must not stop a product from saving.
 async function deleteImages(urls = []) {
-  await Promise.all(urls.filter(isUploadedImage).map(url =>
-    fs.unlink(path.join(UPLOAD_DIR, path.basename(url))).catch(() => {})
+  const byBackend = new Map();
+  for (const url of urls.filter(isUploadedImage)) {
+    const backend = storage.backendFor(url);
+    byBackend.set(backend, [...(byBackend.get(backend) || []), ...keysFor(backend.keyFromUrl(url))]);
+  }
+  await Promise.all([...byBackend].map(([backend, keys]) =>
+    backend.remove(keys).catch(error => logger.warn("storage.delete_failed", { error }))
   ));
 }
 
 module.exports = {
-  shrinkImage,
+  renderImage,
   MAX_IMAGES,
   MAX_RETURN_PHOTOS,
   MAX_IMAGE_BYTES,
   ALLOWED_TYPES,
+  FOLDERS,
+  FULL_SIDE,
   detectImageType,
   findFakeImages,
   saveImages,
   deleteImages,
-  isUploadedImage
+  isUploadedImage,
+  keysFor
 };

@@ -4,7 +4,10 @@
 
   // A sharper copy of a photo for zooming: Unsplash serves any width (w=2000); our own uploads are
   // stored at up to 2000px already, so they are used as they are.
-  const hiRes = src => (/^https:\/\/images\.unsplash\.com\//.test(src || "") && /([?&])w=\d+/.test(src) ? src.replace(/([?&])w=\d+/, "$1w=2000") : src);
+  // The page shows one of our own photos as a smaller copy (".../<id>-1600.webp"); zooming wants the full-size
+  // one (".../<id>-full.webp"), which is also what the photo list holds.
+  const fullOf = src => (src || "").replace(/(\/products\/[a-f0-9]{32})-\d+\.webp$/, "$1-full.webp");
+  const hiRes = src => (/^https:\/\/images\.unsplash\.com\//.test(src || "") && /([?&])w=\d+/.test(src) ? src.replace(/([?&])w=\d+/, "$1w=2000") : fullOf(src));
   const mouseZoom = window.matchMedia("(hover: hover) and (pointer: fine)");
   const mainPhoto = document.querySelector("[data-gallery-main]");
   const stage = document.querySelector("[data-zoom-stage]");
@@ -161,7 +164,7 @@
       if (counter) counter.textContent = String(index + 1);
     };
     const open = () => {
-      const current = mainPhoto ? photos.indexOf(mainPhoto.getAttribute("src")) : 0;
+      const current = mainPhoto ? photos.indexOf(fullOf(mainPhoto.getAttribute("src"))) : 0;
       show(Math.max(0, current));
       lightbox.showModal();
       document.body.classList.add("drawer-open");

@@ -7,7 +7,7 @@ async function connectDB() {
   mongoose.set("strictQuery", true);
   // Give up after 10 seconds when no database answers, so a wrong address fails fast with a clear
   // message (the default waits 30 seconds).
-  await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10_000 });
+  await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10_000, maxPoolSize: config.mongoMaxPool });
   console.log("MongoDB connected");
 
   // After the first connection the driver reconnects by itself; these lines make that visible in the logs.

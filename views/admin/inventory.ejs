@@ -68,7 +68,7 @@
             <tr data-inv-row="<%= p.id %>" class="<%= p.isListed ? '' : 'is-unlisted' %>">
               <td>
                 <div class="person product-person">
-                  <img class="product-thumb" src="<%= p.image %>" alt="" width="48" height="48" loading="lazy" decoding="async">
+                  <img class="product-thumb" src="<%= sizedUrl(p.image, 200) %>" alt="" width="48" height="48" loading="lazy" decoding="async">
                   <div><strong><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a></strong><span><%= p.category || 'No category' %> · <%= p.brand %><%= p.isListed ? '' : ' · unlisted' %></span></div>
                 </div>
               </td>

@@ -8,6 +8,29 @@
   // The API sends money in paise (₹1 = 100 paise): 12345600 shows as "₹1,23,456".
   const wholeRupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
   const exactRupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Sizes of a photo, the same rules as utils/images.js. Our own uploads are stored as ".../products/<id>-full.webp"
+  // with smaller copies beside them (-200, -400, -800, -1600); Unsplash photos take a width in the address.
+  const OWN_PHOTO = /^(.*\/products\/[a-f0-9]{32})-full\.webp$/;
+  const UNSPLASH_PHOTO = /^https:\/\/images\.unsplash\.com\/[^?#]+\?/;
+  const PHOTO_WIDTHS = [200, 400, 800, 1600];
+  // The smallest copy that is at least this wide, or the photo itself.
+  Nx.photoSized = function photoSized(url, width) {
+    const own = OWN_PHOTO.exec(url || "");
+    if (own) {
+      const size = PHOTO_WIDTHS.find(candidate => candidate >= width);
+      return size ? `${own[1]}-${size}.webp` : url;
+    }
+    if (UNSPLASH_PHOTO.test(url || "") && /([?&])w=\d+/.test(url)) return url.replace(/([?&])w=\d+/, `$1w=${width}`);
+    return url;
+  };
+  // A srcset for a product card, or "" when the photo only comes in one size.
+  Nx.photoSrcset = function photoSrcset(url) {
+    const own = OWN_PHOTO.exec(url || "");
+    if (own) return [400, 800, 1600].map(width => `${own[1]}-${width}.webp ${width}w`).join(", ");
+    if (UNSPLASH_PHOTO.test(url || "") && /([?&])w=\d+/.test(url)) return [400, 600, 800].map(width => `${url.replace(/([?&])w=\d+/, `$1w=${width}`)} ${width}w`).join(", ");
+    return "";
+  };
+
   Nx.formatPrice = function formatPrice(paise) {
     const value = Math.round(Number(paise) || 0);
     return value % 100 === 0 ? wholeRupees.format(value / 100) : exactRupees.format(value / 100);

@@ -196,7 +196,7 @@
         <ul class="dash-stock">
           <% panels.stockList.forEach(function (p) { %>
             <li>
-              <img src="<%= p.image %>" alt="" width="40" height="40" loading="lazy">
+              <img src="<%= sizedUrl(p.image, 200) %>" alt="" width="40" height="40" loading="lazy">
               <span class="dash-stock-name"><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a><span class="pill <%= p.stock ? 'pill-amber' : 'pill-red' %>" data-stock-label><%= p.stock ? p.stock + ' left' : 'Out of stock' %></span></span>
               <form class="dash-restock" data-restock="<%= p.id %>" novalidate>
                 <label class="sr-only" for="restock-<%= p.id %>">Units to add to <%= p.name %></label>

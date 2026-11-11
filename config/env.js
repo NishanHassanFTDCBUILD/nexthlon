@@ -42,6 +42,12 @@ function readConfig() {
     trustProxy: text("TRUST_PROXY") ? Number(text("TRUST_PROXY")) : isProduction ? 1 : 0,
     // The store's public address, with no trailing slash (emails, sitemap, share previews).
     siteUrl: text("SITE_URL").replace(/\/+$/, ""),
+    // Where uploaded photos are kept: "local" (public/uploads) or "s3" (R2, S3 and other S3-compatible
+    // buckets, served from publicUrl). The secrets never leave the server.
+    storage: readStorage(),
+    // Connections to MongoDB per copy of the app. Atlas's free tier allows 500 in all, so several copies
+    // with the driver's default of 100 each could use them up.
+    mongoMaxPool: Number(text("MONGODB_MAX_POOL")) || 20,
     // Online payments (Razorpay). Optional: without the keys the store still runs, and the
     // online payment option shows as unavailable. The secrets never leave the server.
     razorpay: readRazorpay(),
@@ -60,6 +66,23 @@ function readConfig() {
     release: text("APP_RELEASE") || `nexthlon@${require("../package.json").version}`,
     // Things that work but are probably not what you want in production (config/schema.js).
     warnings
+  };
+}
+
+function readStorage() {
+  const text = name => String(process.env[name] ?? "").trim();
+  const driver = text("STORAGE_DRIVER").toLowerCase() === "s3" ? "s3" : "local";
+  const publicUrl = text("STORAGE_PUBLIC_URL").replace(/\/+$/, "");
+  return {
+    driver,
+    // The address photos are served from (no trailing slash), and its origin for the Content Security Policy.
+    publicUrl: driver === "s3" ? publicUrl : "",
+    origin: driver === "s3" && publicUrl ? new URL(publicUrl).origin : "",
+    endpoint: text("S3_ENDPOINT").replace(/\/+$/, ""),
+    region: text("S3_REGION") || "auto",
+    bucket: text("S3_BUCKET"),
+    accessKeyId: text("S3_ACCESS_KEY_ID"),
+    secretAccessKey: String(process.env.S3_SECRET_ACCESS_KEY ?? "")
   };
 }
 

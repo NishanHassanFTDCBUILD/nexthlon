@@ -8,7 +8,7 @@
   <div class="acct-grid" data-buy-again>
     <% rows.forEach(function (row, i) { const item = row.item; %>
       <article class="acct-buy-card">
-        <a class="acct-buy-media" href="/products/<%= item.slug %>"><img src="<%= item.image %>" alt="<%= item.name %>" width="240" height="240" loading="lazy" decoding="async"></a>
+        <a class="acct-buy-media" href="/products/<%= item.slug %>"><img src="<%= sizedUrl(item.image, 400) %>" alt="<%= item.name %>" width="240" height="240" loading="lazy" decoding="async"></a>
         <div class="acct-buy-body">
           <a class="acct-buy-name" href="/products/<%= item.slug %>"><%= item.name %></a>
           <small class="muted">Last bought <%= formatDate(row.lastBought) %><%= row.times > 1 ? ' · ' + row.times + ' bought' : '' %></small>

@@ -20,7 +20,13 @@ const production = {
   ADMIN_PATH: "/nx-console-7f3k",
   SMTP_HOST: "smtp.example.com", SMTP_USER: "u", SMTP_PASS: "p",
   RAZORPAY_KEY_ID: "rzp_live_abc", RAZORPAY_KEY_SECRET: "s", RAZORPAY_WEBHOOK_SECRET: "w",
-  SENTRY_DSN: "https://abc123@o1.ingest.sentry.io/42"
+  SENTRY_DSN: "https://abc123@o1.ingest.sentry.io/42",
+  STORAGE_DRIVER: "s3",
+  S3_ENDPOINT: "https://abc.r2.cloudflarestorage.com",
+  S3_BUCKET: "nexthlon",
+  S3_ACCESS_KEY_ID: "key",
+  S3_SECRET_ACCESS_KEY: "secret",
+  STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in"
 };
 
 test("a good development setup has no errors and no warnings", () => {
@@ -90,7 +96,7 @@ test("Razorpay keys come as a pair, and test keys in production are called out",
 test("production warns about what is missing: email, payments, alerts", () => {
   const { errors, warnings } = checkEnv({ ...good, NODE_ENV: "production", SITE_URL: "https://x.in" });
   assert.equal(errors.length, 0);
-  for (const name of ["ADMIN_PATH", "RAZORPAY_KEY_ID", "SMTP_HOST", "SENTRY_DSN"]) {
+  for (const name of ["ADMIN_PATH", "RAZORPAY_KEY_ID", "SMTP_HOST", "SENTRY_DSN", "STORAGE_DRIVER"]) {
     assert.ok(warnings.some(line => line.startsWith(name)), `${name} should warn`);
   }
   // Development stays quiet about the same things.
@@ -273,4 +279,15 @@ test("TRUST_PROXY: off in development, one proxy by default in production, or th
   assert.equal(read({ NODE_ENV: "production" }), 1);
   assert.equal(read({ NODE_ENV: "production", TRUST_PROXY: "2" }), 2);
   assert.equal(read({ NODE_ENV: "production", TRUST_PROXY: "0" }), 0);
+});
+
+// ---------- The photo bucket and the browser ----------
+test("with a bucket, the Content Security Policy lets the browser load photos from it; without one it does not", () => {
+  const script = "const app = require('./app'); const s = app.listen(0, async () => { const r = await fetch('http://127.0.0.1:' + s.address().port + '/api/health'); process.stdout.write(r.headers.get('content-security-policy')); s.close(); process.exit(0); });";
+  const env = { MONGODB_URI: "mongodb://127.0.0.1:1/x", JWT_SECRET: good.JWT_SECRET, NODE_ENV: "development", LOG_LEVEL: "error" };
+  const withBucket = run(script, { ...env, STORAGE_DRIVER: "s3", S3_ENDPOINT: "https://abc.r2.cloudflarestorage.com", S3_BUCKET: "b", S3_ACCESS_KEY_ID: "k", S3_SECRET_ACCESS_KEY: "s", STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in/" }).stdout;
+  assert.match(withBucket, /img-src 'self' data: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com https:\/\/cdn\.nexthlon\.in;/);
+  const without = run(script, env).stdout;
+  assert.match(without, /img-src 'self' data: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com;/);
+  assert.doesNotMatch(without, /cdn\.nexthlon\.in/);
 });

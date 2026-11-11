@@ -3,6 +3,7 @@
 
 <%
   const photos = product.gallery && product.gallery.length > 1 ? product.gallery : [product.image];
+  const mainSource = gallerySource(photos[0]);
   const saving = product.mrp > product.price ? product.mrp - product.price : 0;
   const cat = product.category || {};
   const maxQty = Math.min(product.stock, 5);
@@ -31,7 +32,7 @@
            pinch, double-tap and drag zoom (public/js/product.js). %>
       <div class="pdx-media" data-gallery>
         <div class="pdx-stage" data-stage data-zoom-stage>
-          <img class="pdx-photo" src="<%= photos[0] %>" alt="<%= product.name %>" width="900" height="900" fetchpriority="high" data-gallery-main>
+          <img class="pdx-photo" src="<%= mainSource.src %>"<% if (mainSource.srcset) { %> srcset="<%= mainSource.srcset %>" sizes="(min-width: 1024px) 50vw, 100vw"<% } %> alt="<%= product.name %>" width="900" height="900" fetchpriority="high" data-gallery-main>
           <span class="pdx-lens" data-zoom-lens aria-hidden="true" hidden></span>
 
           <div class="pdx-stage-top">
@@ -55,7 +56,7 @@
         <% if (photos.length > 1) { %>
           <div class="pdx-thumbs" role="group" aria-label="Product photos">
             <% photos.forEach(function (src, index) { %>
-              <button type="button" class="thumb pdx-thumb" data-src="<%= src %>" aria-label="Show photo <%= index + 1 %> of <%= photos.length %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
+              <% const source = gallerySource(src); %><button type="button" class="thumb pdx-thumb" data-src="<%= source.src %>"<% if (source.srcset) { %> data-srcset="<%= source.srcset %>"<% } %> aria-label="Show photo <%= index + 1 %> of <%= photos.length %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
                 <img src="<%= sizedUrl(src, 200) %>" alt="" width="96" height="96" loading="lazy">
               </button>
             <% }) %>
@@ -354,7 +355,7 @@
   <%# ===================== Sticky buy bar (appears once the main buttons scroll away) ===================== %>
   <% if (product.stock > 0 && shopper) { %>
     <div class="pdx-dock" data-dock aria-hidden="true">
-      <img src="<%= photos[0] %>" alt="" width="48" height="48">
+      <img src="<%= sizedUrl(photos[0], 200) %>" alt="" width="48" height="48">
       <div class="pdx-dock-text">
         <strong><%= product.name %></strong>
         <span><% if (product.discountPercent > 0) { %><em class="pdx-off pdx-off-sm">-<%= product.discountPercent %>%</em> <% } %><%= formatPrice(product.price) %><% if (saving) { %> <s><%= formatPrice(product.mrp) %></s><% } %></span>
@@ -375,7 +376,7 @@
     <button type="button" class="icon-btn lightbox-close" data-lightbox-close><%- icon('x') %><span class="sr-only">Close full screen photos</span></button>
   </div>
   <div class="lightbox-stage">
-    <img src="<%= photos[0] %>" alt="<%= product.name %>" data-lightbox-img>
+    <img src="<%= photos[0] %>" alt="<%= product.name %>" loading="lazy" data-lightbox-img>
     <% if (photos.length > 1) { %>
       <button type="button" class="lightbox-nav lightbox-prev" data-lightbox-step="-1" aria-label="Previous photo"><%- icon('chevron-left') %></button>
       <button type="button" class="lightbox-nav lightbox-next" data-lightbox-step="1" aria-label="Next photo"><%- icon('chevron-right') %></button>

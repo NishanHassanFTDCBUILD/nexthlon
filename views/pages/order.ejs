@@ -56,7 +56,7 @@
         <ul class="order-items">
           <% order.items.forEach(function (item) { %>
             <li class="order-item <%= item.status === 'cancelled' ? 'is-cancelled' : '' %>">
-              <img src="<%= item.image %>" alt="" width="80" height="80" loading="lazy">
+              <img src="<%= sizedUrl(item.image, 200) %>" alt="" width="80" height="80" loading="lazy">
               <div class="order-item-info">
                 <a href="/products/<%= item.slug %>"><strong><%= item.name %></strong></a>
                 <span class="muted">Qty <%= item.quantity %> · <%= formatPrice(item.price) %> each<% if (item.mrp > item.price) { %> · M.R.P. <s><%= formatPrice(item.mrp) %></s><% } %></span>

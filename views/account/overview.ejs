@@ -38,7 +38,7 @@
     <% const step = stepOf[lastOrder.orderStatus]; %>
     <a class="acct-last-order" href="/orders/<%= lastOrder.orderId %>">
       <span class="acct-last-thumbs">
-        <% lastOrder.items.slice(0, 3).forEach(function (item) { %><img src="<%= item.image %>" alt="" width="64" height="64" loading="lazy"><% }) %>
+        <% lastOrder.items.slice(0, 3).forEach(function (item) { %><img src="<%= sizedUrl(item.image, 200) %>" alt="" width="64" height="64" loading="lazy"><% }) %>
       </span>
       <span class="acct-last-body">
         <strong><%= lastOrder.orderId %></strong>

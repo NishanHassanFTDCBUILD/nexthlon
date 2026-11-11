@@ -594,6 +594,10 @@
     const show = index => {
       current = (index + thumbs.length) % thumbs.length;
       const thumb = thumbs[current];
+      // The big photo comes in several sizes: switch its srcset together with its src, or the browser
+      // would keep choosing from the previous photo's set.
+      if (thumb.dataset.srcset) main.srcset = thumb.dataset.srcset;
+      else main.removeAttribute("srcset");
       main.src = thumb.dataset.src;
       thumbs.forEach(other => other.removeAttribute("aria-current"));
       thumb.setAttribute("aria-current", "true");

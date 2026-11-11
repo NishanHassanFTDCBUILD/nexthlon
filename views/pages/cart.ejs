@@ -24,7 +24,7 @@
           <% items.forEach(function (item) { %>
             <li class="cart-item <%= item.available ? '' : 'is-unavailable' %>" data-cart-item="<%= item.productId %>" data-name="<%= item.name %>">
               <a class="cart-item-media" href="/products/<%= item.slug %>" tabindex="-1" aria-hidden="true">
-                <img src="<%= item.image %>" alt="" width="112" height="112" loading="lazy">
+                <img src="<%= sizedUrl(item.image, 400) %>" alt="" width="112" height="112" loading="lazy">
               </a>
               <div class="cart-item-info">
                 <span class="product-meta"><%= item.brand %></span>

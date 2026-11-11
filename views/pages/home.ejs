@@ -24,7 +24,7 @@
         <span class="hf-orb"></span>
         <span class="hf-ring hf-ring-1"></span><span class="hf-ring hf-ring-2"></span><span class="hf-ring hf-ring-3"></span>
         <% featured.slice(0, 3).forEach(function (p, i) { %>
-          <img class="hf-card hf-card-<%= i + 1 %>" src="<%= p.image %>" alt="" width="160" height="160" <%- i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %> decoding="async">
+          <img class="hf-card hf-card-<%= i + 1 %>" src="<%= sizedUrl(p.image, 400) %>" alt="" width="160" height="160" <%- i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' %> decoding="async">
         <% }) %>
       </div>
       <div class="container hero3d-content">
@@ -93,7 +93,7 @@
               <article class="zg-card" data-zg-card data-id="<%= p.id %>" data-stock="<%= p.stock %>" data-rating="<%= p.rating %>" data-reviews="<%= p.ratingCount %>">
                 <div class="zg-float">
                   <div class="zg-glass">
-                    <span class="zg-media"><img src="<%= p.image %>" alt="<%= p.name %>" width="320" height="320" loading="lazy" decoding="async"></span>
+                    <span class="zg-media"><img src="<%= sizedUrl(p.image, 800) %>" alt="<%= p.name %>" width="320" height="320" loading="lazy" decoding="async"></span>
                     <div class="zg-body">
                       <% if (p.brand) { %><span class="zg-brand"><%= p.brand %></span><% } %>
                       <a class="zg-link" href="/products/<%= p.slug %>" data-zg-link><span class="zg-name"><%= p.name %></span></a>
@@ -241,8 +241,8 @@
       <div class="showcase-stage" data-showcase-stage aria-hidden="true">
         <span class="showcase-light"></span>
         <div class="showcase-scene">
-          <img class="showcase-product" src="<%= star.image %>" alt="" width="420" height="420" loading="lazy" decoding="async">
-          <img class="showcase-reflection" src="<%= star.image %>" alt="" width="420" height="420" loading="lazy" decoding="async">
+          <img class="showcase-product" src="<%= sizedUrl(star.image, 800) %>" alt="" width="420" height="420" loading="lazy" decoding="async">
+          <img class="showcase-reflection" src="<%= sizedUrl(star.image, 800) %>" alt="" width="420" height="420" loading="lazy" decoding="async">
           <span class="showcase-podium"><span class="podium-top"></span><span class="podium-ring"></span></span>
         </div>
         <% (star.highlights && star.highlights.length ? star.highlights.slice(0, 3) : ['Chosen by athletes', 'Genuine brand', 'Easy returns']).forEach(function (line, i) { %>
@@ -279,7 +279,7 @@
               <div class="flip-inner">
                 <div class="flip-face flip-front">
                   <span class="tag tag-deal"><%= p.discountPercent %>% off</span>
-                  <img src="<%= p.image %>" alt="" width="260" height="260" loading="lazy" decoding="async">
+                  <img src="<%= sizedUrl(p.image, 400) %>" alt="" width="260" height="260" loading="lazy" decoding="async">
                   <strong class="flip-name"><%= p.name %></strong>
                   <span class="price-row"><span class="price price-sm"><%= formatPrice(p.price) %></span><span class="mrp"><s><%= formatPrice(p.mrp) %></s></span></span>
                   <button type="button" class="flip-toggle" data-flip-toggle aria-expanded="false" aria-label="Show the offer on <%= p.name %>"><%- icon('rotate-ccw', 'i-sm') %></button>
@@ -290,7 +290,7 @@
                   <span class="saving">You save <%= formatPrice(p.mrp - p.price) %></span>
                   <% if (p.stock > 0 && shopper) { %>
                     <% if (currentUser) { %>
-                      <button type="button" class="btn btn-primary btn-sm" data-quick-add="<%= p._id %>" data-quick-image="<%= p.image %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
+                      <button type="button" class="btn btn-primary btn-sm" data-quick-add="<%= p._id %>" data-quick-image="<%= sizedUrl(p.image, 400) %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
                     <% } else { %>
                       <a class="btn btn-primary btn-sm" href="/login?next=<%= encodeURIComponent('/products/' + p.slug) %>"><%- icon('cart', 'i-sm') %> Sign in to buy</a>
                     <% } %>

@@ -102,10 +102,11 @@
       </div>`;
     const img = card.querySelector("img");
     if (/^(\/|https:\/\/)/.test(p.image || "")) {
-      // Same responsive sizes as the server-drawn cards (utils/images.js): Unsplash photos come in
-      // 400, 600 and 800 pixel versions and the browser picks the smallest sharp one.
-      if (/^https:\/\/images\.unsplash\.com\/[^?#]+\?/.test(p.image) && /([?&])w=\d+/.test(p.image)) {
-        img.srcset = [400, 600, 800].map(w => `${p.image.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`).join(", ");
+      // Same responsive sizes as the server-drawn cards (utils/images.js): Unsplash photos and our own
+      // uploads come in several widths and the browser picks the smallest sharp one.
+      const srcset = Nx.photoSrcset(p.image);
+      if (srcset) {
+        img.srcset = srcset;
         img.sizes = "(max-width: 720px) 50vw, (max-width: 1180px) 33vw, 340px";
       }
       img.src = p.image;

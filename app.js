@@ -45,7 +45,8 @@ app.use(helmet({
       "style-src": ["'self'", "'unsafe-inline'"],
       // Fonts are served from this site (public/fonts), so nothing comes from Google.
       "font-src": ["'self'"],
-      "img-src": ["'self'", "data:", "https://images.unsplash.com", "https://cdn.razorpay.com"],
+      // Photos: this site, Unsplash (the sample products), Razorpay's logo, and the photo bucket's address.
+      "img-src": ["'self'", "data:", "https://images.unsplash.com", "https://cdn.razorpay.com", ...(config.storage.origin ? [config.storage.origin] : [])],
       //Controls where JavaScript can connect to fetch data.
       "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://lumberjack-cx.razorpay.com", "https://cdn.razorpay.com"],
       //Controls where HTML forms are allowed to submit data. Razorpay posts to its own API when a
