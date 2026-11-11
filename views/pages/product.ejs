@@ -65,7 +65,7 @@
             <a class="pdx-chip" href="/products?category=<%= cat.slug %>"><%= cat.name %></a>
             <%- include('../partials/stock', { stock: product.stock }) %>
             <% if (product.ratingCount > 0) { %>
-              <span class="pdx-rating"><%- icon('star', 'i-xs') %> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %>)</span><span class="sr-only"> out of 5</span></span>
+              <a class="pdx-rating" href="#reviews"><%- icon('star', 'i-xs') %> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %> <%= product.ratingCount === 1 ? 'review' : 'reviews' %>)</span><span class="sr-only">, rated out of 5</span></a>
             <% } %>
           </div>
         </div>
@@ -80,8 +80,6 @@
           <% if (saving) { %>
             <div class="pdx-save">
               <span class="pdx-save-pill"><%- icon('tag', 'i-xs') %> You save <%= formatPrice(saving) %></span>
-              <span class="pdx-save-bar" aria-hidden="true"><i style="--pct: <%= product.discountPercent %>%"></i></span>
-              <span class="pdx-save-pct"><%= product.discountPercent %>%</span>
             </div>
           <% } %>
           <p class="pdx-tax">Inclusive of all taxes<% if (offer) { %> · <span class="pdx-offer"><%= offer.text %></span><% } %></p>
@@ -196,6 +194,91 @@
         <li><%- icon('truck') %><strong>Free over <%= formatPrice(store.freeDeliveryMin) %></strong><span>Smaller orders pay <%= formatPrice(store.deliveryFee) %>. <a href="/shipping-policy">Shipping policy</a></span></li>
         <li><%- icon('rotate-ccw') %><strong><%= store.returnDays %>-day returns</strong><span>Unused, in original packaging. <a href="/refund-policy">Refund policy</a></span></li>
       </ul>
+    </section>
+
+    <%# ---------- Reviews: any signed-in customer can write one ---------- %>
+    <%
+      const total = reviews.pagination.total;
+      const maxBar = Math.max(1, ...reviews.breakdown.map(function (row) { return row.count; }));
+      const fmtDate = function (d) { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); };
+    %>
+    <section class="pdx-block pdx-reviews" id="reviews" data-reveal aria-labelledby="pdx-reviews-title"
+      data-reviews data-product-id="<%= product._id %>" data-page="1" data-pages="<%= reviews.pagination.pages %>">
+      <header class="pdx-block-head">
+        <span class="pdx-num"><%= nextNo() %></span>
+        <h2 id="pdx-reviews-title">Reviews</h2>
+        <div class="pdx-score">
+          <span class="pdx-score-num" data-review-average><%= total ? product.ratingAverage.toFixed(1) : '–' %></span>
+          <div>
+            <span class="rating" style="--rating: <%= product.ratingAverage || 0 %>; --star-size: 18px" data-review-stars aria-hidden="true"></span>
+            <p class="pdx-score-count" data-review-count><%= total %> <%= total === 1 ? 'review' : 'reviews' %></p>
+          </div>
+        </div>
+        <ul class="pdx-bars" aria-label="Ratings breakdown" data-review-bars>
+          <% reviews.breakdown.forEach(function (row) { %>
+            <li data-stars="<%= row.stars %>">
+              <span><%= row.stars %> <%- icon('star', 'i-xs') %></span>
+              <span class="pdx-bar"><i style="width: <%= Math.round(row.count / maxBar * 100) %>%"></i></span>
+              <span class="pdx-bar-n"><%= row.count %></span>
+            </li>
+          <% }) %>
+        </ul>
+      </header>
+
+      <div class="pdx-reviews-body">
+        <% if (reviewStatus.canReview) { %>
+          <form class="pdx-review-form" data-review-form novalidate>
+            <h3>Write a review</h3>
+            <fieldset class="pdx-star-pick">
+              <legend>Your rating</legend>
+              <div class="pdx-star-row" data-star-pick>
+                <% for (let n = 5; n >= 1; n--) { %>
+                  <input type="radio" id="rate-<%= n %>" name="rating" value="<%= n %>">
+                  <label for="rate-<%= n %>" title="<%= n %> star<%= n > 1 ? 's' : '' %>"><%- icon('star') %><span class="sr-only"><%= n %> star<%= n > 1 ? 's' : '' %></span></label>
+                <% } %>
+              </div>
+              <span class="pdx-star-word" data-star-word aria-live="polite">Tap a star</span>
+            </fieldset>
+            <label class="pdx-field">
+              <span>Title <em>(optional)</em></span>
+              <input name="title" maxlength="80" placeholder="Sum it up in a few words">
+            </label>
+            <label class="pdx-field">
+              <span>Your review</span>
+              <textarea name="body" rows="4" minlength="10" maxlength="1000" placeholder="What did you like or not? How did it hold up?" data-review-body></textarea>
+              <small class="pdx-field-count"><span data-review-chars>0</span> / 1000</small>
+            </label>
+            <p class="pdx-form-error" data-review-error role="alert" hidden></p>
+            <div class="pdx-form-foot">
+              <% if (reviewStatus.verified) { %><span class="pdx-verified"><%- icon('check', 'i-xs') %> You bought this: your review shows as a verified purchase</span><% } else { %><span class="pdx-form-note">Posting as <%= currentUser.name %></span><% } %>
+              <button type="submit" class="pdx-btn pdx-btn-buy pdx-btn-sm">Post review</button>
+            </div>
+          </form>
+        <% } else if (reviewStatus.reason === 'reviewed') { %>
+          <div class="pdx-review-note"><%- icon('check', 'i-sm') %><span>You've reviewed this product. <a href="/account/reviews">Edit or delete it in My Account</a>.</span></div>
+        <% } else if (reviewStatus.reason === 'signin') { %>
+          <div class="pdx-review-note"><%- icon('edit', 'i-sm') %><span>Own this or tried it? <a href="/login?next=<%= encodeURIComponent('/products/' + product.slug + '#reviews') %>">Sign in to write a review</a>.</span></div>
+        <% } %>
+
+        <ol class="pdx-review-list" data-review-list>
+          <% reviews.reviews.forEach(function (review) { %>
+            <li class="pdx-review">
+              <div class="pdx-review-top">
+                <span class="pdx-avatar" aria-hidden="true"><%= (review.author || '?').charAt(0).toUpperCase() %></span>
+                <div class="pdx-review-who">
+                  <strong><%= review.author %></strong>
+                  <span><%= fmtDate(review.createdAt) %><% if (review.verified) { %> · <span class="pdx-verified"><%- icon('check', 'i-xs') %> Verified purchase</span><% } %></span>
+                </div>
+                <span class="rating" style="--rating: <%= review.rating %>" role="img" aria-label="<%= review.rating %> out of 5 stars"></span>
+              </div>
+              <% if (review.title) { %><h3 class="pdx-review-title"><%= review.title %></h3><% } %>
+              <p class="pdx-review-body"><%= review.body %></p>
+            </li>
+          <% }) %>
+        </ol>
+        <p class="pdx-review-empty" data-review-empty <%= total ? 'hidden' : '' %>>No reviews yet. Be the first to share how it performs.</p>
+        <button type="button" class="pdx-ghost pdx-more" data-review-more <%= reviews.pagination.pages > 1 ? '' : 'hidden' %>>Show more reviews</button>
+      </div>
     </section>
   </div>
 

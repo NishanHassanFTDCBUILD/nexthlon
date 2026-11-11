@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
-// One review per customer per product. Only customers who received the product can write one
-// (checked in services/reviewService.js). The product keeps the average, so lists can sort by it.
+// One review per customer per product. Any signed-in customer can write one; reviews from customers
+// who received the product are marked verified (set in services/reviewService.js). The product keeps the average, so lists can sort by it.
 const reviewSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -10,6 +10,8 @@ const reviewSchema = new mongoose.Schema({
   rating: { type: Number, required: true, min: 1, max: 5, validate: Number.isInteger },
   title: { type: String, trim: true, default: "", maxlength: 80 },
   body: { type: String, trim: true, required: true, maxlength: 1000 },
+  // True when the author had this product delivered to them when they wrote the review.
+  verified: { type: Boolean, default: false },
   // Hidden by an admin: kept in the database (and in the audit log) but never shown in the store,
   // and left out of the product's average rating.
   isHidden: { type: Boolean, default: false },

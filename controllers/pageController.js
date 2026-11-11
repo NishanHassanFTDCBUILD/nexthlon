@@ -15,6 +15,7 @@ const walletService = require("../services/walletService");
 const referralService = require("../services/referralService");
 const settingsService = require("../services/settingsService");
 const accountService = require("../services/accountService");
+const reviewService = require("../services/reviewService");
 const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
 const { CONTACT_TOPICS, STORE } = require("../config/store");
@@ -101,13 +102,19 @@ const productDetail = asyncHandler(async (req, res) => {
   if (req.user && req.user.role === "customer") {
     accountService.recordView(req.user._id, product._id).catch(() => {});
   }
-  const related = await productService.getRelatedProducts(product);
+  const [related, reviews, reviewStatus] = await Promise.all([
+    productService.getRelatedProducts(product),
+    reviewService.listReviews(product._id, 1),
+    reviewService.reviewStatus(req.user || null, product._id)
+  ]);
   res.render("pages/product", {
     title: `${product.name} | Nexthlon`,
     metaDescription: (product.description || product.name).slice(0, 155),
     product,
     offer: productService.offerLabel(product),
-    related
+    related,
+    reviews,
+    reviewStatus
   });
 });
 

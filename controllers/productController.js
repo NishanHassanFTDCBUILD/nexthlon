@@ -47,7 +47,7 @@ const listReviews = asyncHandler(async (req, res) => {
   res.json(await reviewService.listReviews(product._id, page));
 });
 
-// POST /api/products/:id/reviews   body: { rating, title, body }   (customers who received it)
+// POST /api/products/:id/reviews   body: { rating, title, body }   (any signed-in customer)
 const addReview = asyncHandler(async (req, res) => {
   const { errors, value } = validateReview(req.body);
   if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);

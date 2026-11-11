@@ -20,8 +20,8 @@ async function reviewStatus(user, productId) {
   if (user.role !== "customer") return { canReview: false, reason: "admin" };
   const mine = await Review.findOne({ product: productId, user: user._id }).lean();
   if (mine) return { canReview: false, reason: "reviewed", review: publicReview(mine) };
-  if (!(await hasReceived(user._id, productId))) return { canReview: false, reason: "not_received" };
-  return { canReview: true, reason: null };
+  // Every customer may review; buyers who received it get a "Verified purchase" badge.
+  return { canReview: true, reason: null, verified: await hasReceived(user._id, productId) };
 }
 
 function publicReview(review) {
@@ -32,6 +32,7 @@ function publicReview(review) {
     title: review.title,
     body: review.body,
     createdAt: review.createdAt,
+    verified: Boolean(review.verified),
     isHidden: Boolean(review.isHidden)
   };
 }
@@ -84,10 +85,10 @@ async function addReview(user, productId, value) {
   if (!product) throw new HttpError(404, "Product not found.");
   const status = await reviewStatus(user, product._id);
   if (status.reason === "reviewed") throw new HttpError(409, "You have already reviewed this product.");
-  if (!status.canReview) throw new HttpError(403, "Only customers who received this product can review it.");
+  if (!status.canReview) throw new HttpError(403, "Only customer accounts can review products.");
   let review;
   try {
-    review = await Review.create({ ...value, product: product._id, user: user._id, authorName: shortName(user.name) });
+    review = await Review.create({ ...value, product: product._id, user: user._id, authorName: shortName(user.name), verified: status.verified });
   } catch (error) {
     if (error.code === 11000) throw new HttpError(409, "You have already reviewed this product.");
     throw error;

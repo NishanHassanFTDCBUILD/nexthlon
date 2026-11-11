@@ -223,6 +223,171 @@
     });
   });
 
+  // ---------- Reviews ----------
+  const reviewsBox = document.querySelector("[data-reviews]");
+  if (reviewsBox) {
+    const productId = reviewsBox.dataset.productId;
+    const list = reviewsBox.querySelector("[data-review-list]");
+    const empty = reviewsBox.querySelector("[data-review-empty]");
+    const more = reviewsBox.querySelector("[data-review-more]");
+    let page = Number(reviewsBox.dataset.page) || 1;
+    let pages = Number(reviewsBox.dataset.pages) || 1;
+
+    const svgIcon = (name, cls) => {
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("class", `i ${cls || ""}`);
+      svg.setAttribute("aria-hidden", "true");
+      const use = document.createElementNS(ns, "use");
+      use.setAttribute("href", `/img/icons.svg#${name}`);
+      svg.append(use);
+      return svg;
+    };
+    const el = (tag, cls, text) => {
+      const node = document.createElement(tag);
+      if (cls) node.className = cls;
+      if (text != null) node.textContent = text;
+      return node;
+    };
+    const fmtDate = value => new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+    // Same markup as the server-rendered reviews in views/pages/product.ejs.
+    const renderReview = review => {
+      const item = el("li", "pdx-review");
+      const top = el("div", "pdx-review-top");
+      const avatar = el("span", "pdx-avatar", (review.author || "?").charAt(0).toUpperCase());
+      avatar.setAttribute("aria-hidden", "true");
+      const who = el("div", "pdx-review-who");
+      who.append(el("strong", "", review.author));
+      const meta = el("span", "", fmtDate(review.createdAt));
+      if (review.verified) {
+        const badge = el("span", "pdx-verified");
+        badge.append(svgIcon("check", "i-xs"), " Verified purchase");
+        meta.append(" · ", badge);
+      }
+      who.append(meta);
+      const stars = el("span", "rating");
+      stars.style.setProperty("--rating", String(review.rating));
+      stars.setAttribute("role", "img");
+      stars.setAttribute("aria-label", `${review.rating} out of 5 stars`);
+      top.append(avatar, who, stars);
+      item.append(top);
+      if (review.title) item.append(el("h3", "pdx-review-title", review.title));
+      item.append(el("p", "pdx-review-body", review.body));
+      return item;
+    };
+
+    // Average, stars, count and the 5-to-1 bars, from a fresh reviews listing.
+    const renderSummary = data => {
+      const total = data.pagination.total;
+      const average = total ? data.breakdown.reduce((sum, row) => sum + row.stars * row.count, 0) / total : 0;
+      const avgEl = reviewsBox.querySelector("[data-review-average]");
+      if (avgEl) avgEl.textContent = total ? (Math.round(average * 10) / 10).toFixed(1) : "–";
+      const starsEl = reviewsBox.querySelector("[data-review-stars]");
+      if (starsEl) starsEl.style.setProperty("--rating", String(average));
+      const countEl = reviewsBox.querySelector("[data-review-count]");
+      if (countEl) countEl.textContent = `${total} ${total === 1 ? "review" : "reviews"}`;
+      const maxBar = Math.max(1, ...data.breakdown.map(row => row.count));
+      data.breakdown.forEach(row => {
+        const li = reviewsBox.querySelector(`[data-review-bars] [data-stars="${row.stars}"]`);
+        if (!li) return;
+        li.querySelector(".pdx-bar i").style.width = `${Math.round((row.count / maxBar) * 100)}%`;
+        li.querySelector(".pdx-bar-n").textContent = String(row.count);
+      });
+      if (empty) empty.hidden = total > 0;
+      pages = data.pagination.pages;
+    };
+
+    // "Show more reviews"
+    if (more) {
+      more.addEventListener("click", async () => {
+        Nx.busy(more, true, "Loading…");
+        try {
+          const data = await Nx.api(`/api/products/${encodeURIComponent(productId)}/reviews?page=${page + 1}`);
+          page = data.pagination.page;
+          pages = data.pagination.pages;
+          data.reviews.forEach(review => list.append(renderReview(review)));
+          Nx.busy(more, false);
+          more.hidden = page >= pages;
+        } catch (error) {
+          Nx.busy(more, false);
+          Nx.toast(error.message, "error");
+        }
+      });
+    }
+
+    // Write a review
+    const form = reviewsBox.querySelector("[data-review-form]");
+    if (form) {
+      const words = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
+      const word = form.querySelector("[data-star-word]");
+      const errorBox = form.querySelector("[data-review-error]");
+      const body = form.querySelector("[data-review-body]");
+      const chars = form.querySelector("[data-review-chars]");
+      const showError = message => {
+        errorBox.textContent = message;
+        errorBox.hidden = !message;
+      };
+
+      form.querySelectorAll('input[name="rating"]').forEach(radio => {
+        radio.addEventListener("change", () => {
+          word.textContent = `${radio.value} / 5 · ${words[Number(radio.value)]}`;
+          word.classList.add("is-set");
+          showError("");
+        });
+      });
+      body.addEventListener("input", () => {
+        chars.textContent = String(body.value.length);
+        body.removeAttribute("aria-invalid");
+      });
+
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const picked = form.querySelector('input[name="rating"]:checked');
+        const text = body.value.trim();
+        if (!picked) {
+          showError("Choose from 1 to 5 stars.");
+          return;
+        }
+        if (text.length < 10) {
+          body.setAttribute("aria-invalid", "true");
+          body.focus();
+          showError("Write a review of at least 10 characters.");
+          return;
+        }
+        showError("");
+        const button = form.querySelector('[type="submit"]');
+        Nx.busy(button, true, "Posting…");
+        try {
+          const result = await Nx.api(`/api/products/${encodeURIComponent(productId)}/reviews`, {
+            method: "POST",
+            body: { rating: Number(picked.value), title: form.elements.title.value.trim(), body: text }
+          });
+          const item = renderReview(result.review);
+          item.classList.add("is-new");
+          list.prepend(item);
+          // One review per customer: swap the form for a note.
+          const note = el("div", "pdx-review-note");
+          const span = el("span", "", "Thanks! Your review is live. ");
+          const link = el("a", "", "Edit or delete it in My Account");
+          link.href = "/account/reviews";
+          span.append(link, ".");
+          note.append(svgIcon("check", "i-sm"), span);
+          form.replaceWith(note);
+          Nx.toast(result.message || "Thanks! Your review is live.");
+          try {
+            renderSummary(await Nx.api(`/api/products/${encodeURIComponent(productId)}/reviews?page=1`));
+          } catch {
+            /* the summary catches up on the next visit */
+          }
+        } catch (error) {
+          Nx.busy(button, false);
+          showError(error.message);
+        }
+      });
+    }
+  }
+
   // ---------- Share ----------
   document.querySelectorAll("[data-share]").forEach(button => {
     button.addEventListener("click", async () => {
