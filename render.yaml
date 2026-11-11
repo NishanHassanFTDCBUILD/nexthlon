@@ -1,0 +1,53 @@
+# Render Blueprint: one click deploy of Nexthlon from this GitHub repo (https://render.com > New > Blueprint).
+# Secrets are NOT stored here: each "sync: false" value is typed into Render's dashboard once.
+services:
+  - type: web
+    name: nexthlon
+    runtime: docker
+    plan: starter            # "free" also works for a demo, but it sleeps when idle and jobs/emails pause with it
+    region: singapore        # closest Render region to India
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: LOG_FORMAT
+        value: json
+      - key: STORAGE_DRIVER
+        value: cloudinary
+      - key: MAIL_DRIVER
+        value: brevo
+      - key: ADMIN_REQUIRE_2FA
+        value: "false"       # set to true after each admin has turned on two-step login
+      - key: SITE_URL
+        sync: false          # https://your-domain (or the https://nexthlon.onrender.com address Render gives you)
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PATH
+        sync: false
+      - key: ADMIN_NAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false          # Nexthlon <orders@your-domain>
