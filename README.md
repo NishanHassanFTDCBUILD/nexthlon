@@ -137,6 +137,17 @@ one from the same family takes its place, so each token works exactly once. If a
 token comes back, two copies exist, so the whole family is revoked at once — stolen-token
 detection (`services/refreshTokenService.js`).
 
+**Two tabs, one renewal.** Several tabs (or a phone waking up) often renew at the same instant. The
+claim on the old token is atomic, so exactly one renewal wins and issues the new token. A slower request
+arriving with the just-replaced token within 20 seconds (`REUSE_GRACE_MS`) is the same browser, not a
+thief: it gets a fresh access token only, never a new refresh token, and nothing is revoked. Replayed
+after the 20 seconds, or after a sign-out, a block or a password change, it still revokes the whole
+family.
+
+**CSRF.** Any request that changes data must carry this site's `Origin` (or `Referer`). One with neither
+is refused whenever it carries any session cookie (store or admin console, access or refresh); API
+tools with no cookie, or with a `Bearer` token, are not affected (`middleware/originCheck.js`).
+
 In the browser, `Nx.api` (`public/js/app.js`) sees a 401, calls the renewal once, and sends the
 same request again; only if that fails does the visitor go to sign in.
 

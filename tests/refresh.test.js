@@ -74,6 +74,12 @@ async function call(method, path, { body, jar, cookie, origin = true } = {}) {
 const signIn = async (jar, email, password) => call("POST", "/api/login", { body: { email, password }, jar });
 const renew = (jar, body) => call("POST", REFRESH_PATH, { body: body || {}, jar });
 const refreshValue = jar => (jar.get("nx_refresh") || {}).value || "";
+const tokenRow = raw => RefreshToken.findOne({ tokenHash: refreshTokenService.hashToken(raw) });
+// Makes a rotation look older than the grace window, without waiting for it.
+const ageRotation = raw => RefreshToken.updateOne(
+  { tokenHash: refreshTokenService.hashToken(raw) },
+  { $set: { revokedAt: new Date(Date.now() - refreshTokenService.REUSE_GRACE_MS - 5000) } }
+);
 
 const asha = { email: "asha@refresh.test", password: "trail2024" };
 const ravi = { email: "ravi@refresh.test", password: "trail2024" };
@@ -187,7 +193,8 @@ test("reusing an old refresh token revokes the whole family (stolen-token detect
   const current = refreshValue(jar);
   const family = jar.get("nx_sid").value;
 
-  // The thief's copy comes back after the real browser has already rotated.
+  // The thief's copy comes back well after the real browser has rotated (past the grace window).
+  await ageRotation(stolen);
   const reuse = await call("POST", REFRESH_PATH, { body: { refreshToken: stolen } });
   assert.equal(reuse.status, 401);
   assert.match(reuse.data.message, /signed you out everywhere/i);
@@ -405,4 +412,140 @@ test("renewing is still blocked from another website (CSRF)", async () => {
   await signIn(jar, asha.email, asha.password);
   const crossSite = await call("POST", REFRESH_PATH, { body: {}, jar, origin: false });
   assert.equal(crossSite.status, 403);
+});
+
+// ---------- Two tabs renewing at once ----------
+
+test("renewals from several tabs at the same instant: one wins, nobody is signed out", async () => {
+  const jar = newJar();
+  await signIn(jar, asha.email, asha.password);
+  const original = refreshValue(jar);
+  const family = jar.get("nx_sid").value;
+
+  // Six tabs, all holding the same refresh cookie, all renewing together.
+  const tabs = Array.from({ length: 6 }, () => new Map(jar));
+  const replies = await Promise.all(tabs.map(tab => renew(tab)));
+
+  assert.ok(replies.every(reply => reply.status === 200), "every tab gets a working session");
+  const winners = replies.filter(reply => !reply.data.concurrent);
+  assert.equal(winners.length, 1, "exactly one renewal rotates the token");
+  assert.equal(replies.filter(reply => reply.data.concurrent === true).length, 5);
+  assert.ok(replies.every(reply => reply.data.token), "each one has a fresh access token");
+
+  // One new refresh token, not six: the family holds the original and a single replacement.
+  const rows = await RefreshToken.find({ familyId: family }).lean();
+  assert.equal(rows.length, 2);
+  assert.equal(rows.filter(row => !row.revoked).length, 1);
+  assert.ok(!(await AuditLog.exists({ action: "auth.refresh_reuse", "after.familyId": family })), "no theft alarm");
+
+  // The winning tab's new refresh token is the live one, and it keeps working.
+  const winnerTab = tabs[replies.indexOf(winners[0])];
+  assert.notEqual(refreshValue(winnerTab), original);
+  assert.equal((await renew(winnerTab)).status, 200);
+  // The tabs that lost never received a refresh cookie of their own to overwrite the winner's.
+  const loserTab = tabs[replies.findIndex(reply => reply.data.concurrent)];
+  assert.equal(refreshValue(loserTab), original);
+});
+
+test("a token replaced a moment ago gets an access token only, and the session carries on", async () => {
+  const jar = newJar();
+  await signIn(jar, asha.email, asha.password);
+  const first = refreshValue(jar);
+  assert.equal((await renew(jar)).status, 200);
+  const second = refreshValue(jar);
+
+  // The slower tab arrives with the old cookie.
+  const late = await call("POST", REFRESH_PATH, { body: { refreshToken: first } });
+  assert.equal(late.status, 200);
+  assert.equal(late.data.concurrent, true);
+  assert.ok(late.data.token);
+  assert.equal(late.data.refreshToken, undefined, "a replaced token never earns a new refresh token");
+
+  // Nothing was revoked by it, and the browser's current token still renews.
+  assert.equal((await tokenRow(second)).revoked, false);
+  assert.equal((await renew(jar)).status, 200);
+});
+
+test("the grace window ends: replaying a replaced token later still revokes the whole family", async () => {
+  const jar = newJar();
+  await signIn(jar, asha.email, asha.password);
+  const family = jar.get("nx_sid").value;
+  const first = refreshValue(jar);
+  await renew(jar);
+  await ageRotation(first);
+
+  const replay = await call("POST", REFRESH_PATH, { body: { refreshToken: first } });
+  assert.equal(replay.status, 401);
+  assert.match(replay.data.message, /signed you out everywhere/i);
+  assert.ok((await RefreshToken.find({ familyId: family }).lean()).every(row => row.revoked));
+});
+
+test("the grace window never helps after a sign-out, a block, or in the other session", async () => {
+  // Signed out in between: the replacement was revoked for another reason, so nothing renews.
+  const out = newJar();
+  await signIn(out, asha.email, asha.password);
+  const outFirst = refreshValue(out);
+  await renew(out);
+  await call("POST", "/api/logout", { jar: out });
+  assert.equal((await call("POST", REFRESH_PATH, { body: { refreshToken: outFirst } })).status, 401);
+
+  // Blocked in between.
+  const blocked = newJar();
+  await signIn(blocked, ravi.email, ravi.password);
+  const blockedFirst = refreshValue(blocked);
+  await renew(blocked);
+  await User.updateOne({ email: ravi.email }, { isBlocked: true });
+  try {
+    assert.equal((await call("POST", REFRESH_PATH, { body: { refreshToken: blockedFirst } })).status, 401);
+  } finally {
+    await User.updateOne({ email: ravi.email }, { isBlocked: false });
+  }
+
+  // A store token replayed against the admin console is not a "concurrent renewal" either.
+  const shop = newJar();
+  await signIn(shop, asha.email, asha.password);
+  const shopFirst = refreshValue(shop);
+  await renew(shop);
+  assert.equal((await call("POST", REFRESH_PATH, { body: { refreshToken: shopFirst, scope: "admin" } })).status, 401);
+});
+
+test("if issuing the new token fails, the old one is given back instead of signing the customer out", async () => {
+  const jar = newJar();
+  await signIn(jar, asha.email, asha.password);
+  const first = refreshValue(jar);
+
+  const original = RefreshToken.create;
+  RefreshToken.create = async () => { throw new Error("database hiccup"); };
+  let status;
+  try {
+    status = (await renew(jar)).status;
+  } finally {
+    RefreshToken.create = original;
+  }
+  assert.equal(status, 500);
+  assert.equal((await tokenRow(first)).revoked, false, "the customer can simply try again");
+  assert.equal((await renew(jar)).status, 200);
+});
+
+// ---------- The CSRF check knows every session cookie ----------
+
+test("a request with no Origin is refused when it carries ANY session cookie, admin and refresh included", async () => {
+  // The admin cookie alone (it used to slip through: only the customer cookie was looked at).
+  const admin = newJar();
+  assert.equal((await call("POST", "/api/admin/login", { body: { email: "admin@refresh.test", password: "AdminPass123" }, jar: admin })).status, 200);
+  assert.ok(admin.get("nx_admin"));
+  const adminNoOrigin = await call("POST", "/api/admin/logout", { jar: admin, origin: false });
+  assert.equal(adminNoOrigin.status, 403);
+  assert.ok(admin.get("nx_admin"), "and the admin was not signed out by it");
+  // The same request from the console's own page works.
+  assert.equal((await call("POST", "/api/admin/logout", { jar: admin })).status, 200);
+
+  // A lone refresh cookie, and a lone customer cookie.
+  assert.equal((await call("POST", REFRESH_PATH, { body: {}, cookie: "nx_refresh=abc", origin: false })).status, 403);
+  assert.equal((await call("POST", REFRESH_PATH, { body: {}, cookie: "nx_admin_refresh=abc", origin: false })).status, 403);
+  assert.equal((await call("POST", "/api/logout", { cookie: "nx_token=abc", origin: false })).status, 403);
+
+  // Tools with no cookie at all (Postman, curl, a mobile app) are unaffected.
+  const tool = await call("POST", "/api/login", { body: { email: asha.email, password: asha.password }, origin: false });
+  assert.equal(tool.status, 200);
 });

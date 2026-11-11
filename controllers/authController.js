@@ -1,6 +1,6 @@
 const authService = require("../services/authService");
 const refreshTokenService = require("../services/refreshTokenService");
-const { startSession, endSession, readRefreshCookie, readSessionCookie } = require("../services/tokenService");
+const { startSession, endSession, readRefreshCookie, readSessionCookie, signToken, setAuthCookie } = require("../services/tokenService");
 const { validateSignup, validateLogin, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { formatPaise } = require("../utils/money");
@@ -79,6 +79,15 @@ const refresh = asyncHandler(async (req, res) => {
       ? "For your safety we signed you out everywhere. Please sign in again."
       : "Your session has ended. Please sign in again.";
     throw new HttpError(401, message);
+  }
+
+  // Another tab renewed this same token a moment ago (see the grace window in refreshTokenService).
+  // This browser already holds that renewal's new refresh cookie, so it must not be touched here:
+  // only a fresh access token is issued.
+  if (result.concurrent) {
+    const token = signToken(result.user);
+    setAuthCookie(res, token, scope);
+    return res.json({ message: "Session already renewed.", user: result.user.toSafeJSON(), token, concurrent: true });
   }
 
   const token = startSession(res, { user: result.user, refreshToken: result.rawToken, familyId: result.familyId });

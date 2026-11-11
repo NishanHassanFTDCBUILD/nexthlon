@@ -1,7 +1,10 @@
-const { COOKIE_NAME } = require("../services/tokenService");
+const { KINDS } = require("../services/tokenService");
 const { HttpError } = require("../utils/http");
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+// Every cookie that proves a login: the access and refresh cookies of the store AND the admin console.
+const SESSION_COOKIES = Object.values(KINDS).flatMap(kind => [kind.cookie, kind.refreshCookie]);
 
 // CSRF protection. Browsers attach the login cookie to every request, even one started by
 // another website. So any request that changes data must come from this site's own pages.
@@ -13,7 +16,10 @@ function originCheck(req, res, next) {
 
   const source = req.get("origin") || req.get("referer");
   if (!source) {
-    const hasLoginCookie = Boolean(req.cookies && req.cookies[COOKIE_NAME]);
+    // No Origin and no Referer: only a client without a login cookie (an API tool, a script) may go on.
+    // The check used to look at the customer cookie only, so a request carrying just the admin cookie
+    // slipped through.
+    const hasLoginCookie = SESSION_COOKIES.some(name => Boolean(req.cookies && req.cookies[name]));
     return hasLoginCookie
       ? next(new HttpError(403, "Request blocked because its origin is unknown."))
       : next();
