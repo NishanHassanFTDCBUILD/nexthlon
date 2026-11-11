@@ -1,4 +1,6 @@
 const { HttpError } = require("../utils/http");
+const logger = require("../utils/logger");
+const monitor = require("../utils/monitor");
 
 function isApiRequest(req) {
   return req.originalUrl.startsWith("/api/");
@@ -25,7 +27,6 @@ function errorHandler(err, req, res, next) {
     // for the shopper, so it is shown. Unexpected errors never show their details.
     message = err.message;
   } else if (status >= 500) {
-    console.error("[error]", req.method, req.originalUrl, err);
     message = "Something went wrong on our side. Please try again in a moment.";
   } else if (err instanceof HttpError || err.expose) {
     message = err.message;
@@ -35,9 +36,18 @@ function errorHandler(err, req, res, next) {
     message = "Some of the details are not valid.";
   }
 
+  // Every server error is logged with the request's ID (and the stack) and sent to the alert service.
+  // The query string is left out of the log: it can hold tokens.
+  if (status >= 500) {
+    logger.error("http.error", { method: req.method, path: req.originalUrl.split("?")[0], status, error: err, stack: err && err.stack });
+    monitor.captureException(err, { method: req.method, path: req.originalUrl.split("?")[0] });
+  }
+
   if (isApiRequest(req)) {
     const body = { message };
     if (err.fieldErrors) body.errors = err.fieldErrors;
+    // Quote this when asking for help: it finds the exact request in the logs.
+    if (status >= 500 && req.id) body.requestId = req.id;
     return res.status(status).json(body);
   }
   return res.status(status).render(status === 404 ? "pages/404" : "pages/error", {

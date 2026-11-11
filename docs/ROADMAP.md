@@ -84,7 +84,7 @@ commit the five UI/UX phases plus the animation work as clear, separate commits.
 wait for my go-ahead.
 ```
 
-### [ ] A2. Production-ready server · M
+### [x] A2. Production-ready server · M
 - **Goal:** the app runs safely behind a host's proxy, with health checks, error alerts and automatic tests.
 - **Files:** `app.js` (`trust proxy`, `/healthz`), `config/schema.js`, `utils/logger.js` (request IDs), Sentry, `Dockerfile`, `.github/workflows/test.yml`, `README.md` (deploy guide).
 - **Done when:**

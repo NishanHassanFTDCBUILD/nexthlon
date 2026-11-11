@@ -13,10 +13,19 @@ const { cartCount } = require("./middleware/cartCount");
 const { originCheck } = require("./middleware/originCheck");
 const { noCache } = require("./middleware/noCache");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
+const { requestId } = require("./middleware/requestId");
 
 const app = express();
 //Hide the header that says "Express", so attackers learn less. This reveals less technology information to attackers.
 app.disable("x-powered-by");
+// How many proxies sit in front of the app (TRUST_PROXY). Behind a hosting platform this is what makes
+// req.ip the visitor's address instead of the platform's, so each visitor gets their own rate limit,
+// and req.protocol "https", so Secure cookies work. Trusting too many would let a visitor fake an address.
+app.set("trust proxy", config.trustProxy);
+// First of all: every request gets an ID, carried through the logs, error alerts and the error page.
+app.use(requestId);
+// Liveness and readiness for the hosting platform (before the heavier middleware, no login needed).
+app.use(require("./routes/healthRoutes"));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 

@@ -1,0 +1,25 @@
+# Keep the image small and free of secrets. Anything listed here is not sent to Docker.
+node_modules
+npm-debug.log*
+.git
+.github
+.gitignore
+.gitattributes
+
+# Secrets and local settings: the host provides them as environment variables
+.env
+.env.*
+!.env.example
+.claude
+.vscode
+
+# Not needed to run
+tests
+docs
+coverage
+README.md
+Dockerfile
+.dockerignore
+
+# Uploaded product photos live on a volume (or cloud storage), never in the image
+public/uploads

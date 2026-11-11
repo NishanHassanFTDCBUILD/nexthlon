@@ -6,6 +6,7 @@
     <span class="error-code" aria-hidden="true"><%= status %></span>
     <h1><%= status === 403 ? 'You do not have access to this page' : 'Something went wrong' %></h1>
     <p class="muted"><%= message %></p>
+    <% if (status >= 500 && typeof requestId !== 'undefined') { %><p class="muted error-ref">Reference: <code><%= requestId %></code> (quote this if you contact us)</p><% } %>
     <div class="error-actions">
       <a class="btn btn-primary" href="/"><%- icon('home', 'i-sm') %> Back to home</a>
       <% if (status === 403 && !currentUser) { %>

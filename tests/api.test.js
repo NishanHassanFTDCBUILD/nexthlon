@@ -95,6 +95,40 @@ test("health check works", async () => {
   assert.equal(res.data.status, "ok");
 });
 
+test("healthz is always up; readyz needs the database and drains while shutting down", async () => {
+  const live = await fetch(base + "/healthz");
+  assert.equal(live.status, 200);
+  assert.equal(live.headers.get("cache-control"), "no-store");
+  assert.equal((await live.json()).status, "ok");
+  const ready = await fetch(base + "/readyz");
+  assert.equal(ready.status, 200);
+  assert.deepEqual(await ready.json(), { status: "ready", database: "up" });
+  // A deploy sends SIGTERM: the load balancer must stop sending visitors here, while healthz stays up.
+  const lifecycle = require("../utils/lifecycle");
+  lifecycle.markShuttingDown(true);
+  try {
+    const draining = await fetch(base + "/readyz");
+    assert.equal(draining.status, 503);
+    assert.equal((await draining.json()).status, "shutting_down");
+    assert.equal((await fetch(base + "/healthz")).status, 200);
+  } finally {
+    lifecycle.markShuttingDown(false);
+  }
+});
+
+test("every response has an X-Request-Id, and a safe one from the proxy is kept", async () => {
+  const first = await fetch(base + "/api/health");
+  assert.match(first.headers.get("x-request-id"), /^[0-9a-f-]{36}$/);
+  const second = await fetch(base + "/api/health", { headers: { "X-Request-Id": "load-balancer-id-0042" } });
+  assert.equal(second.headers.get("x-request-id"), "load-balancer-id-0042");
+  const unsafe = await fetch(base + "/api/health", { headers: { "X-Request-Id": "bad id with spaces" } });
+  assert.match(unsafe.headers.get("x-request-id"), /^[0-9a-f-]{36}$/);
+  // Error replies carry it too, so a customer can quote it.
+  const missing = await fetch(base + "/no-such-page");
+  assert.equal(missing.status, 404);
+  assert.match(missing.headers.get("x-request-id"), /^[0-9a-f-]{36}$/);
+});
+
 test("signup rejects bad input with field errors", async () => {
   const res = await call("POST", "/api/signup", { body: { name: "A", email: "nope", password: "x" } });
   assert.equal(res.status, 400);

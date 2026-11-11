@@ -239,6 +239,8 @@
 .error-code { font: 800 clamp(110px, 18vw, 180px)/0.9 var(--display); letter-spacing: 0.02em; background: repeating-linear-gradient(115deg, var(--blue) 0 14px, var(--brand-hover) 14px 16px), var(--blue); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 10px 24px rgba(var(--brand-rgb), 0.25)); }
 .error-page h1 { font: 800 clamp(30px, 4vw, 40px)/1.02 var(--display); text-transform: uppercase; }
 .error-page > p { max-width: 50ch; }
+.error-ref { font-size: var(--text-sm); }
+.error-ref code { font: 600 0.95em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; color: var(--ink-2); user-select: all; word-break: break-all; }
 .error-search { display: flex; align-items: center; gap: var(--sp-2); width: min(480px, 100%); height: 52px; margin-top: var(--sp-3); padding: 0 6px 0 var(--sp-4); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-pill); box-shadow: var(--sh-sm); color: var(--muted); }
 .error-search:focus-within { border-color: var(--blue); box-shadow: var(--ring); }
 .error-search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: none; color: var(--ink); }

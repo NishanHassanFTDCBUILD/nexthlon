@@ -147,4 +147,71 @@ Every refresh token is revoked when the password changes, when an admin blocks t
 ## Environment variables
 
 Names only; copy `.env.example` to `.env` and fill them in:
-`NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `LOG_LEVEL`.
+`NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `SITE_URL`, `TRUST_PROXY`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `APP_RELEASE`, `LOG_LEVEL`, `LOG_FORMAT`.
+
+Every variable is checked when the server starts (`config/schema.js`). A bad or missing value stops
+the server with **all** the problems listed at once; settings that work but look wrong for production
+(the default `/admin` path, no email, Razorpay test keys, no error alerts) are printed as warnings.
+
+## Deploying
+
+The app is one Node process plus MongoDB. It needs **Node 20.19 or newer** and a MongoDB database
+(MongoDB Atlas is the easy choice; use its `mongodb+srv://` connection string).
+
+### Settings for production
+
+Set these as environment variables on the host (never commit a `.env`):
+
+| Variable | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `MONGODB_URI` | your Atlas connection string |
+| `JWT_SECRET` | 32+ random characters (see `.env.example`) |
+| `SITE_URL` | `https://www.your-domain.in` |
+| `ADMIN_PATH` | a private path such as `/nx-console-7f3k` |
+| `TRUST_PROXY` | number of proxies in front of the app: `1` on a hosting platform, `2` with Cloudflare in front |
+| `RAZORPAY_*`, `SMTP_*` | your live payment keys and email service |
+| `SENTRY_DSN` | optional, switches on error alerts |
+
+`TRUST_PROXY` matters. Behind a host's load balancer, the app sees the **balancer's** address unless it
+is told how many proxies to trust, so every visitor would share one rate limit. Set it to the real number.
+
+### Docker
+
+```bash
+docker build -t nexthlon .
+docker run --rm -p 3000:3000 --env-file .env nexthlon
+```
+
+The image runs as a normal user, holds no secrets, and has a health check. Admin photo uploads are written
+to `/app/public/uploads`: mount a volume there, or they disappear on every deploy (until they move to
+cloud storage).
+
+### Health checks
+
+| URL | Meaning | Use it for |
+|---|---|---|
+| `/healthz` | the process is alive (never touches the database) | restart checks, `docker ps` |
+| `/readyz` | MongoDB answers, and the server is not shutting down | load balancers and uptime monitors |
+
+### Logs, request IDs and alerts
+
+- Every request gets an ID, sent back as `X-Request-Id`. It appears in every log line (`req=...`), in
+  error alerts, and as the **Reference** on the error page, so a customer's problem can be found.
+- `LOG_FORMAT=json` writes one JSON object per line for log tools; `LOG_LEVEL` sets how much.
+- Each request writes one `http.request` line (method, path, status, time). Query strings are never
+  logged, because they can hold tokens.
+- With `SENTRY_DSN` set, server errors are sent to Sentry with the request ID. Cookies, headers, request
+  bodies and visitors' details are removed first.
+
+### Stopping and restarting
+
+On `SIGTERM` (every deploy) the server stops taking new visitors, `/readyz` answers 503 so the load
+balancer moves traffic away, requests in progress finish, the database closes, and it exits. If that takes
+longer than 10 seconds it exits anyway.
+
+### Tests and CI
+
+`npm test` runs the unit tests. Set `TEST_MONGODB_URI` (a database whose name contains `test`) to run the
+database tests too. GitHub Actions (`.github/workflows/test.yml`) runs all of them on Node 22 and 24, builds
+the Docker image, and audits the dependencies on every push and pull request.
