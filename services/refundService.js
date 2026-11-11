@@ -3,6 +3,7 @@
 //   "wallet":   straight into the customer's Nexthlon wallet, instantly
 // Cash on Delivery money and wallet money always go back to the wallet.
 const Order = require("../models/Order");
+const events = require("../events");
 const razorpayService = require("./razorpayService");
 const walletService = require("./walletService");
 const { PAID_STATUSES } = require("../utils/orderRules");
@@ -65,6 +66,9 @@ async function issueRefund(order, amount, { method = "wallet", reason = "" } = {
   order.paymentStatus = updated.paymentStatus;
   order.refunds = updated.refunds;
   refunds.forEach(entry => razorpayService.logEvent("refund.issued", { order: order.orderId, amount: entry.amount, method: entry.method, status: entry.status }));
+  // One email per refund, however many places the money went (the card and the wallet).
+  const seq = updated.refunds.length;
+  await events.emit("order.refunded", { orderId: order.orderId, seq, amount, parts: refunds.map(entry => ({ amount: entry.amount, method: entry.method, status: entry.status })), reason }, { key: `${order.orderId}:${seq}` });
   return refunds;
 }
 

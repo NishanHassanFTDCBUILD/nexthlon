@@ -19,7 +19,7 @@ const production = {
   SITE_URL: "https://www.nexthlon.in",
   ADMIN_PATH: "/nx-console-7f3k",
   ADMIN_REQUIRE_2FA: "true",
-  SMTP_HOST: "smtp.example.com", SMTP_USER: "u", SMTP_PASS: "p",
+  SMTP_HOST: "smtp.example.com", SMTP_USER: "u", SMTP_PASS: "p", MAIL_FROM: "Nexthlon <orders@nexthlon.in>",
   RAZORPAY_KEY_ID: "rzp_live_abc", RAZORPAY_KEY_SECRET: "s", RAZORPAY_WEBHOOK_SECRET: "w",
   SENTRY_DSN: "https://abc123@o1.ingest.sentry.io/42",
   STORAGE_DRIVER: "s3",

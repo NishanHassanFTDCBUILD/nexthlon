@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const events = require("../events");
 const Order = require("../models/Order");
 const stockService = require("./stockService");
 const couponService = require("./couponService");
@@ -91,6 +92,8 @@ async function cancelItems(order, items, { reason = "", by = "customer", refundM
   await order.save();
   if (order.orderStatus === "cancelled" && order.couponCode) await couponService.release(order._id);
   if (refund > 0 && refundHandler) await refundHandler(order, refund, { method: refundMethod, reason: `Cancelled: ${reason || "by request"}` });
+  const itemIds = items.map(item => String(item._id));
+  await events.emit("order.cancelled", { orderId: order.orderId, itemIds, reason, by }, { key: `${order.orderId}:${itemIds.join(",")}` });
   return order;
 }
 
@@ -129,6 +132,8 @@ async function requestReturn(userId, orderId, { reason, note }, now = new Date()
   order.returnNote = note;
   settleStatus(order, "customer", reason);
   await order.save();
+  const seq = order.statusHistory.length;
+  await events.emit("order.return_requested", { orderId: order.orderId, seq }, { key: `${order.orderId}:${seq}` });
   return order;
 }
 
@@ -151,6 +156,7 @@ async function advanceStatus(order, nextStatus, by = "admin", now = new Date()) 
   order.orderStatus = nextStatus;
   order.statusHistory.push({ status: nextStatus, by, at: now });
   await order.save();
+  await events.emit("order.status_changed", { orderId: order.orderId, status: nextStatus, previous: current }, { key: `${order.orderId}:${nextStatus}` });
   return order;
 }
 

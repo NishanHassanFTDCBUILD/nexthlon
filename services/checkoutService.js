@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const events = require("../events");
 const Address = require("../models/Address");
 const Cart = require("../models/Cart");
 const Order = require("../models/Order");
@@ -192,7 +193,7 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
 
   const stockLines = quote.lines.map(line => ({ product: line.productId, quantity: line.quantity, name: line.name }));
   const orderId = await nextOrderId();
-  return stockService.withStock(stockLines, async (session, undo) => {
+  const placed = await stockService.withStock(stockLines, async (session, undo) => {
     const order = await saveOrder({
       userId,
       orderId,
@@ -207,6 +208,9 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
     else await Cart.updateOne({ user: userId }, { $set: { items: [], couponCode: "" } }, { session });
     return order;
   });
+  // Saved for good: tell the rest of the app (the confirmation email is one reaction).
+  await events.emit("order.placed", { orderId: placed.orderId }, { key: placed.orderId });
+  return placed;
 }
 
 module.exports = {

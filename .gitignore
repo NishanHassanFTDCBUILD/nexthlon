@@ -11,3 +11,6 @@ Thumbs.db
 
 # Product photos uploaded from the admin console
 public/uploads/
+
+# generated previews
+tmp/

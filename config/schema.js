@@ -151,13 +151,30 @@ function checkEnv(env = process.env) {
     warn("STORAGE_DRIVER", "is local: uploaded photos are written to the server's disk, which many hosts wipe on every deploy. Use s3 (Cloudflare R2 or Amazon S3).");
   }
 
+  // ---------- Background jobs ----------
+  for (const name of ["JOBS_ENABLED", "CART_RECOVERY_AUTO"]) {
+    const value = text(env, name).toLowerCase();
+    if (value && !["true", "false"].includes(value)) fail(name, `"${value}" must be true or false.`);
+  }
+  const concurrency = text(env, "JOBS_CONCURRENCY");
+  if (concurrency && !(/^\d+$/.test(concurrency) && Number(concurrency) >= 1 && Number(concurrency) <= 10)) fail("JOBS_CONCURRENCY", `"${concurrency}" must be a number from 1 to 10.`);
+
   // ---------- Email ----------
+  const mailDriver = text(env, "MAIL_DRIVER").toLowerCase();
+  if (mailDriver && !["smtp", "brevo"].includes(mailDriver)) fail("MAIL_DRIVER", `"${mailDriver}" must be smtp or brevo.`);
+  const usingBrevo = mailDriver === "brevo" || (!mailDriver && text(env, "BREVO_API_KEY") && !text(env, "SMTP_HOST"));
+  if (usingBrevo && !text(env, "BREVO_API_KEY")) fail("BREVO_API_KEY", "is missing. It is needed when MAIL_DRIVER=brevo (Brevo > SMTP & API > API keys).");
+  if (production && !text(env, "MAIL_FROM") && (usingBrevo || text(env, "SMTP_HOST"))) {
+    warn("MAIL_FROM", "is not set, so emails come from a made-up address. Use an address on your own domain, for example Nexthlon <orders@nexthlon.in>, and verify the domain with your email provider (SPF and DKIM), or they land in spam.");
+  }
   const smtpPort = text(env, "SMTP_PORT");
   if (smtpPort && !(/^\d+$/.test(smtpPort) && Number(smtpPort) >= 1 && Number(smtpPort) <= 65535)) fail("SMTP_PORT", `"${smtpPort}" is not a port number.`);
-  if (text(env, "SMTP_HOST")) {
+  if (usingBrevo) {
+    // nothing more to check: the key is the login
+  } else if (text(env, "SMTP_HOST")) {
     if (!text(env, "SMTP_USER") || !String(env.SMTP_PASS ?? "")) warn("SMTP_USER", "or SMTP_PASS is empty. Most email services need both.");
   } else if (production) {
-    warn("SMTP_HOST", "is not set, so no email can be sent (order emails, password resets).");
+    warn("SMTP_HOST", "is not set, so no email can be sent (order emails, password resets). Set SMTP_HOST and its login, or MAIL_DRIVER=brevo with BREVO_API_KEY.");
   }
 
   // ---------- Monitoring and logs ----------

@@ -7,6 +7,9 @@ const User = require("../models/User");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const mailService = require("./mailService");
+const queue = require("../jobs/queue");
+const { renderEmail, siteUrl, absoluteUrl } = require("../utils/emailLayout");
+const { sizedUrl } = require("../utils/images");
 const { HttpError } = require("../utils/http");
 const { toPositiveInt } = require("./productService");
 const { formatPaise } = require("../utils/money");
@@ -104,33 +107,65 @@ async function listAbandoned(query = {}, now = new Date()) {
   };
 }
 
-// Emails the customer about the cart. The cart's own "last changed" time is not touched (so it
-// stays in the abandoned list), only the reminder fields.
-async function remind(cartId, { baseUrl }, now = new Date()) {
+// "Send a reminder": checks it is allowed and puts it in the queue (the admin is not kept waiting for an email
+// server, and a failed send is retried). The check is made again when the job runs, because carts change.
+async function remind(cartId, _options = {}, now = new Date()) {
   if (!mongoose.isValidObjectId(cartId)) throw new HttpError(404, "Cart not found.");
   const [cart] = await Cart.aggregate([{ $match: { _id: new mongoose.Types.ObjectId(cartId) } }, ...abandonedPipeline(new Date(now.getTime() - IDLE_HOURS * HOUR))]);
   if (!cart) throw new HttpError(404, "This cart is not abandoned (it is empty, or was used in the last 24 hours).");
   const allowed = canRemind(cart, now);
   if (!allowed.ok) throw new HttpError(400, `No reminder sent: ${allowed.why.toLowerCase()}.`);
-  const first = cart.customer.name.split(" ")[0];
-  const lines = cart.lines.filter(line => line.product);
-  const text = [
-    `Hi ${first},`,
-    "",
-    "You left these in your Nexthlon cart:",
-    ...lines.map(line => `- ${line.product.name} × ${line.quantity}: ${formatPaise(line.product.price * line.quantity)}`),
-    "",
-    `Cart total: ${formatPaise(cart.value)}`,
-    `Pick up where you left off: ${baseUrl}/cart`,
-    "",
-    "Prices and stock can change, so grab them while they last.",
-    "You get this because offer emails are on. Turn them off any time in Your account > Notifications."
-  ].join("\n");
-  const escape = value => String(value).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
-  const html = `<p>Hi ${escape(first)},</p><p>You left these in your Nexthlon cart:</p><ul>${lines.map(line => `<li>${escape(line.product.name)} × ${line.quantity}: <strong>${escape(formatPaise(line.product.price * line.quantity))}</strong></li>`).join("")}</ul><p>Cart total: <strong>${escape(formatPaise(cart.value))}</strong></p><p><a href="${escape(baseUrl)}/cart">Go to your cart</a></p><p style="color:#666;font-size:12px">You get this because offer emails are on. Turn them off any time in Your account &gt; Notifications.</p>`;
-  const result = await mailService.send({ to: cart.customer.email, subject: "You left something in your cart", text, html });
-  await Cart.updateOne({ _id: cart._id }, { $set: { reminderSentAt: now }, $inc: { reminderCount: 1 } }, { timestamps: false });
-  return { cart: { id: String(cart._id), customer: cart.customer.name, value: cart.value }, delivered: result.delivered, logged: result.logged };
+  // One job per cart per day: pressing the button twice queues it once.
+  await queue.enqueue("cart.remind", { cartId: String(cart._id) }, { dedupeKey: `cart.remind:${cart._id}:${Math.floor(now.getTime() / (REMIND_EVERY_HOURS * HOUR))}` });
+  return { cart: { id: String(cart._id), customer: cart.customer.name, value: cart.value }, queued: true };
 }
 
-module.exports = { PAGE_SIZE, IDLE_HOURS, SORTS, readFilters, listAbandoned, stats, remind };
+// The job: builds the email and sends it. Cart reminders are marketing, so they carry a List-Unsubscribe header
+// and only go to customers who accept offer emails (checked here, not only when queued).
+async function sendReminder(cartId, now = new Date()) {
+  if (!mongoose.isValidObjectId(cartId)) return "missing";
+  const [cart] = await Cart.aggregate([{ $match: { _id: new mongoose.Types.ObjectId(cartId) } }, ...abandonedPipeline(new Date(now.getTime() - IDLE_HOURS * HOUR))]);
+  if (!cart) return "not-abandoned";
+  if (!canRemind(cart, now).ok) return "not-allowed";
+
+  const base = siteUrl();
+  const lines = cart.lines.filter(line => line.product);
+  if (!lines.length) return "empty";
+  const first = cart.customer.name.split(" ")[0];
+  const { html, text } = renderEmail({
+    preheader: "Your cart is waiting.",
+    heading: "You left something in your cart",
+    paragraphs: [`Hi ${first}, these are still in your Nexthlon cart:`],
+    sections: [
+      { type: "items", items: lines.map(line => ({ name: line.product.name, detail: `Qty ${line.quantity}`, image: absoluteUrl(sizedUrl(line.product.image, 200), base), price: formatPaise(line.product.price * line.quantity) })) },
+      { type: "facts", rows: [["Cart total", formatPaise(cart.value), { strong: true }]] }
+    ],
+    button: { label: "Pick up where you left off", url: `${base}/cart` },
+    note: "Prices and stock can change, so grab them while they last. You get this because offer emails are on: turn them off any time in Your account > Notifications."
+  });
+  await mailService.send({
+    to: cart.customer.email,
+    subject: "You left something in your cart",
+    html,
+    text,
+    headers: { "List-Unsubscribe": `<${base}/account/notifications>` }
+  });
+  // The cart's own "last changed" time is not touched (so it stays in the abandoned list), only the reminder fields.
+  await Cart.updateOne({ _id: cart._id }, { $set: { reminderSentAt: now }, $inc: { reminderCount: 1 } }, { timestamps: false });
+  return "sent";
+}
+
+// The hourly sweep (only with CART_RECOVERY_AUTO=true): a reminder job for every abandoned cart that is due.
+async function queueDueReminders(now = new Date(), { limit = 100 } = {}) {
+  const carts = await Cart.aggregate([...abandonedPipeline(new Date(now.getTime() - IDLE_HOURS * HOUR)), { $sort: { value: -1 } }, { $limit: limit * 3 }]);
+  let queued = 0;
+  for (const cart of carts) {
+    if (queued >= limit) break;
+    if (!canRemind(cart, now).ok || !cart.customer || cart.value <= 0) continue;
+    await queue.enqueue("cart.remind", { cartId: String(cart._id) }, { dedupeKey: `cart.remind:${cart._id}:${Math.floor(now.getTime() / (REMIND_EVERY_HOURS * HOUR))}` });
+    queued += 1;
+  }
+  return queued;
+}
+
+module.exports = { PAGE_SIZE, IDLE_HOURS, SORTS, readFilters, listAbandoned, stats, remind, sendReminder, queueDueReminders, canRemind };

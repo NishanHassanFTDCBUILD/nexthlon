@@ -13,6 +13,10 @@
     "seed:coupons": "node scripts/seedCoupons.js",
     "db:check": "node scripts/checkDb.js",
     "admin:reset-2fa": "node scripts/resetTwoFactor.js",
+    "worker": "node scripts/worker.js",
+    "jobs:status": "node scripts/jobsStatus.js",
+    "jobs:retry": "node scripts/jobsStatus.js --retry",
+    "emails:preview": "node scripts/previewEmails.js",
     "images:migrate": "node scripts/migrateImages.js",
     "test": "node --test"
   },

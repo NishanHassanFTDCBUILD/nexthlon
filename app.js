@@ -14,6 +14,9 @@ const { originCheck } = require("./middleware/originCheck");
 const { noCache } = require("./middleware/noCache");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { requestId } = require("./middleware/requestId");
+// What the job worker and the event system can do (order emails, cart reminders). Registered before any
+// order code can say "this happened".
+require("./jobs/handlers");
 
 const app = express();
 //Hide the header that says "Express", so attackers learn less. This reveals less technology information to attackers.

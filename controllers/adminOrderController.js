@@ -207,12 +207,9 @@ const listAbandoned = asyncHandler(async (req, res) => {
 });
 
 const remindCart = asyncHandler(async (req, res) => {
-  const result = await cartRecoveryService.remind(req.params.cartId, { baseUrl: `${req.protocol}://${req.get("host")}` });
-  await audit(req, "cart.reminder", `cart:${result.cart.id}`, null, { customer: result.cart.customer, value: result.cart.value, delivered: result.delivered });
-  res.json({
-    message: result.delivered ? `Reminder emailed to ${result.cart.customer}.` : `Reminder for ${result.cart.customer} written to the server console (email is not set up).`,
-    ...result
-  });
+  const result = await cartRecoveryService.remind(req.params.cartId);
+  await audit(req, "cart.reminder", `cart:${result.cart.id}`, null, { customer: result.cart.customer, value: result.cart.value, queued: true });
+  res.json({ message: `Reminder for ${result.cart.customer} is on its way: it goes out in a moment.`, ...result });
 });
 
 module.exports = {

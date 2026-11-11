@@ -17,6 +17,8 @@ const Cart = require("../models/Cart");
 const AuditLog = require("../models/AuditLog");
 const WalletTransaction = require("../models/WalletTransaction");
 const mailService = require("../services/mailService");
+const { createWorker } = require("../jobs/worker");
+require("../jobs/handlers");
 const categoryService = require("../services/categoryService");
 const { hashPassword } = require("../services/authService");
 
@@ -293,9 +295,12 @@ test("abandoned carts: listed after 24 hours, one reminder a day, opt-outs respe
 
   const sent = await call("POST", `/api/admin/abandoned-carts/${cart._id}/remind`, { cookie: adminCookie });
   assert.equal(sent.status, 200);
-  assert.equal(outbox.length, 1);
-  assert.equal(outbox[0].to, "asha@sales.test");
-  assert.match(outbox[0].text, /Sales Trail Shoe × 2/);
+  await createWorker().drain();
+  const reminders = outbox.filter(mail => /left something/.test(mail.subject));
+  assert.equal(reminders.length, 1);
+  assert.equal(reminders[0].to, "asha@sales.test");
+  assert.match(reminders[0].text, /Sales Trail Shoe/);
+  assert.match(reminders[0].text, /Qty 2/);
   const saved = await Cart.findById(cart._id).lean();
   assert.ok(saved.reminderSentAt);
   assert.equal(saved.updatedAt.getTime(), twoDaysAgo.getTime()); // still abandoned

@@ -2,6 +2,7 @@
 // bulk), item cancellation, shipments, internal notes, manual refunds and return decisions.
 // The order rules live in utils/orderRules.js and orderService; money moves through refundService.
 const mongoose = require("mongoose");
+const events = require("../events");
 const Order = require("../models/Order");
 const User = require("../models/User");
 const orderService = require("./orderService");
@@ -206,9 +207,12 @@ async function cancelItems(orderId, { itemIds, reason, refundMethod }) {
 async function addShipment(orderId, { courier, trackingNumber, expectedAt, markShipped }, actor) {
   const order = await findOrder(orderId);
   if (["cancelled", "returned"].includes(order.orderStatus)) throw new HttpError(400, "A cancelled or returned order can't be shipped.");
+  const alreadyShipped = ["shipped", "out_for_delivery", "delivered"].includes(order.orderStatus);
   order.shipments.push({ courier, trackingNumber, expectedAt, addedBy: actor._id });
   order.statusHistory.push({ status: "shipment_added", by: "admin", note: `${courier} ${trackingNumber}` });
   await order.save();
+  const shipmentId = String(order.shipments[order.shipments.length - 1]._id);
+  await events.emit("order.shipment_added", { orderId: order.orderId, shipmentId, alreadyShipped }, { key: shipmentId });
   // "Mark as shipped" moves the order forward too, when that is the next allowed step.
   if (markShipped && rules.nextStatuses(rules.deriveOrderStatus(order.items)).includes("shipped")) {
     await orderService.advanceStatus(order, "shipped", "admin");
@@ -323,6 +327,8 @@ async function decideReturn(orderId, { decision, note, refundMethod }, actor) {
     settle(order, note);
     await order.save();
   }
+  const seq = order.statusHistory.length;
+  await events.emit("order.return_decided", { orderId: order.orderId, decision, note: note || "", seq }, { key: `${order.orderId}:${seq}` });
   return { order, before, after: snapshot(order), refund, items: items.map(item => item.name) };
 }
 

@@ -18,8 +18,12 @@ const app = require("./app");
 const connectDB = require("./config/db");
 const mongoose = require("mongoose");
 
+const { createWorker } = require("./jobs/worker");
+
 const SHUTDOWN_GRACE_MS = 10_000;
 let server;
+// Background jobs (emails, reminders) run in this process unless JOBS_ENABLED=false (then: npm run worker).
+const worker = config.jobs.enabled ? createWorker({ concurrency: config.jobs.concurrency }) : null;
 
 // A deploy or restart sends SIGTERM (Ctrl+C sends SIGINT). Stop taking new visitors, let the requests
 // in progress finish, close the database, then exit. If that takes too long, exit anyway.
@@ -37,6 +41,8 @@ async function shutdown(signal) {
       // Stops accepting visitors and closes idle connections at once (Node 19+); busy ones finish first.
       await new Promise(resolve => server.close(resolve));
     }
+    // Let the jobs running now finish (an email must not be cut in half); queued ones wait for the next start.
+    if (worker) await worker.stop();
     await mongoose.disconnect();
     await monitor.flush();
     logger.info("shutdown.done");
@@ -70,6 +76,8 @@ connectDB()
     server = app.listen(config.port, "0.0.0.0", () => {
       console.log(`Nexthlon running at http://localhost:${config.port}`);
     });
+
+    if (worker) worker.start();
 
     // Longer than the load balancer's idle timeout (usually 60s), so it never reuses a connection
     // this server has just closed.

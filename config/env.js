@@ -48,6 +48,14 @@ function readConfig() {
     // Connections to MongoDB per copy of the app. Atlas's free tier allows 500 in all, so several copies
     // with the driver's default of 100 each could use them up.
     mongoMaxPool: Number(text("MONGODB_MAX_POOL")) || 20,
+    // Background jobs (emails, reminders) run inside this server unless JOBS_ENABLED=false (then run
+    // `npm run worker` elsewhere). Several at a time, JOBS_CONCURRENCY (default 2).
+    jobs: {
+      enabled: text("JOBS_ENABLED").toLowerCase() !== "false",
+      concurrency: Number(text("JOBS_CONCURRENCY")) || 2
+    },
+    // true: abandoned carts get their reminder automatically (once a day each); false: only the admin's button.
+    cartRecoveryAuto: text("CART_RECOVERY_AUTO").toLowerCase() === "true",
     // true: admins must turn on two-step login before they can use the console (middleware/twoFactorGuard.js).
     adminRequire2fa: text("ADMIN_REQUIRE_2FA").toLowerCase() === "true",
     // Online payments (Razorpay). Optional: without the keys the store still runs, and the
@@ -93,8 +101,13 @@ function readMail() {
   const port = Number(process.env.SMTP_PORT) || 587;
   const user = (process.env.SMTP_USER || "").trim();
   const pass = process.env.SMTP_PASS || "";
+  const brevoApiKey = (process.env.BREVO_API_KEY || "").trim();
+  // Which service sends: "smtp" (any provider's SMTP login) or "brevo" (its HTTPS API). Picked by MAIL_DRIVER,
+  // or brevo when only its key is set.
+  const named = (process.env.MAIL_DRIVER || "").trim().toLowerCase();
+  const driver = named || (brevoApiKey && !host ? "brevo" : "smtp");
   const from = (process.env.MAIL_FROM || "").trim() || (user ? `Nexthlon <${user}>` : "Nexthlon <no-reply@localhost>");
-  return { host, port, user, pass, from, secure: port === 465, enabled: Boolean(host) };
+  return { driver, host, port, user, pass, brevoApiKey, from, secure: port === 465, enabled: driver === "brevo" ? Boolean(brevoApiKey) : Boolean(host) };
 }
 
 function readAdminPath() {

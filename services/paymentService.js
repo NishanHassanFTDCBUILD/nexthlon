@@ -7,6 +7,7 @@
 // Marking paid is IDEMPOTENT: an atomic "only if not paid yet" update and an atomic
 // "only if stock not taken yet" claim mean a second call (or the webhook) changes nothing.
 const Order = require("../models/Order");
+const events = require("../events");
 const Cart = require("../models/Cart");
 const buyNowService = require("./buyNowService");
 const Product = require("../models/Product");
@@ -139,6 +140,8 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
     if (claimed.couponCode) cartChange.$set = { couponCode: "" };
     await Cart.updateOne({ user: claimed.user }, cartChange);
   }
+  // Paid and in stock: this is when an online order counts as placed.
+  await events.emit("order.placed", { orderId: claimed.orderId }, { key: claimed.orderId });
   return Order.findById(claimed._id);
 }
 

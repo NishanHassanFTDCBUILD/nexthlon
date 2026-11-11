@@ -115,7 +115,7 @@ own review from My Account → Reviews. There is no admin screen to hide or dele
   - `/transactions/reconciliation` compares orders marked paid with the Razorpay payments recorded, day by day, and lists mismatches.
 - `<ADMIN_PATH>/refunds` lists refunds as pending, processed or failed.
 - `<ADMIN_PATH>/abandoned-carts` lists carts idle for 24 hours or more, with a reminder email (at most one a day, and only to customers who accept offer emails) and the recovery rate.
-- Emails use nodemailer with `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `MAIL_FROM`. Without SMTP they are printed to the console in development; in production sending fails with a clear message.
+- Emails go through a provider chosen by `MAIL_DRIVER`: `smtp` (nodemailer) or `brevo` (HTTPS API, `BREVO_API_KEY`). Order emails (confirmed, shipped with tracking, out for delivery, delivered, cancelled, refunded, returns) are sent by background jobs: events saved in MongoDB, retried with growing waits, sent exactly once (`EmailLog`). Run `npm run emails:preview` to see them, `npm run jobs:status` / `jobs:retry` to inspect the queue, `npm run worker` for a stand-alone worker (`JOBS_ENABLED=false` on the web copies). SMTP uses `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `MAIL_FROM`. Without SMTP they are printed to the console in development; in production sending fails with a clear message.
 - Every admin change is written to the audit log. Refunds, return decisions and reminders are rate limited.
 
 ## Login: access token + refresh token
@@ -158,7 +158,7 @@ Every refresh token is revoked when the password changes, when an admin blocks t
 ## Environment variables
 
 Names only; copy `.env.example` to `.env` and fill them in:
-`NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `SITE_URL`, `ADMIN_REQUIRE_2FA`, `TRUST_PROXY`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `APP_RELEASE`, `MONGODB_MAX_POOL`, `STORAGE_DRIVER`, `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `STORAGE_PUBLIC_URL`, `LOG_LEVEL`, `LOG_FORMAT`.
+`NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_DRIVER`, `BREVO_API_KEY`, `JOBS_ENABLED`, `JOBS_CONCURRENCY`, `CART_RECOVERY_AUTO`, `SITE_URL`, `ADMIN_REQUIRE_2FA`, `TRUST_PROXY`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `APP_RELEASE`, `MONGODB_MAX_POOL`, `STORAGE_DRIVER`, `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `STORAGE_PUBLIC_URL`, `LOG_LEVEL`, `LOG_FORMAT`.
 
 Every variable is checked when the server starts (`config/schema.js`). A bad or missing value stops
 the server with **all** the problems listed at once; settings that work but look wrong for production

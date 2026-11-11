@@ -136,7 +136,7 @@ optional two-step login (TOTP) for admins. Design it in the same style as the si
 phone and desktop. Plan first, then wait for my go-ahead.
 ```
 
-### [ ] B2. Order emails, the event system and background jobs · L
+### [x] B2. Order emails, the event system and background jobs · L
 - **Goal:** customers get beautiful emails when an order is confirmed, shipped (with tracking), out for delivery, delivered, refunded, or a return is approved. The system is built to grow.
 - **Files:** `events/`, `jobs/` (MongoDB queue with retries), `providers/mail/` (SMTP, plus SES or Brevo), `views/emails/` (shared layout, dark brand style that also works in light mail apps), `services/orderService.js` hooks, and cart recovery moved onto jobs.
 - **Done when:**
