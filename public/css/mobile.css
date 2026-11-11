@@ -20,6 +20,19 @@
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
   select, textarea { font-size: 16px !important; }
 
+  /* ---------- Cart: thumb-sized quantity buttons; "Save for later" on one line ---------- */
+  .qty-btn, .qty-sm .qty-btn { width: 40px; height: 40px; }
+  .cart-item-actions { flex-wrap: wrap; row-gap: 8px; }
+  .cart-item-actions .link-btn { white-space: nowrap; }
+
+  /* ---------- Checkout: the steps (address, summary, payment) come first, the price summary after ---------- */
+  .checkout-side { order: 0; }
+
+  /* ---------- Account: bigger address buttons, tappable order item names, readable small labels ---------- */
+  .address-actions .btn { min-height: 40px; }
+  .order-item a { display: inline-block; padding: 9px 0; }
+  .count-dot, .address-type-pill, .label-caps { font-size: 12px; }
+
   /* ---------- Sign in / Create account: a short scene strip, so the form fits on the first screen ---------- */
   .au-scene { height: 168px; min-height: 0; }
   .au-motto { bottom: 14px; }

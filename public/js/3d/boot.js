@@ -2,11 +2,12 @@
 // (the container then shows its CSS 3D fallback), and as one still frame for reduced motion.
 //   build(canvas, { reduced, tier }) → { scene, ready? } (ready: a promise for textures etc.)
 import { supportsWebGL } from "./gl.js";
-import { prefersReducedMotion, deviceTier } from "./interaction.js";
+import { prefersReducedMotion, deviceTier, wantsLessData } from "./interaction.js";
 
 export function boot(container, canvas, build) {
   if (!container || !canvas) return;
-  if (!supportsWebGL()) {
+  // No WebGL, or the visitor is saving data / on a very slow connection: show the still version.
+  if (!supportsWebGL() || wantsLessData()) {
     container.classList.add("no-webgl");
     return;
   }

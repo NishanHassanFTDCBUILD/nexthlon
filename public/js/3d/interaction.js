@@ -6,6 +6,15 @@ export const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-mo
 export const finePointer = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 // A rough guess at a low-power device: few cores, little memory, or a small touch screen.
+// True when the visitor asked to save data (Data Saver / "reduce data") or is on a very slow
+// connection. The 3D scenes are then skipped and their still versions shown instead.
+export function wantsLessData() {
+  const connection = navigator.connection || {};
+  if (connection.saveData) return true;
+  if (["slow-2g", "2g"].includes(connection.effectiveType)) return true;
+  return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-data: reduce)").matches);
+}
+
 export function deviceTier() {
   const cores = navigator.hardwareConcurrency || 4;
   const memory = navigator.deviceMemory || 4;

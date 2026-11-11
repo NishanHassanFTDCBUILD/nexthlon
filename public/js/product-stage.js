@@ -5,6 +5,7 @@
 // The <img data-gallery-main> stays in the page: the gallery script swaps its src, and we follow it.
 // Without WebGL (or with reduced motion) the stage simply keeps showing that <img>.
 import { supportsWebGL, createContext, createProgram } from "./3d/gl.js";
+import { wantsLessData } from "./3d/interaction.js";
 
 const stage = document.querySelector("[data-stage]");
 const canvas = stage && stage.querySelector("[data-stage-canvas]");
@@ -19,7 +20,8 @@ function whenIdle(run) {
   if (document.readyState === "complete") later();
   else window.addEventListener("load", later, { once: true });
 }
-if (stage && canvas && photo && window.NxTicker && !reduced) whenIdle(() => { if (supportsWebGL()) start(); });
+// Saving data or on a very slow connection: keep the plain photo.
+if (stage && canvas && photo && window.NxTicker && !reduced && !wantsLessData()) whenIdle(() => { if (supportsWebGL()) start(); });
 
 function start() {
   const gl = createContext(canvas, { antialias: false, premultipliedAlpha: false });
