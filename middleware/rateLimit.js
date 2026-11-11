@@ -81,4 +81,34 @@ const adminMoneyLimiter = rateLimit({
   message: { message: "Too many refunds or emails in a short time. Please wait a few minutes." }
 });
 
-module.exports = { authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
+// Asking for a reset email: 5 per 15 minutes per address of the visitor. The account has its own limit
+// on top (services/passwordResetService.js), so one inbox cannot be flooded from many addresses either.
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please wait 15 minutes and try again." }
+});
+
+// Using a reset or confirmation link: 15 per 15 minutes per visitor address (a real person needs one or two).
+const linkLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many attempts. Please wait 15 minutes and try again." }
+});
+
+// The code after the admin password: 10 per 15 minutes per visitor address. The account has its own
+// lock on top (5 wrong codes, then 15 minutes), which follows the account whatever address guesses come from.
+const twoFactorLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many attempts. Please wait 15 minutes and try again." }
+});
+
+module.exports = { forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };

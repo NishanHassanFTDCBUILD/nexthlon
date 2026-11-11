@@ -173,7 +173,9 @@
 .cr-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-pill); background: rgba(248, 113, 113, 0.12); color: #ffb3b3; font-size: var(--text-xs); font-weight: var(--weight-bold); letter-spacing: 0.06em; text-transform: uppercase; }
 
 @media (max-width: 960px) {
-  .au { grid-template-columns: minmax(0, 1fr); }
+  /* Stacked: the scene keeps its own height and the panel takes the rest. Without the row sizes, a short card
+     (forgot password) left the spare height as a gap under the scene. */
+  .au { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   .au-scene { height: 40vh; min-height: 280px; }
   .au-motto { bottom: var(--space-3); }
   .au-motto-line { font-size: clamp(36px, 10vw, 60px); }
@@ -257,4 +259,49 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .au-flip-inner, .au-card, .au-switch-pill { transition: none; }
+}
+
+/* ==========================================================================
+   Account recovery (forgot password, choose a new one, confirm email) and the admin code step.
+   ========================================================================== */
+.au-forgot { display: flex; justify-content: flex-end; margin: calc(var(--space-1) * -1) 0 var(--space-half); }
+.au-forgot a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-1); margin-right: calc(var(--space-1) * -1); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); border-radius: var(--radius-sm); }
+.au-forgot a:hover { color: var(--brand-ink); text-decoration: none; }
+
+.au-badge-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: var(--space-1); border-radius: 16px; background: var(--brand-soft-2); color: var(--brand-ink); box-shadow: inset 0 0 0 1px rgba(var(--brand-rgb), 0.3); }
+.au-badge-icon .i { width: 24px; height: 24px; }
+.au-badge-icon.is-warn { background: var(--warning-soft); color: var(--warning); box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.32); }
+
+/* A finished state in place of the form: "check your inbox", "link expired", "email confirmed". */
+.au-state, .au-sent { display: flex; flex-direction: column; align-items: center; gap: var(--space-1h); padding: var(--space-2) 0 var(--space-1); text-align: center; }
+.au-sent[hidden], .au-form[hidden], .au-card-head[hidden] { display: none; }
+.au-state-title { margin: 0; font: var(--weight-black) var(--text-2xl) / 1 var(--display); text-transform: uppercase; }
+/* It takes focus when the message appears (so a screen reader reads it), but it is not a control: no ring. */
+.au-state-title, .au-state-title:focus, .au-state-title:focus-visible { outline: none; box-shadow: none; }
+.au-state .au-title, .au-sent .au-state-title { margin: 0; }
+.au-state p, .au-sent p { margin: 0; max-width: 34ch; }
+.au-sent-art { width: 96px; height: 96px; fill: none; stroke: var(--brand); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.au-sent-art rect { fill: var(--brand-soft); }
+.au-sent-tick { width: 76px; height: 76px; }
+/* The button-shaped link ("Get a new link", "Continue shopping"). */
+.au-submit-link { margin-top: var(--space-1); text-decoration: none; }
+.au-submit-link:hover { text-decoration: none; }
+.au-recovery .au-foot { margin-top: var(--space-2); }
+
+/* The admin code step. */
+.au-form-2fa[hidden] { display: none; }
+.au-form-2fa input[name="code"] { font-variant-numeric: tabular-nums; }
+.au-form-2fa[data-code-mode="app"] input[name="code"] { font-size: 1.25rem; font-weight: var(--weight-bold); letter-spacing: 0.3em; }
+.au-form-2fa[data-code-mode="recovery"] input[name="code"] { letter-spacing: 0.08em; }
+.au-2fa-links { display: flex; flex-direction: column; align-items: center; margin-top: var(--space-half); }
+.au-2fa-links .link-btn { min-height: 44px; padding: 0 var(--space-1h); font-size: var(--text-sm); }
+.au-2fa-links .link-btn:last-child { color: var(--muted); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .au-recovery .au-card-head, .au-recovery .au-form, .au-state, .au-sent:not([hidden]) { animation: nx-au-rise 0.55s var(--ease-out) both; }
+  .au-recovery .au-form { animation-delay: 0.08s; }
+  .au-form-2fa.is-entering { animation: nx-au-rise 0.45s var(--ease-out) both; }
+  .au-sent-art rect, .au-sent-art path { stroke-dasharray: 260; animation: nx-au-draw-env 0.9s var(--ease-out) 0.1s both; }
+  .au-sent-art path { animation-delay: 0.5s; }
+  @keyframes nx-au-draw-env { from { stroke-dashoffset: 260; } to { stroke-dashoffset: 0; } }
 }

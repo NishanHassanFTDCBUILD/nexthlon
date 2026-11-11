@@ -3,6 +3,7 @@ const pages = require("../controllers/pageController");
 const account = require("../controllers/accountPageController");
 const { customerPage, guestOnly } = require("../middleware/auth");
 const { accountShell } = require("../middleware/shell");
+const recovery = require("../controllers/recoveryController");
 
 // My Account pages: signed-in customers only, without the store's motion layer.
 const accountPage = [customerPage, accountShell];
@@ -23,6 +24,11 @@ router.get("/shipping-policy", pages.infoPage("shipping"));
 // Customer account
 router.get("/login", guestOnly, pages.login);
 router.get("/signup", guestOnly, pages.signup);
+// Forgotten password and email confirmation. The reset and confirm pages open from the links in emails,
+// so they work whether or not someone is signed in.
+router.get("/forgot-password", guestOnly, recovery.forgotPage);
+router.get("/reset-password", recovery.resetPage);
+router.get("/verify-email", recovery.verifyPage);
 // My Account. The older short URLs (/profile, /orders, /wallet, /wishlist) still work.
 router.get("/account", accountPage, account.overview);
 router.get(["/account/addresses", "/profile"], accountPage, pages.profile);

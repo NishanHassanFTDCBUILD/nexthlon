@@ -8,6 +8,8 @@ const supportService = require("../services/supportService");
 const auditService = require("../services/auditService");
 const SupportTicket = require("../models/SupportTicket");
 const { endSession, readSessionCookie } = require("../services/tokenService");
+const emailVerificationService = require("../services/emailVerificationService");
+const { siteUrlFor } = require("../utils/emailLayout");
 const {
   validateEmailChange, validatePreferences, validateDeleteAccount, validateReview,
   validateListName, validateTicket, validateTicketReply, hasErrors
@@ -25,7 +27,8 @@ function checked(validate, body, ...extra) {
 // PATCH /api/account/email   { email, password }
 const changeEmail = asyncHandler(async (req, res) => {
   const user = await accountService.changeEmail(req.user._id, checked(validateEmailChange, req.body), auditService.fromRequest(req));
-  res.json({ message: "Your sign-in email has been changed.", user: user.toSafeJSON() });
+  emailVerificationService.sendInBackground(user, { baseUrl: siteUrlFor(req), ip: req.ip });
+  res.json({ message: "Your sign-in email has been changed. We sent a link to the new address: please confirm it.", user: user.toSafeJSON() });
 });
 
 // POST /api/account/logout-all

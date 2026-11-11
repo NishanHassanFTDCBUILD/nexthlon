@@ -4,6 +4,9 @@ const { startSession } = require("../services/tokenService");
 const { validateProfile, validatePasswordChange, validateAddress, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const auditService = require("../services/auditService");
+const authMailService = require("../services/authMailService");
+const { background } = require("../utils/background");
+const { siteUrlFor } = require("../utils/emailLayout");
 
 function checked(validate, body) {
   const { errors, value } = validate(body);
@@ -28,6 +31,8 @@ const updateProfile = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const user = await profileService.changePassword(req.user._id, checked(validatePasswordChange, req.body));
   await auditService.record({ ...auditService.fromRequest(req), action: "account.password_changed", target: `user:${user._id}` });
+  // Tell the owner, so a change they did not make does not go unnoticed.
+  background("password_change.notice", () => authMailService.sendPasswordChanged(user, { loginUrl: `${siteUrlFor(req)}/forgot-password` }));
   const { rawToken, familyId } = await refreshTokenService.issue(user, refreshTokenService.deviceFrom(req));
   startSession(res, { user, refreshToken: rawToken, familyId });
   res.json({ message: "Password changed. Your other devices have been signed out." });

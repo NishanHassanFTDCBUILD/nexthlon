@@ -132,6 +132,29 @@ function endSession(res, kind = "customer") {
   clearSessionCookie(res, kind);
 }
 
+// ---------- Two-step login: the pass between the password and the code ----------
+// After a correct password the admin is NOT signed in. They get this short-lived token (5 minutes) that
+// says "this person got the password right", and must send it back with a code. It has its own audience,
+// so it can never be used as an access token, and an access token can never be used as one of these.
+const TWO_FACTOR_AUDIENCE = "nexthlon-2fa";
+
+function signTwoFactorChallenge(user) {
+  return jwt.sign({ purpose: "2fa", ver: user.tokenVersion || 0 }, config.jwtSecret, {
+    subject: String(user._id),
+    expiresIn: "5m",
+    issuer: ISSUER,
+    audience: TWO_FACTOR_AUDIENCE,
+    algorithm: "HS256"
+  });
+}
+
+// Throws if it is fake, changed, expired or not a challenge.
+function verifyTwoFactorChallenge(token) {
+  const payload = jwt.verify(token, config.jwtSecret, { algorithms: ["HS256"], issuer: ISSUER, audience: TWO_FACTOR_AUDIENCE });
+  if (payload.purpose !== "2fa") throw new Error("Not a two-step challenge");
+  return payload;
+}
+
 // Only what other files (and the tests) actually use. The single-cookie writers stay private:
 // callers go through startSession / endSession, so the three cookies can never drift apart.
 module.exports = {
@@ -141,6 +164,8 @@ module.exports = {
   KINDS,
   signToken,
   verifyToken,
+  signTwoFactorChallenge,
+  verifyTwoFactorChallenge,
   setAuthCookie,
   clearAuthCookie,
   setRefreshCookie,

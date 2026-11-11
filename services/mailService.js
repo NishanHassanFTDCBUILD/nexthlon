@@ -42,6 +42,8 @@ async function send(message) {
     testOutbox.push(mail);
     return { delivered: false, logged: true };
   }
+  // Tests that are not looking at email: drop it quietly (no console noise from every sign-up).
+  if (process.env.NODE_ENV === "test") return { delivered: false, logged: false };
   const smtp = getTransport();
   if (!smtp) {
     if (config.isProduction) throw new HttpError(503, "Email is not set up on this server (SMTP settings are missing).");

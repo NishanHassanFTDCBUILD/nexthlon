@@ -44,6 +44,8 @@
             <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Your account has been blocked. Please contact Nexthlon support.</span></div>
           <% } else if (reason === 'expired') { %>
             <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
+          <% } else if (reason === 'password_reset') { %>
+            <div class="alert alert-info" role="status"><%- icon('check') %> <span>Your password has been changed. Sign in with the new one.</span></div>
           <% } else if (reason === 'logged_out_all') { %>
             <div class="alert alert-info" role="status"><%- icon('check') %> <span>You have been signed out of all devices. Sign in again to continue.</span></div>
           <% } %>
@@ -52,6 +54,7 @@
             <input type="hidden" name="next" value="<%= next %>">
             <%- include('../partials/auth-field', { id: 'login-email', name: 'email', label: 'Email address', type: 'email', fieldIcon: 'mail', autocomplete: 'email', max: 254, hint: '' }) %>
             <%- include('../partials/auth-field', { id: 'login-password', name: 'password', label: 'Password', type: 'password', fieldIcon: 'lock', autocomplete: 'current-password', max: 64, hint: '<span class="au-caps" data-caps hidden>Caps Lock is on</span>' }) %>
+            <p class="au-forgot"><a href="/forgot-password">Forgot password?</a></p>
             <button class="au-submit" type="submit" data-submit data-magnetic>
               <span class="au-submit-label">Sign in</span>
               <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>

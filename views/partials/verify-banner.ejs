@@ -1,0 +1,8 @@
+<%# A reminder for a signed-in customer whose email is not confirmed yet. Shown on My Account and checkout. %>
+<% if (typeof currentUser !== 'undefined' && currentUser && currentUser.role === 'customer' && currentUser.emailVerified === false) { %>
+  <div class="verify-banner" data-verify-banner role="status">
+    <span class="verify-banner-icon" aria-hidden="true"><%- icon('mail') %></span>
+    <p><strong>Confirm your email.</strong> We sent a link to <span class="verify-banner-email"><%= currentUser.email %></span>. Order updates and password resets go there.</p>
+    <button type="button" class="btn btn-ghost btn-sm" data-resend-verification>Send it again</button>
+  </div>
+<% } %>

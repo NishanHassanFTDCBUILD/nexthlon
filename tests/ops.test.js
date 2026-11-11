@@ -18,6 +18,7 @@ const production = {
   NODE_ENV: "production",
   SITE_URL: "https://www.nexthlon.in",
   ADMIN_PATH: "/nx-console-7f3k",
+  ADMIN_REQUIRE_2FA: "true",
   SMTP_HOST: "smtp.example.com", SMTP_USER: "u", SMTP_PASS: "p",
   RAZORPAY_KEY_ID: "rzp_live_abc", RAZORPAY_KEY_SECRET: "s", RAZORPAY_WEBHOOK_SECRET: "w",
   SENTRY_DSN: "https://abc123@o1.ingest.sentry.io/42",
@@ -82,7 +83,8 @@ test("SITE_URL is the store's address, and https in production", () => {
   assert.match(checkEnv({ ...good, SITE_URL: "www.nexthlon.in" }).errors[0], /no path/);
   assert.match(checkEnv({ ...good, SITE_URL: "https://nexthlon.in/shop" }).errors[0], /no path/);
   assert.match(checkEnv({ ...production, SITE_URL: "http://nexthlon.in" }).errors[0], /https/);
-  assert.ok(checkEnv({ ...production, SITE_URL: "" }).warnings.some(line => line.startsWith("SITE_URL")));
+  // Reset and confirmation emails link to the store, so production cannot start without it.
+  assert.ok(checkEnv({ ...production, SITE_URL: "" }).errors.some(line => line.startsWith("SITE_URL") && /link to the store/.test(line)));
 });
 
 test("Razorpay keys come as a pair, and test keys in production are called out", () => {
@@ -96,7 +98,7 @@ test("Razorpay keys come as a pair, and test keys in production are called out",
 test("production warns about what is missing: email, payments, alerts", () => {
   const { errors, warnings } = checkEnv({ ...good, NODE_ENV: "production", SITE_URL: "https://x.in" });
   assert.equal(errors.length, 0);
-  for (const name of ["ADMIN_PATH", "RAZORPAY_KEY_ID", "SMTP_HOST", "SENTRY_DSN", "STORAGE_DRIVER"]) {
+  for (const name of ["ADMIN_PATH", "RAZORPAY_KEY_ID", "SMTP_HOST", "SENTRY_DSN", "STORAGE_DRIVER", "ADMIN_REQUIRE_2FA"]) {
     assert.ok(warnings.some(line => line.startsWith(name)), `${name} should warn`);
   }
   // Development stays quiet about the same things.

@@ -116,7 +116,7 @@ srcset in cards and the product page. Migrate existing uploads. Re-run Lighthous
 
 ## Stage B: Core commerce (what a real store must do)
 
-### [ ] B1. Accounts: password reset and email check · M
+### [x] B1. Accounts: password reset and email check · M
 - **Goal:** customers can reset a forgotten password and confirm their email. Admins can turn on two-step login.
 - **Files:**
   - routes and controllers: `routes/authRoutes.js`, `controllers/authController.js`;

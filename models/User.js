@@ -10,6 +10,24 @@ const userSchema = new mongoose.Schema({
   // Copied into every token. Changing the password adds 1, so all older tokens stop working.
   tokenVersion: { type: Number, default: 0 },
   lastLoginAt: { type: Date, default: null },
+  // When the customer confirmed this email address from the link we sent (null: not confirmed yet).
+  // Changing the email clears it, and a password reset by email sets it (the link proved the address).
+  emailVerifiedAt: { type: Date, default: null },
+  // Two-step login (admins). The secret and recovery codes are never read unless asked for explicitly
+  // (select: false); the secret is also encrypted, see services/twoFactorService.js.
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secretEnc: { type: String, select: false, default: "" },
+    // A secret that was shown for setup but not confirmed yet with a first code.
+    pendingSecretEnc: { type: String, select: false, default: "" },
+    // SHA-256 of each unused recovery code.
+    recoveryHashes: { type: [String], select: false, default: [] },
+    // The last 30-second step a code was accepted for, so the same code cannot be used twice.
+    lastStep: { type: Number, default: 0 },
+    failedAttempts: { type: Number, default: 0 },
+    lockedUntil: { type: Date, default: null },
+    enabledAt: { type: Date, default: null }
+  },
   // Every customer has a code to invite friends; referredBy is set once, at sign-up.
   referralCode: { type: String, uppercase: true, trim: true },
   referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
@@ -40,6 +58,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     phone: this.phone,
     role: this.role,
     isBlocked: this.isBlocked,
+    emailVerified: Boolean(this.emailVerifiedAt),
     referralCode: this.referralCode || "",
     createdAt: this.createdAt
   };

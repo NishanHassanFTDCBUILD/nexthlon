@@ -86,8 +86,14 @@ function checkEnv(env = process.env) {
       fail("SITE_URL", "must start with https:// in production (login cookies are Secure and only travel over HTTPS).");
     }
   } else if (production) {
-    warn("SITE_URL", "is not set. Emails, the sitemap and share previews need the store's public address, for example https://www.nexthlon.in");
+    // Password-reset and confirmation emails contain a link to the store. The address cannot be taken from the
+    // request: a forged Host header would point the link at someone else's website.
+    fail("SITE_URL", "is not set. Emails (password reset, confirmation) link to the store, so production needs its public address, for example https://www.nexthlon.in");
   }
+
+  const require2fa = text(env, "ADMIN_REQUIRE_2FA").toLowerCase();
+  if (require2fa && !["true", "false"].includes(require2fa)) fail("ADMIN_REQUIRE_2FA", `"${require2fa}" must be true or false.`);
+  else if (production && require2fa !== "true") warn("ADMIN_REQUIRE_2FA", "is not true, so an admin can sign in with the password alone. Turn on two-step login for each admin (Security page), then set ADMIN_REQUIRE_2FA=true.");
 
   // ---------- Logins ----------
   for (const [name, [fallback, limit]] of Object.entries(DURATIONS)) {

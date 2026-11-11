@@ -37,7 +37,9 @@
   };
 
   // Sign-in calls answer 401/403 for a wrong password; those must stay on the form.
-  const LOGIN_CALLS = ["/api/login", "/api/signup", "/api/admin/login"];
+  // Calls where a 401 means "wrong details", not "your session ended": they are never retried after a renewal,
+  // and never send the visitor to the sign-in page.
+  const LOGIN_CALLS = ["/api/login", "/api/signup", "/api/admin/login", "/api/admin/login/2fa", "/api/password/forgot", "/api/password/reset", "/api/email/verify"];
   // The renewal endpoint. The refresh cookie's path is this exact URL, so the browser only sends
   // the long-lived token here. A 401 from this call means the session really is over.
   const REFRESH_URL = "/api/auth/refresh";
@@ -190,6 +192,21 @@
     item.addEventListener("focusout", () => setTimeout(resume, 0));
     run();
   };
+
+  // "Confirm your email" banner: send the link again.
+  document.addEventListener("click", async event => {
+    const button = event.target.closest("[data-resend-verification]");
+    if (!button) return;
+    Nx.busy(button, true, "Sending…");
+    try {
+      const reply = await Nx.api("/api/account/email/resend", { method: "POST" });
+      Nx.toast(reply.message);
+    } catch (error) {
+      Nx.toast(error.message, "error");
+    } finally {
+      Nx.busy(button, false);
+    }
+  });
 
   // A message that survives a page reload, shown on the next page.
   Nx.flash = function flash(message, type = "success") {

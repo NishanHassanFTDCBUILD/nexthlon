@@ -14,6 +14,7 @@ const catalog = require("../controllers/adminCatalogPageController");
 const { ADMIN_NAV } = require("../config/adminNav");
 const { adminPage, adminGuestOnly } = require("../middleware/auth");
 const { adminShell } = require("../middleware/shell");
+const { requireTwoFactorSetup } = require("../middleware/twoFactorGuard");
 
 // Admin pages get the base path for links, the sidebar sections, and are never indexed. This runs
 // only for the login page and for signed-in admins, so anyone else's 404 here is identical to
@@ -31,6 +32,10 @@ router.get("/login", adminLocals, adminGuestOnly, pages.adminLogin);
 // Everything below needs a signed-in admin (anyone else: 404). The console is a calm work area
 // that switches sections without a reload (adminShell: no store motion, X-Partial support).
 router.use(adminPage, adminLocals, adminShell);
+// Security: before the two-step guard, so an admin who must turn it on can reach it.
+router.get("/security", pages.adminSecurity);
+// With ADMIN_REQUIRE_2FA=true, every other page waits until two-step login is on.
+router.use(requireTwoFactorSetup);
 router.get("/", (req, res) => res.redirect(`${config.adminPath}/dashboard`));
 
 // ---------- Overview ----------

@@ -138,12 +138,17 @@
       case "email":
         return EMAIL.test(value.trim()) ? "" : "Enter a valid email address.";
       case "password":
-        if (form.dataset.kind !== "signup") return value ? "" : "Enter your password.";
+        if (!["signup", "reset"].includes(form.dataset.kind)) return value ? "" : "Enter your password.";
         if (!RULES.length(value)) return "Use 8 to 64 characters.";
         if (!RULES.letter(value) || !RULES.number(value)) return "Include at least one letter and one number.";
         return "";
       case "confirmPassword":
         return value && value === form.elements.password.value ? "" : "Passwords do not match.";
+      case "code": {
+        // A 6-digit code, or a recovery code (10 letters and numbers, usually written with a dash).
+        const code = value.replace(/[\s-]/g, "").toLowerCase();
+        return /^\d{6}$/.test(code) || /^[a-z2-9]{10}$/.test(code) ? "" : "Enter the 6-digit code from your app, or a recovery code.";
+      }
       case "referralCode": {
         const code = value.replace(/\s+/g, "").toUpperCase();
         return !code || /^[A-Z0-9]{6,12}$/.test(code) ? "" : "A referral code has 6 to 12 letters and numbers.";
@@ -216,6 +221,8 @@
         }
         if (input.name === "email") hideEmailFix(input);
         if (input.name === "referralCode") input.value = input.value.toUpperCase();
+        // Six digits typed or pasted (or filled in by the phone's one-time-code suggestion): send them.
+        if (input.name === "code" && /^\d{6}$/.test(input.value.replace(/[\s-]/g, ""))) setTimeout(() => form.requestSubmit(), 180);
       });
       // Caps Lock warning on password fields.
       if (input.type === "password") {
@@ -322,13 +329,30 @@
         // How many tries are left before the rate limit pauses sign-ins.
         const header = error.headers && error.headers.get("RateLimit");
         const left = header && /remaining=(\d+)/.exec(header);
-        if (error.status === 429) {
+        // The code step's own messages already say how many tries are left, or that the account is locked.
+        if (error.status === 429 && form.dataset.kind !== "admin-2fa") {
           message = "Too many attempts from this device. Please wait 15 minutes, then try again.";
-        } else if (left && Number(left[1]) <= 5 && form.dataset.kind !== "signup") {
+        } else if (left && Number(left[1]) <= 5 && ["login", "admin"].includes(form.dataset.kind)) {
           message += ` ${left[1]} ${Number(left[1]) === 1 ? "attempt" : "attempts"} left before a 15-minute pause.`;
         }
         Nx.formAlert(form, message);
         shakeCard();
+        // The 5-minute pass from the password step ran out: start again from the password.
+        if (form.dataset.kind === "admin-2fa" && /timed out/i.test(error.message)) setTimeout(() => backToPassword(form), 1400);
+        return;
+      }
+
+      // An admin with two-step login: the password was right, now the code.
+      if (result.twoFactorRequired) {
+        setButton("idle");
+        showTwoFactor(form, result);
+        return;
+      }
+      // Forgot password, confirm email: a message in the card instead of a trip into the store.
+      if (form.dataset.success === "inline") {
+        setButton("done");
+        await wait(500);
+        showSent(form, values);
         return;
       }
 
@@ -339,8 +363,106 @@
       if (form.dataset.kind === "signup") await celebrate(result);
       await zoomOut();
       // replace, not assign: Back must not return to the sign-in form.
-      window.location.replace(next);
+      window.location.replace(result.redirect || form.dataset.redirect || next);
     });
+  });
+
+  // ---------- A message in place of the form (forgot password, confirm email) ----------
+  function showSent(form, values) {
+    const card = form.closest("[data-tilt-card]");
+    const panel = card && card.querySelector("[data-sent-panel]");
+    if (!panel) return;
+    const email = panel.querySelector("[data-sent-email]");
+    if (email) email.textContent = values.email || "";
+    card.querySelectorAll(".au-card-head, [data-auth-form]").forEach(part => { part.hidden = true; });
+    panel.hidden = false;
+    const heading = panel.querySelector(".au-state-title");
+    if (heading) heading.focus({ preventScroll: true });
+    // "Try another email": back to the form.
+    const again = panel.querySelector("[data-sent-again]");
+    if (again) {
+      again.addEventListener("click", () => {
+        panel.hidden = true;
+        card.querySelectorAll(".au-card-head, [data-auth-form]").forEach(part => { part.hidden = false; });
+        const submit = form.querySelector("[data-submit]");
+        submit.disabled = false;
+        submit.dataset.state = "idle";
+        const input = form.querySelector("input:not([type=hidden])");
+        if (input) { input.value = ""; input.focus(); }
+      }, { once: true });
+    }
+  }
+
+  // ---------- Admin: the password step turns into the code step ----------
+  const TF_TEXT = {
+    title: "Two-step verification",
+    lead: "One more step, to be sure it is really you."
+  };
+  function showTwoFactor(passwordForm, result) {
+    const card = passwordForm.closest("[data-tilt-card]");
+    const codeForm = card.querySelector("[data-twofactor]");
+    if (!codeForm) return;
+    codeForm.elements.challenge.value = result.challenge;
+    const title = card.querySelector("[data-title]");
+    const lead = card.querySelector("[data-lead]");
+    if (title && !title.dataset.was) { title.dataset.was = title.textContent; lead.dataset.was = lead.textContent; }
+    if (title) title.textContent = TF_TEXT.title;
+    if (lead) lead.textContent = TF_TEXT.lead;
+    passwordForm.hidden = true;
+    codeForm.hidden = false;
+    codeForm.classList.add("is-entering");
+    const input = codeForm.elements.code;
+    input.value = "";
+    setCodeMode(codeForm, "app");
+    setTimeout(() => input.focus(), reduced() ? 0 : 120);
+  }
+
+  function backToPassword(codeForm) {
+    const card = codeForm.closest("[data-tilt-card]");
+    const passwordForm = card.querySelector("[data-first-step]");
+    const title = card.querySelector("[data-title]");
+    const lead = card.querySelector("[data-lead]");
+    if (title && title.dataset.was) { title.textContent = title.dataset.was; lead.textContent = lead.dataset.was; }
+    codeForm.hidden = true;
+    codeForm.elements.challenge.value = "";
+    Nx.clearErrors(codeForm);
+    passwordForm.hidden = false;
+    const submit = passwordForm.querySelector("[data-submit]");
+    submit.disabled = false;
+    submit.dataset.state = "idle";
+    const password = passwordForm.elements.password;
+    password.value = "";
+    password.focus();
+  }
+
+  // The code field: the 6 digits from the app (a number pad on phones), or a recovery code (letters too).
+  function setCodeMode(codeForm, mode) {
+    const input = codeForm.elements.code;
+    const field = input.closest("[data-field]");
+    const toggle = codeForm.querySelector("[data-code-toggle]");
+    const hint = codeForm.querySelector("[data-code-hint]");
+    const label = field.querySelector("label");
+    const recovery = mode === "recovery";
+    codeForm.dataset.codeMode = mode;
+    input.inputMode = recovery ? "text" : "numeric";
+    input.value = "";
+    Nx.clearErrors(codeForm);
+    if (label) label.textContent = recovery ? "Recovery code" : "6-digit code";
+    if (hint) hint.textContent = recovery ? "Each recovery code works once. Type it with or without the dash." : "Open your authenticator app and enter the code it shows.";
+    if (toggle) toggle.textContent = recovery ? "Use the app's code instead" : "Use a recovery code instead";
+    field.classList.remove("is-valid", "is-touched");
+  }
+
+  document.querySelectorAll("[data-twofactor]").forEach(codeForm => {
+    const toggle = codeForm.querySelector("[data-code-toggle]");
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        setCodeMode(codeForm, codeForm.dataset.codeMode === "recovery" ? "app" : "recovery");
+        codeForm.elements.code.focus();
+      });
+    }
+    const back = codeForm.querySelector("[data-twofactor-back]");
+    if (back) back.addEventListener("click", () => backToPassword(codeForm));
   });
 
   // ---------- After creating an account: confetti and a welcome ----------

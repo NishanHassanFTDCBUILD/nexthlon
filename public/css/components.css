@@ -604,3 +604,16 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; 
 
 /* The result count above the grid: the number itself is the part worth reading. */
 .result-count strong { color: var(--ink); font-weight: var(--weight-bold); }
+
+/* ---------- "Confirm your email" reminder (My Account and checkout) ---------- */
+.verify-banner { display: flex; align-items: center; gap: var(--space-1h); margin-bottom: var(--space-3); padding: var(--space-1h) var(--space-2); border-radius: var(--radius); background: var(--brand-soft); border: 1px solid rgba(var(--brand-rgb), 0.28); }
+.verify-banner-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--brand-soft-2); color: var(--brand-ink); }
+.verify-banner p { flex: 1; min-width: 0; margin: 0; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-2); }
+.verify-banner strong { color: var(--ink); }
+.verify-banner-email { overflow-wrap: anywhere; }
+.verify-banner .btn { flex: none; }
+@media (max-width: 560px) {
+  .verify-banner { flex-wrap: wrap; }
+  .verify-banner p { flex-basis: calc(100% - 52px); }
+  .verify-banner .btn { margin-left: 48px; }
+}

@@ -8,6 +8,7 @@
   const buyItem = isBuyNow ? (quote.lines[0] || quote.items[0]) : null;
 %>
 <main id="main" class="container page checkout<%= isBuyNow ? ' is-buy-now' : '' %>" data-checkout data-source="<%= isBuyNow ? 'buynow' : 'cart' %>" data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || (chosen ? chosen.phone : '') %>">
+  <%- include('../partials/verify-banner') %>
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
     <% if (isBuyNow && buyItem) { %><a href="/products/<%= buyItem.slug %>"><%= buyItem.name %></a><% } else { %><a href="/cart">Cart</a><% } %>

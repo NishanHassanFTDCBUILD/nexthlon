@@ -497,3 +497,40 @@ body.admin-menu-open { overflow: hidden; }
 .admin-body .admin-table th, .admin-body .admin-table td { padding: 11px 12px; }
 .admin-body .admin-table td { white-space: normal; }
 .admin-body .admin-table .status-pill, .admin-body .admin-table .pill { white-space: nowrap; }
+
+/* ---------- Security: two-step login ---------- */
+.tf-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: var(--radius-pill); font-size: var(--text-xs); font-weight: var(--weight-bold); letter-spacing: 0.04em; text-transform: uppercase; }
+.tf-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.tf-chip.is-on { background: var(--success-soft); color: var(--success); }
+.tf-chip.is-off { background: var(--warning-soft); color: var(--warning); }
+.tf-intro p, .tf-steps h3 + .tf-setup { max-width: 62ch; }
+.tf-intro { display: grid; gap: var(--space-2); justify-items: start; }
+.tf-steps { display: grid; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.tf-step h3 { display: flex; align-items: center; gap: var(--space-1h); margin: 0 0 var(--space-2); font-size: var(--text-md); }
+.tf-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: var(--on-brand); font-size: var(--text-sm); font-weight: var(--weight-bold); }
+.tf-setup { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+/* A QR code needs a light background and a quiet border to scan, in the dark theme too. */
+.tf-qr { padding: 12px; border-radius: var(--radius); background: #fff; box-shadow: var(--shadow-sm); line-height: 0; }
+.tf-qr img { width: 200px; height: 200px; display: block; }
+.tf-key { display: grid; gap: var(--space-1); justify-items: start; min-width: 0; max-width: 34ch; }
+.tf-key p { margin: 0; }
+.tf-secret { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); font: 600 var(--text-md) / 1.4 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: 0.08em; overflow-wrap: anywhere; user-select: all; }
+.tf-form { display: grid; gap: var(--space-2); max-width: 360px; }
+.tf-form h3 { margin: 0; }
+.tf-form .field input[name="code"] { font-size: 1.125rem; font-variant-numeric: tabular-nums; letter-spacing: 0.2em; }
+.tf-confirm { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--line); }
+.tf-actions { display: flex; flex-wrap: wrap; gap: var(--space-1h); margin-top: var(--space-2); }
+.tf-facts { margin-bottom: var(--space-1h); }
+.tf-low { color: var(--warning); }
+.tf-tip { margin: var(--space-2) 0 0; font-size: var(--text-sm); }
+.tf-recovery { display: grid; gap: var(--space-2); max-width: 520px; padding: var(--space-3); border-radius: var(--radius); background: var(--brand-soft); border: 1px solid rgba(var(--brand-rgb), 0.3); }
+.tf-recovery[hidden], .tf-steps[hidden], .tf-intro[hidden], .tf-confirm[hidden], .tf-actions[hidden] { display: none; }
+.tf-recovery h3 { display: flex; align-items: center; gap: var(--space-1); margin: 0; }
+.tf-recovery p { margin: 0; }
+.tf-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tf-codes li { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--line-strong); font: 700 var(--text-base) / 1.2 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: 0.06em; text-align: center; user-select: all; }
+@media (max-width: 420px) { .tf-codes { grid-template-columns: minmax(0, 1fr); } .tf-qr img { width: 180px; height: 180px; } }
+@media (prefers-reduced-motion: no-preference) {
+  .tf-steps:not([hidden]), .tf-recovery:not([hidden]), .tf-confirm:not([hidden]) { animation: nx-tf-rise 0.45s var(--ease-out) both; }
+  @keyframes nx-tf-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+}

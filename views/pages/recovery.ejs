@@ -1,0 +1,145 @@
+<%#
+  Forgotten password, choosing a new one, and confirming an email address. One page, six states (view):
+    forgot         ask for the email
+    reset          choose a new password (opened from the emailed link)
+    reset-invalid  the reset link is old, used or wrong
+    verify         confirm the email (opened from the emailed link)
+    verify-invalid the confirmation link is old, used or wrong
+    verify-done    the email is already confirmed
+  It uses the sign-in page's look and its script (public/js/auth.js): same scene, same glass card, same fields.
+%>
+<%- include('../partials/head', { bodyClass: 'au-body', styles: ['auth'] }) %>
+
+<main id="main" class="au" data-auth data-mode="recovery">
+  <section class="au-scene" data-auth-scene>
+    <canvas class="au-canvas" data-auth-canvas aria-hidden="true"></canvas>
+    <div class="au-scene-fallback" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="au-motto" aria-hidden="true">
+      <span class="au-motto-kicker"><%- icon('bolt', 'i-xs') %> Nexthlon performance gear</span>
+      <p class="au-motto-line" data-motto data-lines="Back in the game.|Train harder.|Run further.|Play smarter.">Back in the game.</p>
+      <p class="au-motto-sub">Gear picked by athletes, delivered across India.</p>
+    </div>
+  </section>
+
+  <header class="au-top">
+    <a class="brand brand-light" href="/" aria-label="Nexthlon home">
+      <span class="brand-mark"><%- icon('bolt') %></span>
+      <span class="brand-word">NEXTHLON</span>
+    </a>
+  </header>
+
+  <section class="au-panel" aria-label="Account recovery">
+    <a class="au-back" href="/"><%- icon('chevron-left', 'i-sm') %> Back to store</a>
+
+    <div class="au-flip">
+      <div class="au-flip-inner">
+        <div class="au-card au-face au-face-login au-recovery" data-tilt-card>
+
+          <% if (view === 'forgot') { %>
+            <div class="au-card-head">
+              <span class="au-badge-icon" aria-hidden="true"><%- icon('lock') %></span>
+              <h1 class="au-title">Forgot your password?</h1>
+              <p class="muted">Enter the email you signed up with. We will send a link to choose a new password.</p>
+            </div>
+            <form class="au-form" data-auth-form data-endpoint="/api/password/forgot" data-kind="forgot" data-success="inline" novalidate>
+              <div class="form-alert" data-form-alert aria-live="assertive"></div>
+              <%- include('../partials/auth-field', { id: 'forgot-email', name: 'email', label: 'Email address', type: 'email', fieldIcon: 'mail', autocomplete: 'email', max: 254, hint: '' }) %>
+              <button class="au-submit" type="submit" data-submit data-magnetic>
+                <span class="au-submit-label">Send reset link</span>
+                <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+                <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+              </button>
+            </form>
+            <div class="au-sent" data-sent-panel role="status" hidden>
+              <svg class="au-sent-art" viewBox="0 0 96 96" aria-hidden="true"><rect x="12" y="24" width="72" height="50" rx="10"/><path d="M14 30l34 26 34-26"/></svg>
+              <h2 class="au-state-title" tabindex="-1">Check your inbox</h2>
+              <p class="muted">If there is an account for <strong data-sent-email></strong>, a link to reset the password is on its way. It works for 30 minutes.</p>
+              <p class="muted au-hint">Nothing there? Look in spam, or <button type="button" class="link-btn" data-sent-again>try another email</button>.</p>
+            </div>
+            <p class="au-foot muted"><a href="/login">&larr; Back to sign in</a></p>
+
+          <% } else if (view === 'reset') { %>
+            <div class="au-card-head">
+              <span class="au-badge-icon" aria-hidden="true"><%- icon('lock') %></span>
+              <h1 class="au-title">Choose a new password</h1>
+              <p class="muted">You will be signed out everywhere, then sign in with the new one.</p>
+            </div>
+            <form class="au-form" data-auth-form data-endpoint="/api/password/reset" data-kind="reset" data-redirect="/login?reason=password_reset" novalidate>
+              <div class="form-alert" data-form-alert aria-live="assertive"></div>
+              <input type="hidden" name="token" value="<%= token %>">
+              <%- include('../partials/auth-field', { id: 'reset-password', name: 'password', label: 'New password', type: 'password', fieldIcon: 'lock', autocomplete: 'new-password', max: 64, hint: '<span class="au-caps" data-caps hidden>Caps Lock is on</span>' }) %>
+              <div class="au-strength" data-strength-box>
+                <div class="au-meter" aria-hidden="true"><span data-meter-bar></span></div>
+                <p class="au-meter-label" data-meter-label aria-live="polite">Use 8 or more characters with a letter and a number.</p>
+                <ul class="au-checks" aria-label="Password checklist">
+                  <li data-check="length"><span class="au-check-mark" aria-hidden="true"></span>8+ characters<em>required</em><span class="sr-only" data-check-state> (not yet)</span></li>
+                  <li data-check="letter"><span class="au-check-mark" aria-hidden="true"></span>A letter<em>required</em><span class="sr-only" data-check-state> (not yet)</span></li>
+                  <li data-check="number"><span class="au-check-mark" aria-hidden="true"></span>A number<em>required</em><span class="sr-only" data-check-state> (not yet)</span></li>
+                  <li data-check="upper"><span class="au-check-mark" aria-hidden="true"></span>An uppercase letter<span class="sr-only" data-check-state> (not yet)</span></li>
+                  <li data-check="symbol"><span class="au-check-mark" aria-hidden="true"></span>A symbol<span class="sr-only" data-check-state> (not yet)</span></li>
+                </ul>
+              </div>
+              <%- include('../partials/auth-field', { id: 'reset-confirm', name: 'confirmPassword', label: 'Confirm new password', type: 'password', fieldIcon: 'check', autocomplete: 'new-password', max: 64, hint: '' }) %>
+              <button class="au-submit" type="submit" data-submit data-magnetic>
+                <span class="au-submit-label">Save new password</span>
+                <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+                <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+              </button>
+            </form>
+
+          <% } else if (view === 'reset-invalid') { %>
+            <div class="au-state" role="status">
+              <span class="au-badge-icon is-warn" aria-hidden="true"><%- icon('alert') %></span>
+              <h1 class="au-title">This link has expired</h1>
+              <p class="muted">Reset links work once, for 30 minutes, and only the newest one works. Ask for a new link and we will send it right away.</p>
+              <a class="au-submit au-submit-link" href="/forgot-password"><span class="au-submit-label">Get a new link</span></a>
+            </div>
+            <p class="au-foot muted"><a href="/login">&larr; Back to sign in</a></p>
+
+          <% } else if (view === 'verify') { %>
+            <div class="au-card-head">
+              <span class="au-badge-icon" aria-hidden="true"><%- icon('mail') %></span>
+              <h1 class="au-title">Confirm your email</h1>
+              <p class="muted">One tap, and we know order updates and password resets will reach you.</p>
+            </div>
+            <form class="au-form" data-auth-form data-endpoint="/api/email/verify" data-kind="verify" data-success="inline" novalidate>
+              <div class="form-alert" data-form-alert aria-live="assertive"></div>
+              <input type="hidden" name="token" value="<%= token %>">
+              <button class="au-submit" type="submit" data-submit data-magnetic>
+                <span class="au-submit-label">Confirm my email</span>
+                <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+                <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+              </button>
+            </form>
+            <div class="au-sent" data-sent-panel role="status" hidden>
+              <svg class="au-success-tick au-sent-tick" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28"/><path d="M19 33l9 9 17-19"/></svg>
+              <h2 class="au-state-title" tabindex="-1">Email confirmed</h2>
+              <p class="muted">Thank you! You are all set.</p>
+              <a class="au-submit au-submit-link" href="/products"><span class="au-submit-label">Continue shopping</span></a>
+            </div>
+
+          <% } else if (view === 'verify-done') { %>
+            <div class="au-state" role="status">
+              <svg class="au-success-tick au-sent-tick" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28"/><path d="M19 33l9 9 17-19"/></svg>
+              <h1 class="au-title">Already confirmed</h1>
+              <p class="muted">Your email address is confirmed. Nothing more to do.</p>
+              <a class="au-submit au-submit-link" href="/products"><span class="au-submit-label">Continue shopping</span></a>
+            </div>
+
+          <% } else { %>
+            <div class="au-state" role="status">
+              <span class="au-badge-icon is-warn" aria-hidden="true"><%- icon('alert') %></span>
+              <h1 class="au-title">This link has expired</h1>
+              <p class="muted">Confirmation links work once, for 48 hours. Sign in and we can send you a new one from your account.</p>
+              <a class="au-submit au-submit-link" href="/login?next=%2Faccount"><span class="au-submit-label">Sign in</span></a>
+            </div>
+          <% } %>
+
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="au-zoom" data-auth-zoom aria-hidden="true"></div>
+</main>
+
+<%- include('../partials/scripts', { scripts: ['auth'], modules: ['auth3d'] }) %>

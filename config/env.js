@@ -48,6 +48,8 @@ function readConfig() {
     // Connections to MongoDB per copy of the app. Atlas's free tier allows 500 in all, so several copies
     // with the driver's default of 100 each could use them up.
     mongoMaxPool: Number(text("MONGODB_MAX_POOL")) || 20,
+    // true: admins must turn on two-step login before they can use the console (middleware/twoFactorGuard.js).
+    adminRequire2fa: text("ADMIN_REQUIRE_2FA").toLowerCase() === "true",
     // Online payments (Razorpay). Optional: without the keys the store still runs, and the
     // online payment option shows as unavailable. The secrets never leave the server.
     razorpay: readRazorpay(),

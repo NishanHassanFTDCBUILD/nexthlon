@@ -93,6 +93,8 @@ async function changeEmail(userId, { email, password }, context = {}) {
   }
   const before = user.email;
   user.email = email;
+  // The new address has to be confirmed again (the controller sends the link).
+  user.emailVerifiedAt = null;
   try {
     await user.save();
   } catch (error) {

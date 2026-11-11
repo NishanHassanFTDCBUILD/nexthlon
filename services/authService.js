@@ -41,7 +41,8 @@ async function registerCustomer({ name, email, password, referralCode = "" }) {
 }
 
 // Checks the password, then the role, then the blocked flag.
-async function authenticate({ email, password }, expectedRole) {
+// touch: false leaves the "last signed in" time alone, for the admin sign-in that still needs its code.
+async function authenticate({ email, password }, expectedRole, { touch = true } = {}) {
   const user = await User.findOne({ email }).select("+passwordHash");
   const passwordMatches = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
   // A deleted account answers exactly like a wrong password.
@@ -56,13 +57,25 @@ async function authenticate({ email, password }, expectedRole) {
   if (user.isBlocked) {
     throw new HttpError(403, "Your account has been blocked. Please contact Nexthlon support.");
   }
+  if (touch) await touchLogin(user);
+  return user;
+}
+
+async function touchLogin(user) {
   user.lastLoginAt = new Date();
   await user.save();
-  return user;
+}
+
+// The admin a two-step challenge was issued to, if they are still allowed in: still an admin, not blocked
+// or deleted, and the password has not been changed since (tokenVersion). Otherwise null.
+async function adminForChallenge(claims) {
+  const user = await User.findById(claims.sub);
+  if (!user || user.role !== "admin" || user.isDeleted || user.isBlocked) return null;
+  return (user.tokenVersion || 0) === (claims.ver || 0) ? user : null;
 }
 
 async function hashPassword(password) {
   return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
-module.exports = { registerCustomer, authenticate, hashPassword, BCRYPT_ROUNDS };
+module.exports = { registerCustomer, authenticate, touchLogin, adminForChallenge, hashPassword, BCRYPT_ROUNDS };

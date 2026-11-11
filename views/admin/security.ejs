@@ -1,0 +1,121 @@
+<%#
+  Security: the admin's own two-step login. Off: set it up (scan a QR code, confirm with the first code,
+  save the recovery codes). On: make new recovery codes, or turn it off (password AND a code).
+  The script is public/js/admin-security.js; the rules are in services/twoFactorService.js.
+%>
+<%- include('../partials/admin-start', { section: 'security' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">System</span>
+    <h1>Security</h1>
+    <p class="muted">Protect the console. Anyone who learns an admin's password can see orders, refund money and change prices, so a second step matters.</p>
+  </div>
+</header>
+
+<% if (reason === 'required') { %>
+  <div class="alert alert-info" role="status"><%- icon('info') %> <span>Two-step login is required for the console. Turn it on below to continue.</span></div>
+<% } %>
+
+<section class="panel tf" data-tf data-enabled="<%= twoFactor.enabled %>" aria-labelledby="tf-title">
+  <div class="panel-head panel-head-row">
+    <h2 id="tf-title"><%- icon('shield', 'i-sm') %> Two-step login</h2>
+    <span class="tf-chip <%= twoFactor.enabled ? 'is-on' : 'is-off' %>" data-tf-chip><%= twoFactor.enabled ? 'On' : 'Off' %></span>
+  </div>
+
+  <% if (!twoFactor.enabled) { %>
+    <%# ---------- Off: set it up ---------- %>
+    <div class="tf-intro" data-tf-intro>
+      <p>After your password, sign-in asks for a 6-digit code from an app on your phone: Google Authenticator, Microsoft Authenticator, Authy or 1Password. A stolen password alone is then not enough.</p>
+      <button type="button" class="btn btn-primary" data-tf-start><%- icon('shield', 'i-sm') %> Set up two-step login</button>
+    </div>
+
+    <ol class="tf-steps" data-tf-steps hidden>
+      <li class="tf-step">
+        <h3><span class="tf-num" aria-hidden="true">1</span> Scan this code with your app</h3>
+        <div class="tf-setup">
+          <div class="tf-qr"><img data-tf-qr alt="QR code to add Nexthlon to your authenticator app" width="200" height="200"></div>
+          <div class="tf-key">
+            <p class="muted">Cannot scan? In your app choose "enter a setup key" and type:</p>
+            <code class="tf-secret" data-tf-secret></code>
+            <button type="button" class="btn btn-ghost btn-sm" data-tf-copy-secret>Copy key</button>
+          </div>
+        </div>
+      </li>
+      <li class="tf-step">
+        <h3><span class="tf-num" aria-hidden="true">2</span> Enter the 6 digits it shows</h3>
+        <form class="form tf-form" data-tf-enable novalidate>
+          <div class="form-alert" data-form-alert aria-live="assertive"></div>
+          <div class="field">
+            <label for="tf-code">6-digit code</label>
+            <input id="tf-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" required aria-describedby="tf-code-error">
+            <p class="field-error" id="tf-code-error" data-error-for="code"></p>
+          </div>
+          <button class="btn btn-primary" type="submit">Turn on two-step login</button>
+        </form>
+      </li>
+    </ol>
+
+  <% } else { %>
+    <%# ---------- On: look after it ---------- %>
+    <dl class="admin-facts tf-facts">
+      <div><dt>Status</dt><dd>On since <%= formatDate(twoFactor.enabledAt) %></dd></div>
+      <div><dt>Recovery codes left</dt><dd class="<%= twoFactor.recoveryCodesLeft <= 2 ? 'tf-low' : '' %>"><%= twoFactor.recoveryCodesLeft %> of 10<% if (twoFactor.recoveryCodesLeft <= 2) { %> &middot; make new ones<% } %></dd></div>
+    </dl>
+    <div class="tf-actions" data-tf-manage>
+      <button type="button" class="btn btn-ghost" data-tf-open="recovery"><%- icon('rotate-ccw', 'i-sm') %> New recovery codes</button>
+      <button type="button" class="btn btn-danger-soft" data-tf-open="disable"><%- icon('x', 'i-sm') %> Turn off</button>
+    </div>
+
+    <% [['recovery', 'New recovery codes', 'The old ones stop working. Confirm with your password and a code.', 'Make new codes'],
+        ['disable', 'Turn off two-step login', 'Sign-in will need only your password. Confirm with your password and a code.', 'Turn off']].forEach(function (f) { %>
+      <form class="form tf-form tf-confirm" data-tf-form="<%= f[0] %>" hidden novalidate>
+        <h3><%= f[1] %></h3>
+        <p class="muted"><%= f[2] %></p>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <div class="field">
+          <label for="tf-<%= f[0] %>-password">Your password</label>
+          <input id="tf-<%= f[0] %>-password" name="password" type="password" autocomplete="current-password" maxlength="64" required>
+          <p class="field-error" data-error-for="password"></p>
+        </div>
+        <div class="field">
+          <label for="tf-<%= f[0] %>-code">6-digit code (or a recovery code)</label>
+          <input id="tf-<%= f[0] %>-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="24" required>
+          <p class="field-error" data-error-for="code"></p>
+        </div>
+        <div class="tf-actions">
+          <button class="btn <%= f[0] === 'disable' ? 'btn-danger' : 'btn-primary' %>" type="submit"><%= f[3] %></button>
+          <button class="btn btn-ghost" type="button" data-tf-cancel>Cancel</button>
+        </div>
+      </form>
+    <% }) %>
+  <% } %>
+
+  <%# The recovery codes: shown once, after turning it on or making new ones. %>
+  <div class="tf-recovery" data-tf-recovery hidden role="region" aria-labelledby="tf-recovery-title">
+    <h3 id="tf-recovery-title" tabindex="-1"><%- icon('lock', 'i-sm') %> Save your recovery codes</h3>
+    <p>If you lose your phone, each of these signs you in once. They are shown <strong>only now</strong>: store them somewhere safe, such as a password manager.</p>
+    <ul class="tf-codes" data-tf-codes></ul>
+    <div class="tf-actions">
+      <button type="button" class="btn btn-ghost btn-sm" data-tf-copy-codes>Copy all</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-tf-download-codes>Download .txt</button>
+    </div>
+    <label class="check"><input type="checkbox" data-tf-saved> <span>I have saved these codes somewhere safe</span></label>
+    <button type="button" class="btn btn-primary" data-tf-done disabled>Done</button>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="signin-title">
+  <div class="panel-head panel-head-row">
+    <h2 id="signin-title"><%- icon('lock', 'i-sm') %> How admins sign in</h2>
+    <span class="muted">Set by the server, shown so you can see what protects the console</span>
+  </div>
+  <dl class="admin-facts">
+    <div><dt>Console address</dt><dd><code class="admin-code"><%= adminPath %></code></dd></div>
+    <div><dt>Two-step login required</dt><dd><%= required ? 'Yes, for every admin' : 'No, optional' %></dd></div>
+    <div><dt>Session length</dt><dd>1 day, renewed while you work</dd></div>
+    <div><dt>Wrong password limit</dt><dd>10 tries, then 15 minutes</dd></div>
+    <div><dt>Wrong code limit</dt><dd>5 tries, then the account locks for 15 minutes</dd></div>
+  </dl>
+  <% if (!required) { %><p class="muted tf-tip">Tip: once every admin has turned two-step login on, set <code>ADMIN_REQUIRE_2FA=true</code> on the server so nobody can skip it.</p><% } %>
+</section>
+<%- include('../partials/admin-end') %>
