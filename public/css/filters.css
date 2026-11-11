@@ -142,30 +142,31 @@
 /* ---------- Phones and tablets: a bottom sheet ---------- */
 @media (max-width: 900px) {
   .catalog { grid-template-columns: 1fr; }
-  /* Without JavaScript the panel simply sits above the results. */
+  /* Without JavaScript the panel simply sits above the results. With it (html.js, set in <head>
+     before the first paint) it is a bottom sheet from the start, so nothing jumps. */
   .fx { position: static; max-height: none; margin-bottom: var(--space-2); }
   .fx .fx-form { overflow: visible; }
 
-  .catalog.is-enhanced .fx {
+  html.js .catalog .fx {
     position: fixed; z-index: 60; left: 0; right: 0; bottom: 0; top: auto; margin: 0;
     max-height: min(88vh, 760px); border-radius: 24px 24px 0 0;
     transform: translateY(105%); visibility: hidden;
     transition: transform 0.38s var(--ease-out), visibility 0s linear 0.38s;
   }
-  .catalog.is-enhanced .fx.is-open { transform: none; visibility: visible; transition: transform 0.38s var(--ease-out); }
-  .catalog.is-enhanced .fx-panel { border-radius: 24px 24px 0 0; border-bottom: 0; box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.55); }
-  .catalog.is-enhanced .fx-form { overflow-y: auto; }
-  .catalog.is-enhanced .fx-grip { display: block; width: 44px; height: 5px; margin: 10px auto 0; border-radius: 5px; background: var(--line-hover); }
-  .catalog.is-enhanced .fx-head { padding-top: 10px; }
-  .catalog.is-enhanced .fx-clear { display: none; }
-  .catalog.is-enhanced .fx-close { display: inline-grid; }
-  .catalog.is-enhanced .fx-foot {
+  html.js .catalog .fx.is-open { transform: none; visibility: visible; transition: transform 0.38s var(--ease-out); }
+  html.js .catalog .fx-panel { border-radius: 24px 24px 0 0; border-bottom: 0; box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.55); }
+  html.js .catalog .fx-form { overflow-y: auto; }
+  html.js .catalog .fx-grip { display: block; width: 44px; height: 5px; margin: 10px auto 0; border-radius: 5px; background: var(--line-hover); }
+  html.js .catalog .fx-head { padding-top: 10px; }
+  html.js .catalog .fx-clear { display: none; }
+  html.js .catalog .fx-close { display: inline-grid; }
+  html.js .catalog .fx-foot {
     display: flex; align-items: center; gap: 12px; padding: 12px 16px max(12px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--line); background: var(--surface);
   }
   .fx-foot-clear { flex: none; padding: 0 6px; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
   .fx-foot-show { flex: 1; min-height: 50px; border: 0; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font: var(--weight-bold) var(--text-base)/1 var(--font); cursor: pointer; box-shadow: var(--shadow-brand); }
-  .catalog.is-enhanced .filter-open { display: inline-flex; flex: none; }
+  html.js .catalog .filter-open { display: inline-flex; flex: none; }
   .drawer-backdrop { position: fixed; inset: 0; z-index: 55; background: rgba(5, 5, 6, 0.6); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: fx-fade 0.3s var(--ease); }
   .drawer-backdrop[hidden] { display: none; }
   @keyframes fx-fade { from { opacity: 0; } }
@@ -173,5 +174,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fx-group[open] .fx-group-body, .drawer-backdrop { animation: none; }
-  .catalog.is-enhanced .fx, .fx-caret, .fx-switch-ui::after, .fx-box, .fx-pill { transition: none; }
+  html.js .catalog .fx, .fx-caret, .fx-switch-ui::after, .fx-box, .fx-pill { transition: none; }
 }

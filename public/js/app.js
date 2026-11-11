@@ -446,10 +446,23 @@
     renewSession().then(ok => { if (ok) window.location.replace(target); });
   }
 
+  // ---------- Footer link groups ----------
+  // On phones each group (Shop, Help, ...) starts closed and opens with a tap, which keeps the footer
+  // short. On wider screens they are always open. Without this script they are simply all open.
+  function setupFooterGroups() {
+    const groups = [...document.querySelectorAll("[data-footer-col]")];
+    if (!groups.length) return;
+    const phone = window.matchMedia("(max-width: 720px)");
+    const fit = () => groups.forEach(group => { group.open = !phone.matches; });
+    fit();
+    phone.addEventListener("change", fit);
+  }
+
   setupMenus();
   setupHeader();
   setupLogout();
   setupReveal();
+  setupFooterGroups();
   showFlash();
   renewAfterBounce();
 })();

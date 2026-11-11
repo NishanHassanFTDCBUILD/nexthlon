@@ -101,13 +101,16 @@
         <div class="product-foot"></div>
       </div>`;
     const img = card.querySelector("img");
-    if (/^(\/|https:\/\/)/.test(p.image || "")) img.src = p.image;
-    if (p.discountPercent > 0) {
-      const tag = document.createElement("span");
-      tag.className = "tag tag-deal";
-      tag.textContent = `${p.discountPercent}% off`;
-      card.querySelector(".product-media").append(tag);
+    if (/^(\/|https:\/\/)/.test(p.image || "")) {
+      // Same responsive sizes as the server-drawn cards (utils/images.js): Unsplash photos come in
+      // 400, 600 and 800 pixel versions and the browser picks the smallest sharp one.
+      if (/^https:\/\/images\.unsplash\.com\/[^?#]+\?/.test(p.image) && /([?&])w=\d+/.test(p.image)) {
+        img.srcset = [400, 600, 800].map(w => `${p.image.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`).join(", ");
+        img.sizes = "(max-width: 720px) 50vw, (max-width: 1180px) 33vw, 340px";
+      }
+      img.src = p.image;
     }
+    // No "% off" tag on the photo: the discount shows in the price row below.
     const wish = card.querySelector(".wish-btn");
     wish.dataset.wishId = p.id;
     wish.querySelector(".sr-only").textContent = `Save ${p.name} to your wishlist`;

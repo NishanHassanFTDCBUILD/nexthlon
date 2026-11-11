@@ -1,5 +1,6 @@
 const path = require("path");
 const express = require("express");
+const compression = require("compression");
 //. It sets various HTTP security 
 // headers to help protect our website against common browser-based attacks.
 const helmet = require("helmet");
@@ -32,8 +33,9 @@ app.use(helmet({
       "script-src": ["'self'", "https://checkout.razorpay.com", "https://cdn.razorpay.com"],
       // Razorpay Checkout opens in its own frame.
       "frame-src": ["https://api.razorpay.com", "https://checkout.razorpay.com"],
-      "style-src": ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
-      "font-src": ["'self'", "https://fonts.gstatic.com"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      // Fonts are served from this site (public/fonts), so nothing comes from Google.
+      "font-src": ["'self'"],
       "img-src": ["'self'", "data:", "https://images.unsplash.com", "https://cdn.razorpay.com"],
       //Controls where JavaScript can connect to fetch data.
       "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://lumberjack-cx.razorpay.com", "https://cdn.razorpay.com"],
@@ -56,6 +58,10 @@ app.use(helmet({
   // payment comes from; "no-referrer" (helmet's default) hides even that.
   referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 }));
+
+// gzip every text reply (pages, CSS, JS, JSON, SVG): about 70% less to download, which is the
+// biggest single speed-up on phones. Images and fonts are already compressed, so they are skipped.
+app.use(compression());
 
 app.use(express.static(path.join(__dirname, "public"), { maxAge: config.isProduction ? "7d" : 0 }));
 // Everything after the static files (API replies, EJS pages, error pages) is never cached.

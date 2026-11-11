@@ -431,7 +431,9 @@ test("store: product page shows breadcrumbs, prices, stock and the photo stage",
   assert.equal(res.status, 200);
   assert.match(res.data, /aria-label="Breadcrumb"[\s\S]*All gear[\s\S]*Running/);
   assert.match(res.data, /<s>₹3,999<\/s>/);
-  assert.match(res.data, /25% off/);
+  // The discount shows as a badge next to the price (not on the photo).
+  assert.match(res.data, /class="pdx-off"[^>]*>-25%</);
+  assert.doesNotMatch(res.data, /pdx-chip-deal/);
   assert.match(res.data, /Only 4 left/);
   // The photo stage: WebGL canvas over the plain photo (which still works without WebGL).
   assert.match(res.data, /data-stage-canvas/);
@@ -1719,4 +1721,25 @@ test("catalogue filters: pills, quick price ranges, live total, a switch, and no
   const filtered = await call("GET", "/products?inStock=1&rating=4");
   assert.match(filtered.data, /name="rating" value="4" checked/);
   assert.match(filtered.data, /name="inStock" value="1" role="switch" checked/);
+});
+
+// ---------- Speed: compression, own fonts, responsive card photos ----------
+test("speed: text is gzipped, fonts come from this site, and card photos are responsive", async () => {
+  const css = await fetch(`${base}/css/style.css`, { headers: { "Accept-Encoding": "gzip" } });
+  assert.equal(css.headers.get("content-encoding"), "gzip");
+  const home = await fetch(`${base}/`);
+  const html = await home.text();
+  assert.match(html, /<link rel="preload" href="\/fonts\/inter-400-800-latin\.woff2" as="font" type="font\/woff2" crossorigin>/);
+  assert.doesNotMatch(html, /fonts\.googleapis\.com|fonts\.gstatic\.com/);
+  const csp = home.headers.get("content-security-policy");
+  assert.match(csp, /font-src 'self';/);
+  assert.doesNotMatch(csp, /googleapis|gstatic/);
+  const font = await fetch(`${base}/fonts/barlow-condensed-800-latin.woff2`);
+  assert.equal(font.status, 200);
+  assert.equal(Buffer.from(await font.arrayBuffer()).subarray(0, 4).toString(), "wOF2");
+
+  const { srcsetFor } = require("../utils/images");
+  assert.equal(srcsetFor("/uploads/products/a.jpg"), "");
+  assert.equal(srcsetFor("https://example.com/x.jpg?w=800"), "");
+  assert.match(srcsetFor("https://images.unsplash.com/photo-1?auto=format&w=800&q=80"), /w=400&q=80 400w, .*w=600&q=80 600w, .*w=800&q=80 800w$/);
 });

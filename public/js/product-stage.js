@@ -11,7 +11,15 @@ const canvas = stage && stage.querySelector("[data-stage-canvas]");
 const photo = stage && stage.querySelector("[data-gallery-main]");
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-if (stage && canvas && photo && window.NxTicker && supportsWebGL() && !reduced) start();
+// The WebGL stage is an extra: the plain photo is already on screen. So it starts only once the page
+// has loaded and the browser is idle, keeping shader compiling and the photo upload to the GPU out of
+// the first seconds (they block the page on slower phones). Then it fades in over the photo.
+function whenIdle(run) {
+  const later = () => ("requestIdleCallback" in window ? window.requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 300));
+  if (document.readyState === "complete") later();
+  else window.addEventListener("load", later, { once: true });
+}
+if (stage && canvas && photo && window.NxTicker && !reduced) whenIdle(() => { if (supportsWebGL()) start(); });
 
 function start() {
   const gl = createContext(canvas, { antialias: false, premultipliedAlpha: false });

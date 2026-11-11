@@ -248,7 +248,8 @@ a.pill:hover { background: var(--brand-soft); color: var(--brand-ink); text-deco
 .pagination a { background: var(--surface); border: 1px solid var(--line-strong); color: var(--ink); box-shadow: var(--shadow-xs); }
 .pagination a:hover { border-color: var(--brand); color: var(--brand-ink); text-decoration: none; }
 .pagination a.is-current { background: var(--navy-900); border-color: var(--navy-900); color: #fff; }
-.page-step.is-disabled { color: var(--disabled); border: 1px solid var(--line); background: transparent; }
+/* Readable grey (4.5:1 contrast); the dashed border is what shows it cannot be clicked. */
+.page-step.is-disabled { color: var(--muted); border: 1px dashed var(--line-strong); background: transparent; cursor: default; }
 .page-gap { min-width: 24px; padding: 0; color: var(--muted); }
 
 /* ---------- Tabs ---------- */

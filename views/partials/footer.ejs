@@ -25,9 +25,9 @@
 
   <div class="container footer-grid">
     <div class="footer-brand">
-      <a class="brand" href="/" aria-label="Nexthlon home">
+      <a class="brand" href="/">
         <span class="brand-mark"><%- icon('bolt') %></span>
-        <span class="brand-word">NEXTHLON<small>Performance gear</small></span>
+        <span class="brand-word">NEXTHLON<small>Performance gear</small></span><span class="sr-only">, home</span>
       </a>
       <p class="footer-tagline">Your Next Move Starts Here.</p>
       <p>Sports gear for runners, footballers, climbers and every athlete in between.</p>
@@ -38,7 +38,8 @@
       </ul>
     </div>
     <nav aria-labelledby="footer-shop">
-      <h2 id="footer-shop">Shop</h2>
+      <details class="footer-col" data-footer-col open>
+        <summary><h2 id="footer-shop">Shop</h2><%- icon('chevron-down', 'i-xs footer-caret') %></summary>
       <ul>
         <li><a href="/products">All gear</a></li>
         <li><a href="/products?sort=discount">Deals of the day</a></li>
@@ -47,26 +48,32 @@
           <li><a href="/products?category=<%= c.slug %>"><%= name %></a></li>
         <% }) %>
       </ul>
+      </details>
     </nav>
     <nav aria-labelledby="footer-help">
-      <h2 id="footer-help">Help</h2>
+      <details class="footer-col" data-footer-col open>
+        <summary><h2 id="footer-help">Help</h2><%- icon('chevron-down', 'i-xs footer-caret') %></summary>
       <ul>
         <li><a href="/contact">Contact us</a></li>
         <li><a href="/shipping-policy">Shipping and delivery</a></li>
         <li><a href="/refund-policy">Cancellation and refunds</a></li>
         <li><a href="/contact#faq">FAQs</a></li>
       </ul>
+      </details>
     </nav>
     <nav aria-labelledby="footer-company">
-      <h2 id="footer-company">Company</h2>
+      <details class="footer-col" data-footer-col open>
+        <summary><h2 id="footer-company">Company</h2><%- icon('chevron-down', 'i-xs footer-caret') %></summary>
       <ul>
         <li><a href="/about">About Nexthlon</a></li>
         <li><a href="/privacy">Privacy policy</a></li>
         <li><a href="/terms">Terms and conditions</a></li>
       </ul>
+      </details>
     </nav>
     <nav aria-labelledby="footer-account">
-      <h2 id="footer-account">Your account</h2>
+      <details class="footer-col" data-footer-col open>
+        <summary><h2 id="footer-account">Your account</h2><%- icon('chevron-down', 'i-xs footer-caret') %></summary>
       <ul>
         <% if (currentUser) { %>
           <li><a href="/account">Your account</a></li>
@@ -80,6 +87,7 @@
           <li><a href="/wishlist">Your wishlist</a></li>
         <% } %>
       </ul>
+      </details>
     </nav>
   </div>
 

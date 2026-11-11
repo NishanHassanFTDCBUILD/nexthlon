@@ -225,7 +225,7 @@
         <label class="sort">
           <span>Sort by</span>
           <span class="select-wrap">
-            <select name="sort" data-filter-field>
+            <select name="sort" data-filter-field aria-label="Sort by">
               <% Object.entries(sorts).forEach(function ([key, option]) { %>
                 <option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= option.label %></option>
               <% }) %>
@@ -240,6 +240,8 @@
         <span class="loading-bar" aria-hidden="true"></span>
       </div>
 
+      <%# The cards use h3 titles; this keeps the headings in order (h1, h2, h3) for screen readers. %>
+      <h2 class="sr-only">Products</h2>
       <div data-results-content>
       <% if (products.length) { %>
         <div class="product-grid product-grid-3 <%= filters.view === 'list' ? 'is-list' : '' %>">

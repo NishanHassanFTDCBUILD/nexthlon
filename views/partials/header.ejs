@@ -15,9 +15,10 @@
         <%- icon('menu') %><span class="sr-only">Open menu</span>
       </button>
 
-      <a class="brand" href="/" aria-label="Nexthlon home">
+      <%# The link is named by its visible words (plus "home"), so voice control matches what people see. %>
+      <a class="brand" href="/">
         <span class="brand-mark"><%- icon('bolt') %></span>
-        <span class="brand-word">NEXTHLON<small>Performance gear</small></span>
+        <span class="brand-word">NEXTHLON<small>Performance gear</small></span><span class="sr-only">, home</span>
       </a>
 
       <form class="search" action="/products" method="get" role="search" data-search>

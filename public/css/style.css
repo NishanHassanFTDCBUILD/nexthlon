@@ -756,6 +756,10 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 .site-footer nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .site-footer nav a { color: var(--on-dark); font-size: 14px; }
 .site-footer nav a:hover { color: #fff; }
+/* Each link group is a <details>: always open and not clickable here; a tap-to-open row on phones (mobile.css). */
+.footer-col > summary { display: flex; align-items: center; justify-content: space-between; list-style: none; pointer-events: none; }
+.footer-col > summary::-webkit-details-marker { display: none; }
+.footer-caret { display: none; }
 .footer-trust { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); flex-wrap: wrap; padding-top: var(--space-2h); padding-bottom: var(--space-2h); border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .footer-pay { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .footer-pay-label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: #fff; }
@@ -1436,7 +1440,9 @@ html.is-pay-locked, html.is-pay-locked body { overflow: hidden; }
 .hero3d-stages li { display: flex; align-items: center; gap: 8px; opacity: 0.5; transition: opacity var(--duration-slow) var(--ease), color var(--duration-slow) var(--ease); }
 .hero3d-stages li::before { content: ""; width: 22px; height: 2px; border-radius: 2px; background: currentColor; }
 .hero3d[data-stage="0"] [data-stage-label="0"], .hero3d[data-stage="1"] [data-stage-label="1"], .hero3d[data-stage="2"] [data-stage-label="2"] { opacity: 1; color: var(--accent); }
-.hero3d:not(.has-webgl) .hero3d-stages, .hero3d.is-static .hero3d-stages { display: none; }
+/* Hidden without the 3D scene, but its space is always kept: if it appeared when WebGL started,
+   the bottom-aligned headline would jump up (a big layout shift). */
+.hero3d:not(.has-webgl) .hero3d-stages, .hero3d.is-static .hero3d-stages { visibility: hidden; }
 .hero3d-scroll { position: absolute; z-index: 2; right: max(var(--space-3), env(safe-area-inset-right)); bottom: var(--space-3); display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--on-dark-muted); font-size: var(--text-2xs); font-weight: var(--weight-bold); letter-spacing: 0.2em; text-transform: uppercase; }
 .hero3d-scroll span { display: block; width: 2px; height: 44px; border-radius: 2px; background: linear-gradient(var(--accent), transparent); }
 .hero3d:not(.has-webgl) .hero3d-scroll, .hero3d.is-static .hero3d-scroll { display: none; }
