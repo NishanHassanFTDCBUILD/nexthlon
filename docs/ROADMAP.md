@@ -72,7 +72,7 @@ New folders, added only by the step that first needs them:
 
 ## Stage A: Foundation (make what we have safe and deployable)
 
-### [ ] A1. Save our work safely · S
+### [x] A1. Save our work safely · S
 - **Goal:** everything from the five UI/UX phases committed, and nothing broken.
 - **Files:** `server.js` (put back the "could not connect to MongoDB" message), `README.md` and `.env.example` (restore them; they are deleted in the working tree), all changed files.
 - **Done when:** all 224 tests pass, the dev server starts, and git has clean commits grouped by phase.
