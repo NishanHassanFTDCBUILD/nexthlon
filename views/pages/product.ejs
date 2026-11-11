@@ -1,4 +1,4 @@
-<%- include('../partials/head') %>
+<%- include('../partials/head', { styles: ['product'] }) %>
 <%- include('../partials/header') %>
 
 <%
@@ -7,170 +7,200 @@
   const cat = product.category || {};
   const maxQty = Math.min(product.stock, 5);
   const shopper = !currentUser || currentUser.role === 'customer';
+  const backHere = encodeURIComponent('/products/' + product.slug);
+  const specEntries = Object.entries(product.specs || {});
+  const highlights = product.highlights || [];
+  const freeDelivery = product.price >= store.freeDeliveryMin;
 %>
-<main id="main" class="container page">
-  <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
-    <a href="/products">All gear</a> <%- icon('chevron-right', 'i-xs') %>
-    <a href="/products?category=<%= cat.slug %>"><%= cat.name %></a> <%- icon('chevron-right', 'i-xs') %>
-    <span aria-current="page"><%= product.name %></span>
-  </nav>
+<main id="main" class="pdx" data-recent-id="<%= product._id %>">
+  <%# ===================== Hero: photo stage + story + buy panel ===================== %>
+  <section class="pdx-hero container">
+    <nav class="pdx-crumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a><span aria-hidden="true">/</span>
+      <a href="/products">All gear</a><span aria-hidden="true">/</span>
+      <a href="/products?category=<%= cat.slug %>"><%= cat.name %></a><span aria-hidden="true">/</span>
+      <span aria-current="page"><%= product.name %></span>
+    </nav>
 
-  <div class="pdp" data-recent-id="<%= product._id %>">
-    <div class="gallery <%= photos.length > 1 ? 'has-thumbs' : '' %>" data-gallery>
-      <div class="gallery-main" data-zoom>
-        <img src="<%= photos[0] %>" alt="<%= product.name %>" width="640" height="640" fetchpriority="high" data-gallery-main>
-        <span class="zoom-hint" aria-hidden="true"><%- icon('search', 'i-xs') %> Hover to zoom</span>
-        <button type="button" class="gallery-full" data-lightbox-open><%- icon('grid', 'i-sm') %><span class="sr-only">View photos full screen</span></button>
-        <% if (product.discountPercent > 0) { %><span class="tag tag-deal"><%= product.discountPercent %>% off</span><% } %>
+    <div class="pdx-grid">
+      <%# ---------- Photo stage (WebGL when available, plain photo otherwise) ---------- %>
+      <div class="pdx-media" data-gallery>
+        <div class="pdx-stage" data-stage>
+          <img class="pdx-photo" src="<%= photos[0] %>" alt="<%= product.name %>" width="900" height="900" fetchpriority="high" data-gallery-main>
+          <canvas class="pdx-canvas" aria-hidden="true" data-stage-canvas></canvas>
+          <div class="pdx-stage-glow" aria-hidden="true"></div>
+
+          <div class="pdx-stage-top">
+            <% if (product.discountPercent > 0) { %><span class="pdx-chip pdx-chip-deal"><%= product.discountPercent %>% off</span><% } %>
+            <button type="button" class="pdx-icon-btn" data-lightbox-open aria-label="View photos full screen"><%- icon('grid', 'i-sm') %></button>
+          </div>
+
+          <% if (photos.length > 1) { %>
+            <div class="pdx-stage-nav">
+              <button type="button" class="pdx-icon-btn" data-gallery-step="-1" aria-label="Previous photo"><%- icon('chevron-left', 'i-sm') %></button>
+              <span class="pdx-count" aria-live="polite"><span data-gallery-index>1</span><span class="pdx-count-of">/ <%= photos.length %></span></span>
+              <button type="button" class="pdx-icon-btn" data-gallery-step="1" aria-label="Next photo"><%- icon('chevron-right', 'i-sm') %></button>
+            </div>
+          <% } %>
+          <span class="pdx-stage-hint" aria-hidden="true">Move to explore · Click to expand</span>
+        </div>
+
         <% if (photos.length > 1) { %>
-          <button type="button" class="gallery-nav gallery-prev" data-gallery-step="-1" aria-label="Previous photo"><%- icon('chevron-left') %></button>
-          <button type="button" class="gallery-nav gallery-next" data-gallery-step="1" aria-label="Next photo"><%- icon('chevron-right') %></button>
-          <span class="gallery-count" aria-live="polite"><span data-gallery-index>1</span> / <%= photos.length %></span>
+          <div class="pdx-thumbs" role="group" aria-label="Product photos">
+            <% photos.forEach(function (src, index) { %>
+              <button type="button" class="thumb pdx-thumb" data-src="<%= src %>" aria-label="Show photo <%= index + 1 %> of <%= photos.length %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
+                <img src="<%= src %>" alt="" width="96" height="96" loading="lazy">
+              </button>
+            <% }) %>
+          </div>
         <% } %>
       </div>
-      <% if (photos.length > 1) { %>
-        <div class="gallery-thumbs" role="group" aria-label="Product photos">
-          <% photos.forEach(function (src, index) { %>
-            <button type="button" class="thumb" data-src="<%= src %>" aria-label="Show photo <%= index + 1 %> of <%= photos.length %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
-              <img src="<%= src %>" alt="" width="80" height="80" loading="lazy">
-            </button>
-          <% }) %>
+
+      <%# ---------- Story + buy panel ---------- %>
+      <div class="pdx-info">
+        <div class="pdx-head" data-pdx-in>
+          <a class="pdx-brand" href="/products?brand=<%= encodeURIComponent(product.brand) %>"><span class="pdx-dot" aria-hidden="true"></span><%= product.brand %> <%- icon('arrow-right', 'i-xs') %></a>
+          <h1 class="pdx-title" data-split><%= product.name %></h1>
+          <div class="pdx-meta">
+            <a class="pdx-chip" href="/products?category=<%= cat.slug %>"><%= cat.name %></a>
+            <%- include('../partials/stock', { stock: product.stock }) %>
+            <% if (product.ratingCount > 0) { %>
+              <span class="pdx-rating"><%- icon('star', 'i-xs') %> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %>)</span><span class="sr-only"> out of 5</span></span>
+            <% } %>
+          </div>
         </div>
-      <% } %>
-    </div>
 
-    <div class="pdp-info">
-      <a class="pdp-brand" href="/products?brand=<%= encodeURIComponent(product.brand) %>">Visit the <%= product.brand %> range <%- icon('chevron-right', 'i-xs') %></a>
-      <h1><%= product.name %></h1>
-      <div class="pdp-tags">
-        <% if (product.ratingCount > 0) { %>
-          <span class="pdp-rating"><span class="rating" style="--rating: <%= product.ratingAverage %>" aria-hidden="true"></span> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %> <%= product.ratingCount === 1 ? 'review' : 'reviews' %>)</span><span class="sr-only">, rated <%= product.ratingAverage.toFixed(1) %> out of 5</span></span>
-        <% } %>
-        <a class="pill" href="/products?category=<%= cat.slug %>"><%= cat.name %></a>
-        <%- include('../partials/stock', { stock: product.stock }) %>
-      </div>
+        <div class="pdx-buy" id="buy" data-pdx-in>
+          <div class="pdx-price-row">
+            <span class="pdx-price" data-price-count="<%= product.price %>"><%= formatPrice(product.price) %></span>
+            <% if (saving) { %>
+              <span class="pdx-mrp">M.R.P. <s><%= formatPrice(product.mrp) %></s></span>
+            <% } %>
+          </div>
+          <% if (saving) { %>
+            <div class="pdx-save">
+              <span class="pdx-save-pill"><%- icon('tag', 'i-xs') %> You save <%= formatPrice(saving) %></span>
+              <span class="pdx-save-bar" aria-hidden="true"><i style="--pct: <%= product.discountPercent %>%"></i></span>
+              <span class="pdx-save-pct"><%= product.discountPercent %>%</span>
+            </div>
+          <% } %>
+          <p class="pdx-tax">Inclusive of all taxes<% if (offer) { %> · <span class="pdx-offer"><%= offer.text %></span><% } %></p>
 
-      <div class="price-panel">
-        <% if (product.discountPercent > 0) { %><span class="deal-badge"><%- icon('tag', 'i-xs') %> Deal</span><% } %>
-        <div class="pdp-price">
-          <% if (product.discountPercent > 0) { %><span class="pdp-off">-<%= product.discountPercent %>%</span><% } %>
-          <span class="price price-lg"><%= formatPrice(product.price) %></span>
-        </div>
-        <% if (saving) { %>
-          <p class="mrp">M.R.P.: <s><%= formatPrice(product.mrp) %></s> <span class="muted">Inclusive of all taxes</span></p>
-          <p class="saving saving-lg">You save <%= formatPrice(saving) %><% if (product.discountPercent > 0) { %> (<%= product.discountPercent %>%)<% } %></p>
-        <% } %>
-        <% if (offer) { %>
-          <p class="offer-line"><%- icon('tag', 'i-xs') %> <%= offer.text %> (best offer chosen for you)</p>
-        <% } %>
-      </div>
+          <% if (product.stock <= 0) { %>
+            <button class="pdx-btn pdx-btn-buy" type="button" disabled>Out of stock</button>
+            <p class="pdx-note">This item is sold out right now. Check back soon.</p>
+          <% } else if (!currentUser) { %>
+            <%# Guests sign in first, then come straight back to this product. %>
+            <div class="pdx-ctas">
+              <a class="pdx-btn pdx-btn-cart" href="/login?next=<%= backHere %>" data-magnetic><%- icon('cart', 'i-sm') %> Add to cart</a>
+              <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= backHere %>" data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</a>
+            </div>
+            <p class="pdx-note">Sign in to buy. New here? <a href="/signup?next=<%= backHere %>">Create an account</a>.</p>
+          <% } else if (shopper) { %>
+            <form class="pdx-order" data-add-to-cart data-product-id="<%= product._id %>" novalidate>
+              <div class="pdx-qty-row">
+                <label for="qty">Quantity</label>
+                <div class="qty pdx-qty" data-qty>
+                  <button type="button" class="qty-btn" data-qty-step="-1" aria-label="One less" disabled><%- icon('minus', 'i-sm') %></button>
+                  <input id="qty" name="quantity" type="number" inputmode="numeric" min="1" max="<%= maxQty %>" step="1" value="1" data-qty-input>
+                  <button type="button" class="qty-btn" data-qty-step="1" aria-label="One more" <%= maxQty <= 1 ? 'disabled' : '' %>><%- icon('plus', 'i-sm') %></button>
+                </div>
+                <span class="pdx-hint">Max <%= maxQty %></span>
+              </div>
+              <div class="pdx-ctas">
+                <button class="pdx-btn pdx-btn-cart" type="submit" data-magnetic><%- icon('cart', 'i-sm') %> Add to cart</button>
+                <button class="pdx-btn pdx-btn-buy" type="button" data-buy-now data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</button>
+              </div>
+            </form>
+            <a class="pdx-link" href="/cart">View cart <%- icon('arrow-right', 'i-xs') %></a>
+          <% } %>
 
-      <% if (product.highlights && product.highlights.length) { %>
-        <div class="pdp-section">
-          <h2>About this item</h2>
-          <ul class="highlights">
-            <% product.highlights.forEach(function (line) { %><li><%- icon('check', 'i-sm') %><span><%= line %></span></li><% }) %>
+          <form class="pdx-pin" data-delivery-check novalidate>
+            <label for="pincode"><%- icon('pin', 'i-xs') %> Deliver to</label>
+            <div class="pdx-pin-row">
+              <input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6" pattern="[1-9][0-9]{5}" placeholder="PIN code" aria-describedby="pincode-result">
+              <button type="submit">Check</button>
+            </div>
+            <p class="delivery-result" id="pincode-result" data-delivery-result aria-live="polite">Enter your PIN code to see when it arrives.</p>
+          </form>
+
+          <div class="pdx-secondary">
+            <% if (shopper) { %>
+              <button type="button" class="wish-btn pdx-ghost" data-wish-id="<%= product._id %>" aria-pressed="false" hidden><%- icon('heart', 'i-sm') %> <span data-wish-label>Add to wishlist</span></button>
+            <% } %>
+            <button type="button" class="pdx-ghost" data-share data-share-title="<%= product.name %>"><%- icon('send', 'i-sm') %> Share</button>
+          </div>
+
+          <ul class="pdx-trust">
+            <li><%- icon('truck', 'i-sm') %><span><% if (freeDelivery) { %>Free delivery<% } else { %>Free over <%= formatPrice(store.freeDeliveryMin) %><% } %></span></li>
+            <li><%- icon('rotate-ccw', 'i-sm') %><span><a href="/refund-policy"><%= store.returnDays %>-day returns</a></span></li>
+            <li><%- icon('shield', 'i-sm') %><span>Secure payment</span></li>
+            <li><%- icon('award', 'i-sm') %><span>Sold by Nexthlon</span></li>
           </ul>
         </div>
-      <% } %>
-    </div>
-
-    <aside class="buy-box" aria-label="Ordering">
-      <div class="buy-price">
-        <span class="price"><%= formatPrice(product.price) %></span>
-        <% if (saving) { %><span class="mrp">M.R.P. <s><%= formatPrice(product.mrp) %></s></span><% } %>
       </div>
-      <%- include('../partials/stock', { stock: product.stock }) %>
-
-      <form class="delivery-check" data-delivery-check novalidate>
-        <label for="pincode"><%- icon('pin', 'i-xs') %> Delivery to PIN code</label>
-        <div class="delivery-row">
-          <input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6" pattern="[1-9][0-9]{5}" placeholder="e.g. 560001" aria-describedby="pincode-result">
-          <button class="btn btn-ghost btn-sm" type="submit">Check</button>
-        </div>
-        <p class="delivery-result" id="pincode-result" data-delivery-result aria-live="polite">Enter your PIN code to see when it arrives.</p>
-      </form>
-
-      <% if (product.stock <= 0) { %>
-        <button class="btn btn-primary btn-block" type="button" disabled><%- icon('cart', 'i-sm') %> Out of stock</button>
-        <p class="muted">This item is sold out right now. Check back soon.</p>
-      <% } else if (!currentUser) { %>
-        <%# Guests are sent to sign in, then straight back to this product. %>
-        <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent('/products/' + product.slug) %>"><%- icon('cart', 'i-sm') %> Add to cart</a>
-        <p class="muted">Sign in to add items to your cart. New here? <a href="/signup?next=<%= encodeURIComponent('/products/' + product.slug) %>">Create an account</a>.</p>
-      <% } else { %>
-        <form class="add-to-cart" data-add-to-cart data-product-id="<%= product._id %>" novalidate>
-          <div class="qty-row">
-            <label for="qty">Quantity</label>
-            <div class="qty" data-qty>
-              <button type="button" class="qty-btn" data-qty-step="-1" aria-label="One less" disabled><%- icon('minus', 'i-sm') %></button>
-              <input id="qty" name="quantity" type="number" inputmode="numeric" min="1" max="<%= maxQty %>" step="1" value="1" data-qty-input>
-              <button type="button" class="qty-btn" data-qty-step="1" aria-label="One more" <%= maxQty <= 1 ? 'disabled' : '' %>><%- icon('plus', 'i-sm') %></button>
-            </div>
-          </div>
-          <p class="hint">Up to <%= maxQty %> per order.</p>
-          <button class="btn btn-primary btn-block btn-lg" type="submit"><%- icon('cart', 'i-sm') %> Add to cart</button>
-        </form>
-        <a class="btn btn-ghost btn-block" href="/cart">View cart</a>
-      <% } %>
-      <div class="buy-actions">
-        <% if (shopper) { %>
-          <button type="button" class="wish-btn wish-btn-inline" data-wish-id="<%= product._id %>" aria-pressed="false" hidden><%- icon('heart', 'i-sm') %> <span data-wish-label>Add to wishlist</span></button>
-        <% } %>
-        <button type="button" class="btn btn-ghost share-btn" data-share data-share-title="<%= product.name %>"><%- icon('send', 'i-sm') %> Share</button>
-      </div>
-      <ul class="buy-facts">
-        <li><%- icon('truck', 'i-sm') %> <% if (product.price >= store.freeDeliveryMin) { %>Free delivery<% } else { %>Delivery <%= formatPrice(store.deliveryFee) %>, free over <%= formatPrice(store.freeDeliveryMin) %><% } %></li>
-        <li><%- icon('rotate-ccw', 'i-sm') %> <a href="/refund-policy"><%= store.returnDays %>-day easy returns</a></li>
-        <li><%- icon('shield', 'i-sm') %> Secure payment</li>
-        <li><%- icon('award', 'i-sm') %> Sold by Nexthlon</li>
-      </ul>
-    </aside>
-  </div>
-
-  <% const specEntries = Object.entries(product.specs || {}); %>
-  <section class="pdp-details section-box" data-tabs data-reveal aria-label="Product details">
-    <div class="tabs-list" role="tablist" aria-label="Product details">
-      <% if (product.description) { %><button type="button" class="tab" role="tab" id="tab-desc" aria-controls="panel-desc">Description</button><% } %>
-      <% if (specEntries.length) { %><button type="button" class="tab" role="tab" id="tab-spec" aria-controls="panel-spec">Specifications</button><% } %>
-      <button type="button" class="tab" role="tab" id="tab-ship" aria-controls="panel-ship">Delivery and returns</button>
-    </div>
-    <% if (product.description) { %>
-      <div class="tab-panel" role="tabpanel" id="panel-desc" aria-labelledby="tab-desc" tabindex="0">
-        <h2 class="panel-title">Product description</h2>
-        <p class="prose"><%= product.description %></p>
-      </div>
-    <% } %>
-    <% if (specEntries.length) { %>
-      <div class="tab-panel" role="tabpanel" id="panel-spec" aria-labelledby="tab-spec" tabindex="0">
-        <h2 class="panel-title">Specifications</h2>
-        <div class="spec-wrap">
-          <table class="spec-table">
-            <caption class="sr-only">Specifications for <%= product.name %></caption>
-            <tbody>
-              <tr><th scope="row">Brand</th><td><%= product.brand %></td></tr>
-              <tr><th scope="row">Category</th><td><%= cat.name %></td></tr>
-              <% specEntries.forEach(function ([key, value]) { %>
-                <tr><th scope="row"><%= key %></th><td><%= value %></td></tr>
-              <% }) %>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    <% } %>
-    <div class="tab-panel" role="tabpanel" id="panel-ship" aria-labelledby="tab-ship" tabindex="0">
-      <h2 class="panel-title">Delivery and returns</h2>
-      <ul class="ship-facts">
-        <li><%- icon('package-check') %><span><strong>Dispatched in <%= store.dispatchDays %></strong> Delivered in <%= store.deliveryDays %> to most PIN codes.</span></li>
-        <li><%- icon('truck') %><span><strong>Free delivery over <%= formatPrice(store.freeDeliveryMin) %></strong> Smaller orders pay <%= formatPrice(store.deliveryFee) %>. <a href="/shipping-policy">Shipping policy</a></span></li>
-        <li><%- icon('rotate-ccw') %><span><strong><%= store.returnDays %>-day returns</strong> Unused items in their original packaging. <a href="/refund-policy">Refund policy</a></span></li>
-      </ul>
     </div>
   </section>
 
+  <%# ===================== Highlights ticker ===================== %>
+  <% if (highlights.length) { %>
+    <div class="pdx-marquee" aria-hidden="true">
+      <div class="pdx-marquee-track">
+        <% for (let pass = 0; pass < 2; pass++) { %>
+          <% highlights.forEach(function (line) { %><span><%= line.split(' ').slice(0, 4).join(' ') %></span><i></i><% }) %>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+
+  <%# ===================== Editorial details ===================== %>
+  <% let blockNo = 0; const nextNo = () => String(++blockNo).padStart(2, '0'); %>
+  <div class="container pdx-details">
+    <% if (highlights.length) { %>
+      <section class="pdx-block" data-reveal aria-labelledby="pdx-why">
+        <header class="pdx-block-head"><span class="pdx-num"><%= nextNo() %></span><h2 id="pdx-why">Why it wins</h2></header>
+        <ol class="pdx-features">
+          <% highlights.forEach(function (line, i) { %>
+            <li class="pdx-feature" data-tilt>
+              <span class="pdx-feature-num"><%= String(i + 1).padStart(2, '0') %></span>
+              <%- icon('check', 'i-sm') %>
+              <p><%= line %></p>
+            </li>
+          <% }) %>
+        </ol>
+      </section>
+    <% } %>
+
+    <% if (product.description) { %>
+      <section class="pdx-block" data-reveal aria-labelledby="pdx-story">
+        <header class="pdx-block-head"><span class="pdx-num"><%= nextNo() %></span><h2 id="pdx-story">The story</h2></header>
+        <p class="pdx-prose"><%= product.description %></p>
+      </section>
+    <% } %>
+
+    <section class="pdx-block" data-reveal aria-labelledby="pdx-specs">
+      <header class="pdx-block-head"><span class="pdx-num"><%= nextNo() %></span><h2 id="pdx-specs">Specifications</h2></header>
+      <dl class="pdx-specs">
+        <div><dt>Brand</dt><dd><%= product.brand %></dd></div>
+        <div><dt>Category</dt><dd><%= cat.name %></dd></div>
+        <% specEntries.forEach(function ([key, value]) { %>
+          <div><dt><%= key %></dt><dd><%= value %></dd></div>
+        <% }) %>
+      </dl>
+    </section>
+
+    <section class="pdx-block" data-reveal aria-labelledby="pdx-ship">
+      <header class="pdx-block-head"><span class="pdx-num"><%= nextNo() %></span><h2 id="pdx-ship">Delivery &amp; returns</h2></header>
+      <ul class="pdx-ship">
+        <li><%- icon('package-check') %><strong>Dispatched in <%= store.dispatchDays %></strong><span>Delivered in <%= store.deliveryDays %> to most PIN codes.</span></li>
+        <li><%- icon('truck') %><strong>Free over <%= formatPrice(store.freeDeliveryMin) %></strong><span>Smaller orders pay <%= formatPrice(store.deliveryFee) %>. <a href="/shipping-policy">Shipping policy</a></span></li>
+        <li><%- icon('rotate-ccw') %><strong><%= store.returnDays %>-day returns</strong><span>Unused, in original packaging. <a href="/refund-policy">Refund policy</a></span></li>
+      </ul>
+    </section>
+  </div>
+
   <% if (related.length) { %>
-    <section class="section" aria-labelledby="related-title">
+    <section class="section container" aria-labelledby="related-title">
       <div class="section-head" data-reveal>
         <div>
           <span class="section-kicker">You may also like</span>
@@ -180,6 +210,23 @@
       </div>
       <%- include('../partials/rail', { products: related, label: 'Related products' }) %>
     </section>
+  <% } %>
+
+  <%# ===================== Sticky buy bar (appears once the main buttons scroll away) ===================== %>
+  <% if (product.stock > 0 && shopper) { %>
+    <div class="pdx-dock" data-dock aria-hidden="true">
+      <img src="<%= photos[0] %>" alt="" width="48" height="48">
+      <div class="pdx-dock-text">
+        <strong><%= product.name %></strong>
+        <span><%= formatPrice(product.price) %><% if (saving) { %> <s><%= formatPrice(product.mrp) %></s><% } %></span>
+      </div>
+      <% if (currentUser) { %>
+        <button type="button" class="pdx-btn pdx-btn-cart" data-dock-cart tabindex="-1"><%- icon('cart', 'i-sm') %><span>Add</span></button>
+        <button type="button" class="pdx-btn pdx-btn-buy" data-buy-now tabindex="-1"><%- icon('bolt', 'i-sm') %><span>Buy now</span></button>
+      <% } else { %>
+        <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= backHere %>" tabindex="-1"><%- icon('bolt', 'i-sm') %><span>Buy now</span></a>
+      <% } %>
+    </div>
   <% } %>
 </main>
 
@@ -197,4 +244,4 @@
   </div>
 </dialog>
 
-<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart'] }) %>
+<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart'], modules: ['product-stage'] }) %>
