@@ -7,6 +7,30 @@
    ========================================================================== */
 
 @media (max-width: 720px) {
+  /* ---------- Header: hides while you scroll down, comes back when you scroll up (app.js) ---------- */
+  .site-header { position: sticky; top: 0; transition: transform 0.32s var(--ease-out); }
+  .site-header.is-tucked { transform: translateY(-100%); }
+  /* Bars that stick below it follow it up and down. */
+  .toolbar-sticky { top: var(--header-h); transition: top 0.32s var(--ease-out); }
+
+  /* ---------- Search: more room to type (the category list hides; search covers everything) ---------- */
+  .search .search-cat, .search label[for="search-category"] { display: none; }
+
+  /* ---------- No iPhone zoom: Safari zooms into any field whose text is under 16px ---------- */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select, textarea { font-size: 16px !important; }
+
+  /* ---------- Sign in / Create account: a short scene strip, so the form fits on the first screen ---------- */
+  .au-scene { height: 168px; min-height: 0; }
+  .au-motto { bottom: 14px; }
+  .au-motto-line { font-size: 34px; margin: 0; min-height: 0; }
+  .au-scene-fallback span { width: 200px; margin: -100px 0 0 -100px; top: 46%; }
+  .au-scene-fallback span:nth-child(3) { width: 110px; margin: -55px 0 0 -55px; }
+  .au-panel { padding-top: var(--space-2); gap: var(--space-2); }
+  /* Its desktop "right: 24px" would shift it off the left edge now that it is position: relative
+     (for its larger tap area, below). */
+  .au-back { left: auto; right: auto; }
+
   /* ---------- Home: "Shop by sport", two tiles per row (was one 405px tile per row) ---------- */
   .depth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .depth-tile { padding: 8px; gap: 2px; }

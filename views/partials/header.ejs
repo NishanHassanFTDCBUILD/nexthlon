@@ -169,6 +169,15 @@
     <h2 id="site-drawer-title" class="drawer-title">Hello, <%= currentUser ? firstName(currentUser.name) : 'sign in' %></h2>
     <button type="button" class="icon-btn" data-drawer-close><%- icon('x') %><span class="sr-only">Close menu</span></button>
   </div>
+  <% if (!currentUser) { %>
+    <%# Guests: signing in is the first thing in the menu, and brings them back to this page. %>
+    <%# Only known store pages: never an unknown address (a 404 could be the hidden admin path). %>
+    <% const back = /^\/(products|cart|wishlist|checkout|orders|account|about|contact)(\/|$)/.test(path || '') ? '?next=' + encodeURIComponent(path) : ''; %>
+    <div class="drawer-auth">
+      <a class="btn btn-primary" href="/login<%= back %>">Sign in</a>
+      <a class="btn btn-ghost" href="/signup<%= back %>">Create account</a>
+    </div>
+  <% } %>
   <div class="drawer-body">
     <nav class="drawer-nav" aria-label="Menu">
       <h3>Shop</h3>
@@ -187,9 +196,8 @@
         <a href="/wishlist"><%- icon('heart', 'i-sm') %> Your wishlist</a>
         <a href="/cart"><%- icon('cart', 'i-sm') %> Your cart</a>
       <% } else { %>
-        <a href="/login"><%- icon('user', 'i-sm') %> Sign in</a>
-        <a href="/signup"><%- icon('plus', 'i-sm') %> Create an account</a>
         <a href="/wishlist"><%- icon('heart', 'i-sm') %> Your wishlist</a>
+        <a href="/cart"><%- icon('cart', 'i-sm') %> Your cart</a>
       <% } %>
       <h3>Help</h3>
       <a href="/contact"><%- icon('headset', 'i-sm') %> Contact us</a>

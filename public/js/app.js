@@ -358,13 +358,38 @@
   function setupHeader() {
     const header = document.querySelector("[data-site-header]");
     if (!header) return;
-    // On phones the header scrolls away with the page, so nothing needs to clear it.
+    // --header-h is how much of the screen the header covers, so other sticky bars sit below it.
+    // On phones it tucks away while you scroll down (it then covers nothing) and comes back as soon
+    // as you scroll up, like a shop app; mobile.css slides it.
+    let tucked = false;
     const update = () => {
       const sticky = getComputedStyle(header).position === "sticky";
-      document.documentElement.style.setProperty("--header-h", `${sticky ? header.offsetHeight : 0}px`);
+      document.documentElement.style.setProperty("--header-h", `${sticky && !tucked ? header.offsetHeight : 0}px`);
     };
     update();
     if ("ResizeObserver" in window) new ResizeObserver(update).observe(header);
+
+    const phone = window.matchMedia("(max-width: 720px)");
+    const setTucked = on => {
+      if (on === tucked) return;
+      tucked = on;
+      header.classList.toggle("is-tucked", on);
+      update();
+    };
+    let lastY = window.scrollY;
+    // Cheap enough to run on every scroll event (a few numbers and at most one class change).
+    const onScroll = () => {
+      const y = window.scrollY;
+      const dy = y - lastY;
+      // Never hide while the menu is open or something in the header (the search box) is in use.
+      const busy = document.body.classList.contains("drawer-open") || header.contains(document.activeElement);
+      if (!phone.matches || busy || y < header.offsetHeight) setTucked(false);
+      else if (dy > 6) setTucked(true);
+      else if (dy < -6) setTucked(false);
+      if (Math.abs(dy) > 6 || y < header.offsetHeight) lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    phone.addEventListener("change", () => setTucked(false));
 
     // On phones the category bar scrolls sideways; bring the current category into view.
     const bar = document.querySelector("[data-catnav]");

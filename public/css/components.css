@@ -301,6 +301,9 @@ dialog[open] { animation: pop 0.22s var(--ease); }
 .drawer-head { display: flex; align-items: center; gap: var(--space-1h); padding: max(var(--space-2), env(safe-area-inset-top)) var(--space-2) var(--space-2); background: var(--navy-900); color: #fff; --focus: var(--accent); }
 .drawer-head .icon-btn { color: #fff; margin-left: auto; }
 .drawer-head .icon-btn:hover { background: rgba(255, 255, 255, 0.1); }
+/* Guests: Sign in and Create account side by side at the top of the menu. */
+.drawer-auth { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1); padding: var(--space-2); border-bottom: 1px solid var(--line); }
+.drawer-auth .btn { min-height: 46px; }
 .drawer-body { flex: 1; overflow-y: auto; padding: var(--space-1) 0 var(--space-3); overscroll-behavior: contain; }
 
 /* ---------- Toasts ---------- */

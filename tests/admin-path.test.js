@@ -332,3 +332,11 @@ test("sales export: CSV of the range's orders, admin only, formulas neutralised"
   assert.match(text, /"'=HYPERLINK/);
   assert.doesNotMatch(text, /"NX-2026-888004"/); // 40 days ago
 });
+
+test("the phone menu's sign-in link never repeats an unknown address (it could be the hidden admin path)", async () => {
+  const hidden = await call("GET", `${ADMIN}/dashboard`);
+  assert.doesNotMatch(hidden.data, /next=[^"]*nx-console/);
+  assert.match(hidden.data, /class="drawer-auth">\s*<a class="btn btn-primary" href="\/login">/);
+  const store = await call("GET", "/products");
+  assert.match(store.data, /href="\/login\?next=%2Fproducts">Sign in</);
+});
