@@ -66,6 +66,15 @@ async function listReviews(productId, page = 1) {
   };
 }
 
+// The one review to feature on the product page: the best-rated (4 or 5 stars), verified buyers
+// first, then the most detailed. Null when the product has no such review.
+async function featuredReview(productId) {
+  const [review] = await Review.find({ product: productId, rating: { $gte: 4 }, ...Review.VISIBLE })
+    .sort({ verified: -1, rating: -1, createdAt: -1 }).limit(20).lean()
+    .then(rows => rows.sort((a, b) => (b.verified - a.verified) || (b.rating - a.rating) || (b.body.length - a.body.length)));
+  return review ? publicReview(review) : null;
+}
+
 // Keeps the product's stored average (one decimal place) and count in step with its reviews.
 // A review an admin has hidden counts for nothing, so hiding one changes the product's stars.
 async function refreshProductRating(productId) {
@@ -150,4 +159,4 @@ async function deleteMine(userId, reviewId) {
   return refreshProductRating(review.product);
 }
 
-module.exports = { PAGE_SIZE, hasReceived, reviewStatus, listReviews, ratingBreakdown, refreshProductRating, addReview, shortName, publicReview, listMine, waitingForReview, updateMine, deleteMine };
+module.exports = { PAGE_SIZE, hasReceived, reviewStatus, listReviews, featuredReview, ratingBreakdown, refreshProductRating, addReview, shortName, publicReview, listMine, waitingForReview, updateMine, deleteMine };

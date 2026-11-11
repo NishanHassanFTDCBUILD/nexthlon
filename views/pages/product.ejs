@@ -32,7 +32,10 @@
 
           <div class="pdx-stage-top">
             <% if (product.discountPercent > 0) { %><span class="pdx-chip pdx-chip-deal"><%= product.discountPercent %>% off</span><% } %>
-            <button type="button" class="pdx-icon-btn" data-lightbox-open aria-label="View photos full screen"><%- icon('grid', 'i-sm') %></button>
+            <span class="pdx-stage-actions">
+              <button type="button" class="pdx-icon-btn" data-share data-share-title="<%= product.name %>" aria-label="Share this product"><%- icon('send', 'i-sm') %></button>
+              <button type="button" class="pdx-icon-btn" data-lightbox-open aria-label="View photos full screen"><%- icon('grid', 'i-sm') %></button>
+            </span>
           </div>
 
           <% if (photos.length > 1) { %>
@@ -68,10 +71,25 @@
               <a class="pdx-rating" href="#reviews"><%- icon('star', 'i-xs') %> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %> <%= product.ratingCount === 1 ? 'review' : 'reviews' %>)</span><span class="sr-only">, rated out of 5</span></a>
             <% } %>
           </div>
+          <% if (featured) { %>
+            <figure class="pdx-quote">
+              <span class="pdx-quote-mark" aria-hidden="true">&ldquo;</span>
+              <blockquote>
+                <% if (featured.title) { %><strong><%= featured.title %></strong> <% } %><%= featured.body %>
+              </blockquote>
+              <figcaption>
+                <span class="pdx-avatar" aria-hidden="true"><%= (featured.author || '?').charAt(0).toUpperCase() %></span>
+                <span class="pdx-quote-who"><strong><%= featured.author %></strong><% if (featured.verified) { %><span class="pdx-verified"><%- icon('check', 'i-xs') %> Verified purchase</span><% } %></span>
+                <span class="rating" style="--rating: <%= featured.rating %>" role="img" aria-label="<%= featured.rating %> out of 5 stars"></span>
+              </figcaption>
+              <a class="pdx-quote-all" href="#reviews">Read all <%= reviews.pagination.total %> <%= reviews.pagination.total === 1 ? 'review' : 'reviews' %> <%- icon('arrow-right', 'i-xs') %></a>
+            </figure>
+          <% } %>
         </div>
 
         <div class="pdx-buy" id="buy" data-pdx-in>
           <div class="pdx-price-row">
+            <% if (product.discountPercent > 0) { %><span class="pdx-off" aria-label="<%= product.discountPercent %> percent off">-<%= product.discountPercent %>%</span><% } %>
             <span class="pdx-price" data-price-count="<%= product.price %>"><%= formatPrice(product.price) %></span>
             <% if (saving) { %>
               <span class="pdx-mrp">M.R.P. <s><%= formatPrice(product.mrp) %></s></span>
@@ -84,6 +102,55 @@
           <% } %>
           <p class="pdx-tax">Inclusive of all taxes<% if (offer) { %> · <span class="pdx-offer"><%= offer.text %></span><% } %></p>
 
+          <%# ---------- Delivery (Amazon-style): date, countdown, deliverable or not, COD ---------- %>
+          <div class="pdx-ship-box" data-delivery
+            data-free="<%= freeDelivery ? '1' : '' %>" data-fee="<%= store.deliveryFee %>"
+            data-saved-pin="<%= shipTo ? shipTo.pincode : '' %>">
+            <p class="pdx-eta" data-eta aria-live="polite">
+              <% if (product.stock <= 0) { %>
+                <span class="pdx-eta-muted">Currently unavailable.</span>
+              <% } else { %>
+                <span class="pdx-eta-muted"><%= freeDelivery ? 'FREE delivery' : 'Delivery ' + formatPrice(store.deliveryFee) %> in <%= store.deliveryDays %>. Add your PIN code for the exact date.</span>
+              <% } %>
+            </p>
+            <p class="pdx-countdown" data-countdown hidden></p>
+
+            <div class="pdx-deliver-to" data-deliver-to <%= shipTo ? '' : 'hidden' %>>
+              <%- icon('pin', 'i-sm') %>
+              <span>Deliver to <strong data-ship-name><%= shipTo ? shipTo.fullName.split(' ')[0] : '' %></strong> <span data-ship-place><%= shipTo ? '– ' + shipTo.city + ' ' + shipTo.pincode : '' %></span></span>
+              <button type="button" class="pdx-text-btn" data-change-pin>Change</button>
+            </div>
+
+            <form class="pdx-pin" data-delivery-check novalidate <%= shipTo ? 'hidden' : '' %>>
+              <label for="pincode"><%- icon('pin', 'i-xs') %> Deliver to</label>
+              <div class="pdx-pin-row">
+                <input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6" pattern="[1-9][0-9]{5}" placeholder="Enter 6-digit PIN code" aria-describedby="pincode-result" value="<%= shipTo ? shipTo.pincode : '' %>">
+                <button type="submit">Check</button>
+              </div>
+            </form>
+            <p class="delivery-result" id="pincode-result" data-delivery-result aria-live="polite" hidden></p>
+
+            <ul class="pdx-ship-perks">
+              <li class="<%= codAvailable ? 'is-yes' : 'is-no' %>"><%- icon(codAvailable ? 'check' : 'x', 'i-xs') %> <%= codAvailable ? 'Cash on Delivery available' : 'Pay online (Cash on Delivery is for orders up to ₹5,000)' %></li>
+              <li class="is-yes"><%- icon('rotate-ccw', 'i-xs') %> <%= store.returnDays %>-day easy returns</li>
+            </ul>
+          </div>
+
+          <%# ---------- Stock ---------- %>
+          <p class="pdx-stock <%= product.stock <= 0 ? 'is-out' : product.stock <= 5 ? 'is-low' : 'is-ok' %>">
+            <% if (product.stock <= 0) { %>Out of stock<% } else if (product.stock <= 5) { %>Only <%= product.stock %> left in stock – order soon<% } else { %>In stock<% } %>
+          </p>
+
+          <%# ---------- Already in cart ---------- %>
+          <% if (shopper && currentUser) { %>
+            <div class="pdx-in-cart" data-in-cart <%= inCart > 0 ? '' : 'hidden' %>>
+              <%- icon('check', 'i-sm') %>
+              <span><strong data-in-cart-qty><%= inCart %></strong> already in your cart</span>
+              <a href="/cart">Go to cart <%- icon('arrow-right', 'i-xs') %></a>
+            </div>
+          <% } %>
+
+          <%# ---------- Quantity + the two actions ---------- %>
           <% if (product.stock <= 0) { %>
             <button class="pdx-btn pdx-btn-buy" type="button" disabled>Out of stock</button>
             <p class="pdx-note">This item is sold out right now. Check back soon.</p>
@@ -103,38 +170,22 @@
                   <input id="qty" name="quantity" type="number" inputmode="numeric" min="1" max="<%= maxQty %>" step="1" value="1" data-qty-input>
                   <button type="button" class="qty-btn" data-qty-step="1" aria-label="One more" <%= maxQty <= 1 ? 'disabled' : '' %>><%- icon('plus', 'i-sm') %></button>
                 </div>
-                <span class="pdx-hint">Max <%= maxQty %></span>
+                <span class="pdx-hint">Max <%= maxQty %> per order</span>
               </div>
               <div class="pdx-ctas">
-                <button class="pdx-btn pdx-btn-cart" type="submit" data-magnetic><%- icon('cart', 'i-sm') %> Add to cart</button>
+                <button class="pdx-btn pdx-btn-cart" type="submit" data-magnetic><%- icon('cart', 'i-sm') %> <span data-cart-label>Add to cart</span></button>
                 <button class="pdx-btn pdx-btn-buy" type="button" data-buy-now data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</button>
               </div>
             </form>
-            <a class="pdx-link" href="/cart">View cart <%- icon('arrow-right', 'i-xs') %></a>
           <% } %>
 
-          <form class="pdx-pin" data-delivery-check novalidate>
-            <label for="pincode"><%- icon('pin', 'i-xs') %> Deliver to</label>
-            <div class="pdx-pin-row">
-              <input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6" pattern="[1-9][0-9]{5}" placeholder="PIN code" aria-describedby="pincode-result">
-              <button type="submit">Check</button>
-            </div>
-            <p class="delivery-result" id="pincode-result" data-delivery-result aria-live="polite">Enter your PIN code to see when it arrives.</p>
-          </form>
-
-          <div class="pdx-secondary">
-            <% if (shopper) { %>
-              <button type="button" class="wish-btn pdx-ghost" data-wish-id="<%= product._id %>" aria-pressed="false" hidden><%- icon('heart', 'i-sm') %> <span data-wish-label>Add to wishlist</span></button>
-            <% } %>
-            <button type="button" class="pdx-ghost" data-share data-share-title="<%= product.name %>"><%- icon('send', 'i-sm') %> Share</button>
-          </div>
-
-          <ul class="pdx-trust">
-            <li><%- icon('truck', 'i-sm') %><span><% if (freeDelivery) { %>Free delivery<% } else { %>Free over <%= formatPrice(store.freeDeliveryMin) %><% } %></span></li>
-            <li><%- icon('rotate-ccw', 'i-sm') %><span><a href="/refund-policy"><%= store.returnDays %>-day returns</a></span></li>
-            <li><%- icon('shield', 'i-sm') %><span>Secure payment</span></li>
-            <li><%- icon('award', 'i-sm') %><span>Sold by Nexthlon</span></li>
-          </ul>
+          <%# ---------- Seller facts, Amazon-style ---------- %>
+          <dl class="pdx-facts">
+            <div><dt>Ships from</dt><dd>Nexthlon</dd></div>
+            <div><dt>Sold by</dt><dd>Nexthlon</dd></div>
+            <div><dt>Returns</dt><dd><a href="/refund-policy"><%= store.returnDays %>-day returns</a></dd></div>
+            <div><dt>Payment</dt><dd><%- icon('lock', 'i-xs') %> Secure transaction</dd></div>
+          </dl>
         </div>
       </div>
     </div>
@@ -301,7 +352,7 @@
       <img src="<%= photos[0] %>" alt="" width="48" height="48">
       <div class="pdx-dock-text">
         <strong><%= product.name %></strong>
-        <span><%= formatPrice(product.price) %><% if (saving) { %> <s><%= formatPrice(product.mrp) %></s><% } %></span>
+        <span><% if (product.discountPercent > 0) { %><em class="pdx-off pdx-off-sm">-<%= product.discountPercent %>%</em> <% } %><%= formatPrice(product.price) %><% if (saving) { %> <s><%= formatPrice(product.mrp) %></s><% } %></span>
       </div>
       <% if (currentUser) { %>
         <button type="button" class="pdx-btn pdx-btn-cart" data-dock-cart tabindex="-1"><%- icon('cart', 'i-sm') %><span>Add</span></button>

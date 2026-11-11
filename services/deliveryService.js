@@ -37,13 +37,24 @@ function addDeliveryDays(dayNumber, days) {
 
 const dateLabel = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
+// PIN codes starting with 9 belong to the Army Postal Service (APO/FPO). Couriers do not deliver there.
+function isServiceable(pincode) {
+  return !String(pincode).startsWith("9");
+}
+
 function estimateDelivery(pincode, now = new Date()) {
   const pin = String(pincode || "").trim();
   if (!PINCODE.test(pin)) return null;
+  if (!isServiceable(pin)) {
+    return { pincode: pin, deliverable: false, reason: "We can't deliver to Army Post Office (APO/FPO) PIN codes yet." };
+  }
   const zone = zoneFor(pin);
   const ist = now.getTime() + IST_OFFSET_MS;
   let today = Math.floor(ist / DAY_MS);
   const hour = Math.floor((ist % DAY_MS) / (60 * 60 * 1000));
+  // Today's cut-off moment, so the page can count down to it.
+  const cutoffAt = hour >= CUTOFF_HOUR_IST ? null
+    : new Date(today * DAY_MS + CUTOFF_HOUR_IST * 60 * 60 * 1000 - IST_OFFSET_MS).toISOString();
   // Orders after the cut-off are packed tomorrow.
   if (hour >= CUTOFF_HOUR_IST) today += 1;
   const fromDay = addDeliveryDays(today, ZONES[zone].minDays);
@@ -52,6 +63,8 @@ function estimateDelivery(pincode, now = new Date()) {
   const to = new Date(toDay * DAY_MS);
   return {
     pincode: pin,
+    deliverable: true,
+    cutoffAt,
     zone,
     zoneLabel: ZONES[zone].label,
     minDays: ZONES[zone].minDays,
@@ -63,4 +76,4 @@ function estimateDelivery(pincode, now = new Date()) {
   };
 }
 
-module.exports = { PINCODE, ZONES, zoneFor, estimateDelivery, addDeliveryDays };
+module.exports = { PINCODE, ZONES, zoneFor, isServiceable, estimateDelivery, addDeliveryDays };

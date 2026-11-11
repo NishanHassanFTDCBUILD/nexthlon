@@ -18,6 +18,8 @@ const accountService = require("../services/accountService");
 const reviewService = require("../services/reviewService");
 const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
+const Address = require("../models/Address");
+const Cart = require("../models/Cart");
 const { CONTACT_TOPICS, STORE } = require("../config/store");
 const { INDIAN_STATES, LOW_STOCK_LIMIT, MAX_ADDRESSES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
@@ -102,10 +104,18 @@ const productDetail = asyncHandler(async (req, res) => {
   if (req.user && req.user.role === "customer") {
     accountService.recordView(req.user._id, product._id).catch(() => {});
   }
-  const [related, reviews, reviewStatus] = await Promise.all([
+  const customer = req.user && req.user.role === "customer" ? req.user : null;
+  const [related, reviews, reviewStatus, featured, shipTo, inCart] = await Promise.all([
     productService.getRelatedProducts(product),
     reviewService.listReviews(product._id, 1),
-    reviewService.reviewStatus(req.user || null, product._id)
+    reviewService.reviewStatus(req.user || null, product._id),
+    reviewService.featuredReview(product._id),
+    // "Deliver to ..." uses the customer's default address (or their newest one).
+    customer ? Address.findOne({ user: customer._id }).sort({ isDefault: -1, updatedAt: -1 }).select("fullName city pincode").lean() : null,
+    // How many of this product are already in the customer's cart.
+    customer ? Cart.findOne({ user: customer._id }).select("items").lean()
+      .then(cart => (cart && cart.items.find(item => String(item.product) === String(product._id))) || null)
+      .then(item => (item ? item.quantity : 0)) : 0
   ]);
   res.render("pages/product", {
     title: `${product.name} | Nexthlon`,
@@ -114,7 +124,11 @@ const productDetail = asyncHandler(async (req, res) => {
     offer: productService.offerLabel(product),
     related,
     reviews,
-    reviewStatus
+    reviewStatus,
+    featured,
+    shipTo,
+    inCart,
+    codAvailable: product.price <= orderRules.COD_LIMIT
   });
 });
 

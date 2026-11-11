@@ -53,6 +53,14 @@ test("delivery estimates: metro, standard and remote PIN codes, no Sundays, and 
   assert.equal(evening.from, "2026-11-07");
   assert.equal(evening.to, "2026-11-09");
   assert.equal(evening.orderBy, null);
+  assert.equal(evening.cutoffAt, null);
+  // Before the cut-off, the countdown ends at 2 pm IST (08:30 UTC) today.
+  assert.equal(morning.deliverable, true);
+  assert.equal(morning.cutoffAt, "2026-11-04T08:30:00.000Z");
+  // Army Post Office PIN codes are not served.
+  const apo = estimateDelivery("930001");
+  assert.equal(apo.deliverable, false);
+  assert.ok(apo.reason);
 });
 
 test("filters: several brands, steps for discount and rating, and the grid or list view", () => {

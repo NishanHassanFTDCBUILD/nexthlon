@@ -61,51 +61,129 @@
     });
   }
 
-  // ---------- Delivery date by PIN code ----------
-  const delivery = document.querySelector("[data-delivery-check]");
-  if (delivery) {
-    const input = delivery.querySelector('input[name="pincode"]');
-    const result = delivery.querySelector("[data-delivery-result]");
-    const check = async pincode => {
-      result.className = "delivery-result is-loading";
-      result.textContent = "Checking delivery dates…";
+  // ---------- Delivery (Amazon-style): date, live cut-off countdown, deliverable or not ----------
+  const shipBox = document.querySelector("[data-delivery]");
+  if (shipBox) {
+    const form = shipBox.querySelector("[data-delivery-check]");
+    const input = form.querySelector('input[name="pincode"]');
+    const result = shipBox.querySelector("[data-delivery-result]");
+    const eta = shipBox.querySelector("[data-eta]");
+    const countdown = shipBox.querySelector("[data-countdown]");
+    const deliverTo = shipBox.querySelector("[data-deliver-to]");
+    const shipName = shipBox.querySelector("[data-ship-name]");
+    const shipPlace = shipBox.querySelector("[data-ship-place]");
+    const free = shipBox.dataset.free === "1";
+    const fee = Number(shipBox.dataset.fee) || 0;
+    const savedName = shipName.textContent.trim();
+    const savedPlace = shipPlace.textContent.trim();
+    const savedPin = shipBox.dataset.savedPin || "";
+    const validPin = pin => /^[1-9][0-9]{5}$/.test(pin);
+    let timer = 0;
+
+    const node = (tag, cls, text) => {
+      const el = document.createElement(tag);
+      if (cls) el.className = cls;
+      if (text != null) el.textContent = text;
+      return el;
+    };
+    const setResult = (message, kind) => {
+      result.textContent = message || "";
+      result.className = `delivery-result${kind ? ` is-${kind}` : ""}`;
+      result.hidden = !message;
+    };
+    const showForm = on => {
+      form.hidden = !on;
+      deliverTo.hidden = on;
+      if (on) {
+        input.focus();
+        input.select();
+      }
+    };
+    // "Order within 2 hrs 14 mins" until today's 2 pm cut-off; then the dates move a day.
+    const startCountdown = (cutoffAt, pin) => {
+      clearInterval(timer);
+      countdown.hidden = true;
+      if (!cutoffAt) return;
+      const end = new Date(cutoffAt).getTime();
+      const paint = () => {
+        const left = end - Date.now();
+        if (left <= 0) {
+          clearInterval(timer);
+          check(pin);
+          return;
+        }
+        const hours = Math.floor(left / 3600000);
+        const mins = Math.max(1, Math.ceil((left % 3600000) / 60000));
+        const parts = [];
+        if (hours) parts.push(`${hours} hr${hours > 1 ? "s" : ""}`);
+        parts.push(`${mins} min${mins > 1 ? "s" : ""}`);
+        countdown.replaceChildren("Order within ", node("strong", "", parts.join(" ")), " to get it by then.");
+        countdown.hidden = false;
+      };
+      paint();
+      timer = setInterval(paint, 30000);
+    };
+
+    async function check(pin) {
+      eta.replaceChildren(node("span", "pdx-eta-muted", "Checking delivery dates…"));
+      setResult("");
       input.removeAttribute("aria-invalid");
       try {
-        const { estimate } = await Nx.api(`/api/delivery/estimate?pincode=${encodeURIComponent(pincode)}`);
-        result.className = "delivery-result is-ok";
-        result.textContent = `Delivery by ${estimate.label} to ${estimate.pincode}.${estimate.orderBy ? ` Order before ${estimate.orderBy}.` : ""}`;
+        const { estimate } = await Nx.api(`/api/delivery/estimate?pincode=${encodeURIComponent(pin)}`);
+        // "Deliver to Asha – Bengaluru 560001" for the saved address, "Deliver to 560001" otherwise.
+        const usingSaved = pin === savedPin && savedName;
+        shipName.textContent = usingSaved ? savedName : "";
+        shipPlace.textContent = usingSaved ? savedPlace : pin;
+        showForm(false);
+
+        if (!estimate.deliverable) {
+          clearInterval(timer);
+          countdown.hidden = true;
+          eta.replaceChildren(node("strong", "pdx-eta-no", `Not deliverable to ${pin}`));
+          setResult(estimate.reason, "error");
+          return;
+        }
+        const lead = free ? node("span", "is-free", "FREE delivery ") : `Delivery ${Nx.formatPrice(fee)} · `;
+        eta.replaceChildren(lead, node("strong", "", estimate.label));
+        startCountdown(estimate.cutoffAt, pin);
         try {
           localStorage.setItem("nx-pincode", estimate.pincode);
         } catch {
           /* not saved; fine */
         }
       } catch (error) {
-        result.className = "delivery-result is-error";
-        result.textContent = error.message;
+        eta.replaceChildren(node("span", "pdx-eta-muted", "Add your PIN code for the exact delivery date."));
+        showForm(true);
+        setResult(error.message, "error");
         input.setAttribute("aria-invalid", "true");
       }
-    };
-    delivery.addEventListener("submit", event => {
+    }
+
+    form.addEventListener("submit", event => {
       event.preventDefault();
-      const pincode = input.value.trim();
-      if (!/^[1-9][0-9]{5}$/.test(pincode)) {
-        result.className = "delivery-result is-error";
-        result.textContent = "Enter a valid 6-digit PIN code.";
+      const pin = input.value.trim();
+      if (!validPin(pin)) {
+        setResult("Enter a valid 6-digit PIN code.", "error");
         input.setAttribute("aria-invalid", "true");
         input.focus();
         return;
       }
-      check(pincode);
+      check(pin);
     });
-    // Show the estimate straight away for the PIN code used last time.
-    try {
-      const saved = localStorage.getItem("nx-pincode");
-      if (saved && /^[1-9][0-9]{5}$/.test(saved)) {
-        input.value = saved;
-        check(saved);
+    shipBox.querySelector("[data-change-pin]").addEventListener("click", () => showForm(true));
+
+    // Start with the customer's saved address, else the PIN code used last time.
+    let first = savedPin;
+    if (!validPin(first)) {
+      try {
+        first = localStorage.getItem("nx-pincode") || "";
+      } catch {
+        first = "";
       }
-    } catch {
-      /* storage blocked */
+    }
+    if (validPin(first)) {
+      input.value = first;
+      check(first);
     }
   }
 
@@ -196,6 +274,32 @@
   const dockCart = document.querySelector("[data-dock-cart]");
   if (dockCart && orderForm) {
     dockCart.addEventListener("click", () => orderForm.requestSubmit());
+  }
+
+  // After Add to cart: "N already in your cart · Go to cart", and the button says "Added" for a moment.
+  const inCartBox = document.querySelector("[data-in-cart]");
+  if (orderForm) {
+    orderForm.addEventListener("nx:cart-added", event => {
+      const cart = event.detail || {};
+      const line = (cart.items || []).find(item => String(item.productId) === String(orderForm.dataset.productId));
+      if (inCartBox && line) {
+        inCartBox.querySelector("[data-in-cart-qty]").textContent = String(line.quantity);
+        inCartBox.hidden = false;
+        inCartBox.classList.remove("is-bump");
+        void inCartBox.offsetWidth;
+        inCartBox.classList.add("is-bump");
+      }
+      const button = orderForm.querySelector('[type="submit"]');
+      const label = orderForm.querySelector("[data-cart-label]");
+      if (button && label) {
+        label.textContent = "Added ✓";
+        button.classList.add("is-added");
+        setTimeout(() => {
+          label.textContent = "Add to cart";
+          button.classList.remove("is-added");
+        }, 2000);
+      }
+    });
   }
 
   // Buy now puts exactly the chosen quantity of this product in the cart (adding it, or

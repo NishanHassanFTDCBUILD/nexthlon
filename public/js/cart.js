@@ -48,6 +48,8 @@
         await flyToCart(document.querySelector("[data-gallery-main]"));
         Nx.setCartCount(result.cart.summary.count);
         Nx.toast(result.message);
+        // The product page shows "N already in your cart" from this.
+        addForm.dispatchEvent(new CustomEvent("nx:cart-added", { detail: result.cart }));
       } catch (error) {
         Nx.busy(button, false);
         Nx.toast(error.message, "error");
