@@ -86,6 +86,8 @@ const orderSchema = new mongoose.Schema({
   walletUsed: { type: Number, default: 0, min: 0 },
   // What is left to pay after the wallet: cash on delivery, or the online payment.
   total: { type: Number, required: true, min: 0 },
+  // Where the items came from: the cart, or a single "Buy now" product (the cart is then left alone).
+  source: { type: String, enum: ["cart", "buynow"], default: "cart" },
   paymentMethod: { type: String, enum: ["cod", "razorpay", "wallet"], required: true },
   paymentStatus: { type: String, enum: PAYMENT_STATUSES, default: "pending" },
   orderStatus: { type: String, enum: ORDER_STATUSES, default: "placed" },

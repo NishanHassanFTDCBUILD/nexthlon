@@ -150,7 +150,8 @@
 
     function success(orderId, amount) {
       flow.done = true;
-      if (Nx.setCartCount) Nx.setCartCount(0);
+      // A Buy now order leaves the cart as it was, so its count stays.
+      if (Nx.setCartCount && !options.keepCart) Nx.setCartCount(0);
       // The page now stands for the paid order: Back and refresh can never pay again.
       try {
         window.history.replaceState(null, "", `/orders/${orderId}/success`);

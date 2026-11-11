@@ -6,10 +6,10 @@
   <title><%= title %></title>
   <meta name="description" content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'Nexthlon: performance sports gear for runners, footballers, hikers and every athlete.' %>">
   <% if (typeof noindex !== 'undefined' && noindex) { %><meta name="robots" content="noindex, nofollow">
-  <% } %><meta name="color-scheme" content="light dark">
+  <% } %><meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0a0a0b">
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
-  <%# Applies the saved light/dark choice before the first paint, so the page never flashes the wrong theme. %>
+  <%# Sets the dark theme before the first paint (the store has no light mode). %>
   <script src="/js/theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

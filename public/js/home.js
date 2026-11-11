@@ -6,6 +6,17 @@
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+  // ---------- Hero starts behind the header ----------
+  // style.css pulls the hero up by --hero-pull on wider screens; this keeps it equal to the
+  // header's real height, which changes with the screen size.
+  const header = document.querySelector(".site-header");
+  if (header) {
+    const setPull = () => document.documentElement.style.setProperty("--hero-pull", `${header.offsetHeight}px`);
+    setPull();
+    if ("ResizeObserver" in window) new ResizeObserver(setPull).observe(header);
+    else window.addEventListener("resize", setPull);
+  }
+
   // ---------- Flip-digit countdown ----------
   const countdown = document.querySelector("[data-countdown]");
   if (countdown) {

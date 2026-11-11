@@ -302,30 +302,33 @@
     });
   }
 
-  // Buy now puts exactly the chosen quantity of this product in the cart (adding it, or
-  // setting the quantity if it is already there) and goes straight to checkout.
+  // Buy now (Amazon-style): a checkout for this one product only. The cart is never touched,
+  // so whatever is already in it stays there. Payment works exactly like the cart checkout.
+  const buyNow = async button => {
+    if (!orderForm) return;
+    const input = orderForm.querySelector("[data-qty-input]");
+    const quantity = Math.max(1, Math.round(Number(input && input.value)) || 1);
+    if (button) Nx.busy(button, true, "Going to checkout…");
+    try {
+      const { redirect } = await Nx.api("/api/buy-now", { method: "POST", body: { productId: orderForm.dataset.productId, quantity } });
+      window.location.href = redirect || "/checkout?buy=now";
+    } catch (error) {
+      if (button) Nx.busy(button, false);
+      Nx.toast(error.message, "error");
+    }
+  };
   document.querySelectorAll("[data-buy-now]").forEach(button => {
-    button.addEventListener("click", async () => {
-      if (!orderForm) return;
-      const productId = orderForm.dataset.productId;
-      const input = orderForm.querySelector("[data-qty-input]");
-      const quantity = Math.max(1, Math.round(Number(input && input.value)) || 1);
-      Nx.busy(button, true, "Going to checkout…");
-      try {
-        const { cart } = await Nx.api("/api/cart");
-        const inCart = cart && cart.items && cart.items.some(item => String(item.productId) === String(productId));
-        if (inCart) {
-          await Nx.api(`/api/cart/items/${encodeURIComponent(productId)}`, { method: "PATCH", body: { quantity } });
-        } else {
-          await Nx.api("/api/cart/items", { method: "POST", body: { productId, quantity } });
-        }
-        window.location.href = "/checkout";
-      } catch (error) {
-        Nx.busy(button, false);
-        Nx.toast(error.message, "error");
-      }
-    });
+    button.addEventListener("click", () => buyNow(button));
   });
+
+  // A guest who clicked Buy now signs in and comes back with ?buy=now: carry on straight to checkout.
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("buy") === "now") {
+    params.delete("buy");
+    const clean = window.location.pathname + (params.toString() ? `?${params}` : "") + window.location.hash;
+    window.history.replaceState(null, "", clean);
+    if (orderForm) buyNow(document.querySelector(".pdx-ctas [data-buy-now]"));
+  }
 
   // ---------- Reviews ----------
   const reviewsBox = document.querySelector("[data-reviews]");
@@ -378,8 +381,40 @@
       item.append(top);
       if (review.title) item.append(el("h3", "pdx-review-title", review.title));
       item.append(el("p", "pdx-review-body", review.body));
+      if (review.mine) {
+        const remove = el("button", "pdx-review-delete");
+        remove.type = "button";
+        remove.dataset.reviewDelete = review.id;
+        remove.append(svgIcon("trash", "i-xs"), " Delete my review");
+        item.append(remove);
+      }
       return item;
     };
+
+    // Delete my review: only on the customer's own reviews (the server checks it is theirs too).
+    list.addEventListener("click", async event => {
+      const button = event.target.closest("[data-review-delete]");
+      if (!button) return;
+      const ok = await Nx.confirm({ title: "Delete this review?", message: "It will be removed from this product page.", confirmLabel: "Delete review" });
+      if (!ok) return;
+      Nx.busy(button, true, "Deleting…");
+      try {
+        await Nx.api(`/api/account/reviews/${encodeURIComponent(button.dataset.reviewDelete)}`, { method: "DELETE" });
+        button.closest(".pdx-review").remove();
+        Nx.toast("Review deleted.");
+        // A slot is free again: if the form was gone (5 reviews), reload to bring it back.
+        if (!reviewsBox.querySelector("[data-review-form]")) {
+          window.location.reload();
+          return;
+        }
+        const form = reviewsBox.querySelector("[data-review-form]");
+        form.dataset.reviewsLeft = String((Number(form.dataset.reviewsLeft) || 0) + 1);
+        renderSummary(await Nx.api(`/api/products/${encodeURIComponent(productId)}/reviews?page=1`));
+      } catch (error) {
+        Nx.busy(button, false);
+        Nx.toast(error.message, "error");
+      }
+    });
 
     // Average, stars, count and the 5-to-1 bars, from a fresh reviews listing.
     const renderSummary = data => {
@@ -470,14 +505,19 @@
           const item = renderReview(result.review);
           item.classList.add("is-new");
           list.prepend(item);
-          // One review per customer: swap the form for a note.
-          const note = el("div", "pdx-review-note");
-          const span = el("span", "", "Thanks! Your review is live. ");
-          const link = el("a", "", "Edit or delete it in My Account");
-          link.href = "/account/reviews";
-          span.append(link, ".");
-          note.append(svgIcon("check", "i-sm"), span);
-          form.replaceWith(note);
+          // Up to 5 reviews per customer per product: clear the form for the next one,
+          // or remove it once the 5th is posted.
+          const left = (Number(form.dataset.reviewsLeft) || 1) - 1;
+          if (left > 0) {
+            form.dataset.reviewsLeft = String(left);
+            form.reset();
+            chars.textContent = "0";
+            word.textContent = "Tap a star";
+            word.classList.remove("is-set");
+            Nx.busy(button, false);
+          } else {
+            form.remove();
+          }
           Nx.toast(result.message || "Thanks! Your review is live.");
           try {
             renderSummary(await Nx.api(`/api/products/${encodeURIComponent(productId)}/reviews?page=1`));

@@ -1,27 +1,7 @@
-// Header: live search suggestions, the phone menu drawer and the light/dark theme switch.
+// Header: live search suggestions and the phone menu drawer.
 // The category mega-menu and the account menu use the shared [data-menu] code in app.js.
 (function () {
   "use strict";
-
-  // ---------- Theme switch: Dark → Light → System ----------
-  // theme.js (in <head>) applies and saves the choice; the icon follows html[data-theme-mode].
-  const NAMES = { system: "System", light: "Light", dark: "Dark" };
-  function showTheme() {
-    if (!window.NxTheme) return;
-    const mode = window.NxTheme.get();
-    const next = window.NxTheme.MODES[(window.NxTheme.MODES.indexOf(mode) + 1) % 3];
-    document.querySelectorAll("[data-theme-toggle]").forEach(button => {
-      button.title = `Theme: ${NAMES[mode]}. Switch to ${NAMES[next].toLowerCase()}.`;
-      button.setAttribute("aria-label", `Theme: ${NAMES[mode]}. Switch to ${NAMES[next].toLowerCase()}`);
-      const label = button.querySelector("[data-theme-label]");
-      if (label) label.textContent = `Theme: ${NAMES[mode]}`;
-    });
-  }
-  document.querySelectorAll("[data-theme-toggle]").forEach(button => {
-    button.addEventListener("click", () => window.NxTheme && window.NxTheme.next());
-  });
-  document.addEventListener("nx:theme", showTheme);
-  showTheme();
 
   // ---------- Phone menu drawer (a <dialog>: the browser keeps focus inside and handles Escape) ----------
   document.querySelectorAll("[data-drawer-open]").forEach(opener => {

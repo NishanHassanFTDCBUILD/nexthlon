@@ -292,6 +292,8 @@ a.pdx-chip:hover { color: var(--ink); border-color: var(--line-hover); }
 .pdx-verified { display: inline-flex; align-items: center; gap: 4px; color: var(--success); font-weight: var(--weight-semibold); font-size: var(--text-xs); }
 .pdx-review-title { margin: 4px 0 0; font-size: var(--text-md); font-weight: var(--weight-bold); }
 .pdx-review-body { margin: 0; color: var(--ink-2); line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+.pdx-review-delete { justify-self: start; display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--line); background: none; color: var(--muted); font: var(--weight-semibold) var(--text-xs)/1 var(--font); cursor: pointer; transition: color 0.2s var(--ease), border-color 0.2s var(--ease), background 0.2s var(--ease); }
+.pdx-review-delete:hover { color: var(--danger-ink); border-color: var(--danger-line); background: var(--danger-soft); }
 .pdx-review-empty { margin: 0; padding: var(--space-4); border-radius: var(--radius-lg); border: 1px dashed var(--line-strong); text-align: center; color: var(--muted); }
 .pdx-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--line); background: none; color: var(--ink-2); font: var(--weight-semibold) var(--text-sm)/1 var(--font); cursor: pointer; transition: border-color 0.2s var(--ease), color 0.2s var(--ease); }
 .pdx-ghost:hover { border-color: var(--line-hover); color: var(--ink); }

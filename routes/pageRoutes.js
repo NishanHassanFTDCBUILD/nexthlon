@@ -29,7 +29,6 @@ router.get(["/account/addresses", "/profile"], accountPage, pages.profile);
 router.get("/account/buy-again", accountPage, account.buyAgain);
 router.get("/account/coupons", accountPage, account.coupons);
 router.get(["/account/lists", "/wishlist"], accountPage, account.lists);
-router.get("/account/reviews", accountPage, account.reviews);
 router.get("/account/recent", accountPage, account.recent);
 router.get("/account/security", accountPage, account.security);
 router.get("/account/notifications", accountPage, account.notifications);

@@ -4,6 +4,9 @@ const Product = require("../models/Product");
 const { HttpError } = require("../utils/http");
 
 const PAGE_SIZE = 5;
+// How many reviews one customer may post for the same product.
+const MAX_PER_PRODUCT = 5;
+const LIMIT_MESSAGE = `You can post up to ${MAX_PER_PRODUCT} reviews for this product.`;
 
 // True when the customer has an order in which this product was delivered to them.
 async function hasReceived(userId, productId) {
@@ -18,10 +21,11 @@ async function hasReceived(userId, productId) {
 async function reviewStatus(user, productId) {
   if (!user) return { canReview: false, reason: "signin" };
   if (user.role !== "customer") return { canReview: false, reason: "admin" };
-  const mine = await Review.findOne({ product: productId, user: user._id }).lean();
-  if (mine) return { canReview: false, reason: "reviewed", review: publicReview(mine) };
-  // Every customer may review; buyers who received it get a "Verified purchase" badge.
-  return { canReview: true, reason: null, verified: await hasReceived(user._id, productId) };
+  // Every customer may review, up to 5 times per product; buyers who received it get a
+  // "Verified purchase" badge.
+  const written = await Review.countDocuments({ product: productId, user: user._id });
+  if (written >= MAX_PER_PRODUCT) return { canReview: false, reason: "limit", written, left: 0 };
+  return { canReview: true, reason: null, written, left: MAX_PER_PRODUCT - written, verified: await hasReceived(user._id, productId) };
 }
 
 function publicReview(review) {
@@ -53,14 +57,17 @@ async function ratingBreakdown(productId) {
   return [5, 4, 3, 2, 1].map(stars => ({ stars, count: counts.get(stars) || 0 }));
 }
 
-async function listReviews(productId, page = 1) {
+// viewerId: the signed-in customer, if any. Their own reviews are marked "mine" so the product
+// page can offer a Delete button on them (nobody else's id is ever sent).
+async function listReviews(productId, page = 1, viewerId = null) {
   const [reviews, total, breakdown] = await Promise.all([
     Review.find({ product: productId, ...Review.VISIBLE }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
     Review.countDocuments({ product: productId, ...Review.VISIBLE }),
     ratingBreakdown(productId)
   ]);
+  const viewer = viewerId ? String(viewerId) : null;
   return {
-    reviews: reviews.map(publicReview),
+    reviews: reviews.map(review => ({ ...publicReview(review), mine: Boolean(viewer) && String(review.user) === viewer })),
     breakdown,
     pagination: { page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total, limit: PAGE_SIZE }
   };
@@ -93,17 +100,17 @@ async function addReview(user, productId, value) {
   const product = await Product.findOne({ _id: productId, ...Product.LISTED }).select("_id").lean();
   if (!product) throw new HttpError(404, "Product not found.");
   const status = await reviewStatus(user, product._id);
-  if (status.reason === "reviewed") throw new HttpError(409, "You have already reviewed this product.");
+  if (status.reason === "limit") throw new HttpError(409, LIMIT_MESSAGE);
   if (!status.canReview) throw new HttpError(403, "Only customer accounts can review products.");
-  let review;
-  try {
-    review = await Review.create({ ...value, product: product._id, user: user._id, authorName: shortName(user.name), verified: status.verified });
-  } catch (error) {
-    if (error.code === 11000) throw new HttpError(409, "You have already reviewed this product.");
-    throw error;
+  const review = await Review.create({ ...value, product: product._id, user: user._id, authorName: shortName(user.name), verified: status.verified });
+  // Two posts sent at the same moment could both pass the count above: keep only the first 5.
+  if (await Review.countDocuments({ product: product._id, user: user._id }) > MAX_PER_PRODUCT) {
+    await Review.deleteOne({ _id: review._id });
+    throw new HttpError(409, LIMIT_MESSAGE);
   }
   const rating = await refreshProductRating(product._id);
-  return { review: publicReview(review), rating };
+  // The author just wrote it, so it is theirs: the product page shows Delete on it.
+  return { review: { ...publicReview(review), mine: true }, rating };
 }
 
 // ---------- The customer's own reviews (My Account) ----------
@@ -159,4 +166,4 @@ async function deleteMine(userId, reviewId) {
   return refreshProductRating(review.product);
 }
 
-module.exports = { PAGE_SIZE, hasReceived, reviewStatus, listReviews, featuredReview, ratingBreakdown, refreshProductRating, addReview, shortName, publicReview, listMine, waitingForReview, updateMine, deleteMine };
+module.exports = { PAGE_SIZE, MAX_PER_PRODUCT, hasReceived, reviewStatus, listReviews, featuredReview, ratingBreakdown, refreshProductRating, addReview, shortName, publicReview, listMine, waitingForReview, updateMine, deleteMine };

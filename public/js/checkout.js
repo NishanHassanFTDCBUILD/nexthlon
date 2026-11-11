@@ -7,6 +7,10 @@
 
   const page = document.querySelector("[data-checkout]");
   if (!page) return;
+  // "cart" buys the whole cart; "buynow" buys only the Buy now product and leaves the cart alone.
+  // The server is told on every call, so both checkouts share all the code below.
+  const source = page.dataset.source === "buynow" ? "buynow" : "cart";
+  const isBuyNow = source === "buynow";
   const steps = [...page.querySelectorAll("[data-step]")];
   const stepper = [...page.querySelectorAll("[data-stepper]")];
 
@@ -219,7 +223,7 @@
     summary.classList.add("is-updating");
     placeButton.disabled = true;
     try {
-      const { quote } = await Nx.api("/api/checkout/quote", { method: "POST", body: { useWallet: usingWallet() } });
+      const { quote } = await Nx.api("/api/checkout/quote", { method: "POST", body: { useWallet: usingWallet(), source } });
       if (ticket === refreshing) render(quote);
     } catch (error) {
       Nx.toast(error.message, "error");
@@ -261,7 +265,7 @@
     Nx.clearErrors(couponForm);
     Nx.busy(button, true, "Applying…");
     try {
-      const reply = await Nx.api("/api/checkout/coupon", { method: "POST", body: { code } });
+      const reply = await Nx.api("/api/checkout/coupon", { method: "POST", body: { code, source } });
       Nx.toast(reply.message);
       couponForm.reset();
       await refresh();
@@ -292,7 +296,7 @@
     const button = event.currentTarget;
     Nx.busy(button, true, "Removing…");
     try {
-      const reply = await Nx.api("/api/checkout/coupon", { method: "DELETE" });
+      const reply = await Nx.api(`/api/checkout/coupon?source=${source}`, { method: "DELETE" });
       Nx.toast(reply.message);
       await refresh();
       couponForm.elements.code.focus();
@@ -338,12 +342,12 @@
     if (p.kind === "razorpay") {
       const checkout = await Nx.submitForm(form, {
         url: "/api/payments/razorpay/order",
-        body: { addressId: address.value, useWallet: p.useWallet },
+        body: { addressId: address.value, useWallet: p.useWallet, source },
         busyLabel: "Preparing secure payment…"
       });
       if (checkout && Nx.payOnline) {
         placeButton.disabled = true;
-        Nx.payOnline(checkout, Nx.prefillFrom(page), { onChooseOther: chooseOther });
+        Nx.payOnline(checkout, Nx.prefillFrom(page), { onChooseOther: chooseOther, keepCart: isBuyNow });
       } else {
         processing = false;
         refresh();
@@ -352,7 +356,7 @@
     }
     const reply = await Nx.submitForm(form, {
       url: "/api/orders",
-      body: { addressId: address.value, paymentMethod: p.kind, useWallet: p.useWallet },
+      body: { addressId: address.value, paymentMethod: p.kind, useWallet: p.useWallet, source },
       busyLabel: "Placing your order…"
     });
     if (!reply) {
@@ -362,7 +366,8 @@
       return;
     }
     placeButton.disabled = true;
-    Nx.setCartCount(0);
+    // A Buy now order leaves the cart as it was.
+    if (!isBuyNow) Nx.setCartCount(0);
     // replace, not assign: Back must never come back here and place the order again.
     window.location.replace(reply.redirect);
   });

@@ -4,6 +4,7 @@ const Cart = require("../models/Cart");
 const Order = require("../models/Order");
 const Counter = require("../models/Counter");
 const cartService = require("./cartService");
+const buyNowService = require("./buyNowService");
 const couponService = require("./couponService");
 const walletService = require("./walletService");
 const stockService = require("./stockService");
@@ -35,11 +36,21 @@ function addressSnapshot(address) {
   return { fullName, phone, line1, line2, landmark, city, state, pincode };
 }
 
-// The order as it would be placed right now, worked out on the server from the live cart,
-// the coupon chosen on the cart (checked again) and the live wallet balance.
-// Nothing the browser sends about prices is ever used; it only says whether to use the wallet.
-async function buildQuote(userId, { useWallet = false } = {}) {
-  const [cart, walletBalance] = await Promise.all([cartService.getCart(userId), walletService.getBalance(userId)]);
+// The items being checked out: the whole cart, or (source "buynow") the one Buy now product.
+// Both come back in the same shape, so everything after this treats them the same way.
+async function itemsFor(userId, source) {
+  if (source !== "buynow") return cartService.getCart(userId);
+  const view = await buyNowService.getView(userId);
+  if (!view) throw new HttpError(410, buyNowService.EXPIRED_MESSAGE);
+  return view;
+}
+
+// The order as it would be placed right now, worked out on the server from the live items,
+// the coupon chosen for them (checked again) and the live wallet balance.
+// Nothing the browser sends about prices is ever used; it only says whether to use the wallet
+// and whether this is the cart or a Buy now checkout.
+async function buildQuote(userId, { useWallet = false, source = "cart" } = {}) {
+  const [cart, walletBalance] = await Promise.all([itemsFor(userId, source), walletService.getBalance(userId)]);
   const lines = cart.items.filter(item => item.available);
   const problems = cart.items.filter(item => !item.available).map(item => `${item.name}: ${item.reason.toLowerCase()}`);
   const { summary } = cart;
@@ -60,6 +71,7 @@ async function buildQuote(userId, { useWallet = false } = {}) {
     useWallet: Boolean(useWallet)
   });
   return {
+    source: source === "buynow" ? "buynow" : "cart",
     items: cart.items,
     lines,
     problems,
@@ -78,6 +90,7 @@ async function buildQuote(userId, { useWallet = false } = {}) {
 // The quote as the browser sees it.
 function publicQuote(quote) {
   return {
+    source: quote.source,
     totals: quote.totals,
     problems: quote.problems,
     coupon: quote.coupon,
@@ -109,9 +122,12 @@ function itemSnapshots(lines) {
 
 // Checks that the cart can be ordered, or throws a message for the shopper.
 function assertOrderable(quote) {
-  if (!quote.lines.length && !quote.problems.length) throw new HttpError(400, "Your cart is empty.");
+  const buyNow = quote.source === "buynow";
+  if (!quote.lines.length && !quote.problems.length) throw new HttpError(400, buyNow ? buyNowService.EXPIRED_MESSAGE : "Your cart is empty.");
   if (quote.problems.length) {
-    throw new HttpError(409, `Some items are no longer available (${quote.problems.join("; ")}). Remove them from your cart to continue.`);
+    throw new HttpError(409, buyNow
+      ? `This product is no longer available (${quote.problems.join("; ")}).`
+      : `Some items are no longer available (${quote.problems.join("; ")}). Remove them from your cart to continue.`);
   }
   if (quote.couponNotice) throw new HttpError(409, `${quote.couponNotice} Remove the coupon to continue.`);
 }
@@ -142,6 +158,7 @@ async function saveOrder({ userId, orderId, quote, address, paymentMethod, payme
     items: itemSnapshots(quote.lines),
     address: addressSnapshot(address),
     ...orderMoney(totals),
+    source: quote.source === "buynow" ? "buynow" : "cart",
     paymentMethod,
     paymentStatus,
     orderStatus: "placed",
@@ -154,13 +171,14 @@ async function saveOrder({ userId, orderId, quote, address, paymentMethod, payme
 
 // Places an order paid on delivery (COD) or fully from the wallet: re-checks everything, takes
 // the stock atomically, uses the coupon, takes the wallet amount, saves the order with
-// snapshots, then empties the cart. All of it happens, or none of it.
-async function placeOrder(userId, { addressId, paymentMethod, useWallet = false }) {
+// snapshots, then empties the cart (or, for Buy now, only the Buy now product: the cart stays).
+// All of it happens, or none of it.
+async function placeOrder(userId, { addressId, paymentMethod, useWallet = false, source = "cart" }) {
   if (!PAYMENT_METHODS.includes(paymentMethod)) {
     throw new HttpError(400, "Choose a payment method.", { paymentMethod: "Choose a payment method." });
   }
   const address = await findAddress(userId, addressId);
-  const quote = await buildQuote(userId, { useWallet });
+  const quote = await buildQuote(userId, { useWallet, source });
   assertOrderable(quote);
 
   // When the wallet covers everything, there is nothing to collect: it is a wallet order.
@@ -185,7 +203,8 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false 
       stockReserved: true,
       note: method === "wallet" ? "Paid from the Nexthlon wallet" : quote.totals.walletUsed ? "Part paid from the wallet, the rest on delivery" : "Cash on Delivery"
     }, session, undo);
-    await Cart.updateOne({ user: userId }, { $set: { items: [], couponCode: "" } }, { session });
+    if (quote.source === "buynow") await buyNowService.clear(userId, session);
+    else await Cart.updateOne({ user: userId }, { $set: { items: [], couponCode: "" } }, { session });
     return order;
   });
 }

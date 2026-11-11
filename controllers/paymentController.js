@@ -18,7 +18,7 @@ function readIds(body = {}) {
 const createOrder = asyncHandler(async (req, res) => {
   const { errors, value } = validatePlaceOrder({ ...req.body, paymentMethod: "razorpay" });
   if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);
-  const { checkout } = await paymentService.createPaymentOrder(req.user._id, { addressId: value.addressId, useWallet: value.useWallet });
+  const { checkout } = await paymentService.createPaymentOrder(req.user._id, { addressId: value.addressId, useWallet: value.useWallet, source: value.source });
   res.status(201).json(checkout);
 });
 

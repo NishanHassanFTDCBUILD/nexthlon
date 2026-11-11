@@ -8,6 +8,8 @@
   const maxQty = Math.min(product.stock, 5);
   const shopper = !currentUser || currentUser.role === 'customer';
   const backHere = encodeURIComponent('/products/' + product.slug);
+  // Guests who click Buy now sign in, then land back here and go straight to the Buy now checkout.
+  const buyAfterLogin = encodeURIComponent('/products/' + product.slug + '?buy=now');
   const specEntries = Object.entries(product.specs || {});
   const highlights = product.highlights || [];
   const freeDelivery = product.price >= store.freeDeliveryMin;
@@ -158,7 +160,7 @@
             <%# Guests sign in first, then come straight back to this product. %>
             <div class="pdx-ctas">
               <a class="pdx-btn pdx-btn-cart" href="/login?next=<%= backHere %>" data-magnetic><%- icon('cart', 'i-sm') %> Add to cart</a>
-              <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= backHere %>" data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</a>
+              <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= buyAfterLogin %>" data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</a>
             </div>
             <p class="pdx-note">Sign in to buy. New here? <a href="/signup?next=<%= backHere %>">Create an account</a>.</p>
           <% } else if (shopper) { %>
@@ -278,7 +280,7 @@
 
       <div class="pdx-reviews-body">
         <% if (reviewStatus.canReview) { %>
-          <form class="pdx-review-form" data-review-form novalidate>
+          <form class="pdx-review-form" data-review-form data-reviews-left="<%= reviewStatus.left %>" novalidate>
             <h3>Write a review</h3>
             <fieldset class="pdx-star-pick">
               <legend>Your rating</legend>
@@ -305,8 +307,6 @@
               <button type="submit" class="pdx-btn pdx-btn-buy pdx-btn-sm">Post review</button>
             </div>
           </form>
-        <% } else if (reviewStatus.reason === 'reviewed') { %>
-          <div class="pdx-review-note"><%- icon('check', 'i-sm') %><span>You've reviewed this product. <a href="/account/reviews">Edit or delete it in My Account</a>.</span></div>
         <% } else if (reviewStatus.reason === 'signin') { %>
           <div class="pdx-review-note"><%- icon('edit', 'i-sm') %><span>Own this or tried it? <a href="/login?next=<%= encodeURIComponent('/products/' + product.slug + '#reviews') %>">Sign in to write a review</a>.</span></div>
         <% } %>
@@ -324,6 +324,9 @@
               </div>
               <% if (review.title) { %><h3 class="pdx-review-title"><%= review.title %></h3><% } %>
               <p class="pdx-review-body"><%= review.body %></p>
+              <% if (review.mine) { %>
+                <button type="button" class="pdx-review-delete" data-review-delete="<%= review.id %>"><%- icon('trash', 'i-xs') %> Delete my review</button>
+              <% } %>
             </li>
           <% }) %>
         </ol>
@@ -358,7 +361,7 @@
         <button type="button" class="pdx-btn pdx-btn-cart" data-dock-cart tabindex="-1"><%- icon('cart', 'i-sm') %><span>Add</span></button>
         <button type="button" class="pdx-btn pdx-btn-buy" data-buy-now tabindex="-1"><%- icon('bolt', 'i-sm') %><span>Buy now</span></button>
       <% } else { %>
-        <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= backHere %>" tabindex="-1"><%- icon('bolt', 'i-sm') %><span>Buy now</span></a>
+        <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= buyAfterLogin %>" tabindex="-1"><%- icon('bolt', 'i-sm') %><span>Buy now</span></a>
       <% } %>
     </div>
   <% } %>

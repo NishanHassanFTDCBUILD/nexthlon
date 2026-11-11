@@ -4,12 +4,12 @@
     <span class="panel-icon"><%- icon('pin') %></span>
     <div>
       <h1 id="addresses-title">Your addresses</h1>
-      <p class="muted"><%= addresses.length %> of 10 saved. Your default address is used first at checkout.</p>
+      <p class="muted"><%= addresses.length %> of <%= maxAddresses %> saved. Your default address is used first at checkout.</p>
     </div>
-    <div class="address-meter" aria-hidden="true"><span style="--fill: <%= Math.min(addresses.length, 10) / 10 %>"></span></div>
+    <div class="address-meter" aria-hidden="true"><span style="--fill: <%= Math.min(addresses.length, maxAddresses) / maxAddresses %>"></span></div>
   </div>
   <div class="address-grid">
-    <% if (addresses.length < 10) { %>
+    <% if (addresses.length < maxAddresses) { %>
       <button type="button" class="address-add" data-address-add>
         <span class="address-add-icon"><%- icon('plus', 'i-lg') %></span>
         <strong>Add address</strong>

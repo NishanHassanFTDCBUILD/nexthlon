@@ -17,7 +17,8 @@ const refreshTokenService = require("./refreshTokenService");
 const { browserName } = require("../utils/device");
 const { HttpError } = require("../utils/http");
 
-const RECENT_LIMIT = 20;
+// My Account > Recently viewed shows the last 10 products.
+const RECENT_LIMIT = 10;
 const LOGIN_HISTORY = 10;
 const OPEN_STATUSES = ["placed", "confirmed", "shipped", "out_for_delivery"];
 

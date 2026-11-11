@@ -1,4 +1,4 @@
-<%- include('../partials/head', { metaDescription: category && category.description ? category.description : undefined }) %>
+<%- include('../partials/head', { metaDescription: category && category.description ? category.description : undefined, styles: ['filters'] }) %>
 <%- include('../partials/header') %>
 
 <%
@@ -9,9 +9,16 @@
   const moreBrands = facets.brands.slice(BRAND_PREVIEW);
   const low = facets.priceLow;
   const high = Math.max(facets.priceHigh, low + 1);
-  const brandPicked = moreBrands.some(function (b) { return filters.brands.includes(b.name); });
-  // Groups open by default, and any group holding a choice stays open.
-  const openIf = function (condition) { return condition ? ' open' : ''; };
+  // Quick price ranges from round amounts that fall inside this list's price range:
+  // "Under ₹500", "₹500 – ₹1,000", ..., "₹5,000+" (at most four).
+  const rupee = function (n) { return '₹' + n.toLocaleString('en-IN'); };
+  const marks = [500, 1000, 2500, 5000, 10000, 25000].filter(function (m) { return m > low && m < high; }).slice(0, 3);
+  const pricePresets = [];
+  if (marks.length) {
+    pricePresets.push({ label: 'Under ' + rupee(marks[0]), min: null, max: marks[0] });
+    for (let i = 1; i < marks.length; i++) pricePresets.push({ label: rupee(marks[i - 1]) + ' – ' + rupee(marks[i]), min: marks[i - 1], max: marks[i] });
+    pricePresets.push({ label: rupee(marks[marks.length - 1]) + '+', min: marks[marks.length - 1], max: null });
+  }
 %>
 <main id="main" class="container page">
   <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -27,129 +34,165 @@
     <div class="drawer-backdrop" data-filter-close hidden></div>
 
     <%#
-      The filter sidebar. On a desktop it sits beside the results; on a phone the same markup
-      slides in as a drawer (public/js/catalog.js). Each group is a <details>, so the groups
-      collapse, take the keyboard and report aria-expanded even with JavaScript switched off.
+      The filter panel. On a desktop it sits beside the results; on a phone the same markup slides
+      up as a bottom sheet (public/js/catalog.js). Every choice is a real radio or checkbox with the
+      same name the server reads, styled as pills, stars or a switch, so it works with the keyboard,
+      with screen readers and, as a plain GET form, without JavaScript.
     %>
-    <aside class="filters" id="filter-drawer" aria-label="Filters" data-filter-drawer>
-      <div class="filter-panel">
-        <div class="filter-head">
-          <h2><%- icon('sliders', 'i-sm') %> Filters</h2>
-          <span class="count-badge" data-filter-count <%= chips.length ? '' : 'hidden' %>><%= chips.length %></span>
-          <a class="clear-link" href="/products<%= filters.q ? '?q=' + encodeURIComponent(filters.q) : '' %>" data-clear-filters <%= chips.length ? '' : 'hidden' %>>Clear all</a>
-          <button type="button" class="icon-btn filter-close" data-filter-close aria-label="Close filters"><%- icon('x') %></button>
+    <aside class="filters fx" id="filter-drawer" aria-label="Filters" data-filter-drawer>
+      <div class="filter-panel fx-panel">
+        <span class="fx-grip" aria-hidden="true"></span>
+        <div class="filter-head fx-head">
+          <div class="fx-title">
+            <h2><%- icon('sliders', 'i-sm') %> Filters</h2>
+            <p class="fx-total" data-filter-total aria-live="polite"><%= pagination.total %> <%= pagination.total === 1 ? 'result' : 'results' %></p>
+          </div>
+          <span class="count-badge fx-badge" data-filter-count <%= chips.length ? '' : 'hidden' %>><%= chips.length %></span>
+          <a class="fx-clear" href="/products<%= filters.q ? '?q=' + encodeURIComponent(filters.q) : '' %>" data-clear-filters <%= chips.length ? '' : 'hidden' %>>Clear all</a>
+          <button type="button" class="fx-close filter-close" data-filter-close aria-label="Close filters"><%- icon('x') %></button>
         </div>
 
-        <form id="filters" class="filter-form" action="/products" method="get" data-filter-form>
+        <form id="filters" class="fx-form" action="/products" method="get" data-filter-form>
           <%# Carried along so a filter change never drops the search, sort or layout. %>
           <input type="hidden" name="q" value="<%= filters.q %>">
           <input type="hidden" name="sort" value="<%= filters.sort === 'relevance' ? '' : filters.sort %>">
           <input type="hidden" name="view" value="<%= filters.view === 'list' ? 'list' : '' %>">
 
-          <details class="filter-group" data-filter-group="category"<%- openIf(true) %>>
-            <summary class="filter-group-head"><span>Category</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
-            <fieldset class="filter-group-body">
+          <%# ---------- Category: pills with counts ---------- %>
+          <details class="fx-group" data-filter-group="category" open>
+            <summary class="fx-group-head"><span>Category</span><i class="fx-dot" data-group-count="category" hidden></i><%- icon('chevron-down', 'i-xs fx-caret') %></summary>
+            <fieldset class="fx-group-body">
               <legend class="sr-only">Category</legend>
-              <label class="choice">
-                <input type="radio" name="category" value="" <%= !category ? 'checked' : '' %>>
-                <span>All categories</span>
-              </label>
-              <% categories.forEach(function (c) { %>
-                <label class="choice">
-                  <input type="radio" name="category" value="<%= c.slug %>" <%= category && category.slug === c.slug ? 'checked' : '' %>>
-                  <span><%= c.name %></span><em><%= c.count %></em>
+              <div class="fx-pills">
+                <label class="fx-pill">
+                  <input type="radio" name="category" value="" <%= !category ? 'checked' : '' %>>
+                  <span>All</span>
                 </label>
-              <% }) %>
+                <% categories.forEach(function (c) { %>
+                  <label class="fx-pill">
+                    <input type="radio" name="category" value="<%= c.slug %>" <%= category && category.slug === c.slug ? 'checked' : '' %>>
+                    <span><%= c.name %></span><em><%= c.count %></em>
+                  </label>
+                <% }) %>
+              </div>
             </fieldset>
           </details>
 
-          <details class="filter-group" data-filter-group="price"<%- openIf(true) %>>
-            <summary class="filter-group-head"><span>Price</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
-            <fieldset class="filter-group-body price-filter" data-price-filter data-low="<%= low %>" data-high="<%= high %>">
+          <%# ---------- Price: quick presets, a dual slider and two boxes ---------- %>
+          <details class="fx-group" data-filter-group="price" open>
+            <summary class="fx-group-head"><span>Price</span><i class="fx-dot" data-group-count="price" hidden></i><%- icon('chevron-down', 'i-xs fx-caret') %></summary>
+            <fieldset class="fx-group-body fx-price" data-price-filter data-low="<%= low %>" data-high="<%= high %>">
               <legend class="sr-only">Price range in rupees</legend>
-              <div class="range-slider" data-range hidden>
-                <div class="range-track" aria-hidden="true"><span class="range-fill" data-range-fill></span></div>
+              <% if (pricePresets.length) { %>
+                <div class="fx-presets" role="group" aria-label="Quick price ranges">
+                  <% pricePresets.forEach(function (p) { %>
+                    <button type="button" class="fx-preset" data-price-preset data-min="<%= p.min === null ? '' : p.min %>" data-max="<%= p.max === null ? '' : p.max %>"><%= p.label %></button>
+                  <% }) %>
+                </div>
+              <% } %>
+              <div class="fx-range" data-range hidden>
+                <div class="fx-track" aria-hidden="true"><span class="fx-fill" data-range-fill></span></div>
                 <label class="sr-only" for="min-range">Lowest price</label>
                 <input id="min-range" type="range" min="<%= low %>" max="<%= high %>" step="1" value="<%= filters.min !== null ? Math.max(low, Math.min(filters.min, high)) : low %>" data-range-min>
                 <label class="sr-only" for="max-range">Highest price</label>
                 <input id="max-range" type="range" min="<%= low %>" max="<%= high %>" step="1" value="<%= filters.max !== null ? Math.max(low, Math.min(filters.max, high)) : high %>" data-range-max>
               </div>
-              <div class="price-inputs">
-                <label class="sr-only" for="min-price">Minimum price in rupees</label>
-                <input id="min-price" type="number" name="min" min="0" step="1" inputmode="numeric" placeholder="₹<%= low.toLocaleString('en-IN') %>" value="<%= filters.min !== null ? filters.min : '' %>" data-price-min>
-                <span aria-hidden="true">to</span>
-                <label class="sr-only" for="max-price">Maximum price in rupees</label>
-                <input id="max-price" type="number" name="max" min="0" step="1" inputmode="numeric" placeholder="₹<%= high.toLocaleString('en-IN') %>" value="<%= filters.max !== null ? filters.max : '' %>" data-price-max>
+              <div class="fx-price-boxes">
+                <label class="fx-money">
+                  <span class="sr-only">Minimum price in rupees</span>
+                  <i aria-hidden="true">₹</i>
+                  <input id="min-price" type="number" name="min" min="0" step="1" inputmode="numeric" placeholder="<%= low.toLocaleString('en-IN') %>" value="<%= filters.min !== null ? filters.min : '' %>" data-price-min>
+                </label>
+                <span class="fx-to" aria-hidden="true">–</span>
+                <label class="fx-money">
+                  <span class="sr-only">Maximum price in rupees</span>
+                  <i aria-hidden="true">₹</i>
+                  <input id="max-price" type="number" name="max" min="0" step="1" inputmode="numeric" placeholder="<%= high.toLocaleString('en-IN') %>" value="<%= filters.max !== null ? filters.max : '' %>" data-price-max>
+                </label>
+                <button type="submit" class="fx-go" aria-label="Apply price"><%- icon('arrow-right', 'i-sm') %></button>
               </div>
-              <button type="submit" class="btn btn-secondary btn-sm btn-block">Apply price</button>
             </fieldset>
           </details>
 
+          <%# ---------- Brand: a search box and checkboxes ---------- %>
           <% if (facets.brands.length) { %>
-            <details class="filter-group" data-filter-group="brand"<%- openIf(true) %>>
-              <summary class="filter-group-head"><span>Brand</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
-              <fieldset class="filter-group-body">
+            <details class="fx-group" data-filter-group="brand" open>
+              <summary class="fx-group-head"><span>Brand</span><i class="fx-dot" data-group-count="brand" hidden></i><%- icon('chevron-down', 'i-xs fx-caret') %></summary>
+              <fieldset class="fx-group-body" data-brand-box>
                 <legend class="sr-only">Brand</legend>
-                <% shownBrands.forEach(function (b) { %>
-                  <label class="choice">
-                    <input type="checkbox" name="brand" value="<%= b.name %>" <%= filters.brands.includes(b.name) ? 'checked' : '' %>>
-                    <span><%= b.name %></span><em><%= b.count %></em>
+                <% if (facets.brands.length > BRAND_PREVIEW) { %>
+                  <label class="fx-search">
+                    <%- icon('search', 'i-xs') %>
+                    <span class="sr-only">Find a brand</span>
+                    <input type="search" placeholder="Find a brand" autocomplete="off" data-brand-search>
                   </label>
-                <% }) %>
+                <% } %>
+                <div class="fx-checks">
+                  <% facets.brands.forEach(function (b, i) { %>
+                    <label class="fx-check<%= i >= BRAND_PREVIEW && !filters.brands.includes(b.name) ? ' is-extra' : '' %>" data-brand-name="<%= b.name.toLowerCase() %>">
+                      <input type="checkbox" name="brand" value="<%= b.name %>" <%= filters.brands.includes(b.name) ? 'checked' : '' %>>
+                      <span class="fx-box" aria-hidden="true"><%- icon('check', 'i-xs') %></span>
+                      <span><%= b.name %></span><em><%= b.count %></em>
+                    </label>
+                  <% }) %>
+                </div>
+                <p class="fx-none" data-brand-none hidden>No brand matches.</p>
                 <% if (moreBrands.length) { %>
-                  <details class="more-choices"<%- openIf(brandPicked) %>>
-                    <summary><%= moreBrands.length %> more brands</summary>
-                    <% moreBrands.forEach(function (b) { %>
-                      <label class="choice">
-                        <input type="checkbox" name="brand" value="<%= b.name %>" <%= filters.brands.includes(b.name) ? 'checked' : '' %>>
-                        <span><%= b.name %></span><em><%= b.count %></em>
-                      </label>
-                    <% }) %>
-                  </details>
+                  <button type="button" class="fx-more" data-brand-more aria-expanded="false">Show all <%= facets.brands.length %> brands</button>
                 <% } %>
               </fieldset>
             </details>
           <% } %>
 
-          <details class="filter-group" data-filter-group="rating"<%- openIf(true) %>>
-            <summary class="filter-group-head"><span>Customer rating</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
-            <fieldset class="filter-group-body">
+          <%# ---------- Customer rating: star pills ---------- %>
+          <details class="fx-group" data-filter-group="rating" open>
+            <summary class="fx-group-head"><span>Customer rating</span><i class="fx-dot" data-group-count="rating" hidden></i><%- icon('chevron-down', 'i-xs fx-caret') %></summary>
+            <fieldset class="fx-group-body">
               <legend class="sr-only">Customer rating</legend>
-              <label class="choice"><input type="radio" name="rating" value="" <%= !filters.rating ? 'checked' : '' %>><span>Any rating</span></label>
-              <% ratingSteps.forEach(function (step) { %>
-                <label class="choice">
-                  <input type="radio" name="rating" value="<%= step %>" <%= filters.rating === step ? 'checked' : '' %>>
-                  <span class="rating" style="--rating: <%= step %>" aria-hidden="true"></span><span><%= step %>★ and up</span>
-                </label>
-              <% }) %>
+              <div class="fx-pills">
+                <label class="fx-pill"><input type="radio" name="rating" value="" <%= !filters.rating ? 'checked' : '' %>><span>Any</span></label>
+                <% ratingSteps.forEach(function (step) { %>
+                  <label class="fx-pill fx-pill-star">
+                    <input type="radio" name="rating" value="<%= step %>" <%= filters.rating === step ? 'checked' : '' %>>
+                    <span><%= step %><%- icon('star', 'i-xs') %> &amp; up</span>
+                  </label>
+                <% }) %>
+              </div>
             </fieldset>
           </details>
 
-          <details class="filter-group" data-filter-group="discount"<%- openIf(Boolean(filters.discount)) %>>
-            <summary class="filter-group-head"><span>Discount</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
-            <fieldset class="filter-group-body">
+          <%# ---------- Discount: pills ---------- %>
+          <details class="fx-group" data-filter-group="discount" open>
+            <summary class="fx-group-head"><span>Discount</span><i class="fx-dot" data-group-count="discount" hidden></i><%- icon('chevron-down', 'i-xs fx-caret') %></summary>
+            <fieldset class="fx-group-body">
               <legend class="sr-only">Discount</legend>
-              <label class="choice"><input type="radio" name="discount" value="" <%= !filters.discount ? 'checked' : '' %>><span>Any discount</span></label>
-              <% discountSteps.forEach(function (step) { %>
-                <label class="choice"><input type="radio" name="discount" value="<%= step %>" <%= filters.discount === step ? 'checked' : '' %>><span><%= step %>% off or more</span></label>
-              <% }) %>
+              <div class="fx-pills">
+                <label class="fx-pill"><input type="radio" name="discount" value="" <%= !filters.discount ? 'checked' : '' %>><span>Any</span></label>
+                <% discountSteps.forEach(function (step) { %>
+                  <label class="fx-pill"><input type="radio" name="discount" value="<%= step %>" <%= filters.discount === step ? 'checked' : '' %>><span><%= step %>%+ off</span></label>
+                <% }) %>
+              </div>
             </fieldset>
           </details>
 
-          <details class="filter-group" data-filter-group="availability"<%- openIf(true) %>>
-            <summary class="filter-group-head"><span>Availability</span><%- icon('chevron-down', 'i-xs filter-caret') %></summary>
-            <fieldset class="filter-group-body">
-              <legend class="sr-only">Availability</legend>
-              <label class="choice choice-switch">
-                <input type="checkbox" name="inStock" value="1" <%= filters.inStock ? 'checked' : '' %>>
-                <span>Hide out-of-stock items</span>
-              </label>
-            </fieldset>
-          </details>
+          <%# ---------- Availability: a switch ---------- %>
+          <div class="fx-group fx-group-flat" data-filter-group-flat="availability">
+            <label class="fx-switch">
+              <span class="fx-switch-text"><strong>In stock only</strong><small>Hide items that are sold out</small></span>
+              <input type="checkbox" name="inStock" value="1" role="switch" <%= filters.inStock ? 'checked' : '' %>>
+              <span class="fx-switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
 
           <%# Without JavaScript every choice still works: this submits the form as a plain GET. %>
           <noscript><button type="submit" class="btn btn-primary btn-block">Apply filters</button></noscript>
         </form>
+
+        <%# Phones: the sheet's own footer. "Show results" just closes the sheet (results are already live). %>
+        <div class="fx-foot">
+          <a class="fx-foot-clear" href="/products" data-clear-filters <%= chips.length ? '' : 'hidden' %>>Clear all</a>
+          <button type="button" class="fx-foot-show" data-filter-close>Show <span data-filter-total-num><%= pagination.total %></span> <span data-filter-total-word><%= pagination.total === 1 ? 'result' : 'results' %></span></button>
+        </div>
       </div>
     </aside>
 

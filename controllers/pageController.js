@@ -107,7 +107,7 @@ const productDetail = asyncHandler(async (req, res) => {
   const customer = req.user && req.user.role === "customer" ? req.user : null;
   const [related, reviews, reviewStatus, featured, shipTo, inCart] = await Promise.all([
     productService.getRelatedProducts(product),
-    reviewService.listReviews(product._id, 1),
+    reviewService.listReviews(product._id, 1, req.user && req.user.role === "customer" ? req.user._id : null),
     reviewService.reviewStatus(req.user || null, product._id),
     reviewService.featuredReview(product._id),
     // "Deliver to ..." uses the customer's default address (or their newest one).
@@ -163,7 +163,7 @@ const wallet = asyncHandler(async (req, res) => {
 
 const profile = asyncHandler(async (req, res) => {
   const addresses = await profileService.listAddresses(req.user._id);
-  res.render("pages/profile", { title: "Your account | Nexthlon", addresses, states: INDIAN_STATES });
+  res.render("pages/profile", { title: "Your account | Nexthlon", addresses, states: INDIAN_STATES, maxAddresses: MAX_ADDRESSES });
 });
 
 const cart = asyncHandler(async (req, res) => {
@@ -173,14 +173,24 @@ const cart = asyncHandler(async (req, res) => {
 
 // ---------- Checkout and orders ----------
 
+// /checkout buys the cart; /checkout?buy=now buys only the "Buy now" product (the cart is untouched).
+// Both use the same steps and the same payment options.
 const checkout = asyncHandler(async (req, res) => {
+  const source = req.query.buy === "now" ? "buynow" : "cart";
   const [quote, addresses] = await Promise.all([
-    checkoutService.buildQuote(req.user._id),
+    checkoutService.buildQuote(req.user._id, { source }),
     profileService.listAddresses(req.user._id)
   ]);
   // Nothing to buy: back to the cart, which explains why.
   if (!quote.lines.length) return res.redirect("/cart");
-  return res.render("pages/checkout", { title: "Checkout | Nexthlon", quote, addresses, states: INDIAN_STATES, razorpayEnabled: razorpayService.isEnabled() });
+  return res.render("pages/checkout", {
+    title: source === "buynow" ? "Buy now | Nexthlon" : "Checkout | Nexthlon",
+    quote,
+    buyNow: source === "buynow",
+    addresses,
+    states: INDIAN_STATES,
+    razorpayEnabled: razorpayService.isEnabled()
+  });
 });
 
 const orders = asyncHandler(async (req, res) => {

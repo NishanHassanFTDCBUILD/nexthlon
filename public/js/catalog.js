@@ -159,6 +159,30 @@
     document.querySelectorAll("[data-filter-group] > summary").forEach(summary => {
       summary.setAttribute("aria-expanded", String(summary.parentElement.open));
     });
+
+    // A dot (or the number of brands) on each group that holds a choice, so it shows when closed.
+    const groupCounts = {
+      category: state.category ? 1 : 0,
+      price: state.min !== null || state.max !== null ? 1 : 0,
+      brand: state.brands.length,
+      rating: state.rating ? 1 : 0,
+      discount: state.discount ? 1 : 0
+    };
+    document.querySelectorAll("[data-group-count]").forEach(dot => {
+      const count = groupCounts[dot.dataset.groupCount] || 0;
+      dot.hidden = count === 0;
+      dot.textContent = count > 1 ? String(count) : "";
+      dot.classList.toggle("has-num", count > 1);
+    });
+
+    // The quick price range that matches the current min and max is shown as chosen.
+    document.querySelectorAll("[data-price-preset]").forEach(button => {
+      const min = button.dataset.min === "" ? null : Number(button.dataset.min);
+      const max = button.dataset.max === "" ? null : Number(button.dataset.max);
+      const on = min === state.min && max === state.max;
+      button.classList.toggle("is-active", on);
+      button.setAttribute("aria-pressed", String(on));
+    });
   }
 
   // The label a category chip shows, taken from the radio the server rendered.
@@ -247,6 +271,11 @@
   }
 
   function renderCount(pagination) {
+    // The live total in the filter panel head and on the phone sheet's "Show N results" button.
+    const word = pagination.total === 1 ? "result" : "results";
+    document.querySelectorAll("[data-filter-total]").forEach(el => { el.textContent = `${pagination.total} ${word}`; });
+    document.querySelectorAll("[data-filter-total-num]").forEach(el => { el.textContent = String(pagination.total); });
+    document.querySelectorAll("[data-filter-total-word]").forEach(el => { el.textContent = word; });
     if (!resultsSummary) return;
     resultsSummary.replaceChildren();
     if (!pagination.total) {
@@ -427,6 +456,55 @@
       minBox.addEventListener("input", paintPrice);
       maxBox.addEventListener("input", paintPrice);
       paintPrice();
+    }
+  }
+
+  // ---------- Quick price ranges ----------
+  // A preset fills both price boxes and applies them; tapping the chosen one again clears the price.
+  if (filterForm) {
+    filterForm.addEventListener("click", event => {
+      const button = event.target.closest("[data-price-preset]");
+      if (!button) return;
+      const minBox = filterForm.querySelector("[data-price-min]");
+      const maxBox = filterForm.querySelector("[data-price-max]");
+      const again = button.classList.contains("is-active");
+      minBox.value = again ? "" : button.dataset.min;
+      maxBox.value = again ? "" : button.dataset.max;
+      if (paintPrice) paintPrice();
+      apply(pricePatch());
+    });
+  }
+
+  // ---------- Brand search and "Show all brands" ----------
+  // Only hides and shows the brand rows already on the page; choosing still goes through the state.
+  const brandBox = document.querySelector("[data-brand-box]");
+  if (brandBox) {
+    const list = brandBox.querySelector(".fx-checks");
+    const rows = [...brandBox.querySelectorAll("[data-brand-name]")];
+    const search = brandBox.querySelector("[data-brand-search]");
+    const more = brandBox.querySelector("[data-brand-more]");
+    const none = brandBox.querySelector("[data-brand-none]");
+    const filterRows = () => {
+      const text = search ? search.value.trim().toLowerCase() : "";
+      // While searching, every match shows, including the ones normally behind "Show all".
+      list.classList.toggle("is-expanded", Boolean(text) || (more && more.getAttribute("aria-expanded") === "true"));
+      let shown = 0;
+      rows.forEach(row => {
+        const match = !text || row.dataset.brandName.includes(text);
+        row.classList.toggle("is-filtered-out", !match);
+        if (match) shown += 1;
+      });
+      if (none) none.hidden = shown > 0;
+      if (more) more.hidden = Boolean(text);
+    };
+    if (search) search.addEventListener("input", filterRows);
+    if (more) {
+      more.addEventListener("click", () => {
+        const open = more.getAttribute("aria-expanded") !== "true";
+        more.setAttribute("aria-expanded", String(open));
+        more.textContent = open ? "Show fewer brands" : `Show all ${rows.length} brands`;
+        filterRows();
+      });
     }
   }
 

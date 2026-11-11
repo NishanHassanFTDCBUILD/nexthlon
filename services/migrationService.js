@@ -3,6 +3,7 @@
 const Product = require("../models/Product");
 const Cart = require("../models/Cart");
 const RefreshToken = require("../models/RefreshToken");
+const Review = require("../models/Review");
 const categoryService = require("./categoryService");
 const referralService = require("./referralService");
 
@@ -17,6 +18,16 @@ async function runMigrations() {
   await RefreshToken.syncIndexes();
   // Customers who joined before referrals existed get their own code.
   await referralService.migrateCodes();
+  await allowSeveralReviews();
+}
+
+// Reviews used to be one per customer per product, enforced by a unique index. Customers may now
+// post up to 5, so the old unique index is dropped (no review is touched) and the plain one is made.
+async function allowSeveralReviews() {
+  const indexes = await Review.collection.indexes().catch(() => []);
+  const old = indexes.find(index => index.unique && index.key && index.key.product === 1 && index.key.user === 1);
+  if (old) await Review.collection.dropIndex(old.name);
+  await Review.syncIndexes();
 }
 
 module.exports = { runMigrations };

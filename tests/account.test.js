@@ -90,7 +90,7 @@ test.after(async () => {
 test("account pages: every section renders for a customer and sends guests to sign in", async () => {
   const { cookie } = await signUp("Mira Rao", "mira@account.test");
   const pages = ["/account", "/account/orders", "/account/buy-again", "/account/addresses", "/account/wallet", "/account/coupons",
-    "/account/lists", "/account/reviews", "/account/recent", "/account/security", "/account/notifications", "/account/referral", "/account/help"];
+    "/account/lists", "/account/recent", "/account/security", "/account/notifications", "/account/referral", "/account/help"];
   for (const path of pages) {
     const res = await call("GET", path, { cookie });
     assert.equal(res.status, 200, path);
@@ -264,8 +264,8 @@ test("reviews: only the author can edit or delete, and the product rating follow
   const author = await signUp("Sara Khan", "sara@account.test");
   const other = await signUp("Vikram Joshi", "vikram@account.test");
   await deliveredOrder(author.user, socks, "NX-2026-900002");
-  // There is no review area on product pages, so My Account no longer offers "Write a review".
-  assert.doesNotMatch((await call("GET", "/account/reviews", { cookie: author.cookie })).data, /Waiting for your review|Write a review/);
+  // The "Your reviews" page is gone from My Account; reviews are deleted from the product page.
+  assert.equal((await call("GET", "/account/reviews", { cookie: author.cookie })).status, 404);
   const added = await call("POST", `/api/products/${socks._id}/reviews`, { body: { rating: 4, title: "Comfy", body: "Soft and warm on long runs." }, cookie: author.cookie });
   assert.equal(added.status, 201, JSON.stringify(added.data));
   const reviewId = added.data.review.id;
@@ -348,6 +348,18 @@ test("returns can carry up to 3 real photos, saved only for the owner's returnab
   const fs = require("fs/promises");
   const path = require("path");
   await fs.unlink(path.join(__dirname, "..", "public", order.returnPhotos[0]));
+});
+
+test("recently viewed keeps only the last 10 products, newest first", async () => {
+  const accountService = require("../services/accountService");
+  const { user } = await signUp("Ten Views", "ten-views@account.test");
+  const mongoose = require("mongoose");
+  const ids = Array.from({ length: 12 }, () => new mongoose.Types.ObjectId());
+  for (const id of ids) await accountService.recordView(user._id, id);
+  const stored = (await User.findById(user._id).lean()).recentlyViewed.map(entry => String(entry.product));
+  assert.equal(stored.length, 10);
+  // The two oldest dropped off; the newest is first.
+  assert.deepEqual(stored, ids.slice(2).reverse().map(String));
 });
 
 test("recently viewed is synced to the account, preferences are true/false only", async () => {

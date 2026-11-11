@@ -6,7 +6,7 @@ const CATEGORIES = [
 ];
 
 const LOW_STOCK_LIMIT = 5;
-const MAX_ADDRESSES = 10;
+const MAX_ADDRESSES = 5;
 
 const INDIAN_STATES = [
   "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",

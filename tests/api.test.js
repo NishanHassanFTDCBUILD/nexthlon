@@ -426,14 +426,16 @@ test("store: A to Z sort, price range and only listed products", async () => {
   assert.match(page.data, /From ₹100/);
 });
 
-test("store: product page shows breadcrumbs, prices, stock and the zoomable gallery", async () => {
+test("store: product page shows breadcrumbs, prices, stock and the photo stage", async () => {
   const res = await call("GET", "/products/nexthlon-trail-shoe");
   assert.equal(res.status, 200);
   assert.match(res.data, /aria-label="Breadcrumb"[\s\S]*All gear[\s\S]*Running/);
   assert.match(res.data, /<s>₹3,999<\/s>/);
   assert.match(res.data, /25% off/);
   assert.match(res.data, /Only 4 left/);
-  assert.match(res.data, /data-zoom/);
+  // The photo stage: WebGL canvas over the plain photo (which still works without WebGL).
+  assert.match(res.data, /data-stage-canvas/);
+  assert.match(res.data, /data-gallery-main/);
   const missing = await call("GET", "/products/no-such-thing");
   assert.equal(missing.status, 404);
   assert.match(missing.data, /This trail ends here/);
@@ -703,36 +705,71 @@ test("filters: brand, discount, rating and price slider facets", async () => {
   assert.match(page.data, /40% off or more/);
 });
 
-test("reviews: only customers who received the product, once each, and the average is stored", async () => {
+test("reviews: any signed-in customer, up to 5 each, buyers marked verified, and the average is stored", async () => {
   const racket = await Product.findOne({ slug: "smash-racket" });
   const review = { rating: 4, title: "Light and quick", body: "Great control at the net, strings held up." };
   assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: review })).status, 401);
+  // Guests are asked to sign in on the product page.
+  assert.match((await call("GET", "/products/smash-racket")).data, /Sign in to write a review/);
 
-  const buyer = await call("POST", "/api/signup", { body: { name: "Kiran Rao", email: "kiran@nexthlon.test", password: "court2024", confirmPassword: "court2024" } });
-  const before = await call("POST", `/api/products/${racket._id}/reviews`, { body: review, cookie: buyer.cookie });
-  assert.equal(before.status, 403);
-  let page = await call("GET", "/products/smash-racket", { cookie: buyer.cookie });
-  // Product pages have no review area any more.
-  assert.doesNotMatch(page.data, /id="reviews"|Write a review/);
-
-  // A delivered order line for this product makes the customer eligible.
-  const kiran = await User.findOne({ email: "kiran@nexthlon.test" });
-  await mongoose.connection.collection("orders").insertOne({ user: kiran._id, items: [{ product: racket._id, status: "delivered", quantity: 1 }] });
-  page = await call("GET", "/products/smash-racket", { cookie: buyer.cookie });
-  assert.doesNotMatch(page.data, /data-review-open/);
-  assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, rating: 7 }, cookie: buyer.cookie })).status, 400);
-  const posted = await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, user: "someone-else", rating: 4 }, cookie: buyer.cookie });
+  // A customer who has not bought it can still review it (not marked verified).
+  const kiranLogin = await call("POST", "/api/signup", { body: { name: "Kiran Rao", email: "kiran@nexthlon.test", password: "court2024", confirmPassword: "court2024" } });
+  let page = await call("GET", "/products/smash-racket", { cookie: kiranLogin.cookie });
+  assert.match(page.data, /id="reviews"/);
+  assert.match(page.data, /data-review-form/);
+  assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, rating: 7 }, cookie: kiranLogin.cookie })).status, 400);
+  const posted = await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, user: "someone-else", rating: 4 }, cookie: kiranLogin.cookie });
   assert.equal(posted.status, 201);
   assert.equal(posted.data.review.author, "Kiran R.");
-  assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: review, cookie: buyer.cookie })).status, 409);
+  assert.equal(posted.data.review.verified, false);
+  // Reviews 2 to 5 are accepted; the form still shows until the 5th.
+  page = await call("GET", "/products/smash-racket", { cookie: kiranLogin.cookie });
+  assert.match(page.data, /data-review-form[^>]*data-reviews-left="4"/);
+  for (let n = 2; n <= 5; n += 1) {
+    const more = await call("POST", `/api/products/${racket._id}/reviews`, { body: { ...review, title: `Week ${n}` }, cookie: kiranLogin.cookie });
+    assert.equal(more.status, 201, `review ${n} should be accepted`);
+  }
+  // The 6th is refused, and the form is gone with no extra note.
+  const sixth = await call("POST", `/api/products/${racket._id}/reviews`, { body: review, cookie: kiranLogin.cookie });
+  assert.equal(sixth.status, 409);
+  assert.match(sixth.data.message, /up to 5 reviews/);
+  page = await call("GET", "/products/smash-racket", { cookie: kiranLogin.cookie });
+  assert.doesNotMatch(page.data, /data-review-form/);
+  assert.doesNotMatch(page.data, /reviewed this product/);
+
+  // A customer who received it is marked as a verified purchase.
+  const meeraLogin = await call("POST", "/api/signup", { body: { name: "Meera Iyer", email: "meera-reviews@nexthlon.test", password: "court2024", confirmPassword: "court2024" } });
+  const meera = await User.findOne({ email: "meera-reviews@nexthlon.test" });
+  await mongoose.connection.collection("orders").insertOne({ user: meera._id, items: [{ product: racket._id, status: "delivered", quantity: 1 }] });
+  const verified = await call("POST", `/api/products/${racket._id}/reviews`, { body: { rating: 4, body: "Bought it for league play, still going strong." }, cookie: meeraLogin.cookie });
+  assert.equal(verified.status, 201);
+  assert.equal(verified.data.review.verified, true);
+
+  // Only your own reviews are marked "mine" (for the Delete button); guests see none.
+  const asKiran = await call("GET", "/api/products/smash-racket/reviews", { cookie: kiranLogin.cookie });
+  assert.deepEqual(asKiran.data.reviews.map(row => row.mine), asKiran.data.reviews.map(row => row.author === "Kiran R."));
+  assert.ok(asKiran.data.reviews.some(row => row.mine));
+  assert.ok((await call("GET", "/api/products/smash-racket/reviews")).data.reviews.every(row => !row.mine));
+  assert.ok((await call("GET", "/api/products/smash-racket/reviews", { cookie: meeraLogin.cookie })).data.reviews.every(row => row.mine === (row.author === "Meera I.")));
+  assert.match((await call("GET", "/products/smash-racket", { cookie: kiranLogin.cookie })).data, /data-review-delete=/);
+  assert.doesNotMatch((await call("GET", "/products/smash-racket")).data, /data-review-delete=/);
+  // Deleting one of her 5 frees a slot, so the form comes back. Someone else cannot delete it.
+  const kiranReview = asKiran.data.reviews.find(row => row.mine);
+  assert.equal((await call("DELETE", `/api/account/reviews/${kiranReview.id}`, { cookie: meeraLogin.cookie })).status, 404);
+  assert.equal((await call("DELETE", `/api/account/reviews/${kiranReview.id}`, { cookie: kiranLogin.cookie })).status, 200);
+  assert.match((await call("GET", "/products/smash-racket", { cookie: kiranLogin.cookie })).data, /data-review-form[^>]*data-reviews-left="1"/);
+  // Back to 5, so the numbers below stay the same.
+  assert.equal((await call("POST", `/api/products/${racket._id}/reviews`, { body: review, cookie: kiranLogin.cookie })).status, 201);
 
   const stored = await Product.findById(racket._id).lean();
   assert.equal(stored.ratingAverage, 4);
-  assert.equal(stored.ratingCount, 1);
-  assert.equal(await Review.countDocuments({ product: racket._id }), 1);
+  assert.equal(stored.ratingCount, 6);
+  assert.equal(await Review.countDocuments({ product: racket._id }), 6);
   const listed = await call("GET", "/api/products/smash-racket/reviews");
-  assert.equal(listed.data.reviews[0].title, "Light and quick");
-  assert.deepEqual(listed.data.breakdown.map(row => row.count), [0, 1, 0, 0, 0]);
+  assert.equal(listed.data.pagination.total, 6);
+  assert.deepEqual(listed.data.breakdown.map(row => row.count), [0, 6, 0, 0, 0]);
+  // The verified 4-star review is featured near the top of the product page.
+  assert.match((await call("GET", "/products/smash-racket")).data, /class="pdx-quote"[\s\S]*Verified purchase/);
   assert.equal((await call("GET", "/api/products?rating=4")).data.products[0].slug, "smash-racket");
   const sorted = await call("GET", "/api/products?sort=rating");
   assert.equal(sorted.data.products[0].slug, "smash-racket");
@@ -744,7 +781,7 @@ test("product page: lightbox, share, delivery check, reviews and related product
   assert.match(res.data, /data-lightbox-open/);
   assert.match(res.data, /data-share/);
   assert.match(res.data, /data-delivery-check/);
-  assert.doesNotMatch(res.data, /id="reviews"|data-reviews/);
+  assert.match(res.data, /id="reviews"[^>]*data-reviews|data-reviews[^>]*id="reviews"|id="reviews"/);
   assert.match(res.data, /More Running gear/);
   assert.match(res.data, /href="\/products\/trail-socks"/);
 });
@@ -1557,4 +1594,129 @@ test("sign in and create account share one flipping card; admins get the control
   assert.match(admin.data, /data-globe-scene/);
   assert.match(admin.data, /data-endpoint="\/api\/admin\/login"/);
   assert.doesNotMatch(admin.data, /\/api\/signup/);
+});
+
+// ---------- Buy now: one product, its own checkout, the cart is never touched ----------
+const BuyNow = require("../models/BuyNow");
+
+test("buy now: only signed-in customers, and the same quantity rules as the cart", async () => {
+  const bottle = await makeProduct({ name: "Steel Bottle", slug: "bn-steel-bottle", category: "Hiking", price: 600, mrp: 800, stock: 2, image: "/img/favicon.svg" });
+  assert.equal((await call("POST", "/api/buy-now", { body: { productId: String(bottle._id), quantity: 1 } })).status, 401);
+  const quick = await newCustomer("Quick Buyer", "quick@nexthlon.test");
+  assert.equal((await call("POST", "/api/buy-now", { body: { productId: String(bottle._id), quantity: 3 }, cookie: quick.cookie })).status, 400);
+  assert.equal((await call("POST", "/api/buy-now", { body: { productId: "nope", quantity: 1 }, cookie: quick.cookie })).status, 404);
+  // No Buy now yet: its checkout says so instead of showing the cart.
+  assert.equal((await call("POST", "/api/checkout/quote", { body: { source: "buynow" }, cookie: quick.cookie })).status, 410);
+  const res = await call("POST", "/api/buy-now", { body: { productId: String(bottle._id), quantity: 2 }, cookie: quick.cookie });
+  assert.equal(res.status, 201);
+  assert.equal(res.data.redirect, "/checkout?buy=now");
+});
+
+test("buy now with Cash on Delivery: buys only that product and leaves the cart exactly as it was", async () => {
+  const shopper = await newCustomer("Express Shopper", "express@nexthlon.test");
+  const socks = await makeProduct({ name: "Trail Socks", slug: "bn-trail-socks", category: "Running", price: 300, mrp: 400, stock: 10, image: "/img/favicon.svg" });
+  const jacket = await makeProduct({ name: "Rain Jacket", slug: "bn-rain-jacket", category: "Hiking", price: 2500, mrp: 3000, stock: 4, image: "/img/favicon.svg" });
+  // The cart already holds socks, and one jacket too.
+  await call("POST", "/api/cart/items", { body: { productId: String(socks._id), quantity: 3 }, cookie: shopper.cookie });
+  await call("POST", "/api/cart/items", { body: { productId: String(jacket._id), quantity: 1 }, cookie: shopper.cookie });
+  const cartBefore = (await call("GET", "/api/cart", { cookie: shopper.cookie })).data.cart;
+
+  await call("POST", "/api/buy-now", { body: { productId: String(jacket._id), quantity: 2 }, cookie: shopper.cookie });
+  const page = await call("GET", "/checkout?buy=now", { cookie: shopper.cookie });
+  assert.equal(page.status, 200);
+  assert.match(page.data, /data-source="buynow"/);
+  assert.match(page.data, /Your cart stays as it is/);
+  assert.doesNotMatch(page.data, /Trail Socks/);
+
+  const quote = await call("POST", "/api/checkout/quote", { body: { source: "buynow" }, cookie: shopper.cookie });
+  assert.equal(quote.data.quote.source, "buynow");
+  assert.equal(quote.data.quote.totals.subtotal, 500000);
+
+  const placed = await call("POST", "/api/orders", { body: { addressId: shopper.addressId, paymentMethod: "cod", source: "buynow" }, cookie: shopper.cookie });
+  assert.equal(placed.status, 201);
+  assert.deepEqual(placed.data.order.items.map(item => [item.name, item.quantity]), [["Rain Jacket", 2]]);
+  assert.equal((await Order.findOne({ orderId: placed.data.order.orderId }).lean()).source, "buynow");
+  assert.equal((await Product.findById(jacket._id)).stock, 2);
+
+  // The cart is untouched: same products, same quantities.
+  const cartAfter = (await call("GET", "/api/cart", { cookie: shopper.cookie })).data.cart;
+  assert.deepEqual(cartAfter.items.map(item => [item.name, item.quantity]), cartBefore.items.map(item => [item.name, item.quantity]));
+  // The Buy now is used up, so it cannot be ordered twice.
+  assert.equal(await BuyNow.countDocuments({ user: shopper.user._id }), 0);
+  assert.equal((await call("POST", "/api/orders", { body: { addressId: shopper.addressId, paymentMethod: "cod", source: "buynow" }, cookie: shopper.cookie })).status, 410);
+  // The normal cart checkout still buys the whole cart.
+  const cartQuote = await call("POST", "/api/checkout/quote", { body: {}, cookie: shopper.cookie });
+  assert.equal(cartQuote.data.quote.source, "cart");
+  assert.equal(cartQuote.data.quote.totals.subtotal, 300 * 3 * 100 + 2500 * 100);
+});
+
+test("buy now online: the same Razorpay steps, and a successful payment leaves the cart alone", async () => {
+  const online = await newCustomer("Online Express", "online-express@nexthlon.test");
+  const ball = await makeProduct({ name: "Match Ball", slug: "bn-match-ball", category: "Football", price: 1500, mrp: 1800, stock: 5, image: "/img/favicon.svg" });
+  const cap = await makeProduct({ name: "Sun Cap", slug: "bn-sun-cap", category: "Running", price: 400, mrp: 400, stock: 5, image: "/img/favicon.svg" });
+  await call("POST", "/api/cart/items", { body: { productId: String(cap._id), quantity: 1 }, cookie: online.cookie });
+  await call("POST", "/api/buy-now", { body: { productId: String(ball._id), quantity: 1 }, cookie: online.cookie });
+
+  const created = await call("POST", "/api/payments/razorpay/order", { body: { addressId: online.addressId, source: "buynow" }, cookie: online.cookie });
+  assert.equal(created.status, 201);
+  assert.equal(created.data.amount, 150000);
+  const pid = "pay_TESTBUYNOW1";
+  const verified = await call("POST", "/api/payments/razorpay/verify", {
+    body: { razorpay_order_id: created.data.razorpay_order_id, razorpay_payment_id: pid, razorpay_signature: checkoutSignature(created.data.razorpay_order_id, pid) },
+    cookie: online.cookie
+  });
+  assert.equal(verified.status, 200);
+  assert.equal(verified.data.paid, true);
+  assert.equal((await Product.findById(ball._id)).stock, 4);
+  // The cap is still in the cart; the Buy now is used up.
+  assert.deepEqual((await call("GET", "/api/cart", { cookie: online.cookie })).data.cart.items.map(item => item.name), ["Sun Cap"]);
+  assert.equal(await BuyNow.countDocuments({ user: online.user._id }), 0);
+});
+
+test("buy now coupons are kept apart from the cart's coupon", async () => {
+  const saver = await newCustomer("Coupon Express", "coupon-express@nexthlon.test");
+  const shoe = await makeProduct({ name: "Road Shoe", slug: "bn-road-shoe", category: "Running", price: 3000, mrp: 3500, stock: 5, image: "/img/favicon.svg" });
+  await call("POST", "/api/buy-now", { body: { productId: String(shoe._id), quantity: 1 }, cookie: saver.cookie });
+  // A bad code is refused for Buy now just like for the cart, and nothing is saved on the cart.
+  const bad = await call("POST", "/api/checkout/coupon", { body: { code: "NOPE99", source: "buynow" }, cookie: saver.cookie });
+  assert.equal(bad.status, 400);
+  assert.equal((await call("DELETE", "/api/checkout/coupon?source=buynow", { cookie: saver.cookie })).status, 200);
+  assert.equal((await call("GET", "/api/cart", { cookie: saver.cookie })).data.cart.items.length, 0);
+});
+
+// Placed last: it adds a customer, which would change the customer counts other tests check.
+test("address book: a customer can save at most 5 addresses", async () => {
+  const many = await newCustomer("Five Homes", "five-homes@nexthlon.test"); // starts with 1 address
+  for (let n = 2; n <= 5; n += 1) {
+    const added = await call("POST", "/api/addresses", { body: { ...homeAddress, line1: `${n} Hill Road` }, cookie: many.cookie });
+    assert.equal(added.status, 201, `address ${n} should be saved`);
+  }
+  const sixth = await call("POST", "/api/addresses", { body: { ...homeAddress, line1: "6 Hill Road" }, cookie: many.cookie });
+  assert.equal(sixth.status, 400);
+  assert.match(sixth.data.message, /up to 5 addresses/);
+  assert.match((await call("GET", "/account/addresses", { cookie: many.cookie })).data, /5 of 5 saved/);
+});
+
+// ---------- Redesigned catalogue filters, and one dark theme ----------
+test("catalogue filters: pills, quick price ranges, live total, a switch, and no theme switch", async () => {
+  const page = await call("GET", "/products");
+  assert.equal(page.status, 200);
+  assert.match(page.data, /href="\/css\/filters\.css"/);
+  // Same field names the server reads, drawn as pills, star pills and a switch.
+  assert.match(page.data, /class="fx-pill">\s*<input type="radio" name="category" value=""/);
+  assert.match(page.data, /name="rating" value="4"/);
+  assert.match(page.data, /name="inStock" value="1" role="switch"/);
+  assert.match(page.data, /data-filter-total aria-live="polite">\d+ results?</);
+  assert.match(page.data, /data-price-preset data-min="" data-max="\d+">Under ₹/);
+  assert.match(page.data, /data-group-count="brand"/);
+  assert.match(page.data, /class="fx-foot-show" data-filter-close>Show/);
+  // The old sidebar markup is gone.
+  assert.doesNotMatch(page.data, /class="choice"|more-choices|price-inputs/);
+  // No theme switch anywhere in the store; the page is dark only.
+  assert.doesNotMatch(page.data, /data-theme-toggle/);
+  assert.match(page.data, /<meta name="color-scheme" content="dark">/);
+  // A filtered page still renders server-side with the choice checked.
+  const filtered = await call("GET", "/products?inStock=1&rating=4");
+  assert.match(filtered.data, /name="rating" value="4" checked/);
+  assert.match(filtered.data, /name="inStock" value="1" role="switch" checked/);
 });

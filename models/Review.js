@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-// One review per customer per product. Any signed-in customer can write one; reviews from customers
+// Up to 5 reviews per customer per product. Any signed-in customer can write them; reviews from customers
 // who received the product are marked verified (set in services/reviewService.js). The product keeps the average, so lists can sort by it.
 const reviewSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
@@ -18,7 +18,9 @@ const reviewSchema = new mongoose.Schema({
   hiddenReason: { type: String, default: "", maxlength: 200 }
 }, { timestamps: true });
 
-reviewSchema.index({ product: 1, user: 1 }, { unique: true });
+// A customer may post up to 5 reviews per product (checked in services/reviewService.js),
+// so this index is for counting them quickly, not for uniqueness.
+reviewSchema.index({ product: 1, user: 1 });
 reviewSchema.index({ product: 1, isHidden: 1, createdAt: -1 });
 // The admin list: newest first, and filtering by rating or hidden state.
 reviewSchema.index({ createdAt: -1 });

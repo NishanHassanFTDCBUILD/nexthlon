@@ -44,7 +44,7 @@ const listReviews = asyncHandler(async (req, res) => {
   const product = await productService.getProduct(req.params.id);
   if (!product) throw new HttpError(404, "Product not found.");
   const page = productService.toPositiveInt(req.query.page, 1);
-  res.json(await reviewService.listReviews(product._id, page));
+  res.json(await reviewService.listReviews(product._id, page, req.user && req.user.role === "customer" ? req.user._id : null));
 });
 
 // POST /api/products/:id/reviews   body: { rating, title, body }   (any signed-in customer)

@@ -40,12 +40,6 @@ const lists = asyncHandler(async (req, res) => {
   res.render("account/lists", { title: "Your wishlist & lists | Nexthlon", maxLists: listService.MAX_LISTS, ...(await listService.getLists(req.user._id)) });
 });
 
-// GET /account/reviews
-const reviews = asyncHandler(async (req, res) => {
-  const mine = await reviewService.listMine(req.user._id);
-  res.render("account/reviews", { title: "Your reviews | Nexthlon", mine });
-});
-
 // GET /account/recent
 const recent = asyncHandler(async (req, res) => {
   res.render("account/recent", { title: "Recently viewed | Nexthlon", products: await accountService.recentlyViewed(req.user._id) });
@@ -123,4 +117,4 @@ const adminTicket = asyncHandler(async (req, res) => {
   res.render("admin/ticket", { title: `Ticket ${data.ticketId} | Nexthlon Admin`, ticket: data, statuses: SupportTicket.STATUSES });
 });
 
-module.exports = { overview, buyAgain, coupons, lists, reviews, recent, security, notifications, referral, help, ticket, sharedList, adminTickets, adminTicket };
+module.exports = { overview, buyAgain, coupons, lists, recent, security, notifications, referral, help, ticket, sharedList, adminTickets, adminTicket };

@@ -8,6 +8,7 @@
 // "only if stock not taken yet" claim mean a second call (or the webhook) changes nothing.
 const Order = require("../models/Order");
 const Cart = require("../models/Cart");
+const buyNowService = require("./buyNowService");
 const Product = require("../models/Product");
 const config = require("../config/env");
 const checkoutService = require("./checkoutService");
@@ -55,10 +56,10 @@ async function discardUnpaidOrder(order) {
 // Step 1. Builds the order from the cart with server prices and saves it unpaid. The coupon use
 // and any wallet part are taken now (inside one transaction), and the rest is paid online.
 // Stock is taken only when the payment succeeds; the cart stays until then.
-async function createPaymentOrder(userId, { addressId, useWallet = false }) {
+async function createPaymentOrder(userId, { addressId, useWallet = false, source = "cart" }) {
   if (!razorpay.isEnabled()) throw new HttpError(503, "Online payment is not available right now. Please choose Cash on Delivery.");
   const address = await checkoutService.findAddress(userId, addressId);
-  const quote = await checkoutService.buildQuote(userId, { useWallet });
+  const quote = await checkoutService.buildQuote(userId, { useWallet, source });
   checkoutService.assertOrderable(quote);
   if (quote.totals.total <= 0) throw new HttpError(400, "Your wallet covers this order, so there is nothing to pay online. Choose \"Pay with wallet\".");
   const orderId = await checkoutService.nextOrderId();
@@ -129,10 +130,15 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
     razorpay.logEvent("payment.stock_failed", { order: paid.orderId });
     return Order.findById(claimed._id);
   }
-  const productIds = lines.map(line => line.product);
-  const cartChange = { $pull: { items: { product: { $in: productIds } } } };
-  if (claimed.couponCode) cartChange.$set = { couponCode: "" };
-  await Cart.updateOne({ user: claimed.user }, cartChange);
+  if (claimed.source === "buynow") {
+    // A Buy now order: only the Buy now product is used up. The cart is left exactly as it was.
+    await buyNowService.clear(claimed.user);
+  } else {
+    const productIds = lines.map(line => line.product);
+    const cartChange = { $pull: { items: { product: { $in: productIds } } } };
+    if (claimed.couponCode) cartChange.$set = { couponCode: "" };
+    await Cart.updateOne({ user: claimed.user }, cartChange);
+  }
   return Order.findById(claimed._id);
 }
 

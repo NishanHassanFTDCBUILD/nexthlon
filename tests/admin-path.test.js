@@ -161,7 +161,8 @@ test("admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
   assert.match(full.data, /data-admin-search-input/);
   assert.match(full.data, /data-admin-palette/);
   assert.match(full.data, /data-admin-bell/);
-  assert.match(full.data, /data-theme-toggle/);
+  // The store has one (dark) look: no theme switch anywhere.
+  assert.doesNotMatch(full.data, /data-theme-toggle/);
   assert.match(full.data, /data-nav-main="admin"/);
   assert.match(full.data, /class="admin-link is-active" data-nav-link="products"/);
   assert.match(full.data, /\/js\/section-nav\.js/);

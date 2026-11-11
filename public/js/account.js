@@ -343,39 +343,6 @@
     return stopDrag;
   });
 
-  // ---------- Your reviews: edit in place, or delete ----------
-  define("account-reviews", (root, signal) => {
-    const parts = el => {
-      const card = el.closest("[data-review]");
-      return { card, id: card.dataset.review, view: card.querySelector("[data-review-view]"), form: card.querySelector("[data-review-form]") };
-    };
-    on(root, "click", "[data-review-edit]", (event, button) => {
-      const { view, form } = parts(button);
-      view.hidden = true;
-      form.hidden = false;
-      form.querySelector("textarea").focus();
-    }, signal);
-    on(root, "click", "[data-review-cancel]", (event, button) => {
-      const { view, form } = parts(button);
-      form.hidden = true;
-      view.hidden = false;
-      view.querySelector("[data-review-edit]").focus();
-    }, signal);
-    on(root, "submit", "[data-review-form]", async (event, form) => {
-      event.preventDefault();
-      const { id } = parts(form);
-      const values = Nx.formValues(form);
-      const body = { rating: Number(values.rating), title: values.title, body: values.body };
-      const reply = await Nx.submitForm(form, { url: `/api/account/reviews/${id}`, method: "PATCH", body, busyLabel: "Saving…" });
-      if (reply) refresh(reply.message);
-    }, signal);
-    on(root, "click", "[data-review-delete]", async (event, button) => {
-      const { id } = parts(button);
-      const ok = await Nx.confirm({ title: "Delete this review?", message: "It will be removed from the product page. You can write a new one later.", confirmLabel: "Delete review" });
-      if (ok) apiThen(() => Nx.api(`/api/account/reviews/${id}`, { method: "DELETE" }));
-    }, signal);
-  });
-
   // ---------- Recently viewed ----------
   define("account-recent", (root, signal) => {
     on(root, "click", "[data-clear-recent]", async () => {

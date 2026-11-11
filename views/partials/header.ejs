@@ -6,16 +6,8 @@
   const searchText = typeof query.q === 'string' ? query.q : '';
 %>
 <a class="skip-link" href="#main">Skip to content</a>
-<div class="promo-bar">
-  <div class="container promo-inner">
-    <span><%- icon('truck', 'i-sm') %> Free delivery on orders over <%= formatPrice(store.freeDeliveryMin) %></span>
-    <span class="hide-sm">
-      <a href="/refund-policy"><%= store.returnDays %>-day easy returns</a> <i aria-hidden="true">·</i>
-      <a href="/shipping-policy">Shipping</a> <i aria-hidden="true">·</i>
-      <a href="/contact">Help &amp; contact</a>
-    </span>
-  </div>
-</div>
+<%# The top promo strip (free delivery, returns, shipping, help) was removed: the header starts the page.
+    The same links are in the footer. %>
 <header class="site-header" data-site-header data-free-delivery="<%= store.freeDeliveryMin %>" data-shopper="<%= !currentUser ? 'guest' : currentUser.role %>" data-wish-ids="<%= JSON.stringify(savedIds) %>">
   <div class="mainbar">
     <div class="container mainbar-inner">
@@ -53,12 +45,6 @@
       </form>
 
       <div class="header-actions">
-        <button type="button" class="header-btn theme-toggle" data-theme-toggle aria-label="Theme">
-          <span class="theme-icon theme-icon-system"><%- icon('monitor') %></span>
-          <span class="theme-icon theme-icon-light"><%- icon('sun') %></span>
-          <span class="theme-icon theme-icon-dark"><%- icon('moon') %></span>
-        </button>
-
         <div class="account" data-menu>
           <% if (currentUser) { %>
             <button type="button" class="account-btn" data-menu-toggle aria-expanded="false" aria-controls="account-menu">
@@ -208,11 +194,6 @@
       <a href="/contact"><%- icon('headset', 'i-sm') %> Contact us</a>
       <a href="/shipping-policy"><%- icon('truck', 'i-sm') %> Shipping</a>
       <a href="/refund-policy"><%- icon('rotate-ccw', 'i-sm') %> Returns and refunds</a>
-      <h3>Display</h3>
-      <button type="button" class="drawer-theme" data-theme-toggle>
-        <span class="theme-icon theme-icon-system"><%- icon('monitor', 'i-sm') %></span><span class="theme-icon theme-icon-light"><%- icon('sun', 'i-sm') %></span><span class="theme-icon theme-icon-dark"><%- icon('moon', 'i-sm') %></span>
-        <span data-theme-label>Theme: System</span>
-      </button>
       <% if (currentUser) { %>
         <button type="button" class="drawer-logout" data-logout="/api/logout"><%- icon('logout', 'i-sm') %> Sign out</button>
       <% } %>

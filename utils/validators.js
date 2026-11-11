@@ -245,7 +245,7 @@ function readFlag(value) {
 // every total are worked out on the server.
 function validatePlaceOrder(body = {}) {
   const errors = {};
-  const value = { addressId: text(body.addressId), paymentMethod: text(body.paymentMethod), useWallet: readFlag(body.useWallet) };
+  const value = { addressId: text(body.addressId), paymentMethod: text(body.paymentMethod), useWallet: readFlag(body.useWallet), source: text(body.source) === "buynow" ? "buynow" : "cart" };
   if (!OBJECT_ID.test(value.addressId)) errors.addressId = "Choose a delivery address.";
   if (!value.paymentMethod) errors.paymentMethod = "Choose a payment method.";
   return { errors, value };

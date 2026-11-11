@@ -6,6 +6,8 @@ const { returnPhotos } = require("../middleware/upload");
 // Mounted at /api. Checkout and orders are for signed-in customers only.
 const customer = [requireAuth, requireRole("customer")];
 router.post("/checkout/quote", customer, orders.quote);
+// Buy now: one product checked out on its own; the cart is left as it is.
+router.post("/buy-now", customer, orders.buyNow);
 router.post("/orders", customer, orders.placeOrder);
 router.get("/orders", customer, orders.listOrders);
 router.get("/orders/:orderId", customer, orders.getOrder);

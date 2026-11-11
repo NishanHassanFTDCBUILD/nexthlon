@@ -257,13 +257,13 @@ test("inventory: add, remove and set the exact count, and stock can never go neg
 // ======================= Removed: admin Reviews, and Q&A everywhere =======================
 
 test("Q&A is gone from the store and the console, and the admin has no Reviews section", async () => {
-  // The store: no Q&A API, and no Q&A or review area on the product page.
+  // The store: no Q&A API and no Q&A area. (Customer reviews are back on the product page.)
   assert.equal((await call("GET", `/api/products/${shoe._id}/questions`)).status, 404);
   assert.equal((await call("POST", `/api/products/${shoe._id}/questions`, { body: { body: "Is this waterproof at all?" }, cookie: ashaCookie })).status, 404);
   const page = await call("GET", `/products/${shoe.slug}`, { cookie: ashaCookie });
   assert.equal(page.status, 200);
   assert.doesNotMatch(page.data, /data-qa|Questions &amp; answers|Ask a question/);
-  assert.doesNotMatch(page.data, /id="reviews"|Write a review/);
+  assert.match(page.data, /id="reviews"/);
 
   // The console: no Reviews or Q&A pages, APIs or sidebar links.
   for (const section of ["reviews", "questions"]) {

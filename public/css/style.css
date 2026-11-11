@@ -1,22 +1,11 @@
 /* ---------- Catalogue ---------- */
 
-.catalog { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: var(--sp-6); align-items: start; }
-.filters { position: sticky; top: calc(var(--header-h) + var(--sp-4)); max-height: calc(100vh - var(--header-h) - var(--sp-8)); overflow-y: auto; border-radius: var(--r); scrollbar-width: thin; }
-.filter-panel { background: var(--surface); border-radius: var(--r); box-shadow: var(--sh-sm); border: 1px solid var(--hairline); }
-.filter-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-4) 18px; background: var(--surface); border-bottom: 1px solid var(--line); border-radius: var(--r) var(--r) 0 0; }
-.filter-head h2 { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: 16px; font-weight: 700; margin-right: auto; }
-.filter-close { display: none; }
-.filter-form { padding: var(--sp-4) 18px 18px; display: flex; flex-direction: column; gap: var(--sp-5); }
-.filter-form legend { padding: 0; font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: var(--sp-2); }
 .choice { display: flex; align-items: center; gap: 10px; padding: 6px 8px; margin: 0 -8px; border-radius: var(--r-xs); font-size: 14px; cursor: pointer; }
 .choice:hover { background: var(--floor); }
 .choice:has(input:checked) { font-weight: 600; color: var(--blue-700); }
 .choice input { width: 18px; height: 18px; accent-color: var(--blue); margin: 0; flex: none; cursor: pointer; }
 .choice em { margin-left: auto; font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--muted); background: var(--floor); padding: 1px 8px; border-radius: var(--r-pill); }
 .choice:has(input:checked) em { background: var(--blue-50); color: var(--blue-700); }
-.price-inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--sp-2); align-items: center; margin-bottom: 10px; font-size: var(--fs-sm); color: var(--muted); }
-.price-inputs input { width: 100%; height: 40px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); }
-.price-inputs input:focus { outline: none; border-color: var(--blue); box-shadow: var(--ring); }
 .clear-link { font-size: var(--fs-sm); font-weight: 600; }
 
 .results { position: relative; min-width: 0; }
@@ -31,7 +20,6 @@
   border: 1px solid var(--hairline); border-radius: var(--r); box-shadow: var(--sh-sm);
 }
 .toolbar-hint { flex: 1; min-width: 0; font-size: var(--fs-sm); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.filter-open { display: none; }
 .sort { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--muted); margin-left: auto; flex: none; }
 
 .chips { flex: 1; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
@@ -360,28 +348,12 @@ a.stat:hover .stat-link .i { transform: translateX(3px); }
 
 /* Small laptops and tablets in landscape (about 1024px) */
 @media (max-width: 1024px) {
-  .catalog { grid-template-columns: 236px minmax(0, 1fr); gap: var(--sp-5); }
 }
 
 /* Tablets (about 768px) */
 @media (max-width: 900px) {
-  .catalog, .account-layout { grid-template-columns: 1fr; }
-  .filters { position: static; max-height: none; overflow: visible; }
+  .account-layout { grid-template-columns: 1fr; }
 
-  /* With JavaScript, the filters become a drawer that slides in from the left. */
-  .catalog.is-enhanced .filters {
-    position: fixed; z-index: 60; top: 0; bottom: 0; left: 0; width: min(360px, 88vw); max-height: none; overflow-y: auto;
-    border-radius: 0 var(--r-lg) var(--r-lg) 0; background: var(--surface); box-shadow: var(--sh-lg);
-    transform: translateX(-105%); visibility: hidden; transition: transform 0.28s var(--ease), visibility 0s linear 0.28s;
-  }
-  .catalog.is-enhanced .filters.is-open { transform: none; visibility: visible; transition: transform 0.28s var(--ease); }
-  .catalog.is-enhanced .filter-panel { box-shadow: none; border: 0; border-radius: 0; min-height: 100%; }
-  .catalog.is-enhanced .filter-head { border-radius: 0; padding-top: max(var(--sp-4), env(safe-area-inset-top)); }
-  .catalog.is-enhanced .filter-close { display: inline-grid; }
-  .catalog.is-enhanced .filter-open { display: inline-flex; flex: none; }
-  .drawer-backdrop { position: fixed; inset: 0; z-index: 55; background: rgba(5, 5, 6, 0.55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
-  .drawer-backdrop[hidden] { display: none; }
-  .catalog:not(.is-enhanced) .filters { margin-bottom: var(--sp-2); }
 
   .account-nav { position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none; }
   .account-nav::-webkit-scrollbar { display: none; }
@@ -971,16 +943,8 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 /* ==========================================================================
    Phase 2: catalogue filters, list view, product page, lightbox and reviews
    ========================================================================== */
-.more-choices summary { padding: 6px 0; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--link); cursor: pointer; list-style: none; }
-.more-choices summary::-webkit-details-marker { display: none; }
-.more-choices summary::before { content: "+ "; }
-.more-choices[open] summary::before { content: "− "; }
-.choice .rating { --star-size: 13px; flex: none; }
 
-/* Dual price slider: two range inputs stacked on one track */
 
-.range-track { position: absolute; left: 9px; right: 9px; top: 14px; height: 4px; border-radius: 4px; background: var(--surface-3); }
-.range-fill { position: absolute; top: 0; bottom: 0; left: calc(var(--from, 0) * 100%); right: calc((1 - var(--to, 1)) * 100%); border-radius: 4px; background: var(--brand); }
 
 /* Grid and list layouts */
 .view-toggle { display: inline-flex; flex: none; padding: 3px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); }
@@ -1124,6 +1088,9 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
    ========================================================================== */
 .checkout-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
 .checkout-top h1 { font: 800 40px/1 var(--display); text-transform: uppercase; }
+/* Buy now checkout: one product, cart untouched. */
+.buy-now-note { display: inline-flex; align-items: center; gap: 6px; margin: 8px 0 0; padding: 5px 12px; border-radius: var(--radius-pill); background: var(--brand-soft); border: 1px solid rgba(var(--brand-rgb), 0.3); color: var(--ink-2); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.buy-now-note .i { color: var(--brand-ink); }
 .stepper { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-1); counter-reset: none; }
 .stepper li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: var(--radius-pill); background: var(--surface); border: 1px solid var(--line); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--muted); }
 .stepper li span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--surface-3); color: var(--ink-2); font-size: 12px; }
@@ -1452,6 +1419,13 @@ html.is-pay-locked, html.is-pay-locked body { overflow: hidden; }
 .hf-card-2 { left: 50%; top: 52%; transform: translateZ(30px) rotateY(16deg) rotateZ(-8deg); }
 .hf-card-3 { left: 84%; top: 50%; transform: translateZ(-40px) rotateY(-26deg); }
 .hero3d-content { position: relative; z-index: 2; padding-bottom: clamp(48px, 9vh, 110px); }
+/* Laptops and desktops: the hero starts at the very top of the page, behind the sticky header,
+   so the first screen already shows the whole hero (headline, buttons and the stage line), exactly
+   as it looks once pinned. --hero-pull is the header's measured height (home.js); --header-h is
+   the usual value until the script runs. Phones are unchanged (their header is not sticky). */
+@media (min-width: 721px) {
+  .home .hero3d { margin-top: calc(-1 * var(--hero-pull, var(--header-h))); }
+}
 .hero3d-kicker { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); color: var(--accent); font-size: var(--text-sm); font-weight: var(--weight-semibold); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .hero3d-title { margin: var(--space-2) 0 var(--space-1h); max-width: 11ch; font-family: var(--display); font-size: var(--text-display); font-weight: var(--weight-black); line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; text-shadow: 0 6px 40px rgba(0, 0, 0, 0.35); }
 .hero3d-title .word { display: inline-block; white-space: nowrap; perspective: 500px; }

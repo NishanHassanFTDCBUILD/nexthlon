@@ -4,13 +4,22 @@
 <%
   const t = quote.totals;
   const chosen = addresses.find(function (a) { return a.isDefault; }) || addresses[0];
+  const isBuyNow = typeof buyNow !== 'undefined' && buyNow;
+  const buyItem = isBuyNow ? (quote.lines[0] || quote.items[0]) : null;
 %>
-<main id="main" class="container page checkout" data-checkout data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || (chosen ? chosen.phone : '') %>">
+<main id="main" class="container page checkout<%= isBuyNow ? ' is-buy-now' : '' %>" data-checkout data-source="<%= isBuyNow ? 'buynow' : 'cart' %>" data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || (chosen ? chosen.phone : '') %>">
   <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <a href="/cart">Cart</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page">Checkout</span>
+    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
+    <% if (isBuyNow && buyItem) { %><a href="/products/<%= buyItem.slug %>"><%= buyItem.name %></a><% } else { %><a href="/cart">Cart</a><% } %>
+    <%- icon('chevron-right', 'i-xs') %> <span aria-current="page"><%= isBuyNow ? 'Buy now' : 'Checkout' %></span>
   </nav>
   <div class="checkout-top">
-    <h1>Checkout</h1>
+    <div>
+      <h1><%= isBuyNow ? 'Buy now' : 'Checkout' %></h1>
+      <% if (isBuyNow) { %>
+        <p class="buy-now-note"><%- icon('bolt', 'i-xs') %> Only this item is being bought. Your cart stays as it is.</p>
+      <% } %>
+    </div>
     <ol class="stepper" aria-label="Checkout steps">
       <li data-stepper="1" aria-current="step"><span>1</span> Address</li>
       <li data-stepper="2"><span>2</span> Summary</li>
@@ -68,7 +77,7 @@
         </header>
         <div class="step-body" hidden>
           <% if (quote.problems.length) { %>
-            <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Some items are no longer available: <%= quote.problems.join('; ') %>. <a href="/cart">Update your cart</a> to continue.</span></div>
+            <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span><% if (isBuyNow) { %>This product is no longer available: <%= quote.problems.join('; ') %>. <a href="/products">Browse other gear</a>.<% } else { %>Some items are no longer available: <%= quote.problems.join('; ') %>. <a href="/cart">Update your cart</a> to continue.<% } %></span></div>
           <% } %>
           <ul class="checkout-items">
             <% quote.lines.forEach(function (item) { %>
@@ -84,7 +93,11 @@
           </ul>
           <p class="delivery-result" data-checkout-delivery aria-live="polite"></p>
           <div class="step-actions">
-            <a class="btn btn-ghost" href="/cart">Edit cart</a>
+            <% if (isBuyNow && buyItem) { %>
+              <a class="btn btn-ghost" href="/products/<%= buyItem.slug %>">Change quantity</a>
+            <% } else { %>
+              <a class="btn btn-ghost" href="/cart">Edit cart</a>
+            <% } %>
             <button type="button" class="btn btn-primary" data-step-next="2" <%= quote.problems.length ? 'disabled' : '' %>>Continue to payment <%- icon('arrow-right', 'i-sm') %></button>
           </div>
         </div>

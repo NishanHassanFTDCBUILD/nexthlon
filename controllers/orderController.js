@@ -1,5 +1,6 @@
 const checkoutService = require("../services/checkoutService");
 const orderService = require("../services/orderService");
+const buyNowService = require("../services/buyNowService");
 const { validatePlaceOrder, validateCancel, validateReturn, readFlag, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { STATUS_LABELS } = require("../utils/orderRules");
@@ -45,11 +46,20 @@ function toPublicOrder(order) {
   };
 }
 
-// POST /api/checkout/quote   body: { useWallet? }
-// The order as it would be placed now: live prices, the cart's coupon and the wallet balance.
+// POST /api/checkout/quote   body: { useWallet?, source?: "cart" | "buynow" }
+// The order as it would be placed now: live prices, the coupon and the wallet balance.
 const quote = asyncHandler(async (req, res) => {
-  const result = await checkoutService.buildQuote(req.user._id, { useWallet: readFlag(req.body && req.body.useWallet) });
+  const body = req.body || {};
+  const result = await checkoutService.buildQuote(req.user._id, { useWallet: readFlag(body.useWallet), source: buyNowService.readSource(body.source) });
   res.json({ quote: checkoutService.publicQuote(result) });
+});
+
+// POST /api/buy-now   body: { productId, quantity }
+// Saves the one product to buy now (the cart is not touched) and sends the shopper to its checkout.
+const buyNow = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+  await buyNowService.start(req.user._id, body.productId, body.quantity);
+  res.status(201).json({ redirect: "/checkout?buy=now" });
 });
 
 // POST /api/orders   body: { addressId, paymentMethod: "cod" | "wallet", useWallet? }
@@ -95,4 +105,4 @@ const requestReturn = asyncHandler(async (req, res) => {
   res.json({ message: "Return requested. We will arrange a pickup and keep you posted.", order: toPublicOrder(order) });
 });
 
-module.exports = { toPublicOrder, quote, placeOrder, listOrders, getOrder, cancelOrder, cancelItem, requestReturn };
+module.exports = { toPublicOrder, quote, buyNow, placeOrder, listOrders, getOrder, cancelOrder, cancelItem, requestReturn };
