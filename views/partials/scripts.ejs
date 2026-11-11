@@ -14,18 +14,18 @@
 
 <% if (typeof razorpay !== 'undefined' && razorpay) { %><script src="https://checkout.razorpay.com/v1/checkout.js" defer></script><% } %>
 <%# The shared animation loop first: every animation on the page subscribes to it. %>
-<script src="/js/motion/ticker.js" defer></script>
-<script src="/js/app.js" defer></script>
-<script src="/js/header.js" defer></script>
-<script src="/js/store.js" defer></script>
+<script src="<%= asset('/js/motion/ticker.js') %>" defer></script>
+<script src="<%= asset('/js/app.js') %>" defer></script>
+<script src="<%= asset('/js/header.js') %>" defer></script>
+<script src="<%= asset('/js/store.js') %>" defer></script>
 <% if (typeof motion === 'undefined' || motion !== false) { %>
-<script src="/js/motion.js" defer></script><% } %>
+<script src="<%= asset('/js/motion.js') %>" defer></script><% } %>
 <% (typeof scripts !== 'undefined' ? scripts : []).forEach(function (name) { %>
-  <script src="/js/<%= name %>.js" defer></script>
+  <script src="<%= asset('/js/' + name + '.js') %>" defer></script>
 <% }) %>
 <%# Page-specific ES modules (the 3D engine lives in public/js/3d). Modules always run after the page is parsed. %>
 <% (typeof modules !== 'undefined' ? modules : []).forEach(function (name) { %>
-  <script type="module" src="/js/<%= name %>.js"></script>
+  <script type="module" src="<%= asset('/js/' + name + '.js') %>"></script>
 <% }) %>
 </body>
 </html>

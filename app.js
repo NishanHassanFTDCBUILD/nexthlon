@@ -63,7 +63,26 @@ app.use(helmet({
 // biggest single speed-up on phones. Images and fonts are already compressed, so they are skipped.
 app.use(compression());
 
-app.use(express.static(path.join(__dirname, "public"), { maxAge: config.isProduction ? "7d" : 0 }));
+// Caching for files in public/:
+// - CSS and JS linked from a page carry ?v=<content hash> (utils/assets.js), so the browser keeps
+//   them for a year without asking again. A changed file gets a new URL, so updates still arrive.
+// - The same files without ?v= (ES module imports, scripts that load other files) are re-checked
+//   on every visit: a quick 304 when unchanged, and never a stale mix after a release.
+// - Images and fonts keep a week in production (uploads have random names; fonts never change).
+const ONE_YEAR = 365 * 24 * 60 * 60;
+// Each page's stylesheets joined into one request (utils/assets.js).
+app.get("/css/bundle.css", require("./utils/assets").serveStyleBundle);
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders(res, filePath) {
+    if (res.req && res.req.query && res.req.query.v) {
+      res.setHeader("Cache-Control", `public, max-age=${ONE_YEAR}, immutable`);
+    } else if (/\.(css|js|mjs)$/.test(filePath)) {
+      res.setHeader("Cache-Control", "no-cache");
+    } else {
+      res.setHeader("Cache-Control", config.isProduction ? "public, max-age=604800" : "public, max-age=0");
+    }
+  }
+}));
 // Everything after the static files (API replies, EJS pages, error pages) is never cached.
 // Static files are served above, so CSS, JS and images keep their normal caching.
 app.use(noCache);

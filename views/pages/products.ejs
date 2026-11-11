@@ -245,7 +245,7 @@
       <div data-results-content>
       <% if (products.length) { %>
         <div class="product-grid product-grid-3 <%= filters.view === 'list' ? 'is-list' : '' %>">
-          <% products.forEach(function (p) { %><%- include('../partials/product-card', { p: p }) %><% }) %>
+          <% products.forEach(function (p, i) { %><%- include('../partials/product-card', { p: p, eager: i < 2, priority: i === 0 }) %><% }) %>
         </div>
       <% } else { %>
         <div class="empty-state">

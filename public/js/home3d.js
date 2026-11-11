@@ -15,6 +15,23 @@ import { sampleShape, spherePoints, drawLogo, drawAthlete, fogShader, dotFragmen
 
 const reduced = prefersReducedMotion();
 
+// ---------- The showroom's code (showroom3d.js) downloads only when its section comes close ----------
+// It sits far below the pinned hero, so on most visits it is not needed for the first screen.
+// It is set up a full screen ahead, so the section is ready (and its height final) before it shows.
+const showroomSection = document.querySelector("[data-showroom]");
+if (showroomSection) {
+  const loadShowroom = () => import("./showroom3d.js").catch(error => console.warn("Showroom skipped:", error.message));
+  if (!("IntersectionObserver" in window)) loadShowroom();
+  else {
+    const showroomWatch = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      showroomWatch.disconnect();
+      loadShowroom();
+    }, { rootMargin: "100% 0px" });
+    showroomWatch.observe(showroomSection);
+  }
+}
+
 // ---------- 1. Hero particles ----------
 const PARTICLES = { high: 9000, medium: 5000, low: 2400 };
 
@@ -34,32 +51,49 @@ const particleShader = {
       vec3 p = mix(mix(aPosition, aLogo, m1), aAthlete, m2);
       float t = uTime * 0.7 + aRandom.y * 6.2831;
       float transit = sin(clamp(uMorph, 0.0, 2.0) * 3.14159);
-      p += vec3(sin(t), cos(t * 1.3), sin(t * 0.7)) * (0.025 + 0.32 * transit) * aRandom.x;
+      // While the logo holds, the dots barely drift, so its thin letter strokes stay sharp.
+      float logo = m1 * (1.0 - m2);
+      p += vec3(sin(t), cos(t * 1.3), sin(t * 0.7)) * (0.025 * (1.0 - 0.75 * logo) + 0.32 * transit) * aRandom.x;
       vec4 mv = uView * uModel * vec4(p, 1.0);
       gl_Position = uProjection * mv;
       gl_PointSize = uSize * (0.55 + aRandom.x) * uRatio / -mv.z;
       vMix = aRandom.z;
-      vAlpha = 0.5 + 0.5 * aRandom.x;
+      vAlpha = 0.55 + 0.45 * aRandom.x;
     }`,
-  fragment: dotFragment
+  // Each dot has a sharp bright core and a soft halo: shapes read as crisp lines of light instead of
+  // a grainy haze, without needing more glow (which blurred the logo on phones).
+  fragment: `
+    precision mediump float;
+    uniform vec3 uColorA, uColorB;
+    varying float vMix;
+    varying float vAlpha;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      if (d > 0.5) discard;
+      float core = smoothstep(0.24, 0.04, d);
+      float halo = smoothstep(0.5, 0.0, d);
+      float light = core * 0.85 + halo * halo * 0.5;
+      gl_FragColor = vec4(mix(uColorA, uColorB, vMix) * light, light * vAlpha);
+    }`
 };
 
-// Scroll progress (0 to 1) → shape (0 sphere, 1 logo, 2 athlete), holding each shape still for a
-// while so it can be seen: sphere until 12%, logo from 38% to 58%, athlete from 84%.
+// Scroll progress (0 to 1) → shape (0 sphere, 1 logo, 2 athlete), holding each shape still so it can
+// be seen: sphere until 8%, logo from 30% to 48%, athlete from 70% to the end. (The athlete used to
+// finish at 84%, so on phones it was only fully formed as the hero scrolled away.)
 function morphFor(progress) {
-  if (progress < 0.12) return 0;
-  if (progress < 0.38) return (progress - 0.12) / 0.26;
-  if (progress < 0.58) return 1;
-  if (progress < 0.84) return 1 + (progress - 0.58) / 0.26;
+  if (progress < 0.08) return 0;
+  if (progress < 0.3) return (progress - 0.08) / 0.22;
+  if (progress < 0.48) return 1;
+  if (progress < 0.7) return 1 + (progress - 0.48) / 0.22;
   return 2;
 }
 
-// Phones (a canvas taller than it is wide) get fewer, smaller and dimmer particles: on a narrow
-// screen the same 9,000 glowing dots pile up into a too-bright blur, worst of all in the logo.
-const PHONE_PARTICLES = 3500;
-const PHONE_DOT_SIZE = 0.72;   // dot size compared with desktop
-const PHONE_GLOW = 0.6;        // brightness compared with desktop
-const PHONE_LOGO_GLOW = 0.78;  // extra dimming while the dots form the NEXTHLON logo
+// Phones (a canvas taller than it is wide): enough particles for clean shapes on a small screen,
+// chosen by how capable the phone is, slightly smaller dots, and a little less glow on the dense logo.
+const PHONE_PARTICLES = { high: 6000, medium: 4200, low: 2400 };
+const PHONE_DOT_SIZE = 0.9;    // dot size compared with desktop
+const PHONE_GLOW = 0.95;       // brightness compared with desktop
+const PHONE_LOGO_GLOW = 0.9;   // a little less while the dots form the NEXTHLON logo
 // Shape sizes in scene units at scale 1 (spherePoints radius, and the sampleShape sizes below).
 const SHAPES = { sphere: [3.7, 3.7], logo: [4.9, 4.9 * 240 / 900], athlete: [4.2, 4.2 * 320 / 400] };
 const COLOR_A = [0.83, 1.0, 0.23];
@@ -67,33 +101,39 @@ const COLOR_B = [0.96, 1.0, 0.82];
 const FOV_TAN = Math.tan((45 * Math.PI) / 360);
 
 function buildHero(canvas, { tier }) {
-  const scene = new Scene(canvas, { maxRatio: tier === "low" ? 1.25 : 2, camera: { fov: 45, position: [0, 0, 7] } });
-  const gl = scene.gl;
   const phoneAtStart = canvas.clientWidth < canvas.clientHeight;
-  const count = phoneAtStart ? Math.min(PHONE_PARTICLES, PARTICLES[tier] || PARTICLES.medium) : (PARTICLES[tier] || PARTICLES.medium);
+  // Phones draw at up to 1.5x pixels (not 2-3x): the dots are soft anyway, and it is about half the work.
+  const scene = new Scene(canvas, { maxRatio: tier === "low" ? 1.25 : phoneAtStart ? 1.5 : 2, camera: { fov: 45, position: [0, 0, 7] } });
+  const gl = scene.gl;
+  const count = phoneAtStart ? (PHONE_PARTICLES[tier] || PHONE_PARTICLES.medium) : (PARTICLES[tier] || PARTICLES.medium);
   const sphere = { positions: spherePoints(count, 1.85) };
   const random = new Float32Array(count * 3);
   for (let i = 0; i < count * 3; i += 1) random[i] = Math.random();
-  const logoSize = { width: 900, height: 240, scale: 4.9, depth: 0.12 };
-  const logo = sampleShape(drawLogo('"Arial Black", Arial, sans-serif'), count, logoSize);
-  const athlete = sampleShape(drawAthlete, count, { width: 400, height: 320, scale: 4.2, depth: 0.45 });
+  const logoSize = { width: 900, height: 240, scale: 4.9, depth: 0.05 };
+  // The logo and athlete shapes only show once you scroll, so they start as the sphere and are drawn
+  // in their own short tasks after the first frame. Drawn all at once, they held the page busy for
+  // most of a second on a mid-range phone. (The logo used to be drawn twice: once in a fallback font,
+  // then again in the brand font.)
 
   const fog = scene.add(new Mesh(gl, geometry.plane(1, 1), { ...fogShader, depthTest: false }));
   const dots = scene.add(new Mesh(gl, sphere, {
     ...particleShader,
     blending: "additive",
     depthTest: false,
-    attributes: { aLogo: { data: logo, size: 3 }, aAthlete: { data: athlete, size: 3 }, aRandom: { data: random, size: 3 } },
+    attributes: { aLogo: { data: sphere.positions, size: 3 }, aAthlete: { data: sphere.positions, size: 3 }, aRandom: { data: random, size: 3 } },
     uniforms: { uSize: 26, uRatio: 1, uColorA: COLOR_A.slice(), uColorB: COLOR_B.slice() }
   }));
   fog.uniforms = { uMouse: [0, 0], uMorph: 0 };
 
-  // The brand font for the logo, once the browser has it.
-  const ready = document.fonts && document.fonts.load
-    ? document.fonts.load('800 120px "Barlow Condensed"').then(() => {
-      dots.setAttribute("aLogo", sampleShape(drawLogo('"Barlow Condensed", "Arial Black", sans-serif'), count, logoSize));
-    }).catch(() => {})
+  // Each shape in a task of its own, the logo once the brand font is ready (it is preloaded).
+  const inOwnTask = work => new Promise(resolve => setTimeout(() => { work(); resolve(); }, 0));
+  const fontReady = document.fonts && document.fonts.load
+    ? document.fonts.load('800 120px "Barlow Condensed"').catch(() => {})
     : Promise.resolve();
+  const ready = fontReady
+    .then(() => inOwnTask(() => dots.setAttribute("aLogo", sampleShape(drawLogo('"Barlow Condensed", "Arial Black", sans-serif', { fill: phoneAtStart }), count, logoSize))))
+    .then(() => inOwnTask(() => dots.setAttribute("aAthlete", sampleShape(drawAthlete, count, { width: 400, height: 320, scale: 4.2, depth: 0.45 }))))
+    .catch(() => {});
 
   const parallax = createParallax();
   const hero = canvas.closest("[data-hero3d]");
@@ -154,7 +194,7 @@ function buildHero(canvas, { tier }) {
     dots.uniforms.uColorA = COLOR_A.map(c => c * glow);
     dots.uniforms.uColorB = COLOR_B.map(c => c * glow);
     dots.uniforms.uMorph = morph;
-    dots.uniforms.uRatio = Math.min(window.devicePixelRatio || 1, 2) * (distance / 7) * dotSize;
+    dots.uniforms.uRatio = Math.min(window.devicePixelRatio || 1, scene.maxRatio) * (distance / 7) * dotSize;
     fog.uniforms.uMouse = [x, y];
     fog.uniforms.uMorph = morph;
     const next = morph < 0.5 ? 0 : morph < 1.5 ? 1 : 2;

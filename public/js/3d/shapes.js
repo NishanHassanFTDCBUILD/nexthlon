@@ -43,10 +43,13 @@ export function spherePoints(count, radius) {
 
 // The logo as letter OUTLINES, spaced out and sized to fill the width: solid heavy letters
 // turn into one glowing block when drawn with dots.
-export function drawLogo(font) {
+// The NEXTHLON wordmark: outlined letters (wide screens), or filled ones ({ fill: true }, phones,
+// where an outline only a few pixels thick breaks up into speckle).
+export function drawLogo(font, { fill = false } = {}) {
   return (ctx, w, h) => {
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = Math.max(4, h * 0.03);
+    ctx.fillStyle = "#fff";
+    ctx.lineWidth = Math.max(5, h * 0.04);
     ctx.lineJoin = "round";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -54,7 +57,8 @@ export function drawLogo(font) {
     ctx.font = `800 100px ${font}`;
     const size = Math.min(h * 0.78, (100 * w * 0.92) / Math.max(1, ctx.measureText("NEXTHLON").width));
     ctx.font = `800 ${Math.round(size)}px ${font}`;
-    ctx.strokeText("NEXTHLON", w / 2, h / 2 + h * 0.03);
+    if (fill) ctx.fillText("NEXTHLON", w / 2, h / 2 + h * 0.03);
+    else ctx.strokeText("NEXTHLON", w / 2, h / 2 + h * 0.03);
   };
 }
 

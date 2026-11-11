@@ -56,7 +56,7 @@ code { font: 0.9em/1 Consolas, monospace; background: var(--brand-soft); padding
 :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus-visible { outline: none; box-shadow: none; }
 .on-dark, .promo-bar, .site-header, .join-banner, .site-footer, .admin-sidebar, .toast { --focus: var(--accent); }
 
-.container { width: 100%; max-width: 1440px; margin: 0 auto; padding-left: max(var(--space-2), env(safe-area-inset-left)); padding-right: max(var(--space-2), env(safe-area-inset-right)); }
+.container { width: 100%; max-width: var(--container); margin: 0 auto; padding-left: max(var(--gutter), env(safe-area-inset-left)); padding-right: max(var(--gutter), env(safe-area-inset-right)); }
 .page { padding-top: var(--space-2h); padding-bottom: var(--space-8); }
 .section { margin-top: var(--space-5); }
 .muted { color: var(--muted); }
@@ -119,6 +119,25 @@ code { font: 0.9em/1 Consolas, monospace; background: var(--brand-soft); padding
 .icon-btn { position: relative; display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%; background: transparent; cursor: pointer; color: var(--muted); }
 .icon-btn:hover { background: var(--surface-3); color: var(--ink); text-decoration: none; }
 .icon-btn-sm { width: 32px; height: 32px; }
+
+/* ---------- Touch: every control is at least 44 x 44px to tap ----------
+   On touch screens, small icon controls keep their look but get an invisible hit area that
+   reaches 44px (the ::before grows outward only when the control is smaller than that).
+   Text buttons and fields simply get taller. Mouse users see no change. */
+@media (pointer: coarse) {
+  :where(.icon-btn, .qty-btn, .wish-btn, .flip-toggle, .reveal, .gallery-nav, .pdx-icon-btn, .header-link-icon,
+    .nav-toggle, .view-btn, .chip-remove, .fx-pill, .fx-preset, .zg-chip, .mega-toggle, .brand, .au-eye)::before {
+    content: ""; position: absolute; inset: min(0px, calc((100% - var(--tap)) / 2));
+  }
+  :where(.icon-btn, .qty-btn, .pdx-icon-btn, .header-link-icon, .nav-toggle, .view-btn, .chip-remove, .fx-preset, .zg-chip, .mega-toggle, .brand) { position: relative; }
+  /* The category links sit in a sideways scroller, which would clip an invisible hit area, so they
+     are simply 44px tall (the scroller loses its 4px padding; the header grows 4px, and app.js
+     measures the header, so the bars that stick under it follow). */
+  .catnav-links { padding-block: 0; }
+  .catnav-links a { min-height: var(--tap); }
+  body:not(.admin-body) :where(.btn-sm, .btn-xs, .segmented-radio span) { min-height: var(--tap); }
+  :where(.delivery-row input, .fx-search input) { height: var(--tap); }
+}
 
 .spinner { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.7s linear infinite; }
 
@@ -319,6 +338,7 @@ dialog[open] { animation: pop 0.22s var(--ease); }
 .toast-error { background: #5c1414; }
 .toast-error .toast-icon { background: rgba(255, 180, 180, 0.16); color: #ffb4b4; }
 .toast-error .toast-timer { background: #ff9c9c; animation-duration: 6.5s; }
+.toast.is-paused .toast-timer { animation-play-state: paused; }
 .toast.is-leaving { transform: translateX(calc(100% + 24px)); }
 
 /* ---------- Skeleton loaders ---------- */

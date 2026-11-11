@@ -24,14 +24,16 @@ function findFakeImages(files = []) {
   return files.filter(file => !detectImageType(file.buffer)).map(file => file.originalname);
 }
 
-// Uploads are shrunk to web size before saving: at most 1200px on the longest side, re-compressed
+// Uploads are shrunk to web size before saving: at most 2000px (products) or 1200px (returns) on the longest side, re-compressed
 // in the same format, turned the right way up, and with camera details (location, device) removed.
 // A photo that cannot be processed, or would not get smaller, is kept exactly as uploaded.
-const MAX_SIDE = 1200;
-async function shrinkImage(buffer, type) {
+// Product photos keep up to 2000px so the product page zoom shows real detail; customer return
+// photos only need to be readable, so they stay at 1200px.
+const MAX_SIDE = { products: 2000, returns: 1200 };
+async function shrinkImage(buffer, type, maxSide = MAX_SIDE.products) {
   try {
     const sharp = require("sharp");
-    const image = sharp(buffer, { failOn: "none" }).rotate().resize({ width: MAX_SIDE, height: MAX_SIDE, fit: "inside", withoutEnlargement: true });
+    const image = sharp(buffer, { failOn: "none" }).rotate().resize({ width: maxSide, height: maxSide, fit: "inside", withoutEnlargement: true });
     const out = await (type === "png" ? image.png({ compressionLevel: 9, palette: true, quality: 85 })
       : type === "webp" ? image.webp({ quality: 80 })
         : image.jpeg({ quality: 82, mozjpeg: true })).toBuffer();
@@ -51,7 +53,7 @@ async function saveImages(files = [], folder = "products") {
   for (const file of files) {
     const type = detectImageType(file.buffer);
     const name = `${crypto.randomBytes(16).toString("hex")}.${type}`;
-    await fs.writeFile(path.join(dir, name), await shrinkImage(file.buffer, type), { flag: "wx" });
+    await fs.writeFile(path.join(dir, name), await shrinkImage(file.buffer, type, MAX_SIDE[folder]), { flag: "wx" });
     urls.push(`/uploads/${folder}/${name}`);
   }
   return urls;

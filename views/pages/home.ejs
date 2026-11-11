@@ -1,4 +1,4 @@
-<%- include('../partials/head') %>
+<%- include('../partials/head', { coreStyles: ['home'] }) %>
 <%- include('../partials/header') %>
 
 <%
@@ -29,8 +29,10 @@
       </div>
       <div class="container hero3d-content">
         <span class="hero3d-kicker"><%- icon('bolt', 'i-sm') %> Nexthlon performance gear</span>
-        <h1 id="hero-title" class="hero3d-title" data-split>
-          <% headline.forEach(function (word, w) { %><span class="word"><% word.split('').forEach(function (ch) { %><span class="char" style="--i: <%= letterIndex++ %>"><%= ch %></span><% }) %></span><%= w < headline.length - 1 ? ' ' : '' %><% }) %>
+        <%# The letters are separate spans for the reveal, which some screen readers spell out one by one.
+             So the heading is named with the plain words, and the letters are hidden from them. %>
+        <h1 id="hero-title" class="hero3d-title" data-split aria-label="<%= headline.join(' ') %>">
+          <% headline.forEach(function (word, w) { %><span class="word" aria-hidden="true"><% word.split('').forEach(function (ch) { %><span class="char" style="--i: <%= letterIndex++ %>"><%= ch %></span><% }) %></span><%= w < headline.length - 1 ? ' ' : '' %><% }) %>
         </h1>
         <p class="hero3d-text">Shoes, balls, rackets and outdoor kit chosen by athletes, delivered across India. Scroll to see the gear come together.</p>
         <div class="hero3d-actions">
@@ -307,11 +309,11 @@
 
   <%# ---------- 6. Shop by sport: tiles with depth layers ---------- %>
   <% if (categories.length) { %>
-    <section class="container section" aria-labelledby="sports-title">
+    <section class="container section" aria-labelledby="shop-sports-title">
       <div class="section-head" data-reveal>
         <div>
           <span class="section-kicker">Browse</span>
-          <h2 id="sports-title">Shop by sport</h2>
+          <h2 id="shop-sports-title">Shop by sport</h2>
         </div>
         <a class="section-link" href="/products">See all gear <%- icon('chevron-right', 'i-sm') %></a>
       </div>
@@ -411,4 +413,5 @@
   <% } %>
 </main>
 
-<%- include('../partials/footer', { scripts: ['home'], modules: ['home3d', 'showroom3d'] }) %>
+<%# showroom3d.js is not listed: home3d.js imports it when the showroom section comes close. %>
+<%- include('../partials/footer', { scripts: ['home'], modules: ['home3d'] }) %>

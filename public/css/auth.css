@@ -3,7 +3,7 @@
    Loaded only on those pages. Motion sits inside prefers-reduced-motion blocks.
    ========================================================================== */
 
-.au-body { background: var(--bg); min-height: 100vh; }
+.au-body { background: var(--bg); min-height: 100vh; min-height: 100dvh; }
 .au { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(440px, 0.92fr); }
 
 /* ---------- The 3D scene (left) ---------- */
@@ -178,11 +178,39 @@
   .au-motto { bottom: var(--space-3); }
   .au-motto-line { font-size: clamp(36px, 10vw, 60px); }
   .au-motto-sub, .au-motto-kicker { display: none; }
-  .au-panel { padding: var(--space-4) var(--space-2) var(--space-5); justify-content: flex-start; }
-  .au-back { position: static; align-self: flex-start; }
+  /* The panel no longer holds "Back to store": it sits in the top bar, opposite the logo (below). */
+  .au-panel {
+    position: static; padding: var(--space-3) var(--space-2) var(--space-5); justify-content: flex-start;
+    /* One faint glow instead of two bright ones (the glass card blurred them into an olive blob). */
+    background: radial-gradient(70% 28% at 80% 0%, rgba(var(--brand-rgb), 0.06), transparent 70%);
+  }
+  /* "Back to store": a small glass pill in the top bar, level with the logo, 44px to tap. */
+  .au-back {
+    position: absolute; z-index: 4; top: calc(var(--space-3) - 3px); right: var(--space-2); left: auto;
+    min-height: 44px; padding: 0 14px 0 10px; border-radius: var(--radius-pill);
+    background: rgba(10, 10, 11, 0.5); border: 1px solid rgba(255, 255, 255, 0.12); color: #f5f5f0;
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .au-back:hover, .au-back:focus-visible { color: var(--accent); border-color: rgba(var(--brand-rgb), 0.4); }
+  /* The scene fades into the page instead of stopping at a hard line. */
+  .au-scene::after { content: ""; position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 56px; background: linear-gradient(rgba(10, 10, 11, 0), var(--bg)); pointer-events: none; }
+  /* On touch there is no cursor, so the card's border light rests at the top: softer there. */
+  .au-card {
+    background:
+      linear-gradient(var(--glass), var(--glass)) padding-box,
+      radial-gradient(260px circle at var(--mx, 50%) var(--my, 0%), rgba(var(--brand-rgb), 0.45), transparent 62%) border-box,
+      linear-gradient(var(--line), var(--line)) border-box;
+  }
   .cr { grid-template-columns: minmax(0, 1fr); padding: 88px var(--space-2) var(--space-4); align-items: start; }
   .cr-panel { grid-column: 1; margin-top: 30vh; }
   .cr-fallback { left: 50%; top: 24%; width: 60vw; }
+}
+/* Phone held sideways: a short strip of the scene, so the form starts on the first screen. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .au-scene { height: 120px; min-height: 0; }
+  .au-motto { bottom: var(--space-1h); }
+  .au-motto-line { font-size: 32px; margin: 0; min-height: 0; }
+  .au-panel { padding-top: var(--space-2); }
 }
 @media (max-width: 420px) {
   .au-checks { grid-template-columns: minmax(0, 1fr); }

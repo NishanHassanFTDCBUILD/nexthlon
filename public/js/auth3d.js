@@ -73,10 +73,24 @@ function pointerTracker(canvas) {
   return state;
 }
 
+// Phones and tablets show the scene as a short strip above the form. There the same particles
+// piled up into a white glare behind the motto, so the strip gets fewer, smaller, softer dots,
+// placed on the right where the motto is not.
+const STRIP_COUNT = 2600;
+const STRIP_GLOW = 0.6;      // brightness compared with the full-height scene
+const STRIP_DOT = 0.8;       // dot size compared with the full-height scene
+const FULL_GLOW = 0.85;
+const COLOR_A = [0.83, 1.0, 0.23];   // volt
+const COLOR_B = [0.9, 1.0, 0.6];     // light volt (was almost white, which read as glare)
+const SHAPE = [4.4, 4.4 * 320 / 400];
+const STRIP_TOP_BAR = 70;            // px of the strip under the logo and the "Back to store" pill
+const isStrip = canvas => canvas.clientHeight < 360 && canvas.clientWidth > canvas.clientHeight * 1.4;
+
 function buildAthletes(canvas, { tier }) {
-  const scene = new Scene(canvas, { maxRatio: tier === "low" ? 1.25 : 2, camera: { fov: 45, position: [0, 0, 7] } });
+  const strip = isStrip(canvas);
+  const scene = new Scene(canvas, { maxRatio: tier === "low" || strip ? 1.5 : 2, camera: { fov: 45, position: [0, 0, 7] } });
   const gl = scene.gl;
-  const count = COUNTS[tier] || COUNTS.medium;
+  const count = strip ? Math.min(STRIP_COUNT, COUNTS[tier] || COUNTS.medium) : (COUNTS[tier] || COUNTS.medium);
   const size = { width: 400, height: 320, scale: 4.4, depth: 0.5 };
   const random = new Float32Array(count * 3);
   for (let i = 0; i < random.length; i += 1) random[i] = Math.random();
@@ -91,7 +105,7 @@ function buildAthletes(canvas, { tier }) {
       aBell: { data: sampleShape(drawDumbbell, count, size), size: 3 },
       aRandom: { data: random, size: 3 }
     },
-    uniforms: { uSize: 30, uRatio: 1, uPush: 0, uMouse: [0, 0], uWeights: [1, 0, 0], uColorA: [0.83, 1.0, 0.23], uColorB: [0.96, 1.0, 0.82] }
+    uniforms: { uSize: 30, uRatio: 1, uPush: 0, uMouse: [0, 0], uWeights: [1, 0, 0], uColorA: COLOR_A.slice(), uColorB: COLOR_B.slice() }
   }));
   const pointer = pointerTracker(canvas);
   let push = 0;
@@ -109,10 +123,35 @@ function buildAthletes(canvas, { tier }) {
     scene.camera.position[1] = -pointer.y * 0.25;
     scene.camera.position[2] = distance;
     dots.rotation[1] = Math.sin(time * 0.3) * 0.35;
+    // A strip: the shape sits on the right, below the top bar (logo and "Back to store") and clear
+    // of the motto, sized to fit that space.
+    let scale = 1;
+    let glow = FULL_GLOW;
+    let dot = 1;
+    let x = 0;
+    let y = 0;
+    if (isStrip(canvas)) {
+      const halfWidth = half * aspect;
+      const unitsPerPixel = (2 * half) / Math.max(1, canvas.clientHeight);
+      const top = STRIP_TOP_BAR;
+      const bottom = canvas.clientHeight - 10;
+      scale = Math.min(1, ((bottom - top) * unitsPerPixel) / SHAPE[1], (2 * halfWidth * 0.4) / SHAPE[0]);
+      x = halfWidth - (SHAPE[0] * scale) / 2 - halfWidth * 0.1;
+      y = (canvas.clientHeight / 2 - (top + bottom) / 2) * unitsPerPixel;
+      glow = STRIP_GLOW;
+      dot = STRIP_DOT;
+    }
+    dots.scale[0] = scale;
+    dots.scale[1] = scale;
+    dots.scale[2] = scale;
+    dots.position[0] = x;
+    dots.position[1] = y;
+    dots.uniforms.uColorA = COLOR_A.map(c => c * glow);
+    dots.uniforms.uColorB = COLOR_B.map(c => c * glow);
     dots.uniforms.uWeights = weightsAt(time);
     dots.uniforms.uPush = push;
     dots.uniforms.uMouse = [mx, my];
-    dots.uniforms.uRatio = Math.min(window.devicePixelRatio || 1, 2) * (distance / 7);
+    dots.uniforms.uRatio = Math.min(window.devicePixelRatio || 1, scene.maxRatio) * (distance / 7) * dot;
     fog.uniforms.uMouse = [pointer.x, pointer.y];
     fog.uniforms.uMorph = time * 0.2;
   });

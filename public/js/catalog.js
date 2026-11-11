@@ -612,5 +612,54 @@
     gallery.querySelectorAll("[data-gallery-step]").forEach(button => {
       button.addEventListener("click", () => show(current + Number(button.dataset.galleryStep)));
     });
+
+    // Touch: swipe the big photo sideways for the next or previous one. The photo follows the finger
+    // a little, so the gesture feels connected; a short or mostly vertical drag is left alone (the page
+    // scrolls, or the tap opens the full-screen viewer as before).
+    const stage = main.closest("[data-stage]");
+    if (stage && thumbs.length > 1) {
+      let startX = 0;
+      let startY = 0;
+      let dragging = false;
+      let swiped = false;
+      const settle = () => {
+        main.style.transition = "";
+        main.style.translate = "";
+      };
+      stage.addEventListener("pointerdown", event => {
+        if (event.pointerType === "mouse" || event.target.closest("button, a")) return;
+        startX = event.clientX;
+        startY = event.clientY;
+        dragging = true;
+        swiped = false;
+      });
+      stage.addEventListener("pointermove", event => {
+        if (!dragging) return;
+        const dx = event.clientX - startX;
+        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(event.clientY - startY)) return;
+        main.style.transition = "none";
+        main.style.translate = `${(dx * 0.35).toFixed(1)}px 0`;
+      });
+      const end = event => {
+        if (!dragging) return;
+        dragging = false;
+        const dx = event.clientX - startX;
+        const dy = event.clientY - startY;
+        settle();
+        if (event.type === "pointerup" && Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          swiped = true;
+          show(current + (dx < 0 ? 1 : -1));
+        }
+      };
+      stage.addEventListener("pointerup", end);
+      stage.addEventListener("pointercancel", end);
+      // A swipe is not a tap: stop the click that follows it from opening the viewer.
+      stage.addEventListener("click", event => {
+        if (!swiped) return;
+        swiped = false;
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      }, true);
+    }
   });
 })();

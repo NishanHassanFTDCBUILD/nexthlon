@@ -25,12 +25,14 @@
     </nav>
 
     <div class="pdx-grid">
-      <%# ---------- Photo stage (WebGL when available, plain photo otherwise) ---------- %>
+      <%# ---------- Photo, with a real zoom ----------
+           Mouse: a lens follows the pointer and the zoom panel beside the photo shows that spot,
+           magnified, from a high-resolution copy. Touch, or a click: the full-screen viewer, with
+           pinch, double-tap and drag zoom (public/js/product.js). %>
       <div class="pdx-media" data-gallery>
-        <div class="pdx-stage" data-stage>
+        <div class="pdx-stage" data-stage data-zoom-stage>
           <img class="pdx-photo" src="<%= photos[0] %>" alt="<%= product.name %>" width="900" height="900" fetchpriority="high" data-gallery-main>
-          <canvas class="pdx-canvas" aria-hidden="true" data-stage-canvas></canvas>
-          <div class="pdx-stage-glow" aria-hidden="true"></div>
+          <span class="pdx-lens" data-zoom-lens aria-hidden="true" hidden></span>
 
           <div class="pdx-stage-top">
             <span class="pdx-stage-actions">
@@ -46,14 +48,15 @@
               <button type="button" class="pdx-icon-btn" data-gallery-step="1" aria-label="Next photo"><%- icon('chevron-right', 'i-sm') %></button>
             </div>
           <% } %>
-          <span class="pdx-stage-hint" aria-hidden="true">Move to explore · Click to expand</span>
+          <span class="pdx-stage-hint" aria-hidden="true"><%- icon('search', 'i-xs') %> <span class="hint-mouse">Hover to zoom · click for full screen</span><span class="hint-touch">Tap to zoom<% if (photos.length > 1) { %> · swipe for more<% } %></span></span>
         </div>
+        <div class="pdx-zoom" data-zoom-pane aria-hidden="true" hidden></div>
 
         <% if (photos.length > 1) { %>
           <div class="pdx-thumbs" role="group" aria-label="Product photos">
             <% photos.forEach(function (src, index) { %>
               <button type="button" class="thumb pdx-thumb" data-src="<%= src %>" aria-label="Show photo <%= index + 1 %> of <%= photos.length %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
-                <img src="<%= src %>" alt="" width="96" height="96" loading="lazy">
+                <img src="<%= sizedUrl(src, 200) %>" alt="" width="96" height="96" loading="lazy">
               </button>
             <% }) %>
           </div>
@@ -380,4 +383,4 @@
   </div>
 </dialog>
 
-<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart'], modules: ['product-stage'] }) %>
+<%- include('../partials/footer', { scripts: ['catalog', 'product', 'cart'] }) %>

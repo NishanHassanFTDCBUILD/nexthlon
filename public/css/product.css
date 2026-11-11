@@ -7,7 +7,7 @@
 
 /* ---------- Breadcrumb ---------- */
 .pdx-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: var(--space-3) 0 var(--space-3); font-size: var(--text-xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.pdx-crumbs a { color: var(--muted); text-decoration: none; transition: color 0.2s var(--ease); }
+.pdx-crumbs a { display: inline-block; padding-block: 3px; color: var(--muted); text-decoration: none; transition: color 0.2s var(--ease); }
 .pdx-crumbs a:hover { color: var(--ink); }
 .pdx-crumbs [aria-current] { color: var(--ink-2); max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pdx-crumbs > span[aria-hidden] { opacity: 0.4; }
@@ -16,26 +16,50 @@
 .pdx-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--pdx-gap); align-items: start; }
 
 /* ---------- Photo stage ---------- */
-.pdx-media { position: sticky; top: calc(var(--header-h, 112px) - 40px); display: grid; gap: var(--space-1h); }
+/* Its own layer above the details column, so the zoom panel (which opens over the details) is on top. */
+.pdx-media { position: sticky; z-index: 5; top: calc(var(--header-h, 112px) - 40px); display: grid; gap: var(--space-1h); }
 .pdx-stage {
   position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius-xl); overflow: hidden; isolation: isolate;
   background: radial-gradient(120% 90% at 50% 0%, var(--surface-2), var(--surface) 60%, var(--bg));
   border: 1px solid var(--line); box-shadow: var(--shadow-lg); cursor: zoom-in;
+  touch-action: pan-y pinch-zoom;
 }
-.pdx-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.9s var(--ease-out), opacity 0.4s var(--ease); }
-.pdx-stage:hover .pdx-photo { transform: scale(1.06); }
-.pdx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity 0.6s var(--ease); }
-.pdx-stage.is-gl .pdx-canvas { opacity: 1; }
-.pdx-stage.is-gl .pdx-photo { opacity: 0; transform: none; }
-.pdx-stage-glow { position: absolute; inset: auto -20% -40% -20%; height: 60%; z-index: 1; pointer-events: none; background: radial-gradient(closest-side, rgba(var(--brand-rgb), 0.18), transparent); mix-blend-mode: screen; opacity: 0.7; }
+.pdx-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.25s var(--ease), translate 0.3s var(--ease-out); }
+/* A quick fade while the next photo loads (product.js adds is-switching). */
+.pdx-stage.is-switching .pdx-photo { opacity: 0.35; }
+
+/* ---------- Real zoom (mouse): a lens over the photo, the magnified spot in a panel beside it ---------- */
+.pdx-lens {
+  position: absolute; z-index: 2; left: 0; top: 0; width: var(--lens-w, 40%); height: var(--lens-h, 40%);
+  border: 1.5px solid rgba(255, 255, 255, 0.85); border-radius: 10px; pointer-events: none;
+  background: rgba(var(--brand-rgb), 0.12); box-shadow: 0 0 0 9999px rgba(10, 10, 11, 0.28);
+  transform: translate(var(--lens-x, 0), var(--lens-y, 0));
+}
+.pdx-zoom {
+  position: absolute; z-index: 30; top: 0; left: calc(100% + var(--pdx-gap));
+  width: var(--zoom-w, 100%); aspect-ratio: 1 / 1; border-radius: var(--radius-xl); overflow: hidden;
+  background: var(--surface) no-repeat; background-image: var(--zoom-src); background-size: var(--zoom-size, 250%); background-position: var(--zoom-pos, 50% 50%);
+  border: 1px solid var(--line-strong); box-shadow: var(--shadow-xl);
+}
+/* One column (tablets): no room beside the photo, so the photo itself zooms in place. */
+.pdx-stage.is-inplace .pdx-photo { transform-origin: var(--zoom-pos, 50% 50%); transform: scale(2.5); transition: none; }
+.pdx-stage.is-zooming { cursor: crosshair; }
+.hint-touch { display: none; }
+@media (hover: none), (pointer: coarse) {
+  .hint-mouse { display: none; }
+  .hint-touch { display: inline; }
+  .pdx-stage-hint { opacity: 1; transform: none; }
+}
 .pdx-stage-top { position: absolute; inset: var(--space-2) var(--space-2) auto; z-index: 2; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
 .pdx-stage-top > * { pointer-events: auto; }
 .pdx-stage-nav { position: absolute; left: 50%; bottom: var(--space-2); z-index: 2; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 5px; border-radius: var(--radius-pill); background: rgba(10, 10, 11, 0.55); backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4); border: 1px solid rgba(255, 255, 255, 0.1); }
 .pdx-count { min-width: 56px; text-align: center; font: var(--weight-bold) var(--text-lg)/1 var(--display); color: #f5f5f0; font-variant-numeric: tabular-nums; }
 .pdx-count-of { margin-left: 4px; opacity: 0.5; font-size: var(--text-sm); }
-.pdx-stage-hint { position: absolute; left: var(--space-2); bottom: var(--space-2); z-index: 2; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(245, 245, 240, 0.7); opacity: 0; transform: translateY(6px); transition: opacity 0.3s var(--ease), transform 0.3s var(--ease); }
+.pdx-stage-hint { position: absolute; left: var(--space-2); bottom: var(--space-2); z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--radius-pill); background: rgba(10, 10, 11, 0.55); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: 12px; font-weight: var(--weight-semibold); color: rgba(245, 245, 240, 0.9); opacity: 0; transform: translateY(6px); transition: opacity 0.3s var(--ease), transform 0.3s var(--ease); pointer-events: none; }
 .pdx-stage:hover .pdx-stage-hint { opacity: 1; transform: none; }
-.pdx-stage-nav ~ .pdx-stage-hint { display: none; }
+.pdx-stage.is-zooming .pdx-stage-hint { opacity: 0; }
+/* With photo arrows at the bottom centre, the hint moves to the top left. */
+.pdx-stage-nav ~ .pdx-stage-hint { bottom: auto; top: var(--space-2); }
 
 .pdx-icon-btn { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(10, 10, 11, 0.5); color: #f5f5f0; cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: background 0.2s var(--ease), color 0.2s var(--ease), transform 0.25s var(--ease-spring); }
 .pdx-icon-btn:hover { background: var(--brand); color: var(--on-brand); transform: scale(1.08); }
@@ -319,7 +343,6 @@ a.pdx-chip:hover { color: var(--ink); border-color: var(--line-hover); }
 
 /* ---------- Light theme touches ---------- */
 :root[data-theme="light"] .pdx-stage { background: radial-gradient(120% 90% at 50% 0%, #fff, var(--surface-2)); }
-:root[data-theme="light"] .pdx-stage-glow { mix-blend-mode: multiply; opacity: 0.35; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1080px) {
@@ -342,4 +365,18 @@ a.pdx-chip:hover { color: var(--ink); border-color: var(--line-hover); }
   .pdx-title .w > span { animation: none; transform: none; }
   .pdx-marquee-track, .pdx-btn-buy::after, .pdx-dot { animation: none; }
   .pdx-feature { transform: none; }
+}
+
+/* ---------- Full-screen viewer zoom (product.js) ---------- */
+/* The photo takes pinch, drag and double-tap itself, so the browser must not scroll or zoom the page. */
+.lightbox-stage { overflow: hidden; }
+.lightbox-stage img { touch-action: none; cursor: zoom-in; transform-origin: 50% 50%; transition: transform 0.2s var(--ease-out); will-change: transform; }
+.lightbox.is-zoomed .lightbox-stage img { cursor: grab; }
+.lightbox.is-zoomed .lightbox-stage img:active { cursor: grabbing; transition: none; }
+/* While zoomed in, the photo arrows step aside so they do not cover it. */
+.lightbox.is-zoomed .lightbox-nav { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .lightbox-stage img { transition: none; } }
+/* Touch screens: there is no hover, so the "Tap to zoom" hint is always shown (kept last so it wins). */
+@media (hover: none), (pointer: coarse) {
+  .pdx-stage-hint { opacity: 1; transform: none; }
 }

@@ -1,4 +1,4 @@
-// Motion layer: scroll reveals, 3D tilt, glass header, counters, progress bar (and parallax on a .hero, if a page has one).
+// Motion layer: scroll reveals, 3D tilt, glass header, counters (and parallax on a .hero, if a page has one).
 // Everything here is decoration. If this file fails, the page is still complete and visible:
 // content is only hidden while <html> has the "js-motion" class, which this file adds last.
 (function () {
@@ -106,16 +106,10 @@
     });
   }
 
-  // ---------- Scroll-driven bits: header glass, progress bar, hero parallax ----------
+  // ---------- Scroll-driven bits: header glass, hero parallax ----------
   function setupScroll() {
     const header = document.querySelector("[data-site-header]");
     const hero = document.querySelector(".hero");
-
-    const bar = document.createElement("div");
-    bar.className = "scroll-progress";
-    bar.setAttribute("aria-hidden", "true");
-    bar.append(document.createElement("span"));
-    document.body.append(bar);
 
     let heroBg = null;
     if (hero) {
@@ -130,8 +124,6 @@
       ticking = false;
       const y = window.scrollY || root.scrollTop;
       if (header) header.classList.toggle("is-scrolled", y > 20);
-      const max = root.scrollHeight - window.innerHeight;
-      bar.style.setProperty("--progress", max > 0 ? Math.min(1, y / max).toFixed(4) : "0");
       // The hero background moves at 35% of the scroll speed, so it drifts behind the text.
       if (heroBg && !reduced.matches && y < hero.offsetTop + hero.offsetHeight) {
         heroBg.style.translate = `0 ${(y * 0.35).toFixed(1)}px`;
@@ -176,11 +168,14 @@
     counters.forEach(el => observer.observe(el));
   }
 
-  // ---------- Product images fade in when they finish loading ----------
+  // ---------- Product images below the first screen fade in when they finish loading ----------
+  // Photos on the first screen are never hidden: that would hold back the page's main photo.
   function setupImages() {
     const selector = ".product-media img, .gallery-main img, .slide-img, .category-media img, .cart-item-media img, .thumb img";
+    const fold = window.innerHeight;
     document.querySelectorAll(selector).forEach(img => {
       if (img.complete && img.naturalWidth) return;
+      if (img.getBoundingClientRect().top < fold) return;
       img.classList.add("is-loading");
       const done = () => {
         img.classList.add("is-loaded");

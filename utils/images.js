@@ -18,4 +18,10 @@ function srcsetFor(url, widths = CARD_WIDTHS) {
     .join(", ");
 }
 
-module.exports = { srcsetFor, CARD_WIDTHS, CARD_SIZES };
+// One width of an Unsplash photo (thumbnails); our own uploads are returned as they are.
+function sizedUrl(url, width) {
+  if (typeof url !== "string" || !UNSPLASH.test(url)) return url;
+  return /([?&])w=\d+/.test(url) ? url.replace(/([?&])w=\d+/, `$1w=${width}`) : `${url}&w=${width}`;
+}
+
+module.exports = { srcsetFor, sizedUrl, CARD_WIDTHS, CARD_SIZES };

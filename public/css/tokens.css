@@ -98,8 +98,8 @@
   --ink: #f5f5f0;              /* ivory */
   --ink-2: #d4d4cd;
   --muted: #9a9aa3;
-  --muted-2: #74747c;
-  --placeholder: #74747c;
+  --muted-2: #85858d;          /* 5.9:1 on --bg, 5.2:1 on --surface-2 (was #74747c: 4.3:1, below AA) */
+  --placeholder: #85858d;
   --disabled: #4a4a52;
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.14);
@@ -115,7 +115,10 @@
   --ring-danger: 0 0 0 4px rgba(var(--danger-rgb), 0.16);
   --glow: 0 0 0 1px rgba(var(--brand-rgb), 0.5), 0 0 24px rgba(var(--brand-rgb), 0.22);
 
-  /* ---------- Spacing: an 8px scale (with 4px half steps) ---------- */
+  /* ---------- Spacing: an 8px scale (with 4px half steps) ----------
+     The small steps (inside components) are fixed, so buttons, fields and cards keep their
+     shape. The large steps (between blocks and sections) breathe: tighter on a phone, the
+     full value from 1440px up. */
   --space-0: 0;
   --space-half: 4px;
   --space-1: 8px;
@@ -124,27 +127,37 @@
   --space-2h: 20px;
   --space-3: 24px;
   --space-4: 32px;
-  --space-5: 40px;
-  --space-6: 48px;
-  --space-8: 64px;
-  --space-10: 80px;
+  --space-5: clamp(32px, 0.741vw + 29.33px, 40px);    /* 32 → 40px */
+  --space-6: clamp(36px, 1.111vw + 32px, 48px);       /* 36 → 48px */
+  --space-8: clamp(44px, 1.852vw + 37.33px, 64px);    /* 44 → 64px */
+  --space-10: clamp(52px, 2.593vw + 42.67px, 80px);   /* 52 → 80px */
+
+  /* ---------- Layout ---------- */
+  --container: 1440px;                       /* widest content column; grows on wide screens */
+  --gutter: clamp(16px, 2.5vw, 40px);        /* page side padding: 16px phone → 36px laptop → 40px */
+  --tap: 44px;                               /* smallest touch target (WCAG 2.5.5) */
 
   /* ---------- Type ---------- */
   --font: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
   --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
-  --text-2xs: 11px;
-  --text-xs: 12px;
-  --text-sm: 13px;
-  --text-base: 15px;
-  --text-md: 17px;
-  --text-lg: 20px;
+  /* Everything is in rem, so a visitor's own browser text size is respected (WCAG 1.4.4).
+     At the default 16px root, the phone sizes are exactly what they were in px.
+     Body sizes grow by one or two pixels between a 360px phone and a 1440px screen;
+     the two tiny label sizes stay fixed so dense rows never reflow. On ultra-wide
+     screens the root size itself grows (see "Wide screens" below), so everything follows. */
+  --text-2xs: 0.6875rem;                                              /* 11px */
+  --text-xs: 0.75rem;                                                 /* 12px */
+  --text-sm: clamp(0.8125rem, 0.0926vw + 0.7917rem, 0.875rem);       /* 13 → 14px */
+  --text-base: clamp(0.9375rem, 0.0926vw + 0.9167rem, 1rem);         /* 15 → 16px */
+  --text-md: clamp(1.0625rem, 0.0926vw + 1.0417rem, 1.125rem);       /* 17 → 18px */
+  --text-lg: clamp(1.25rem, 0.1852vw + 1.2083rem, 1.375rem);         /* 20 → 22px */
   /* Headings scale smoothly between a 360px phone and a 1440px screen. */
-  --text-xl: clamp(20px, 0.37vw + 18.7px, 24px);
-  --text-2xl: clamp(26px, 0.74vw + 23.3px, 34px);
-  --text-3xl: clamp(32px, 1.3vw + 27.3px, 46px);
-  --text-4xl: clamp(38px, 1.85vw + 31.3px, 58px);
-  --text-hero: clamp(44px, 6.4vw, 92px);
-  --text-display: clamp(52px, 8.4vw, 132px);
+  --text-xl: clamp(1.25rem, 0.37vw + 1.1688rem, 1.5rem);             /* 20 → 24px */
+  --text-2xl: clamp(1.625rem, 0.74vw + 1.4563rem, 2.125rem);         /* 26 → 34px */
+  --text-3xl: clamp(2rem, 1.3vw + 1.7063rem, 2.875rem);              /* 32 → 46px */
+  --text-4xl: clamp(2.375rem, 1.85vw + 1.9563rem, 3.625rem);         /* 38 → 58px */
+  --text-hero: clamp(2.75rem, 6.4vw, 5.75rem);                       /* 44 → 92px */
+  --text-display: clamp(3.25rem, 8.4vw, 8.25rem);                    /* 52 → 132px */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
@@ -241,6 +254,38 @@
   --sh-sm: var(--shadow-sm);
   --sh-md: var(--shadow-md);
   --sh-lg: var(--shadow-lg);
+}
+
+/* ---------- Breakpoints ----------
+   CSS cannot put a variable inside @media, so these are the only widths the stylesheets use.
+   Phone-first thinking, written as max-width queries where the page was built desktop-first.
+     420px   small phone (iPhone SE, older Android)
+     560px   large phone
+     720px   phone / small tablet edge (mobile.css)
+     900px   tablet portrait
+     1024px  tablet landscape, small laptop
+     1180px  laptop (header and filters reflow)
+     1440px  desktop: the design width
+     1920px  wide desktop          (rules below)
+     2560px  QHD / 4K at 150%      (rules below)
+     3200px  4K at 100% / 5K       (rules below)
+   Input type is checked with (hover: hover) and (pointer: fine) for mouse,
+   and (pointer: coarse) for touch, never by width. */
+
+/* ---------- Wide screens ----------
+   Past the design width the column grows a little and, from QHD up, the root text size grows,
+   so every rem-based size (all type, the tap size) scales with it. Lines stay readable and the
+   page never looks like a phone layout floating in empty space. */
+@media (min-width: 1920px) {
+  :root { --container: 1600px; --gutter: 48px; }
+}
+@media (min-width: 2560px) {
+  html { font-size: 112.5%; }
+  :root { --container: 1840px; --gutter: 64px; --space-8: 72px; --space-10: 96px; }
+}
+@media (min-width: 3200px) {
+  html { font-size: 125%; }
+  :root { --container: 2200px; --gutter: 80px; --space-8: 80px; --space-10: 112px; }
 }
 
 /* ---------- Light: ivory ----------

@@ -1,0 +1,403 @@
+/* Home page only (views/pages/home.ejs loads it through head.ejs "coreStyles", right after
+   style.css, so the cascade is the same as when these rules lived at the end of style.css). */
+
+/* ==========================================================================
+   3D home: particle hero, zero-gravity showroom, sport ring, showcase podium,
+   flip deals, depth tiles, 3D stats. Motion lives in motion.css.
+   Without JavaScript or WebGL every section is a normal, readable layout.
+   ========================================================================== */
+
+/* ---------- Hero ---------- */
+.hero3d { position: relative; background: var(--navy-950); color: #fff; --focus: var(--accent); }
+.hero3d.has-webgl:not(.is-static) { height: 260vh; }
+.hero3d-sticky { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 560px; overflow: hidden; display: flex; align-items: flex-end; }
+.hero3d-sticky::after { content: ""; position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 70%; background: linear-gradient(rgba(10, 10, 11, 0), rgba(10, 10, 11, 0.86)); pointer-events: none; }
+.hero3d-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s var(--ease); }
+.hero3d.is-live .hero3d-canvas, .hero3d.is-static .hero3d-canvas { opacity: 1; }
+.hero3d-fallback { position: absolute; inset: 0; overflow: hidden; perspective: 900px; background: radial-gradient(60% 55% at 62% 38%, rgba(var(--brand-rgb), 0.32), transparent 70%), var(--gradient-navy); transition: opacity 1s var(--ease); }
+.hero3d.is-live .hero3d-fallback, .hero3d.is-static .hero3d-fallback { opacity: 0; }
+.hf-orb { position: absolute; left: 62%; top: 38%; width: min(360px, 70vw); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle at 40% 35%, #f1ffc4, var(--brand) 38%, rgba(var(--brand-rgb), 0) 70%); filter: blur(2px); opacity: 0.85; }
+.hf-ring { position: absolute; left: 62%; top: 38%; width: min(480px, 90vw); aspect-ratio: 1; margin: calc(min(480px, 90vw) / -2) 0 0 calc(min(480px, 90vw) / -2); border-radius: 50%; border: 2px solid rgba(212, 255, 58, 0.4); transform: rotateX(72deg); }
+.hf-ring-2 { transform: rotateY(64deg) rotateX(18deg); border-color: rgba(255, 255, 255, 0.18); }
+.hf-ring-3 { transform: rotateX(-58deg) rotateY(30deg); border-color: rgba(212, 255, 58, 0.22); }
+.hf-card { position: absolute; width: clamp(96px, 12vw, 160px); aspect-ratio: 1; object-fit: contain; padding: 10px; border-radius: var(--radius-lg); background: rgba(255, 255, 255, 0.92); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); }
+.hf-card-1 { left: 72%; top: 14%; transform: translateZ(80px) rotateY(-18deg) rotateZ(6deg); }
+.hf-card-2 { left: 50%; top: 52%; transform: translateZ(30px) rotateY(16deg) rotateZ(-8deg); }
+.hf-card-3 { left: 84%; top: 50%; transform: translateZ(-40px) rotateY(-26deg); }
+.hero3d-content { position: relative; z-index: 2; padding-bottom: clamp(48px, 9vh, 110px); }
+/* Laptops and desktops: the hero starts at the very top of the page, behind the sticky header,
+   so the first screen already shows the whole hero (headline, buttons and the stage line), exactly
+   as it looks once pinned. --hero-pull is the header's measured height (home.js); --header-h is
+   the usual value until the script runs. Phones are unchanged (their header is not sticky). */
+@media (min-width: 721px) {
+  .home .hero3d { margin-top: calc(-1 * var(--hero-pull, var(--header-h))); }
+}
+.hero3d-kicker { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); color: var(--accent); font-size: var(--text-sm); font-weight: var(--weight-semibold); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.hero3d-title { margin: var(--space-2) 0 var(--space-1h); max-width: 11ch; font-family: var(--display); font-size: var(--text-display); font-weight: var(--weight-black); line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase; text-shadow: 0 6px 40px rgba(0, 0, 0, 0.35); }
+.hero3d-title .word { display: inline-block; white-space: nowrap; perspective: 500px; }
+.hero3d-title .char { display: inline-block; }
+.hero3d-text { max-width: 46ch; color: var(--on-dark); font-size: var(--text-md); }
+.hero3d-actions { display: flex; flex-wrap: wrap; gap: var(--space-1h); margin-top: var(--space-3); }
+.hero3d-stages { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-4) 0 0; padding: 0; color: var(--on-dark-muted); font-size: var(--text-xs); font-weight: var(--weight-bold); letter-spacing: 0.14em; text-transform: uppercase; }
+.hero3d-stages li { display: flex; align-items: center; gap: 8px; opacity: 0.5; transition: opacity var(--duration-slow) var(--ease), color var(--duration-slow) var(--ease); }
+.hero3d-stages li::before { content: ""; width: 22px; height: 2px; border-radius: 2px; background: currentColor; }
+.hero3d[data-stage="0"] [data-stage-label="0"], .hero3d[data-stage="1"] [data-stage-label="1"], .hero3d[data-stage="2"] [data-stage-label="2"] { opacity: 1; color: var(--accent); }
+/* Hidden without the 3D scene, but its space is always kept: if it appeared when WebGL started,
+   the bottom-aligned headline would jump up (a big layout shift). */
+.hero3d:not(.has-webgl) .hero3d-stages, .hero3d.is-static .hero3d-stages { visibility: hidden; }
+.hero3d-scroll { position: absolute; z-index: 2; right: max(var(--space-3), env(safe-area-inset-right)); bottom: var(--space-3); display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--on-dark-muted); font-size: var(--text-2xs); font-weight: var(--weight-bold); letter-spacing: 0.2em; text-transform: uppercase; }
+.hero3d-scroll span { display: block; width: 2px; height: 44px; border-radius: 2px; background: linear-gradient(var(--accent), transparent); }
+.hero3d:not(.has-webgl) .hero3d-scroll, .hero3d.is-static .hero3d-scroll { display: none; }
+
+/* ---------- The zero-gravity showroom ----------
+   An always-dark room, the same in both themes. Modes (set by showroom3d.js):
+   none (no JavaScript): a grid of product cards. .is-3d: a pinned room the camera flies through.
+   .is-float (phones): a floating swipe row. .is-grid (reduced motion): a still 3-column grid.
+   Moving parts only change transform and opacity; far cards get a fixed blur. */
+.showroom {
+  --ink: #f5f5f0; --ink-2: #d4d4cd; --muted: #9a9aa3; --line: rgba(255, 255, 255, 0.1); --line-strong: rgba(255, 255, 255, 0.16);
+  --brand: #d4ff3a; --brand-rgb: 212, 255, 58; --brand-hover: #e2ff74; --on-brand: #0a0a0b; --brand-ink: #d4ff3a; --link: #d4ff3a; --link-hover: #e8ff9a; --focus: #d4ff3a;
+  --surface: #121214; --surface-2: #1a1a1e; --surface-3: #232328;
+  --zg-w: 220px;
+  position: relative; margin-top: var(--space-5); color: var(--ink); color-scheme: dark;
+  background: radial-gradient(80% 60% at 50% 60%, rgba(212, 255, 58, 0.06), transparent 70%), var(--navy-950);
+}
+.showroom-pin { position: relative; padding: var(--space-5) 0 var(--space-6); }
+.showroom-head { position: relative; z-index: 3; }
+.showroom-head h2 { font-size: var(--text-3xl); color: var(--ink); }
+.showroom-hint { margin-top: 6px; color: var(--muted); font-size: var(--text-sm); }
+.showroom-dust, .showroom-light { display: none; }
+
+/* No JavaScript: a plain grid of the same cards */
+.showroom-world { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-2); max-width: var(--container); margin: var(--space-3) auto 0; padding: 0 max(var(--gutter), env(safe-area-inset-left)); }
+.zg-card { position: relative; min-width: 0; }
+.zg-float { display: block; }
+.zg-glass {
+  position: relative; display: flex; flex-direction: column; gap: 10px; padding: 10px 10px 14px; border-radius: var(--radius-lg); overflow: hidden;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.025) 60%), rgba(18, 18, 20, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+.zg-media { display: block; aspect-ratio: 1; border-radius: calc(var(--radius-lg) - 6px); overflow: hidden; background: #f5f5f0; }
+.zg-media img { width: 100%; height: 100%; object-fit: cover; }
+.zg-body { display: flex; flex-direction: column; gap: 4px; padding: 0 4px; min-width: 0; }
+.zg-brand { font-size: var(--text-2xs); font-weight: var(--weight-bold); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.zg-link { color: var(--ink); text-decoration: none; }
+.zg-link:hover { color: var(--ink); text-decoration: none; }
+.zg-link::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.zg-link:focus-visible { outline: none; box-shadow: none; }
+.zg-card:has(.zg-link:focus-visible) .zg-glass { outline: 2px solid var(--focus); outline-offset: 3px; }
+.zg-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; font-weight: var(--weight-semibold); line-height: 1.3; min-height: 2.6em; }
+.zg-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0; font-variant-numeric: tabular-nums; }
+.zg-price strong { font-size: 16px; }
+.zg-price s { font-size: var(--text-xs); color: var(--muted); }
+.zg-price em { font-style: normal; font-size: var(--text-xs); font-weight: var(--weight-bold); color: var(--brand); }
+.zg-actions { position: absolute; z-index: 2; left: 18px; right: 18px; top: 18px; display: flex; gap: 6px; opacity: 0; transform: translateY(-8px); transition: opacity 0.25s var(--ease), transform 0.35s var(--ease-out); pointer-events: none; }
+.zg-card:hover .zg-actions, .zg-card.is-hot .zg-actions { opacity: 1; transform: none; pointer-events: auto; }
+.zg-chip { flex: 1; min-height: 34px; padding: 0 10px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: var(--radius-pill); background: rgba(10, 10, 11, 0.78); color: #f5f5f0; font-size: 12px; font-weight: var(--weight-bold); cursor: pointer; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.zg-chip:hover { border-color: var(--brand); }
+.zg-chip-volt { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.zg-chip-volt:hover { background: var(--brand-hover); }
+.zg-chip:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ----- The 3D room (wide screens) ----- */
+.showroom.is-3d { height: 250vh; }
+.showroom.is-3d .showroom-pin { position: sticky; top: 0; height: 100vh; height: 100svh; padding: 0; overflow: hidden; }
+.showroom.is-3d .showroom-head { position: absolute; left: 0; right: 0; top: calc(var(--header-h) + var(--space-2)); margin: 0 auto; pointer-events: none; }
+.showroom.is-3d .showroom-head a { pointer-events: auto; }
+.showroom.is-3d .showroom-light { display: block; position: absolute; left: 50%; top: 56%; width: 70vmin; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(212, 255, 58, 0.2), rgba(212, 255, 58, 0.05) 55%, transparent); pointer-events: none; }
+.showroom.is-3d .showroom-dust { display: block; position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.showroom.is-3d .showroom-stage { position: absolute; inset: 0; perspective: 1200px; perspective-origin: 50% 56%; }
+.showroom.is-3d .showroom-world { position: absolute; left: 50%; top: 56%; display: block; width: 0; height: 0; margin: 0; padding: 0; transform-style: preserve-3d; }
+.showroom.is-3d .zg-card { position: absolute; left: calc(var(--zg-w) / -2); top: calc(var(--zg-w) * -0.68); width: var(--zg-w); transform-style: preserve-3d; }
+.showroom.is-3d .zg-float { transform-style: preserve-3d; }
+.showroom.is-3d .zg-glass::after { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; background: #050506; opacity: var(--fog, 0); pointer-events: none; }
+.showroom.is-3d .zg-glass::before { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; box-shadow: inset 0 0 0 1.5px var(--brand), 0 0 0 1px rgba(212, 255, 58, 0.25), inset 0 0 26px rgba(212, 255, 58, 0.2); opacity: 0; transition: opacity 0.3s var(--ease); pointer-events: none; }
+.showroom.is-3d .zg-card.is-hot .zg-glass::before { opacity: 1; }
+.showroom.is-3d .zg-card.is-far .zg-glass { filter: blur(1.6px); }
+.showroom.is-3d .zg-card.is-gone { pointer-events: none; }
+.showroom.is-3d .zg-glass { transition: opacity 0.45s var(--ease), filter 0.45s var(--ease); }
+.showroom.is-focused .zg-card:not(.is-active) .zg-glass { opacity: 0.16; filter: blur(5px); }
+.showroom.is-focused .showroom-head { opacity: 0; transition: opacity 0.3s var(--ease); }
+
+/* The detail card: two pages; the info page swings open like a book. */
+.zg-detail { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: calc(var(--header-h) + var(--space-2)) var(--space-2) var(--space-2); perspective: 1600px; background: radial-gradient(60% 60% at 50% 55%, rgba(5, 5, 6, 0.35), rgba(5, 5, 6, 0.7)); }
+.zg-detail[hidden] { display: none; }
+.zg-book { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); width: min(880px, 100%); transform-style: preserve-3d; }
+.zg-page { position: relative; border-radius: var(--radius-lg); background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03) 60%), #121214; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6); }
+.zg-page-photo { overflow: hidden; border-radius: var(--radius-lg) 0 0 var(--radius-lg); border-right: 0; background: #f5f5f0; }
+.zg-page-photo img { width: 100%; height: 100%; min-height: 360px; object-fit: cover; }
+.zg-page-info { display: flex; flex-direction: column; gap: 12px; padding: var(--space-4) var(--space-3) var(--space-3); border-radius: 0 var(--radius-lg) var(--radius-lg) 0; transform-origin: 0 50%; backface-visibility: hidden; }
+.zg-close { position: absolute; right: 12px; top: 12px; display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 50%; background: rgba(255, 255, 255, 0.04); color: var(--ink); cursor: pointer; }
+.zg-close:hover { border-color: var(--brand); color: var(--brand); }
+.zg-d-brand { font-size: var(--text-2xs); font-weight: var(--weight-bold); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.zg-d-name { margin-right: 44px; font-size: var(--text-2xl); font-weight: var(--weight-bold); line-height: 1.15; }
+.zg-d-rating { color: var(--muted); font-size: var(--text-sm); }
+.zg-d-rating b { color: var(--brand); }
+.zg-d-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; font-variant-numeric: tabular-nums; }
+.zg-d-price strong { font-size: 28px; }
+.zg-d-price s { color: var(--muted); }
+.zg-d-price em { font-style: normal; font-weight: var(--weight-bold); color: var(--brand); }
+.zg-d-highlights { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; color: var(--ink-2); font-size: var(--text-sm); }
+.zg-d-highlights li { position: relative; padding-left: 18px; }
+.zg-d-highlights li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 10px rgba(212, 255, 58, 0.6); }
+.zg-d-buy { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+.zg-d-buy .btn { flex: 1; }
+.zg-qty { display: inline-flex; align-items: center; height: 44px; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: var(--radius-pill); }
+.zg-qty button { display: grid; place-items: center; width: 38px; height: 100%; border: 0; background: none; color: var(--ink); cursor: pointer; }
+.zg-qty button:disabled { opacity: 0.35; cursor: not-allowed; }
+.zg-qty input { width: 34px; border: 0; background: none; text-align: center; font-weight: var(--weight-bold); -moz-appearance: textfield; }
+.zg-qty input::-webkit-inner-spin-button, .zg-qty input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ----- Phones: a floating swipe row, tilted by the gyroscope where allowed ----- */
+.showroom.is-float .showroom-world { display: flex; gap: var(--space-2); overflow-x: auto; scroll-snap-type: x mandatory; padding: var(--space-3) max(var(--space-2), env(safe-area-inset-left)) var(--space-5); scrollbar-width: none; perspective: 900px; }
+.showroom.is-float .showroom-world::-webkit-scrollbar { display: none; }
+.showroom.is-float .zg-card { flex: 0 0 min(64vw, 260px); scroll-snap-align: center; }
+.showroom.is-float .zg-card:nth-child(even) { margin-top: 28px; }
+.showroom.is-float .zg-glass { transform: rotateY(calc(var(--tilt-y, 0) * 1deg)) rotateX(calc(var(--tilt-x, 0) * 1deg)); }
+.showroom.is-float .zg-actions, .showroom.is-grid .zg-actions { position: relative; inset: auto; opacity: 1; transform: none; pointer-events: auto; padding: 0 4px; }
+.showroom.is-float .zg-actions [data-zg-quick] { display: none; }
+.showroom.is-float .zg-chip-volt, .showroom.is-grid .zg-chip-volt { flex: none; padding: 0 16px; }
+.showroom.is-float .showroom-hint { display: none; }
+
+/* ----- Reduced motion: a clean, still 3-column grid ----- */
+.showroom.is-grid .showroom-world { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 1100px; }
+.showroom.is-grid .showroom-hint { display: none; }
+.showroom.is-grid .zg-actions [data-zg-quick] { display: none; }
+
+@media (max-width: 720px) {
+  .zg-book { grid-template-columns: minmax(0, 1fr); width: min(420px, 100%); max-height: 100%; overflow-y: auto; }
+  .zg-page-photo { border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-right: 1px solid rgba(255, 255, 255, 0.12); border-bottom: 0; }
+  .zg-page-photo img { min-height: 0; aspect-ratio: 4 / 3; }
+  .zg-page-info { border-radius: 0 0 var(--radius-lg) var(--radius-lg); transform-origin: 50% 0; }
+  .showroom.is-grid .showroom-world { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .showroom.is-grid .showroom-world { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Pick your sport: the 3D sport carousel ring ----------
+   Three modes. No JavaScript: a plain grid of linked cards. .is-row (reduced motion): a swipe row.
+   .is-ring: six cards on a CSS 3D ring, turned by scroll (.is-pinned), drag, tabs, keys and a timer.
+   Turning only ever changes transform and opacity. */
+.sport-ring { --card-w: 300px; --card-h: 420px; --step: calc(360deg / var(--count)); position: relative; margin-top: var(--space-5); }
+.sport-ring-pin { position: relative; }
+.sport-ring-head { position: relative; z-index: 2; margin-bottom: var(--space-3); }
+.sport-ring-head h2 { font-size: var(--text-3xl); }
+.sport-ring-bg, .sport-ring-floor { display: none; }
+.sport-ring:not(.is-ring) .sport-ring-stage { max-width: var(--container); margin: 0 auto; padding-left: max(var(--gutter), env(safe-area-inset-left)); padding-right: max(var(--gutter), env(safe-area-inset-right)); }
+
+/* Plain grid (no JavaScript) */
+.sport-ring-track { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-2); }
+.sport-card { position: relative; display: block; aspect-ratio: 5 / 7; color: #fff; text-decoration: none; border-radius: var(--radius-lg); }
+.sport-card:hover, .sport-card:focus-visible { color: #fff; text-decoration: none; }
+.sport-card-float, .sport-card-tilt { position: absolute; inset: 0; display: block; }
+.sport-card-media { position: absolute; inset: 0; display: block; overflow: hidden; border-radius: var(--radius-lg); background: radial-gradient(120% 80% at 50% 0%, var(--sport), var(--navy-900) 70%); box-shadow: var(--shadow-md); }
+.sport-card-media img { width: 100%; height: 100%; object-fit: cover; }
+.sport-card-shade { position: absolute; inset: 0; background: linear-gradient(rgba(10, 10, 11, 0) 35%, rgba(10, 10, 11, 0.9)); }
+.sport-card-glare { display: none; }
+.sport-card-text { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: var(--space-3); }
+.sport-card-num { font-family: var(--display); font-size: var(--text-2xl); font-weight: var(--weight-bold); line-height: 1; color: var(--sport); text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5); }
+.sport-card-name { font-family: var(--display); font-size: var(--text-3xl); font-weight: var(--weight-black); line-height: 0.95; text-transform: uppercase; letter-spacing: 0.01em; }
+.sport-card-meta { font-size: var(--text-sm); color: var(--on-dark); font-variant-numeric: tabular-nums; }
+.sport-card-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: var(--space-1); padding: 9px 16px; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font-size: var(--text-sm); font-weight: var(--weight-bold); box-shadow: 0 8px 24px rgba(var(--brand-rgb), 0.3); }
+.sport-card-back { display: none; }
+.sport-card:focus-visible { outline: 3px solid var(--focus, var(--brand)); outline-offset: 4px; }
+
+/* Tabs with a sliding underline, dots and the 01 / 06 counter (JavaScript only) */
+.sport-tabs { position: relative; display: flex; gap: 4px; margin-top: var(--space-2); overflow-x: auto; scrollbar-width: none; }
+.sport-tabs[hidden], .sport-ring-foot[hidden] { display: none; }
+.sport-tabs::-webkit-scrollbar { display: none; }
+.sport-tab { flex: none; padding: 10px 14px 12px; border: 0; background: none; color: var(--muted); font: inherit; font-size: var(--text-sm); font-weight: var(--weight-bold); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: color var(--duration) var(--ease); }
+.sport-tab:hover, .sport-tab[aria-selected="true"] { color: var(--ink); }
+.sport-tabs-line { position: absolute; left: 0; bottom: 2px; width: 100px; height: 3px; border-radius: 3px; background: var(--brand); box-shadow: 0 0 12px rgba(var(--brand-rgb), 0.7); transform-origin: 0 50%; transform: translateX(var(--line-x, 0)) scaleX(var(--line-w, 0)); transition: transform 0.5s var(--ease-out); pointer-events: none; }
+.sport-ring-foot { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }
+.sport-dots { display: flex; gap: 2px; }
+.sport-dot { position: relative; width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; }
+.sport-dot::before { content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--line-strong); transition: transform 0.4s var(--ease-out), background-color 0.4s var(--ease); }
+.sport-dot[aria-pressed="true"]::before { background: var(--brand); transform: scale(1.5); }
+.sport-count { margin: 0; font-family: var(--display); font-size: var(--text-lg); font-weight: var(--weight-bold); letter-spacing: 0.08em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sport-count strong { color: var(--ink); }
+
+/* Reduced motion: a horizontal swipe row, no ring and no timer */
+.sport-ring.is-row .sport-ring-track { display: flex; gap: var(--space-2); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: var(--space-2); scrollbar-width: thin; }
+.sport-ring.is-row .sport-card { flex: 0 0 min(260px, 72vw); scroll-snap-align: center; }
+
+/* ----- The 3D ring ----- */
+.sport-ring.is-ring { --scene-h: clamp(520px, 70vh, 700px); }
+.sport-ring.is-ring .sport-ring-pin { overflow: hidden; padding: var(--space-4) 0 var(--space-3); }
+.sport-ring.is-ring .sport-ring-bg { display: block; position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.sport-ring-glow { position: absolute; left: 50%; top: 58%; width: min(1100px, 150vw); aspect-ratio: 1.6; transform: translate(-50%, -50%); background: radial-gradient(closest-side, color-mix(in srgb, var(--sport) 40%, transparent), transparent); opacity: 0; transition: opacity 0.9s var(--ease); }
+.sport-ring-glow.is-active { opacity: 1; }
+.sport-ring-word { position: absolute; left: 0; right: 0; top: 54%; text-align: center; font-family: var(--display); font-size: clamp(88px, 19vw, 300px); font-weight: var(--weight-black); line-height: 1; letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap; color: transparent; -webkit-text-stroke: 2px rgba(255, 255, 255, 0.12); opacity: 0; transform: translate3d(var(--word-x, 12%), -50%, 0); transition: transform 0.9s var(--ease-out), opacity 0.6s var(--ease); }
+.sport-ring-word.is-before { --word-x: -12%; }
+.sport-ring-word.is-active { --word-x: 0%; opacity: 1; }
+
+.sport-ring.is-ring .sport-ring-track { position: absolute; left: 50%; top: 46%; display: block; width: var(--card-w); height: var(--card-h); margin: calc(var(--card-h) / -2) 0 0 calc(var(--card-w) / -2); transform-style: preserve-3d; transform: translateZ(calc(var(--r, 400px) * -1)) rotateY(var(--angle, 0deg)); transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.sport-ring.is-ring .sport-ring-stage { position: relative; height: var(--scene-h); cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.sport-ring.is-ring .sport-ring-stage:active { cursor: grabbing; }
+.sport-ring.is-ring .sport-ring-stage:focus-visible { outline: 3px solid var(--focus, var(--brand)); outline-offset: -6px; border-radius: var(--radius-lg); }
+.sport-ring.is-ring .sport-ring-scene { position: absolute; inset: 0; perspective: 1600px; perspective-origin: 50% 40%; }
+.sport-ring.is-dragging .sport-ring-track { transition: none; }
+.sport-ring.is-ring .sport-card { --s: 0.9; position: absolute; inset: 0; aspect-ratio: auto; transform-style: preserve-3d; transform: rotateY(calc(var(--i) * var(--step))) translateZ(var(--r, 400px)) scale(var(--s)); transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); -webkit-user-drag: none; }
+.sport-ring.is-ring .sport-card[data-pos="0"] { --s: 1.1; }
+.sport-ring.is-ring .sport-card img { pointer-events: none; -webkit-user-drag: none; }
+.sport-ring.is-ring .sport-card-float, .sport-ring.is-ring .sport-card-tilt { transform-style: preserve-3d; }
+.sport-ring.is-ring .sport-card-tilt { transform: rotateX(var(--tx, 0deg)) rotateY(var(--ty, 0deg)); transition: transform 0.5s var(--ease-out); }
+.sport-ring.is-ring .sport-card.is-tilting .sport-card-tilt { transition-duration: 0.12s; }
+.sport-ring.is-ring .sport-card-media { transform: translateZ(20px); backface-visibility: hidden; box-shadow: 0 30px 60px rgba(10, 10, 11, 0.35); }
+.sport-ring.is-ring .sport-card-media img { transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(1.14); transition: transform 0.5s var(--ease-out); }
+/* Side cards are darker (a black layer, so only opacity animates) and only show the name. */
+.sport-ring.is-ring .sport-card-media::after { content: ""; position: absolute; inset: 0; background: #050506; opacity: 0.5; transition: opacity 0.7s var(--ease); }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-media::after { opacity: 0; }
+/* The active card's glow border, and a glow behind it */
+.sport-ring.is-ring .sport-card-media::before { content: ""; position: absolute; inset: 0; z-index: 3; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--brand), inset 0 0 30px rgba(var(--brand-rgb), 0.35); opacity: 0; transition: opacity 0.7s var(--ease); pointer-events: none; }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-media::before { opacity: 1; }
+.sport-ring.is-ring .sport-card-float::before { content: ""; position: absolute; inset: -18px; background: radial-gradient(closest-side, rgba(var(--brand-rgb), 0.5), transparent); opacity: 0; transition: opacity 0.7s var(--ease); }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-float::before { opacity: 0.85; }
+.sport-ring.is-ring .sport-card-text { transform: translateZ(22px); backface-visibility: hidden; transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-text { transform: translateZ(60px); }
+.sport-ring.is-ring :is(.sport-card-num, .sport-card-meta, .sport-card-cta) { opacity: 0; transform: translateY(10px); transition: opacity 0.4s var(--ease), transform 0.5s var(--ease-out); }
+.sport-ring.is-ring .sport-card[data-pos="0"] :is(.sport-card-num, .sport-card-meta, .sport-card-cta) { opacity: 1; transform: none; transition-delay: 0.25s; }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-meta { transition-delay: 0.32s; }
+.sport-ring.is-ring .sport-card[data-pos="0"] .sport-card-cta { transition-delay: 0.4s; }
+.sport-ring.is-ring .sport-card-glare { display: block; position: absolute; left: -50%; top: -50%; width: 200%; height: 200%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.28), transparent 70%); opacity: 0; transform: translate(var(--gx, 0px), var(--gy, 0px)); transition: opacity 0.3s var(--ease); pointer-events: none; }
+.sport-ring.is-ring .sport-card.is-tilting .sport-card-glare { opacity: 1; }
+/* Cards turned away show a plain back with the name the right way round. */
+.sport-ring.is-ring .sport-card-back { display: grid; place-items: center; position: absolute; inset: 0; border-radius: var(--radius-lg); background: linear-gradient(160deg, color-mix(in srgb, var(--sport) 30%, var(--navy-900)), var(--navy-950)); border: 1px solid rgba(255, 255, 255, 0.08); transform: rotateY(180deg) translateZ(1px); backface-visibility: hidden; }
+.sport-ring.is-ring .sport-card-back span { font-family: var(--display); font-size: var(--text-2xl); font-weight: var(--weight-black); text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255, 255, 255, 0.55); }
+/* Far cards take no clicks and blur slightly with distance (wide screens only). */
+.sport-ring.is-ring .sport-card:not([data-pos="0"]):not([data-pos="1"]):not([data-pos="-1"]) { pointer-events: none; }
+.sport-ring.is-ring .sport-card:is([data-pos="1"], [data-pos="-1"]) .sport-card-media { filter: blur(0.6px); }
+.sport-ring.is-ring .sport-card:is([data-pos="2"], [data-pos="-2"]) .sport-card-media { filter: blur(1.6px); }
+.sport-ring.is-ring .sport-card:is([data-pos="3"], [data-pos="-3"]) .sport-card-media { filter: blur(2.6px); }
+
+/* The floor: a soft shadow under the active card, and a faint mirrored reflection of the ring. */
+.sport-ring.is-ring .sport-ring-floor { display: block; position: absolute; left: 50%; top: calc(46% + var(--card-h) * 0.57); width: calc(var(--card-w) * 1.6); height: 56px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(10, 10, 11, 0.4), transparent); pointer-events: none; }
+.sport-ring-mirror { position: absolute; inset: 0; perspective: 1600px; perspective-origin: 50% 40%; opacity: 0.2; pointer-events: none; transform-origin: 50% calc(46% + var(--card-h) * 0.55); transform: scaleY(-1); -webkit-mask-image: linear-gradient(transparent calc(46% + var(--card-h) * 0.1), #000 calc(46% + var(--card-h) * 0.55)); mask-image: linear-gradient(transparent calc(46% + var(--card-h) * 0.1), #000 calc(46% + var(--card-h) * 0.55)); }
+.sport-ring-mirror .sport-card-text, .sport-ring-mirror .sport-card-glare, .sport-ring-mirror .sport-card-float::before { display: none; }
+
+/* Cards fade and rise in the first time the ring is seen (the Web Animations API plays it). */
+.sport-ring.is-waiting .sport-card-float { opacity: 0; }
+
+/* Scroll-pinned (wide screens): the section is tall and the ring stays on screen while it turns. */
+.sport-ring.is-pinned { height: calc(100vh + (var(--count) - 1) * 55vh); }
+.sport-ring.is-pinned .sport-ring-pin { position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: calc(var(--header-h) + var(--space-2)) 0 var(--space-2); }
+.sport-ring.is-pinned .sport-ring-stage { flex: 0 1 var(--scene-h); min-height: 470px; }
+.sport-ring.is-pinned .sport-ring-head { margin-bottom: var(--space-1); }
+
+@media (max-width: 720px) {
+  .sport-ring { --card-w: 220px; --card-h: 310px; }
+  .sport-ring.is-ring { --scene-h: 430px; }
+  .sport-ring.is-ring .sport-card-media img { transform: scale(1.06); }
+  .sport-ring.is-ring .sport-card-text { padding: var(--space-2); }
+  .sport-ring.is-ring .sport-card-name { font-size: var(--text-2xl); }
+  .sport-ring.is-ring .sport-card .sport-card-media { filter: none; box-shadow: 0 18px 36px rgba(10, 10, 11, 0.3); }
+  .sport-ring-mirror { display: none; }
+  .sport-ring-word { -webkit-text-stroke-width: 1.5px; }
+}
+
+:root[data-theme="light"] .sport-ring-word { -webkit-text-stroke-color: rgba(10, 10, 11, 0.12); }
+
+/* ---------- Showcase ---------- */
+.showcase { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: var(--space-5); align-items: center; }
+.showcase-copy { display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+.showcase-copy h2 { font-size: var(--text-3xl); }
+.showcase-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); }
+.showcase-points li { display: flex; gap: 8px; align-items: flex-start; }
+.showcase-points .i { color: var(--success); margin-top: 3px; }
+.showcase-stage { --lx: 50%; --ly: 30%; position: relative; aspect-ratio: 1 / 0.92; border-radius: var(--radius-xl); background: var(--gradient-navy); overflow: hidden; perspective: 1000px; box-shadow: var(--shadow-lg); }
+.showcase-light { position: absolute; inset: 0; background: radial-gradient(38% 38% at var(--lx) var(--ly), rgba(212, 255, 58, 0.42), transparent 70%); pointer-events: none; }
+.showcase-scene { position: absolute; z-index: 1; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.6s var(--ease-out); }
+.showcase-product { position: absolute; left: 50%; top: 9%; width: 44%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-xl); border: 1px solid rgba(255, 255, 255, 0.16); transform: translate3d(-50%, 0, 60px); box-shadow: 0 40px 70px rgba(0, 0, 0, 0.5), 0 0 0 6px rgba(255, 255, 255, 0.04); }
+.showcase-reflection { position: absolute; left: 50%; top: 58%; width: 44%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-xl); transform: translate3d(-50%, 0, 20px) scaleY(-1); opacity: 0.22; -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent 45%); mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent 45%); pointer-events: none; }
+.showcase-podium { position: absolute; left: 50%; bottom: 14%; width: 62%; aspect-ratio: 1 / 0.3; transform: translateX(-50%); transform-style: preserve-3d; }
+.podium-top { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #2c2c33, #0e0e10 72%); box-shadow: 0 0 0 2px rgba(212, 255, 58, 0.4), 0 34px 60px rgba(0, 0, 0, 0.5), inset 0 -10px 20px rgba(0, 0, 0, 0.4); }
+.podium-ring { position: absolute; left: 50%; top: 50%; width: 112%; aspect-ratio: 1; margin: -56% 0 0 -56%; border-radius: 50%; border: 2px dashed rgba(212, 255, 58, 0.55); transform: rotateX(73deg); }
+.showcase-label { position: absolute; z-index: 3; display: flex; align-items: flex-end; gap: 6px; max-width: 30%; color: #fff; font-size: var(--text-xs); font-weight: var(--weight-semibold); }
+.showcase-label span { padding: 6px 10px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.18); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.showcase-line { width: 60px; height: 26px; flex: none; fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 120; stroke-dashoffset: 0; }
+.showcase-label-1 { left: 3%; top: 14%; flex-direction: row-reverse; }
+.showcase-label-1 .showcase-line { transform: scaleX(-1); }
+.showcase-label-2 { right: 3%; top: 34%; }
+.showcase-label-3 { left: 3%; top: 54%; flex-direction: row-reverse; }
+.showcase-label-3 .showcase-line { transform: scaleX(-1); }
+
+/* ---------- Flip deals and flip-digit countdown ---------- */
+.flip-countdown { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0; background: none; color: var(--ink); }
+.flip-countdown .countdown-label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); }
+.flip-unit { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.flip-unit small { font-size: var(--text-2xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.flip-digits { position: relative; display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 6px; border-radius: var(--radius-sm); background: linear-gradient(var(--navy-700) 50%, var(--navy-900) 50%); color: #fff; font: var(--weight-bold) 22px/1 var(--font); font-variant-numeric: tabular-nums; box-shadow: var(--shadow-sm); }
+.flip-digits::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(0, 0, 0, 0.45); }
+.flip-grid { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-2); }
+.flip-card { perspective: 1100px; }
+.flip-inner { position: relative; min-height: 330px; transform-style: preserve-3d; transition: transform 0.75s var(--ease-out); }
+.flip-card.is-flipped .flip-inner, .flip-card:has(.flip-back :focus-visible) .flip-inner { transform: rotateY(180deg); }
+@media (hover: hover) and (pointer: fine) {
+  .flip-card:hover .flip-inner { transform: rotateY(180deg); }
+  .flip-card:hover .flip-back { visibility: visible; transition-delay: 0s; }
+}
+.flip-face { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 6px; padding: var(--space-2); border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-sm); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-front img { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: var(--radius); background: var(--surface-2); }
+.flip-front .tag { top: var(--space-2); left: var(--space-2); }
+.flip-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; line-height: 1.3; }
+.flip-toggle { position: absolute; right: var(--space-1h); bottom: var(--space-1h); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.flip-toggle:hover { border-color: var(--brand); color: var(--brand-ink); }
+.flip-back { align-items: center; justify-content: center; text-align: center; gap: var(--space-1h); transform: rotateY(180deg); background: var(--gradient-navy); border-color: transparent; color: #fff; visibility: hidden; transition: visibility 0s 0.35s; --focus: var(--accent); }
+.flip-card.is-flipped .flip-back, .flip-card:has(.flip-back :focus-visible) .flip-back { visibility: visible; transition-delay: 0s; }
+.flip-off { display: flex; flex-direction: column; font-family: var(--display); font-size: var(--text-4xl); line-height: 0.95; color: var(--accent); }
+.flip-off small { font-family: var(--font); font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--on-dark); letter-spacing: 0.06em; text-transform: uppercase; }
+.flip-back .link-btn { color: var(--on-dark); }
+.flip-back .saving { color: #7fe0ae; }
+
+/* ---------- Depth tiles ---------- */
+.depth-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--space-2); }
+.depth-tile { position: relative; display: flex; flex-direction: column; gap: 4px; padding: var(--space-1h); border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); color: var(--ink); text-decoration: none; transform-style: preserve-3d; }
+.depth-tile:hover { color: var(--ink); text-decoration: none; }
+.depth-media { display: block; aspect-ratio: 1; border-radius: var(--radius); overflow: hidden; background: var(--brand-soft); transform: translateZ(18px); }
+.depth-media img { width: 100%; height: 100%; object-fit: cover; }
+.depth-title { margin-top: 6px; font-size: var(--text-md); font-weight: var(--weight-bold); transform: translateZ(44px); }
+.depth-price { font-size: var(--text-sm); color: var(--muted); transform: translateZ(28px); }
+.depth-tile > .tilt-glare { display: none; }
+.depth-tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; background: radial-gradient(circle at calc(50% + var(--glare-x, 0px)) calc(50% + var(--glare-y, 0px)), rgba(255, 255, 255, 0.35), transparent 45%); transition: opacity var(--duration-slow) var(--ease); }
+.depth-tile.is-tilting::after { opacity: 1; }
+
+/* ---------- 3D stats ---------- */
+.stats3d { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); perspective: 900px; }
+.stat3d { display: flex; flex-direction: column; gap: 6px; padding: var(--space-3); border-radius: var(--radius-lg); background: var(--gradient-navy); color: var(--on-dark); box-shadow: var(--shadow-md); }
+.stat3d strong { font-family: var(--display); font-size: var(--text-4xl); line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 900px) {
+  .showcase { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+  .showcase-stage { order: -1; }
+  .stats3d { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .hero3d.has-webgl:not(.is-static) { height: 220vh; }
+  .hero3d-title { max-width: none; }
+  .hero3d-actions .btn { flex: 1 1 auto; }
+  .hf-card { display: none; }
+  .hf-card-1 { display: block; left: 58%; top: 10%; }
+  .flip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1h); }
+  .flip-inner { min-height: 290px; }
+  .flip-face { padding: var(--space-1h); }
+  .flip-countdown .countdown-label { flex: 1 1 100%; }
+  .flip-digits { min-width: 40px; height: 40px; font-size: 19px; }
+}
+@media (max-width: 420px) {
+  .flip-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Phone held sideways: the pinned hero is only as tall as the screen (its 560px minimum pushed the
+   intro and buttons below the bottom edge, where a pinned section never shows them), and the
+   headline drops to one line so everything fits under the header. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero3d-sticky { min-height: 0; }
+  .hero3d-content { padding-bottom: var(--space-2); }
+  .hero3d-title { max-width: none; margin: var(--space-1) 0 6px; font-size: clamp(2.25rem, 11vh, 3.5rem); }
+  .hero3d-kicker { padding: 4px 12px; font-size: var(--text-xs); }
+  .hero3d-text { max-width: 62ch; font-size: var(--text-sm); }
+  .hero3d-actions { margin-top: var(--space-1h); }
+  .hero3d-actions .btn-lg { min-height: var(--tap); padding-block: 0; }
+  .hero3d-scroll { display: none; }
+}

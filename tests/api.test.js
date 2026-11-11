@@ -286,6 +286,10 @@ test("signed-in pages and the API are never cached, static files still are", asy
   const css = await fetch(base + "/css/style.css");
   assert.equal(css.status, 200);
   assert.doesNotMatch(css.headers.get("cache-control") || "", /no-store/);
+  // Without a version the file is re-checked; with one (the URL pages use) it is kept for a year.
+  assert.equal(css.headers.get("cache-control"), "no-cache");
+  const versioned = await fetch(base + "/css/style.css?v=0123456789");
+  assert.equal(versioned.headers.get("cache-control"), "public, max-age=31536000, immutable");
 });
 
 // ---------- Admin product management ----------
@@ -435,8 +439,11 @@ test("store: product page shows breadcrumbs, prices, stock and the photo stage",
   assert.match(res.data, /class="pdx-off"[^>]*>-25%</);
   assert.doesNotMatch(res.data, /pdx-chip-deal/);
   assert.match(res.data, /Only 4 left/);
-  // The photo stage: WebGL canvas over the plain photo (which still works without WebGL).
-  assert.match(res.data, /data-stage-canvas/);
+  // The photo: a plain image with a real zoom (hover magnifier + full-screen viewer), no WebGL.
+  assert.doesNotMatch(res.data, /data-stage-canvas|product-stage\.js/);
+  assert.match(res.data, /data-zoom-stage/);
+  assert.match(res.data, /data-zoom-lens/);
+  assert.match(res.data, /data-zoom-pane/);
   assert.match(res.data, /data-gallery-main/);
   const missing = await call("GET", "/products/no-such-thing");
   assert.equal(missing.status, 404);
@@ -562,7 +569,9 @@ test("home page: 3D hero, trust badges, flip deals and countdown, sport ring, ra
   assert.match(res.data, /data-hero3d-canvas/);
   assert.match(res.data, /class="hero3d-fallback"/);
   assert.match(res.data, /<span class="char" style="--i: 0">B<\/span>/);
-  assert.match(res.data, /type="module" src="\/js\/home3d\.js"/);
+  assert.match(res.data, /type="module" src="\/js\/home3d\.js\?v=[a-f0-9]{10}"/);
+  // Only the home page downloads the 3D section styles, inside its one stylesheet bundle, in cascade order.
+  assert.match(res.data, /href="\/css\/bundle\.css\?files=tokens,components,style,home,motion,mobile&amp;v=[a-f0-9]{10}"/);
   assert.match(res.data, /data-flip-card/);
   // The sport ring: a grid of linked cards without JavaScript, with the count and lowest price from the database.
   assert.match(res.data, /data-sport-ring/);
@@ -574,9 +583,10 @@ test("home page: 3D hero, trust badges, flip deals and countdown, sport ring, ra
   assert.match(res.data, /data-showroom data-shopper="guest"/);
   assert.match(res.data, /The zero-gravity showroom/);
   assert.match(res.data, /class="zg-link" href="\/products\/[a-z0-9-]+" data-zg-link/);
-  assert.match(res.data, /type="module" src="\/js\/showroom3d\.js"/);
+  // The showroom's module is not on the page: home3d.js imports it when the section comes close.
+  assert.doesNotMatch(res.data, /src="\/js\/showroom3d\.js/);
   // The shared animation loop loads before every other script.
-  assert.match(res.data, /<script src="\/js\/motion\/ticker\.js" defer><\/script>\s*<script src="\/js\/app\.js"/);
+  assert.match(res.data, /<script src="\/js\/motion\/ticker\.js\?v=[a-f0-9]{10}" defer><\/script>\s*<script src="\/js\/app\.js\?v=[a-f0-9]{10}"/);
   assert.doesNotMatch(res.data, /galaxy/i);
   assert.match(res.data, /Free delivery/);
   assert.match(res.data, /Deals of the day/);
@@ -1591,7 +1601,7 @@ test("sign in and create account share one flipping card; admins get the control
   const signup = await call("GET", "/signup");
   assert.match(signup.data, /data-mode="signup"/);
   assert.match(signup.data, /data-face="login"[^>]*inert/);
-  assert.match(signup.data, /type="module" src="\/js\/auth3d\.js"/);
+  assert.match(signup.data, /type="module" src="\/js\/auth3d\.js\?v=[a-f0-9]{10}"/);
   const admin = await call("GET", "/admin/login");
   assert.match(admin.data, /data-globe-scene/);
   assert.match(admin.data, /data-endpoint="\/api\/admin\/login"/);
@@ -1703,7 +1713,19 @@ test("address book: a customer can save at most 5 addresses", async () => {
 test("catalogue filters: pills, quick price ranges, live total, a switch, and no theme switch", async () => {
   const page = await call("GET", "/products");
   assert.equal(page.status, 200);
-  assert.match(page.data, /href="\/css\/filters\.css"/);
+  assert.match(page.data, /href="\/css\/bundle\.css\?files=tokens,components,style,motion,filters,mobile&amp;v=[a-f0-9]{10}"/);
+  // Other pages do not download the home page's 3D styles.
+  assert.doesNotMatch(page.data, /files=[a-z,-]*\bhome\b/);
+  // The bundle is the files joined in order, kept for a year when the hash matches.
+  const bundleUrl = page.data.match(/href="(\/css\/bundle\.css\?[^"]+)"/)[1].replace(/&amp;/g, "&");
+  const bundle = await fetch(base + bundleUrl);
+  assert.equal(bundle.status, 200);
+  assert.match(bundle.headers.get("content-type"), /text\/css/);
+  assert.equal(bundle.headers.get("cache-control"), "public, max-age=31536000, immutable");
+  const css = await bundle.text();
+  assert.ok(css.indexOf("---- tokens.css") < css.indexOf("---- filters.css") && css.indexOf("---- filters.css") < css.indexOf("---- mobile.css"));
+  // Only plain stylesheet names are accepted.
+  assert.equal((await fetch(base + "/css/bundle.css?files=../app")).status, 404);
   // Same field names the server reads, drawn as pills, star pills and a switch.
   assert.match(page.data, /class="fx-pill">\s*<input type="radio" name="category" value=""/);
   assert.match(page.data, /name="rating" value="4"/);
@@ -1742,4 +1764,17 @@ test("speed: text is gzipped, fonts come from this site, and card photos are res
   assert.equal(srcsetFor("/uploads/products/a.jpg"), "");
   assert.equal(srcsetFor("https://example.com/x.jpg?w=800"), "");
   assert.match(srcsetFor("https://images.unsplash.com/photo-1?auto=format&w=800&q=80"), /w=400&q=80 400w, .*w=600&q=80 600w, .*w=800&q=80 800w$/);
+});
+
+test("uploaded product photos keep up to 2000px for zoom; return photos are shrunk to 1200px", async () => {
+  const sharp = require("sharp");
+  const { shrinkImage } = require("../services/imageService");
+  const big = await sharp({ create: { width: 3000, height: 1500, channels: 3, background: "#d4ff3a" } }).jpeg({ quality: 95 }).toBuffer();
+  const product = await sharp(await shrinkImage(big, "jpg", 2000)).metadata();
+  assert.deepEqual([product.width, product.height], [2000, 1000]);
+  const ret = await sharp(await shrinkImage(big, "jpg", 1200)).metadata();
+  assert.deepEqual([ret.width, ret.height], [1200, 600]);
+  // Never enlarged.
+  const small = await sharp({ create: { width: 400, height: 300, channels: 3, background: "#000" } }).png().toBuffer();
+  assert.equal((await sharp(await shrinkImage(small, "png", 2000)).metadata()).width, 400);
 });

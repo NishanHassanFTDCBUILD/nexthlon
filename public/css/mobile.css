@@ -1,8 +1,8 @@
 /* ==========================================================================
    Phone fixes (screens up to 720px wide). Loaded after every other stylesheet, and every rule is
-   inside a width query, so laptops and desktops are never affected. Kept in one file so the phone
-   layout is easy to find and check.
-   Goals: shorter pages (two-column home sections, a tighter footer), at least 40px to tap, no text
+   inside a width query or a touch query (hover: none), so laptops and desktops with a mouse are never
+   affected. Kept in one file so the phone layout is easy to find and check.
+   Goals: shorter pages (two-column home sections, a tighter footer), at least 44px to tap (var(--tap)), no text
    below 12px, and tidy product cards.
    ========================================================================== */
 
@@ -21,7 +21,7 @@
   select, textarea { font-size: 16px !important; }
 
   /* ---------- Cart: thumb-sized quantity buttons; "Save for later" on one line ---------- */
-  .qty-btn, .qty-sm .qty-btn { width: 40px; height: 40px; }
+  .qty-btn, .qty-sm .qty-btn { width: var(--tap); height: var(--tap); }
   .cart-item-actions { flex-wrap: wrap; row-gap: 8px; }
   .cart-item-actions .link-btn { white-space: nowrap; }
 
@@ -29,20 +29,18 @@
   .checkout-side { order: 0; }
 
   /* ---------- Account: bigger address buttons, tappable order item names, readable small labels ---------- */
-  .address-actions .btn { min-height: 40px; }
+  .address-actions .btn { min-height: var(--tap); }
   .order-item a { display: inline-block; padding: 9px 0; }
   .count-dot, .address-type-pill, .label-caps { font-size: 12px; }
 
   /* ---------- Sign in / Create account: a short scene strip, so the form fits on the first screen ---------- */
-  .au-scene { height: 168px; min-height: 0; }
+  .au-scene { height: clamp(176px, 25vh, 210px); min-height: 0; }
   .au-motto { bottom: 14px; }
-  .au-motto-line { font-size: 34px; margin: 0; min-height: 0; }
+  .au-motto-line { font-size: clamp(28px, 8.6vw, 36px); margin: 0; min-height: 0; max-width: 52%; }
   .au-scene-fallback span { width: 200px; margin: -100px 0 0 -100px; top: 46%; }
   .au-scene-fallback span:nth-child(3) { width: 110px; margin: -55px 0 0 -55px; }
   .au-panel { padding-top: var(--space-2); gap: var(--space-2); }
-  /* Its desktop "right: 24px" would shift it off the left edge now that it is position: relative
-     (for its larger tap area, below). */
-  .au-back { left: auto; right: auto; }
+  .au-motto { left: var(--space-2); }
 
   /* ---------- Home: "Shop by sport", two tiles per row (was one 405px tile per row) ---------- */
   .depth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -56,7 +54,7 @@
   .flip-face { padding: 10px; gap: 4px; }
   .flip-name { font-size: 13px; }
   .flip-off { font-size: var(--text-3xl); }
-  .flip-toggle { width: 40px; height: 40px; right: 8px; bottom: 8px; }
+  .flip-toggle { width: var(--tap); height: var(--tap); right: 8px; bottom: 8px; }
 
   /* ---------- Home: "Pick your sport" ---------- */
   /* The tab row scrolls sideways: fade its right edge so it is clear there is more to swipe. */
@@ -106,11 +104,42 @@
   .footer-badges { display: none; }
 
   /* ---------- Bigger tap areas: the touch target grows, the look stays the same ---------- */
-  .breadcrumb a, .pdx-crumbs a, .pdx-text-btn, .au-back, .pdx-brand, .section-link, .join-signin, .link-btn, .pdx-facts a { position: relative; }
-  .breadcrumb a::after, .pdx-crumbs a::after, .pdx-text-btn::after, .au-back::after, .pdx-brand::after, .section-link::after, .join-signin::after,
+  .breadcrumb a, .pdx-crumbs a, .pdx-text-btn, .pdx-brand, .section-link, .join-signin, .link-btn, .pdx-facts a { position: relative; }
+  .breadcrumb a::after, .pdx-crumbs a::after, .pdx-text-btn::after, .pdx-brand::after, .section-link::after, .join-signin::after,
   .link-btn::after, .pdx-facts a::after {
     content: ""; position: absolute; inset: -12px -6px;
   }
   .sport-dot { width: 34px; height: 34px; }
-  .pdx-meta .pdx-chip { min-height: 36px; }
+  .pdx-meta .pdx-chip { min-height: var(--tap); }
 }
+
+/* ==========================================================================
+   Touch screens, any size (hover: none)
+   A tap turns on :hover and it stays on until you tap somewhere else, so a card you tapped stayed
+   lifted, a photo stayed zoomed and an icon stayed lit. On touch, those hover moves are switched
+   off and each control answers the finger with a short press (:active) instead.
+   ========================================================================== */
+@media (hover: none) {
+  /* ---------- Hover moves off ---------- */
+  .product-card:hover, .card-hover:hover, .address-card:hover, a.stat:hover, .pdx-thumb:hover,
+  .wish-btn:hover, .gallery-nav:hover, .gallery-full:hover, .pdx-pin-row button:hover, .pdx-star-row label:hover { transform: none; }
+  .product-card:hover .product-media img { transform: none; }
+  .js-motion .btn:hover:not(:disabled) { transform: none; }
+  .js-motion .btn:hover:not(:disabled)::after { opacity: 0; }
+  .pdx-icon-btn:hover { transform: none; background: rgba(10, 10, 11, 0.5); color: #f5f5f0; }
+  .address-add:hover .address-add-icon { transform: none; }
+
+  /* ---------- Press states: quick to answer the finger, a little slower to let go ---------- */
+  .product-card, .card-hover, .address-card, a.stat { transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease); }
+  .product-card:active, .card-hover:active, .address-card:active, a.stat:active { transform: scale(0.985); transition-duration: 0.08s; }
+  :where(.wish-btn, .gallery-nav, .gallery-full, .pdx-icon-btn, .icon-btn, .qty-btn, .flip-toggle, .nav-toggle, .header-link-icon, .chip-remove, .view-btn) {
+    transition: transform 0.25s var(--ease-out), background-color 0.2s var(--ease), color 0.2s var(--ease);
+  }
+  :where(.wish-btn, .gallery-nav, .gallery-full, .pdx-icon-btn, .icon-btn, .qty-btn, .flip-toggle, .nav-toggle, .header-link-icon, .chip-remove, .view-btn):active {
+    transform: scale(0.9); transition-duration: 0.08s;
+  }
+  .pdx-icon-btn:active { background: var(--brand); color: var(--on-brand); }
+  :where(.fx-pill, .fx-preset, .chip, .pdx-thumb, .segmented-radio span, .zg-chip, .pdx-pin-row button):active { transform: scale(0.96); transition-duration: 0.08s; }
+  .pdx-star-row label:active { transform: scale(1.12); }
+}
+

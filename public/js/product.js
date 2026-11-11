@@ -1,8 +1,101 @@
-// Product page: full-screen photos, delivery date by PIN code, and sharing.
+// Product page: real photo zoom (hover magnifier and a full-screen viewer), delivery date by PIN code, and sharing.
 (function () {
   "use strict";
 
-  // ---------- Full-screen photo viewer (a <dialog>: focus stays inside, Escape closes it) ----------
+  // A sharper copy of a photo for zooming: Unsplash serves any width (w=2000); our own uploads are
+  // stored at up to 2000px already, so they are used as they are.
+  const hiRes = src => (/^https:\/\/images\.unsplash\.com\//.test(src || "") && /([?&])w=\d+/.test(src) ? src.replace(/([?&])w=\d+/, "$1w=2000") : src);
+  const mouseZoom = window.matchMedia("(hover: hover) and (pointer: fine)");
+  const mainPhoto = document.querySelector("[data-gallery-main]");
+  const stage = document.querySelector("[data-zoom-stage]");
+
+  // ---------- Hover magnifier (mouse) ----------
+  // Two columns: a lens over the photo and the magnified spot in a panel beside it (Amazon-style).
+  // One column: the photo itself zooms in place under the pointer.
+  if (stage && mainPhoto) {
+    const lens = stage.querySelector("[data-zoom-lens]");
+    const pane = document.querySelector("[data-zoom-pane]");
+    const ZOOM = 2.5;
+    let active = false;
+
+    // A quick fade while the next photo loads; the zoom copy is fetched ahead, so it is ready.
+    new MutationObserver(() => {
+      stage.classList.add("is-switching");
+      const done = () => stage.classList.remove("is-switching");
+      if (mainPhoto.complete) requestAnimationFrame(done);
+      else mainPhoto.addEventListener("load", done, { once: true });
+      if (active) start();
+    }).observe(mainPhoto, { attributes: true, attributeFilter: ["src"] });
+
+    const sideBySide = () => pane && stage.closest(".pdx-grid") && getComputedStyle(stage.closest(".pdx-grid")).gridTemplateColumns.split(" ").length > 1;
+
+    const start = () => {
+      const src = hiRes(mainPhoto.getAttribute("src"));
+      const box = stage.getBoundingClientRect();
+      stage.style.setProperty("--lens-w", `${100 / ZOOM}%`);
+      stage.style.setProperty("--lens-h", `${100 / ZOOM}%`);
+      if (sideBySide()) {
+        stage.classList.remove("is-inplace");
+        pane.style.setProperty("--zoom-src", `url("${src.replace(/"/g, "%22")}")`);
+        pane.style.setProperty("--zoom-size", `${ZOOM * 100}%`);
+        pane.style.setProperty("--zoom-w", `${Math.round(box.width)}px`);
+        pane.hidden = false;
+        lens.hidden = false;
+      } else {
+        stage.classList.add("is-inplace");
+        pane.hidden = true;
+        lens.hidden = true;
+      }
+      // Load the sharp copy in the background; the panel shows it as soon as it arrives.
+      const sharp = new Image();
+      sharp.src = src;
+    };
+    const move = event => {
+      const box = stage.getBoundingClientRect();
+      // Pointer position as 0..1 inside the photo, with the lens kept inside the edges.
+      const half = 0.5 / ZOOM;
+      const x = Math.min(1 - half, Math.max(half, (event.clientX - box.left) / box.width));
+      const y = Math.min(1 - half, Math.max(half, (event.clientY - box.top) / box.height));
+      const posX = ((x - half) / (1 - 2 * half)) * 100;
+      const posY = ((y - half) / (1 - 2 * half)) * 100;
+      stage.style.setProperty("--lens-x", `${(x - half) * box.width}px`);
+      stage.style.setProperty("--lens-y", `${(y - half) * box.height}px`);
+      if (pane) pane.style.setProperty("--zoom-pos", `${posX}% ${posY}%`);
+      stage.style.setProperty("--zoom-pos", `${x * 100}% ${y * 100}%`);
+    };
+    const stop = () => {
+      active = false;
+      stage.classList.remove("is-zooming", "is-inplace");
+      if (pane) pane.hidden = true;
+      if (lens) lens.hidden = true;
+    };
+
+    stage.addEventListener("pointerenter", event => {
+      if (event.pointerType !== "mouse" || !mouseZoom.matches) return;
+      active = true;
+      stage.classList.add("is-zooming");
+      start();
+      move(event);
+    });
+    stage.addEventListener("pointermove", event => {
+      if (!active) return;
+      // Over the share / full-screen / arrow buttons, pause the zoom so they are easy to use.
+      if (event.target.closest("button, a")) {
+        if (pane) pane.hidden = true;
+        lens.hidden = true;
+        stage.classList.remove("is-inplace");
+        return;
+      }
+      if ((pane && pane.hidden && sideBySide()) || (!sideBySide() && !stage.classList.contains("is-inplace"))) start();
+      move(event);
+    });
+    stage.addEventListener("pointerleave", stop);
+    window.addEventListener("scroll", () => { if (active) stop(); }, { passive: true });
+  }
+
+  // ---------- Full-screen viewer, with real zoom (a <dialog>: focus stays inside, Escape closes it) ----------
+  // Zoom: double-click / double-tap, pinch, the mouse wheel, or + and -. Drag to look around.
+  // At normal size, swipe or the arrows change photo.
   const lightbox = document.querySelector("[data-lightbox]");
   const opener = document.querySelector("[data-lightbox-open]");
   if (lightbox && opener && typeof lightbox.showModal === "function") {
@@ -14,13 +107,57 @@
     }
     const img = lightbox.querySelector("[data-lightbox-img]");
     const counter = lightbox.querySelector("[data-lightbox-index]");
-    const mainPhoto = document.querySelector("[data-gallery-main]");
+    const stageBox = lightbox.querySelector(".lightbox-stage");
+    const MAX = 4;
     let index = 0;
+    let scale = 1;
+    let tx = 0;
+    let ty = 0;
+
+    const paint = () => {
+      img.style.transform = scale === 1 ? "" : `translate(${tx}px, ${ty}px) scale(${scale})`;
+      lightbox.classList.toggle("is-zoomed", scale > 1);
+    };
+    // Keep the zoomed photo covering its frame: no dragging it off into empty space.
+    const clampPan = () => {
+      const w = img.offsetWidth;
+      const h = img.offsetHeight;
+      const maxX = (w * scale - w) / 2;
+      const maxY = (h * scale - h) / 2;
+      tx = Math.max(-maxX, Math.min(maxX, tx));
+      ty = Math.max(-maxY, Math.min(maxY, ty));
+    };
+    // Zoom to a new scale, keeping the point under (clientX, clientY) where it is.
+    const zoomTo = (next, clientX, clientY) => {
+      const target = Math.max(1, Math.min(MAX, next));
+      const box = img.getBoundingClientRect();
+      const cx = clientX === undefined ? box.left + box.width / 2 : clientX;
+      const cy = clientY === undefined ? box.top + box.height / 2 : clientY;
+      // The point relative to the image centre, in unscaled pixels.
+      const px = (cx - (box.left + box.width / 2)) / scale;
+      const py = (cy - (box.top + box.height / 2)) / scale;
+      tx -= px * (target - scale);
+      ty -= py * (target - scale);
+      scale = target;
+      if (scale === 1) {
+        tx = 0;
+        ty = 0;
+      }
+      clampPan();
+      paint();
+    };
+    const reset = () => {
+      scale = 1;
+      tx = 0;
+      ty = 0;
+      paint();
+    };
 
     const show = next => {
       if (!photos.length) return;
       index = (next + photos.length) % photos.length;
-      img.src = photos[index];
+      reset();
+      img.src = hiRes(photos[index]);
       if (counter) counter.textContent = String(index + 1);
     };
     const open = () => {
@@ -31,34 +168,99 @@
     };
 
     opener.addEventListener("click", open);
-    // Clicking the photo stage opens the viewer too (the WebGL canvas sits over the photo).
-    const stage = document.querySelector("[data-stage]");
+    // Clicking or tapping the photo opens the viewer too.
     if (stage) {
       stage.addEventListener("click", event => {
         if (!event.target.closest("button, a")) open();
       });
     }
-    lightbox.addEventListener("close", () => document.body.classList.remove("drawer-open"));
+    lightbox.addEventListener("close", () => {
+      reset();
+      document.body.classList.remove("drawer-open");
+    });
     lightbox.querySelector("[data-lightbox-close]").addEventListener("click", () => lightbox.close());
     lightbox.querySelectorAll("[data-lightbox-step]").forEach(button => {
       button.addEventListener("click", () => show(index + Number(button.dataset.lightboxStep)));
     });
     lightbox.addEventListener("keydown", event => {
-      if (event.key === "ArrowRight") show(index + 1);
-      if (event.key === "ArrowLeft") show(index - 1);
+      if (event.key === "ArrowRight" && scale === 1) show(index + 1);
+      if (event.key === "ArrowLeft" && scale === 1) show(index - 1);
+      if (event.key === "+" || event.key === "=") zoomTo(scale * 1.5);
+      if (event.key === "-") zoomTo(scale / 1.5);
+      if (event.key === "0") reset();
     });
     lightbox.addEventListener("click", event => {
-      if (event.target === lightbox || event.target.classList.contains("lightbox-stage")) lightbox.close();
+      if (scale === 1 && (event.target === lightbox || event.target === stageBox)) lightbox.close();
     });
-    // Swipe between photos.
-    let startX = null;
-    img.addEventListener("pointerdown", event => { startX = event.clientX; });
-    img.addEventListener("pointerup", event => {
-      if (startX === null) return;
-      const dx = event.clientX - startX;
-      startX = null;
-      if (Math.abs(dx) > 50) show(index + (dx < 0 ? 1 : -1));
+
+    // Mouse wheel zooms around the pointer.
+    stageBox.addEventListener("wheel", event => {
+      event.preventDefault();
+      zoomTo(scale * (event.deltaY < 0 ? 1.2 : 1 / 1.2), event.clientX, event.clientY);
+    }, { passive: false });
+    // Double-click (mouse) zooms in on that spot, or back out.
+    img.addEventListener("dblclick", event => {
+      zoomTo(scale > 1 ? 1 : 2.5, event.clientX, event.clientY);
     });
+
+    // Touch and pen: pinch to zoom, drag to pan, double-tap to zoom, swipe to change photo.
+    const pointers = new Map();
+    let pinchStart = null;
+    let dragStart = null;
+    let lastTap = 0;
+    img.addEventListener("pointerdown", event => {
+      // Keep receiving this finger even if it slides off the photo (harmless if the browser refuses).
+      try { img.setPointerCapture(event.pointerId); } catch { /* not capturable: still works */ }
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        pinchStart = { distance: Math.hypot(a.x - b.x, a.y - b.y), scale, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+        dragStart = null;
+      } else {
+        dragStart = { x: event.clientX, y: event.clientY, tx, ty, moved: false };
+      }
+    });
+    img.addEventListener("pointermove", event => {
+      if (!pointers.has(event.pointerId)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pinchStart && pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        const distance = Math.hypot(a.x - b.x, a.y - b.y);
+        zoomTo(pinchStart.scale * (distance / pinchStart.distance), pinchStart.mid.x, pinchStart.mid.y);
+      } else if (dragStart) {
+        const dx = event.clientX - dragStart.x;
+        const dy = event.clientY - dragStart.y;
+        if (Math.abs(dx) + Math.abs(dy) > 6) dragStart.moved = true;
+        if (scale > 1) {
+          tx = dragStart.tx + dx;
+          ty = dragStart.ty + dy;
+          clampPan();
+          paint();
+        }
+      }
+    });
+    const end = event => {
+      if (!pointers.has(event.pointerId)) return;
+      pointers.delete(event.pointerId);
+      if (pointers.size < 2) pinchStart = null;
+      if (!dragStart || pointers.size) return;
+      const dx = event.clientX - dragStart.x;
+      if (scale === 1 && Math.abs(dx) > 50) {
+        show(index + (dx < 0 ? 1 : -1));
+      } else if (!dragStart.moved && event.pointerType !== "mouse") {
+        // Double-tap (touch) zooms in on that spot, or back out.
+        const now = Date.now();
+        if (now - lastTap < 300) {
+          zoomTo(scale > 1 ? 1 : 2.5, event.clientX, event.clientY);
+          lastTap = 0;
+        } else {
+          lastTap = now;
+        }
+      }
+      dragStart = null;
+    };
+    img.addEventListener("pointerup", end);
+    img.addEventListener("pointercancel", end);
   }
 
   // ---------- Delivery (Amazon-style): date, live cut-off countdown, deliverable or not ----------

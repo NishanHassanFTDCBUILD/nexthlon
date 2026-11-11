@@ -115,7 +115,10 @@
     if (!box) return;
     const item = document.createElement("div");
     item.className = `toast toast-${type}`;
-    item.setAttribute("role", type === "error" ? "alert" : "status");
+    // The #toasts box is already a polite live region, so a normal message is read out from there.
+    // An error interrupts (role="alert"). Giving success messages role="status" as well made some
+    // screen readers say them twice.
+    if (type === "error") item.setAttribute("role", "alert");
     item.innerHTML = `<span class="toast-icon">${iconSvg(type === "error" ? "alert" : "check")}</span>`;
     const text = document.createElement("span");
     text.className = "toast-text";
@@ -138,7 +141,31 @@
       setTimeout(() => item.remove(), 250);
     };
     close.addEventListener("click", remove);
-    setTimeout(remove, type === "error" ? 6500 : 4500);
+    // The message closes itself after a while, but never while the pointer is on it or focus is
+    // inside it (the close button): the countdown pauses and starts again from where it was.
+    let left = type === "error" ? 6500 : 4500;
+    let startedAt = 0;
+    let timeout = 0;
+    const run = () => {
+      startedAt = Date.now();
+      timeout = setTimeout(remove, left);
+      item.classList.remove("is-paused");
+    };
+    const pause = () => {
+      if (!timeout) return;
+      clearTimeout(timeout);
+      timeout = 0;
+      left = Math.max(1200, left - (Date.now() - startedAt));
+      item.classList.add("is-paused");
+    };
+    const resume = () => {
+      if (!timeout && !item.matches(":hover, :focus-within")) run();
+    };
+    item.addEventListener("pointerenter", pause);
+    item.addEventListener("pointerleave", resume);
+    item.addEventListener("focusin", pause);
+    item.addEventListener("focusout", () => setTimeout(resume, 0));
+    run();
   };
 
   // A message that survives a page reload, shown on the next page.

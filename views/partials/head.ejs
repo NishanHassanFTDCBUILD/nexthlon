@@ -9,20 +9,23 @@
   <% } %><meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0a0a0b">
   <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <%# Most product photos come from Unsplash: open that connection while the page is still loading. %>
+  <link rel="preconnect" href="https://images.unsplash.com">
   <%# Sets the dark theme before the first paint (the store has no light mode). %>
-  <script src="/js/theme.js"></script>
+  <script src="<%= asset('/js/theme.js') %>"></script>
   <%# The fonts come from this site (tokens.css). The three the first screen needs load straight away. %>
   <link rel="preload" href="/fonts/inter-400-800-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/barlow-condensed-800-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/barlow-condensed-700-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/css/tokens.css">
-  <link rel="stylesheet" href="/css/components.css">
-  <link rel="stylesheet" href="/css/style.css">
-  <%# The store's motion layer. My Account pages turn it off (res.locals.motion = false). %>
-  <% if (typeof motion === 'undefined' || motion !== false) { %><link rel="stylesheet" href="/css/motion.css"><% } %>
-  <% (typeof styles !== 'undefined' ? styles : []).forEach(function (name) { %><link rel="stylesheet" href="/css/<%= name %>.css">
-  <% }) %>
-  <%# Phone fixes last, so they win on small screens (every rule is inside a width query). %>
-  <link rel="stylesheet" href="/css/mobile.css">
+  <%# All of the page's stylesheets in one request, in cascade order (utils/assets.js):
+       tokens, components, style; page styles that belong before the motion layer (coreStyles, e.g.
+       the home page's home.css); the motion layer (My Account pages turn it off with
+       res.locals.motion = false); page styles (styles); and the phone fixes last, so they win. %>
+  <% const sheets = ['tokens', 'components', 'style']
+       .concat(typeof coreStyles !== 'undefined' ? coreStyles : [])
+       .concat(typeof motion === 'undefined' || motion !== false ? ['motion'] : [])
+       .concat(typeof styles !== 'undefined' ? styles : [])
+       .concat(['mobile']); %>
+  <link rel="stylesheet" href="<%= styleBundle(sheets) %>">
 </head>
 <body class="<%= typeof bodyClass !== 'undefined' ? bodyClass : '' %>"<% if (typeof adminPath !== 'undefined' && adminPath) { %> data-admin-path="<%= adminPath %>"<% } %>>
