@@ -12,9 +12,10 @@ const connectDB = require("./config/db");
 connectDB()
   .then(() => require("./services/migrationService").runMigrations())
   .then(() => {
-    const server = app.listen(config.port, () => {
+    const server = app.listen(config.port, "0.0.0.0", () => {
       console.log(`Nexthlon running at http://localhost:${config.port}`);
     });
+
     server.on("error", error => {
       if (error.code === "EADDRINUSE") {
         console.error(`Startup failed: port ${config.port} is already in use. Close the other server or change PORT in .env.`);
