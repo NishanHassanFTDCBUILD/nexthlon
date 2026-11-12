@@ -139,11 +139,15 @@ code { font: 0.9em/1 Consolas, monospace; background: var(--brand-soft); padding
 @media (pointer: coarse) {
   :where(.icon-btn, .qty-btn, .wish-btn, .flip-toggle, .reveal, .gallery-nav, .pdx-icon-btn, .header-link-icon,
     .nav-toggle, .view-btn, .chip-remove, .fx-pill, .fx-preset, .zg-chip, .mega-toggle, .brand, .au-eye,
-    .header-link, .account-btn, .admin-me-btn, .page-num)::before {
+    .header-link, .account-btn, .admin-me-btn, .page-num,
+    .breadcrumb a, .section-link, .cart-links .link-btn, .cart-item-name a, .pdx-brand, .list-item-name, dd > a, .catnav-links a)::before {
     content: ""; position: absolute; inset: min(0px, calc((100% - var(--tap)) / 2));
   }
   :where(.icon-btn, .qty-btn, .pdx-icon-btn, .header-link-icon, .nav-toggle, .view-btn, .chip-remove, .fx-preset, .zg-chip, .mega-toggle, .brand,
-    .header-link, .account-btn, .admin-me-btn, .page-num) { position: relative; }
+    .header-link, .account-btn, .admin-me-btn, .page-num,
+    .breadcrumb a, .section-link, .cart-links .link-btn, .cart-item-name a, .pdx-brand, .list-item-name, dd > a, .catnav-links a) { position: relative; }
+  /* The coupon field at checkout is as tall as its Apply button. */
+  .coupon-field input { min-height: var(--tap); }
   /* Chips, back links, pagination and "show more" disclosures are simply 44px tall. */
   /* "html :is()" outranks the components' own compact heights (.chip, .select-wrap select ...), which load later. */
   html :is(.chip, .back-link, .page-step, .page-num, details > summary, [role="tab"], .btn, .segmented a, .segmented button,
