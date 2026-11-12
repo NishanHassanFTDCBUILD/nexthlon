@@ -610,6 +610,9 @@ test("cart: the stock limit and the 5-per-product limit are enforced on the serv
   const sixth = await call("POST", "/api/cart/items", { body: { productId: String(plenty._id), quantity: 1 }, cookie: shopperCookie });
   assert.equal(sixth.status, 400);
   assert.match(sixth.data.message, /most you can buy/);
+  // A reason code lets the page show this calmly ("Max in cart") instead of as an error.
+  assert.equal(sixth.data.code, "cart_limit");
+  assert.equal(overStock.data.code, "cart_room");
   assert.equal((await call("DELETE", `/api/cart/items/${plenty._id}`, { cookie: shopperCookie })).status, 200);
   assert.equal((await call("DELETE", `/api/cart/items/${plenty._id}`, { cookie: shopperCookie })).status, 404);
 });

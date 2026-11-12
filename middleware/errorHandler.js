@@ -46,6 +46,7 @@ function errorHandler(err, req, res, next) {
   if (isApiRequest(req)) {
     const body = { message };
     if (err.fieldErrors) body.errors = err.fieldErrors;
+    if (err instanceof HttpError && err.reason) body.code = err.reason;
     // Quote this when asking for help: it finds the exact request in the logs.
     if (status >= 500 && req.id) body.requestId = req.id;
     return res.status(status).json(body);

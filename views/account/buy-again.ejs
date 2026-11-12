@@ -14,7 +14,7 @@
           <small class="muted">Last bought <%= formatDate(row.lastBought) %><%= row.times > 1 ? ' · ' + row.times + ' bought' : '' %></small>
           <p class="acct-buy-price"><strong><%= formatPrice(item.price) %></strong><% if (item.discountPercent > 0) { %> <s><%= formatPrice(item.mrp) %></s> <em><%= item.discountPercent %>% off</em><% } %></p>
           <% if (item.available) { %>
-            <button type="button" class="btn btn-primary btn-sm btn-block" data-quick-cart="<%= item.productId %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
+            <button type="button" class="btn btn-primary btn-sm btn-block" data-cart-add="<%= item.productId %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
           <% } else { %>
             <span class="pill pill-red"><%= item.reason %></span>
           <% } %>

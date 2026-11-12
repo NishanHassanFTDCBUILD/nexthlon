@@ -366,6 +366,10 @@ dialog[open] { animation: pop var(--duration-quick) var(--ease); }
 .toast-error .toast-icon { background: rgba(var(--danger-pale-rgb), 0.16); color: var(--danger-pale); }
 .toast-error .toast-timer { background: var(--danger-bright); animation-duration: var(--loop-long); }
 .toast.is-paused .toast-timer { animation-play-state: paused; }
+/* A calm note, not a failure (the cart already holds the most you can buy). */
+.toast-info .toast-icon { background: rgba(var(--white-rgb), 0.12); color: var(--brand); }
+.toast-action { color: var(--brand); font-weight: var(--weight-bold); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+@media (hover: hover) { .toast-action:hover { color: var(--white); } }
 .toast.is-leaving { transform: translateX(calc(100% + 24px)); }
 
 /* ---------- Skeleton loaders ---------- */
@@ -430,6 +434,33 @@ dialog[open] { animation: pop var(--duration-quick) var(--ease); }
 .wish-btn[aria-pressed="true"] { color: var(--deal); }
 .wish-btn[aria-pressed="true"] .i { fill: currentColor; }
 .wish-btn.is-popped { animation: cart-bump var(--duration-slow) var(--ease); }
+/* Quick add on a product card (store.js). It sits above the card's stretched link, at the photo's
+   bottom-right corner. Mouse users see it when they hover the card (or tab to it); touch screens always. */
+.card-add {
+  position: absolute; z-index: var(--layer-4); right: var(--space-sm); bottom: var(--space-sm);
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--brand); color: var(--on-brand); box-shadow: var(--shadow-md); cursor: pointer;
+  transition: transform var(--duration) var(--ease-out), opacity var(--duration) var(--ease), background-color var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+.card-add .i { grid-area: 1 / 1; width: 20px; height: 20px; transition: transform var(--duration) var(--ease-spring), opacity var(--duration-fast) var(--ease); }
+.card-add .card-add-done { opacity: 0; transform: scale(0.4); }
+.card-add:active { transform: scale(0.9); }
+.card-add[aria-busy="true"] { animation: nx-add-pulse var(--duration-slower) var(--ease-in-out) infinite alternate; }
+.card-add.is-added { background: var(--success-bright); }
+.card-add.is-added .card-add-cart { opacity: 0; transform: scale(0.4); }
+.card-add.is-added .card-add-done { opacity: 1; transform: none; }
+/* The cart already holds the most you can buy: a calm, quieter button with a small "MAX" tag. */
+.card-add.is-max { background: var(--surface-3); color: var(--muted); box-shadow: none; }
+.card-add.is-max::after {
+  content: "MAX"; position: absolute; top: -6px; right: -8px; padding: 1px 5px; border-radius: var(--radius-pill);
+  background: var(--ink); color: var(--surface); font-size: var(--text-2xs); font-weight: var(--weight-black); letter-spacing: 0.04em;
+}
+@keyframes nx-add-pulse { from { transform: scale(1); } to { transform: scale(0.9); } }
+@media (hover: hover) and (pointer: fine) {
+  .card-add { opacity: 0; transform: translateY(8px) scale(0.9); }
+  .product-card:hover .card-add, .card-add:focus-visible, .card-add.is-added, .card-add.is-max, .card-add[aria-busy="true"] { opacity: 1; transform: none; }
+  .card-add:hover { transform: scale(1.08); }
+}
 .wish-btn-inline { position: static; width: auto; height: 44px; padding: 0 var(--space-2); gap: var(--space-1); display: inline-flex; align-items: center; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); box-shadow: none; font-weight: var(--weight-semibold); font-size: var(--text-sm); color: var(--ink); }
 @media (hover: hover) { .wish-btn-inline:hover { transform: none; border-color: var(--deal); } }
 

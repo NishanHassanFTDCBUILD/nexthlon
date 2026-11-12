@@ -109,21 +109,7 @@
       }
       return;
     }
-
-    // Add to cart ("Buy it again" and delivered items on an order).
-    const quick = target.closest("[data-quick-cart]");
-    if (quick && !quick.disabled) {
-      Nx.busy(quick, true, "Adding…");
-      try {
-        const result = await Nx.api("/api/cart/items", { method: "POST", body: { productId: quick.dataset.quickCart, quantity: 1 } });
-        Nx.setCartCount(result.cart.summary.count);
-        Nx.toast(result.message);
-      } catch (error) {
-        Nx.toast(error.message, "error");
-      } finally {
-        Nx.busy(quick, false);
-      }
-    }
+    // Add to cart ("Buy it again" and delivered items on an order) is the shared [data-cart-add] button (store.js).
   });
 
   // ---------- A small text prompt (rename a list), built on <dialog> ----------
@@ -270,14 +256,19 @@
 
     on(root, "click", "[data-list-cart]", async (event, button) => {
       const block = button.closest("[data-list]");
+      const photo = button.closest("[data-list-item]") && button.closest("[data-list-item]").querySelector("img");
+      // The photo flies to the cart while the item moves (store.js), and back if it cannot.
+      const flight = Nx.startFlight ? Nx.startFlight(photo) : { landed: Promise.resolve(), abort() {} };
       Nx.busy(button, true, "Moving…");
       try {
         const reply = await Nx.api(`/api/lists/${block.dataset.list}/items/${button.dataset.listCart}/move-to-cart`, { method: "POST" });
+        await flight.landed;
         if (reply.cart && reply.cart.summary) Nx.setCartCount(reply.cart.summary.count);
         refresh(reply.message);
       } catch (error) {
+        flight.abort();
         Nx.busy(button, false);
-        Nx.toast(error.message, "error");
+        Nx.toast(error.message, error.code === "cart_limit" || error.code === "cart_room" ? "info" : "error");
       }
     }, signal);
 

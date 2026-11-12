@@ -1,5 +1,5 @@
-// Home page (classic script): the flip-digit "Deals of the day" countdown, the deal flip cards and
-// adding a deal to the cart. The 3D scenes live in home3d.js. Without this file the countdown
+// Home page (classic script): the flip-digit "Deals of the day" countdown and the deal flip cards.
+// The 3D scenes live in home3d.js. Without this file the countdown
 // shows the time at page load and each deal card shows its offer on hover or focus.
 (function () {
   "use strict";
@@ -69,20 +69,5 @@
     });
   });
 
-  // ---------- Add a deal to the cart (signed-in customers) ----------
-  document.querySelectorAll("[data-quick-add]").forEach(button => {
-    button.addEventListener("click", async () => {
-      Nx.busy(button, true, "Adding…");
-      try {
-        const result = await Nx.api("/api/cart/items", { method: "POST", body: { productId: button.dataset.quickAdd, quantity: 1 } });
-        Nx.busy(button, false);
-        if (Nx.flyToCart) await Nx.flyToCart(button.closest("[data-flip-card]").querySelector("img"));
-        Nx.setCartCount(result.cart.summary.count);
-        Nx.toast(result.message);
-      } catch (error) {
-        Nx.busy(button, false);
-        Nx.toast(error.message, "error");
-      }
-    });
-  });
+  // Adding a deal to the cart is the shared [data-cart-add] button (store.js).
 })();

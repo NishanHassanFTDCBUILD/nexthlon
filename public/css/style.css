@@ -612,7 +612,17 @@
 /* ==========================================================================
    Week 7: cart
    ========================================================================== */
-.fly-ghost { position: fixed; z-index: var(--z-flyer); border-radius: 50%; object-fit: cover; box-shadow: 0 10px 30px rgba(var(--navy-rgb), 0.35); border: 3px solid var(--white); pointer-events: none; will-change: transform, opacity; }
+/* The photo flying to the cart (store.js): a small rounded card with a volt glow, so it reads as "this product". */
+.fly-ghost { position: fixed; z-index: var(--z-flyer); border-radius: var(--radius-sm); object-fit: cover; box-shadow: 0 0 0 1px rgba(var(--brand-rgb), 0.55), 0 0 24px rgba(var(--brand-rgb), 0.35), 0 14px 32px rgba(var(--navy-rgb), 0.45); border: 3px solid var(--white); pointer-events: none; will-change: transform, opacity; }
+
+/* The cart icon catches the photo: a squash and stretch, and a ring of light. */
+.cart-icon.is-catching { animation: nx-cart-catch var(--duration-slow) var(--ease-out); }
+.cart-icon.is-catching::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--brand); pointer-events: none;
+  animation: nx-cart-ring var(--duration-slower) var(--ease-out) forwards;
+}
+@keyframes nx-cart-catch { 0% { transform: none; } 30% { transform: scale(1.22, 0.82) translateY(2px); } 60% { transform: scale(0.94, 1.08); } 100% { transform: none; } }
+@keyframes nx-cart-ring { from { opacity: 0.9; transform: scale(0.6); } to { opacity: 0; transform: scale(1.7); } }
 
 .add-to-cart { display: flex; flex-direction: column; gap: var(--sp-2); }
 .qty-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }

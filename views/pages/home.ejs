@@ -290,7 +290,8 @@
                   <span class="saving">You save <%= formatPrice(p.mrp - p.price) %></span>
                   <% if (p.stock > 0 && shopper) { %>
                     <% if (currentUser) { %>
-                      <button type="button" class="btn btn-primary btn-sm" data-quick-add="<%= p._id %>" data-quick-image="<%= sizedUrl(p.image, 400) %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
+                      <%# The photo is on the hidden front face, so the flight starts from the whole card (store.js). %>
+                      <button type="button" class="btn btn-primary btn-sm" data-cart-add="<%= p._id %>" data-cart-from="card" data-cart-src="<%= sizedUrl(p.image, 400) %>" data-cart-href="/products/<%= p.slug %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
                     <% } else { %>
                       <a class="btn btn-primary btn-sm" href="/login?next=<%= encodeURIComponent('/products/' + p.slug) %>"><%- icon('cart', 'i-sm') %> Sign in to buy</a>
                     <% } %>

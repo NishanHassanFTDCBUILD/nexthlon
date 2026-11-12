@@ -123,6 +123,8 @@
       const error = new Error(data.message || "Something went wrong. Please try again.");
       error.status = response.status;
       error.fieldErrors = data.errors || {};
+      // A short reason the page can act on ("cart_limit"), when the server gives one.
+      error.code = typeof data.code === "string" ? data.code : "";
       // Lets a form read rate-limit headers (attempts left) on a failed request.
       error.headers = response.headers;
       throw error;
@@ -135,7 +137,9 @@
     return `<svg class="i" aria-hidden="true"><use href="/img/icons.svg#${name}"></use></svg>`;
   }
 
-  Nx.toast = function toast(message, type = "success") {
+  // type: "success", "error", or "info" (a calm note that is not a failure, like "Max 5 in your cart").
+  // options.action: { label, href } adds a link to the message ("View cart").
+  Nx.toast = function toast(message, type = "success", options = {}) {
     const box = document.getElementById("toasts");
     if (!box) return;
     const item = document.createElement("div");
@@ -144,10 +148,18 @@
     // An error interrupts (role="alert"). Giving success messages role="status" as well made some
     // screen readers say them twice.
     if (type === "error") item.setAttribute("role", "alert");
-    item.innerHTML = `<span class="toast-icon">${iconSvg(type === "error" ? "alert" : "check")}</span>`;
+    item.innerHTML = `<span class="toast-icon">${iconSvg(type === "error" ? "alert" : type === "info" ? "info" : "check")}</span>`;
     const text = document.createElement("span");
     text.className = "toast-text";
     text.textContent = message;
+    const action = options.action;
+    if (action && action.label && typeof action.href === "string" && action.href.startsWith("/")) {
+      const link = document.createElement("a");
+      link.className = "toast-action";
+      link.href = action.href;
+      link.textContent = action.label;
+      text.append(" ", link);
+    }
     const close = document.createElement("button");
     close.type = "button";
     close.className = "toast-close";
@@ -526,13 +538,21 @@
         });
       });
     };
+    // Something needs the header on screen for a moment (the photo flying to the cart must land on a
+    // cart icon you can see): bring it back and keep it there, even while scrolling down, until then.
+    let heldUntil = 0;
+    Nx.showHeader = function showHeader(holdMs = 0) {
+      heldUntil = Math.max(heldUntil, performance.now() + holdMs);
+      setTucked(false);
+    };
     let lastY = window.scrollY;
     // Cheap enough to run on every scroll event (a few numbers and at most one class change).
     const onScroll = () => {
       const y = window.scrollY;
       const dy = y - lastY;
-      // Never hide while the menu is open or something in the header (the search box) is in use.
-      const busy = document.body.classList.contains("drawer-open") || header.contains(document.activeElement);
+      // Never hide while the menu is open, something in the header (the search box) is in use, or the
+      // header is being held on screen.
+      const busy = document.body.classList.contains("drawer-open") || header.contains(document.activeElement) || performance.now() < heldUntil;
       if (!phone.matches || busy || y < header.offsetHeight) setTucked(false);
       else if (dy > 6) setTucked(true);
       else if (dy < -6) setTucked(false);

@@ -1,9 +1,11 @@
-// An error that carries an HTTP status code, and optional messages for each form field.
+// An error that carries an HTTP status code, optional messages for each form field, and an optional
+// short reason code ("cart_limit") the browser can act on without reading the message text.
 class HttpError extends Error {
-  constructor(status, message, fieldErrors) {
+  constructor(status, message, fieldErrors, reason) {
     super(message);
     this.status = status;
     if (fieldErrors) this.fieldErrors = fieldErrors;
+    if (reason) this.reason = reason;
   }
 }
 

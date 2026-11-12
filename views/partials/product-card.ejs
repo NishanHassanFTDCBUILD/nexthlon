@@ -2,6 +2,12 @@
   <div class="product-media">
     <% const set = srcsetFor(p.image); %>
     <img src="<%= p.image %>"<% if (set) { %> srcset="<%= set %>" sizes="<%= cardSizes %>"<% } %> alt=""<% if (typeof eager !== 'undefined' && eager) { %><% if (typeof priority !== 'undefined' && priority) { %> fetchpriority="high"<% } %><% } else { %> loading="lazy"<% } %> decoding="async" width="400" height="400">
+    <%# Quick add (store.js): shoppers and guests (who sign in first), in-stock products only. %>
+    <% if ((!currentUser || currentUser.role === 'customer') && p.stock > 0) { %>
+      <button type="button" class="card-add" data-cart-add="<%= p._id %>" data-cart-href="/products/<%= p.slug %>">
+        <%- icon('cart', 'card-add-cart') %><%- icon('check', 'card-add-done') %><span class="sr-only">Add <%= p.name %> to cart</span>
+      </button>
+    <% } %>
   </div>
   <button type="button" class="wish-btn" data-wish-id="<%= p._id %>" aria-pressed="false" hidden>
     <%- icon('heart') %><span class="sr-only">Save <%= p.name %> to your wishlist</span>

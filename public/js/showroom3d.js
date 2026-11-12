@@ -57,27 +57,17 @@ function setUpShowroom(root) {
   const stage = root.querySelector("[data-showroom-stage]");
   const world = root.querySelector("[data-showroom-world]");
   const cards = [...root.querySelectorAll("[data-zg-card]")];
-  const shopper = root.dataset.shopper;
 
   // ---------- Add to cart (every mode) ----------
-  async function addToCart(card, quantity, image, button) {
+  // The shared Nx.addToCart (store.js): the photo flies the moment the button is pressed, guests sign
+  // in first and come back to the product, and "the most you can buy" is a calm note, not an error.
+  function addToCart(card, quantity, image, button) {
     const href = card.querySelector("[data-zg-link]").getAttribute("href");
-    if (shopper === "guest") {
-      window.location.assign(`/login?next=${encodeURIComponent(href)}`);
+    if (!window.Nx || !Nx.addToCart) {
+      window.location.assign(href);
       return;
     }
-    if (!window.Nx) return;
-    Nx.busy(button, true, "Adding…");
-    try {
-      const result = await Nx.api("/api/cart/items", { method: "POST", body: { productId: card.dataset.id, quantity } });
-      Nx.busy(button, false);
-      if (Nx.flyToCart) await Nx.flyToCart(image);
-      Nx.setCartCount(result.cart.summary.count);
-      Nx.toast(result.message);
-    } catch (error) {
-      Nx.busy(button, false);
-      Nx.toast(error.message, "error");
-    }
+    Nx.addToCart({ productId: card.dataset.id, quantity, source: image, button, href });
   }
   root.addEventListener("click", event => {
     const add = event.target.closest("[data-zg-add]");

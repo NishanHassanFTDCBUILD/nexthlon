@@ -142,11 +142,12 @@ async function addItem(userId, productId, quantity) {
   if (problem) {
     if (already && isAvailable(product)) {
       const room = limitFor(product) - already;
-      throw new HttpError(400, room > 0
-        ? `You already have ${already} in your cart. You can add ${room} more.`
-        : `You already have the most you can buy (${already}) in your cart.`);
+      // Not a failure from the shopper's side: the page shows these calmly ("Max in cart"), not as errors.
+      throw room > 0
+        ? new HttpError(400, `You already have ${already} in your cart. You can add ${room} more.`, null, "cart_room")
+        : new HttpError(400, `You already have the most you can buy (${already}) in your cart.`, null, "cart_limit");
     }
-    throw new HttpError(400, problem);
+    throw new HttpError(400, problem, null, product && isSold(product) && !(product.stock > 0) ? "out_of_stock" : undefined);
   }
 
   if (existing) existing.quantity = already + quantity;

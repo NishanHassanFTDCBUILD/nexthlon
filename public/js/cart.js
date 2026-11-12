@@ -6,9 +6,6 @@
   // Money from the API is in paise.
   const formatPrice = value => Nx.formatPrice(value);
 
-  // The photo flying to the header cart lives in store.js (Nx.flyToCart), shared with the home page.
-  const flyToCart = sourceImg => Nx.flyToCart(sourceImg);
-
   // ---------- Quantity stepper on the product page ----------
   function setupStepper(root) {
     const input = root.querySelector("[data-qty-input]");
@@ -35,25 +32,22 @@
   const addForm = document.querySelector("[data-add-to-cart]");
   if (addForm) {
     const readQuantity = setupStepper(addForm.querySelector("[data-qty]"));
+    // The shared Nx.addToCart (store.js): the photo flies from the gallery the moment you press the button.
     addForm.addEventListener("submit", async event => {
       event.preventDefault();
-      const button = addForm.querySelector('[type="submit"]');
-      Nx.busy(button, true, "Adding…");
-      try {
-        const result = await Nx.api("/api/cart/items", {
-          method: "POST",
-          body: { productId: addForm.dataset.productId, quantity: readQuantity() }
-        });
-        Nx.busy(button, false);
-        await flyToCart(document.querySelector("[data-gallery-main]"));
-        Nx.setCartCount(result.cart.summary.count);
-        Nx.toast(result.message);
-        // The product page shows "N already in your cart" from this.
-        addForm.dispatchEvent(new CustomEvent("nx:cart-added", { detail: result.cart }));
-      } catch (error) {
-        Nx.busy(button, false);
-        Nx.toast(error.message, "error");
-      }
+      // From the big photo, or from the sticky buy bar's photo when the big one has scrolled away.
+      const gallery = document.querySelector("[data-gallery-main]");
+      const box = gallery ? gallery.getBoundingClientRect() : null;
+      const onScreen = box && box.bottom > 40 && box.top < window.innerHeight - 40;
+      const result = await Nx.addToCart({
+        productId: addForm.dataset.productId,
+        quantity: readQuantity(),
+        source: onScreen ? gallery : document.querySelector("[data-dock] img") || gallery,
+        src: gallery ? gallery.currentSrc || gallery.src : "",
+        button: addForm.querySelector('[type="submit"]')
+      });
+      // The product page shows "N already in your cart" from this.
+      if (result.ok) addForm.dispatchEvent(new CustomEvent("nx:cart-added", { detail: result.cart }));
     });
   }
 
