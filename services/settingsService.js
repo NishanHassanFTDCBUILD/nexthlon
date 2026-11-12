@@ -1,13 +1,17 @@
 // Store settings the admin can change. Each has a default, so the store works before anything is saved.
 const Setting = require("../models/Setting");
+const { COD_LIMIT } = require("../utils/orderRules");
 const { HttpError } = require("../utils/http");
 
 const DEFAULTS = {
   // Wallet credit (paise) for both people when a new customer signs up with a referral code. 0 turns it off.
-  referralReward: 10000
+  referralReward: 10000,
+  // Cash on Delivery is offered for order totals up to this amount (paise). 0 turns it off.
+  codLimit: COD_LIMIT
 };
 const LIMITS = {
-  referralReward: { min: 0, max: 100000 }
+  referralReward: { min: 0, max: 100000 },
+  codLimit: { min: 0, max: 5000000 }
 };
 
 async function get(key) {
@@ -34,4 +38,9 @@ async function set(key, value) {
   return getAll();
 }
 
-module.exports = { DEFAULTS, LIMITS, get, getAll, set };
+// Whether Cash on Delivery can be offered for this amount (paise) under the given limit.
+function codAllowedFor(amount, limit) {
+  return limit > 0 && amount > 0 && amount <= limit;
+}
+
+module.exports = { DEFAULTS, LIMITS, get, getAll, set, codAllowedFor };

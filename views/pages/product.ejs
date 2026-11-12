@@ -136,7 +136,7 @@
             <p class="delivery-result" id="pincode-result" data-delivery-result aria-live="polite" hidden></p>
 
             <ul class="pdx-ship-perks">
-              <li class="<%= codAvailable ? 'is-yes' : 'is-no' %>"><%- icon(codAvailable ? 'check' : 'x', 'i-xs') %> <%= codAvailable ? 'Cash on Delivery available' : 'Pay online (Cash on Delivery is for orders up to ₹5,000)' %></li>
+              <li class="<%= codAvailable ? 'is-yes' : 'is-no' %>"><%- icon(codAvailable ? 'check' : 'x', 'i-xs') %> <%= codAvailable ? 'Cash on Delivery available' : codLimit > 0 ? 'Pay online (Cash on Delivery is for orders up to ' + formatPrice(codLimit) + ')' : 'Pay online' %></li>
               <li class="is-yes"><%- icon('rotate-ccw', 'i-xs') %> <%= store.returnDays %>-day easy returns</li>
             </ul>
           </div>

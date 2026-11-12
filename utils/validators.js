@@ -324,6 +324,15 @@ function validateReferralSetting(body = {}) {
   return { errors, value: { referralReward } };
 }
 
+// Admin: the Cash on Delivery limit in whole rupees, 0 to 50,000 (0 turns cash on delivery off).
+function validateCodSetting(body = {}) {
+  const errors = {};
+  const raw = typeof body.codLimit === "number" ? String(body.codLimit) : text(body.codLimit);
+  const codLimit = /^\d{1,5}$/.test(raw) ? rupeesToPaise(raw) : NaN;
+  if (!Number.isInteger(codLimit) || codLimit > 5000000) errors.codLimit = "Enter a whole amount from ₹0 to ₹50,000.";
+  return { errors, value: { codLimit } };
+}
+
 // ---------- My Account ----------
 
 // Changing the sign-in email needs the current password.
@@ -592,6 +601,7 @@ module.exports = {
   hasErrors,
   readFlag,
   validateReferralSetting,
+  validateCodSetting,
   validatePlaceOrder,
   validateCancel,
   validateReturn,

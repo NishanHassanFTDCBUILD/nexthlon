@@ -32,6 +32,23 @@
   </form>
 </section>
 
+<section class="panel settings-panel" aria-labelledby="cod-title">
+  <div class="panel-head panel-head-row">
+    <h2 id="cod-title"><%- icon('wallet', 'i-sm') %> Cash on delivery</h2>
+    <span class="muted">Shoppers can pay at the door when the order total is up to this amount</span>
+  </div>
+  <form class="form settings-form" data-settings-form="cod" novalidate>
+    <div class="form-alert" data-form-alert aria-live="assertive"></div>
+    <div class="field">
+      <label for="codLimit">Cash on delivery up to (₹)</label>
+      <input id="codLimit" name="codLimit" type="number" inputmode="numeric" min="0" max="50000" step="1" required value="<%= settings.codLimit / 100 %>" aria-describedby="codLimit-hint codLimit-error">
+      <p class="hint" id="codLimit-hint">0 turns cash on delivery off. Orders above the limit must be paid online or by wallet. Checkout and product pages update at once.</p>
+      <p class="field-error" id="codLimit-error" data-error-for="codLimit"></p>
+    </div>
+    <button class="btn btn-primary" type="submit">Save limit</button>
+  </form>
+</section>
+
 <section class="panel" aria-labelledby="rules-title">
   <div class="panel-head panel-head-row">
     <h2 id="rules-title"><%- icon('truck', 'i-sm') %> Delivery and returns</h2>
@@ -55,7 +72,6 @@
   <dl class="admin-facts">
     <div><dt>Low-stock warning at</dt><dd><%= lowStockLimit %> units or fewer</dd></div>
     <div><dt>Most of one product per order</dt><dd><%= maxPerProduct %></dd></div>
-    <div><dt>Cash on delivery up to</dt><dd><%= formatPrice(codLimit) %></dd></div>
     <div><dt>Addresses per customer</dt><dd><%= maxAddresses %></dd></div>
     <div><dt>Admin console address</dt><dd><code class="admin-code"><%= adminPath %></code></dd></div>
   </dl>

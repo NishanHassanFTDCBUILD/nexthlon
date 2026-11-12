@@ -1088,6 +1088,31 @@ test("Cash on Delivery only up to ₹5,000, and unavailable items block checkout
   assert.match(refused.data.message, /up to ₹5,000/);
   assert.equal((await Product.findById(tent._id)).stock, 4);
 
+  // The admin can change the limit from Settings; checkout and the product page follow at once.
+  const admin = await adminCookie();
+  assert.equal((await call("PATCH", "/api/admin/settings/cod", { body: { codLimit: 6000 }, cookie: big.cookie })).status, 401);
+  assert.equal((await call("PATCH", "/api/admin/settings/cod", { body: { codLimit: "50001" }, cookie: admin })).status, 400);
+  assert.equal((await call("PATCH", "/api/admin/settings/cod", { body: { codLimit: "12.5" }, cookie: admin })).status, 400);
+  const raised = await call("PATCH", "/api/admin/settings/cod", { body: { codLimit: "6000" }, cookie: admin });
+  assert.equal(raised.status, 200);
+  assert.equal(raised.data.settings.codLimit, 600000);
+  assert.match(raised.data.message, /₹6,000/);
+  const audit = await mongoose.connection.collection("auditlogs").findOne({ action: "settings.updated", target: "setting:codLimit" });
+  assert.deepEqual([audit.before.codLimit, audit.after.codLimit], [500000, 600000]);
+  const quote = await call("POST", "/api/checkout/quote", { body: {}, cookie: big.cookie });
+  assert.equal(quote.data.quote.codAllowed, true);
+  assert.equal(quote.data.quote.codLimit, 600000);
+  assert.match((await call("GET", "/products/expedition-tent")).data, /Cash on Delivery available/);
+  assert.match((await call("GET", "/checkout", { cookie: big.cookie })).data, /up to ₹6,000/);
+
+  // 0 turns cash on delivery off for every order.
+  await call("PATCH", "/api/admin/settings/cod", { body: { codLimit: 0 }, cookie: admin });
+  const off = await call("POST", "/api/orders", { body: { addressId: big.addressId, paymentMethod: "cod" }, cookie: big.cookie });
+  assert.equal(off.status, 400);
+  assert.match(off.data.message, /not available right now/);
+  assert.match((await call("GET", "/products/expedition-tent")).data, /Pay online/);
+  assert.equal((await call("PATCH", "/api/admin/settings/cod", { body: { codLimit: 5000 }, cookie: admin })).status, 200);
+
   await call("DELETE", "/api/cart", { cookie: big.cookie });
   const socks = await Product.findOne({ slug: "trail-socks" });
   await call("POST", "/api/cart/items", { body: { productId: String(socks._id), quantity: 1 }, cookie: big.cookie });

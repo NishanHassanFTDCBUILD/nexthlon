@@ -11,7 +11,8 @@ const walletService = require("./walletService");
 const stockService = require("./stockService");
 const { HttpError } = require("../utils/http");
 const { orderTotals } = require("../utils/pricing");
-const { COD_LIMIT } = require("../utils/orderRules");
+const settingsService = require("./settingsService");
+const { formatPaise } = require("../utils/money");
 
 // Placed here at once. Online payment (razorpay) goes through paymentService.
 // "wallet" is used when the wallet covers the whole amount.
@@ -63,6 +64,7 @@ async function buildQuote(userId, { useWallet = false, source = "cart" } = {}) {
     if (checked.problem) couponNotice = `${cart.couponCode}: ${checked.problem}`;
     else coupon = checked.coupon;
   }
+  const codLimit = await settingsService.get("codLimit");
   const totals = orderTotals({
     itemCount: summary.itemCount,
     mrpTotal: summary.mrpTotal,
@@ -83,8 +85,8 @@ async function buildQuote(userId, { useWallet = false, source = "cart" } = {}) {
     walletBalance,
     useWallet: totals.walletUsed > 0,
     coveredByWallet: totals.payable > 0 && totals.total === 0,
-    codAllowed: totals.total > 0 && totals.total <= COD_LIMIT,
-    codLimit: COD_LIMIT
+    codAllowed: settingsService.codAllowedFor(totals.total, codLimit),
+    codLimit
   };
 }
 
@@ -188,7 +190,9 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
     throw new HttpError(400, "Your wallet balance does not cover this order. Choose another way to pay the rest.");
   }
   if (method === "cod" && !quote.codAllowed) {
-    throw new HttpError(400, "Cash on Delivery is available for orders up to ₹5,000. Please choose another payment method.");
+    throw new HttpError(400, quote.codLimit > 0
+      ? `Cash on Delivery is available for orders up to ${formatPaise(quote.codLimit)}. Please choose another payment method.`
+      : "Cash on Delivery is not available right now. Please choose another payment method.");
   }
 
   const stockLines = quote.lines.map(line => ({ product: line.productId, quantity: line.quantity, name: line.name }));

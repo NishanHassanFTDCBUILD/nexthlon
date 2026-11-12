@@ -5,8 +5,9 @@ const adminService = require("../services/adminService");
 const dashboardService = require("../services/dashboardService");
 const analyticsService = require("../services/analyticsService");
 const settingsService = require("../services/settingsService");
-const { validateReferralSetting, validateTicketReply, validateAdminSearch, hasErrors } = require("../utils/validators");
+const { validateReferralSetting, validateCodSetting, validateTicketReply, validateAdminSearch, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
+const { formatPaise } = require("../utils/money");
 
 // GET /api/admin/dashboard?range=today|7d|30d|month|year|custom&from=&to=
 // The store counts (stats) plus KPIs, chart series and panels for the date range.
@@ -51,8 +52,24 @@ const getSettings = asyncHandler(async (req, res) => {
 const updateReferral = asyncHandler(async (req, res) => {
   const { errors, value } = validateReferralSetting(req.body);
   if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);
+  const before = await settingsService.get("referralReward");
   const settings = await settingsService.set("referralReward", value.referralReward);
+  await auditService.record({ ...auditService.fromRequest(req), action: "settings.updated", target: "setting:referralReward", before: { referralReward: before }, after: { referralReward: value.referralReward } });
   res.json({ message: value.referralReward ? "Referral reward saved." : "Referral rewards are turned off.", settings });
+});
+
+// PATCH /api/admin/settings/cod   body: { codLimit } in rupees, 0 to 50,000 (0 turns cash on delivery off).
+// Checkout and product pages read it on every request, so a change takes effect at once.
+const updateCod = asyncHandler(async (req, res) => {
+  const { errors, value } = validateCodSetting(req.body);
+  if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);
+  const before = await settingsService.get("codLimit");
+  const settings = await settingsService.set("codLimit", value.codLimit);
+  await auditService.record({ ...auditService.fromRequest(req), action: "settings.updated", target: "setting:codLimit", before: { codLimit: before }, after: { codLimit: value.codLimit } });
+  res.json({
+    message: value.codLimit ? `Cash on delivery is now offered for orders up to ${formatPaise(value.codLimit)}.` : "Cash on delivery is turned off.",
+    settings
+  });
 });
 
 // ---------- Support tickets ----------
@@ -82,4 +99,4 @@ const notifications = asyncHandler(async (req, res) => {
   res.json(await adminService.notifications());
 });
 
-module.exports = { dashboard, analytics, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, listTickets, replyTicket };
+module.exports = { dashboard, analytics, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, updateCod, listTickets, replyTicket };

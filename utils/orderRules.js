@@ -6,7 +6,9 @@ const ORDER_STATUSES = ["placed", "confirmed", "shipped", "out_for_delivery", "d
 const FLOW = ["placed", "confirmed", "shipped", "out_for_delivery", "delivered"];
 const CANCELLABLE = ["placed", "confirmed"];
 const PAYMENT_STATUSES = ["pending", "paid", "failed", "refunded", "partially_refunded"];
-const COD_LIMIT = 500000; // Cash on Delivery for totals up to ₹5,000 (paise)
+// Cash on Delivery for totals up to ₹5,000 (paise) until an admin changes it in Settings
+// (services/settingsService.js "codLimit"; 0 turns cash on delivery off).
+const COD_LIMIT = 500000;
 
 const STATUS_LABELS = {
   placed: "Order placed",

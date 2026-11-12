@@ -167,11 +167,11 @@
                   <span class="pay-card-icon"><%- icon('truck') %></span>
                   <span class="pay-card-title">
                     <strong>Cash on Delivery</strong>
-                    <span class="muted" id="pay-cod-note" data-cod-note data-ok="Pay in cash or UPI at your door" data-off="Only for orders up to <%= formatPrice(quote.codLimit) %>"><%= quote.codAllowed ? 'Pay in cash or UPI at your door' : 'Only for orders up to ' + formatPrice(quote.codLimit) %></span>
+                    <span class="muted" id="pay-cod-note" data-cod-note data-ok="Pay in cash or UPI at your door" data-off="<%= quote.codLimit > 0 ? 'Only for orders up to ' + formatPrice(quote.codLimit) : 'Not available right now' %>"><%= quote.codAllowed ? 'Pay in cash or UPI at your door' : quote.codLimit > 0 ? 'Only for orders up to ' + formatPrice(quote.codLimit) : 'Not available right now' %></span>
                   </span>
                 </label>
                 <div class="pay-card-details" data-pay-details>
-                  <p>Pay the delivery partner in cash or by UPI when your order arrives. Available for orders up to <%= formatPrice(quote.codLimit) %>.</p>
+                  <p>Pay the delivery partner in cash or by UPI when your order arrives. <%= quote.codLimit > 0 ? 'Available for orders up to ' + formatPrice(quote.codLimit) + '.' : 'Not available right now.' %></p>
                 </div>
               </div>
             </fieldset>

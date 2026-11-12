@@ -106,7 +106,7 @@ const productDetail = asyncHandler(async (req, res) => {
     accountService.recordView(req.user._id, product._id).catch(() => {});
   }
   const customer = req.user && req.user.role === "customer" ? req.user : null;
-  const [related, reviews, reviewStatus, featured, shipTo, inCart] = await Promise.all([
+  const [related, reviews, reviewStatus, featured, shipTo, inCart, codLimit] = await Promise.all([
     productService.getRelatedProducts(product),
     reviewService.listReviews(product._id, 1, req.user && req.user.role === "customer" ? req.user._id : null),
     reviewService.reviewStatus(req.user || null, product._id),
@@ -116,7 +116,8 @@ const productDetail = asyncHandler(async (req, res) => {
     // How many of this product are already in the customer's cart.
     customer ? Cart.findOne({ user: customer._id }).select("items").lean()
       .then(cart => (cart && cart.items.find(item => String(item.product) === String(product._id))) || null)
-      .then(item => (item ? item.quantity : 0)) : 0
+      .then(item => (item ? item.quantity : 0)) : 0,
+    settingsService.get("codLimit")
   ]);
   res.render("pages/product", {
     title: `${product.name} | Nexthlon`,
@@ -129,7 +130,8 @@ const productDetail = asyncHandler(async (req, res) => {
     featured,
     shipTo,
     inCart,
-    codAvailable: product.price <= orderRules.COD_LIMIT
+    codLimit,
+    codAvailable: settingsService.codAllowedFor(product.price, codLimit)
   });
 });
 
@@ -277,7 +279,6 @@ const adminSettings = asyncHandler(async (req, res) => {
     settings: await settingsService.getAll(),
     lowStockLimit: LOW_STOCK_LIMIT,
     maxPerProduct: cartService.MAX_PER_PRODUCT,
-    codLimit: orderRules.COD_LIMIT,
     maxAddresses: MAX_ADDRESSES
   });
 });

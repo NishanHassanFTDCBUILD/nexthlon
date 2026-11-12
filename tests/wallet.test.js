@@ -9,7 +9,8 @@ const { paymentStatusAfter } = require("../services/refundService");
 const { makeCode, CODE } = require("../services/referralService");
 const { describe } = require("../services/couponService");
 const logger = require("../utils/logger");
-const { validateReferralSetting, readFlag } = require("../utils/validators");
+const { validateReferralSetting, validateCodSetting, readFlag } = require("../utils/validators");
+const { codAllowedFor } = require("../services/settingsService");
 
 const percent = { code: "SAVE10", type: "percent", value: 10, maxDiscount: 10000, minOrder: 100000, isActive: true, usageLimit: 0, usedCount: 0, perUserLimit: 1 };
 const flat = { code: "FLAT200", type: "flat", value: 20000, maxDiscount: 0, minOrder: 0, isActive: true, usageLimit: 0, usedCount: 0, perUserLimit: 0 };
@@ -106,6 +107,16 @@ test("admin referral reward input, and wallet flags", () => {
   assert.ok(validateReferralSetting({ referralReward: "1001" }).errors.referralReward);
   assert.ok(validateReferralSetting({ referralReward: "-5" }).errors.referralReward);
   assert.ok(validateReferralSetting({ referralReward: "12.5" }).errors.referralReward);
+  assert.equal(validateCodSetting({ codLimit: "7500" }).value.codLimit, 750000);
+  assert.equal(validateCodSetting({ codLimit: 0 }).value.codLimit, 0);
+  assert.ok(validateCodSetting({ codLimit: "50001" }).errors.codLimit);
+  assert.ok(validateCodSetting({ codLimit: "-1" }).errors.codLimit);
+  assert.ok(validateCodSetting({ codLimit: "99.5" }).errors.codLimit);
+  assert.ok(validateCodSetting({}).errors.codLimit);
+  assert.equal(codAllowedFor(500000, 500000), true);
+  assert.equal(codAllowedFor(500001, 500000), false);
+  assert.equal(codAllowedFor(100, 0), false);
+  assert.equal(codAllowedFor(0, 500000), false);
   assert.equal(readFlag(true), true);
   assert.equal(readFlag("true"), true);
   assert.equal(readFlag("yes"), false);
