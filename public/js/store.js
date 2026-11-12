@@ -38,9 +38,9 @@
   };
 
   // ---------- Fly to cart ----------
-  // The product photo flies along a curve to the header cart icon the moment it is tapped, at the same
-  // time as the request (so it never waits for the server), and the cart icon catches it. If the server
-  // says no, the photo flies back to where it came from. Only transform and opacity move.
+  // The product flies as a small 3D card to the header cart icon the moment the button is pressed, at the
+  // same time as the request (so it never waits for the server), and the cart icon catches it in a burst
+  // of WebGL sparks. If the server says no, the card flies back to where it came from.
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const NO_FLIGHT = { landed: Promise.resolve(), abort() {} };
 
@@ -71,80 +71,190 @@
     setTimeout(() => icon.classList.remove("is-catching"), Nx.motionMs("--duration-slower", 700));
   }
 
+  // ---------- The WebGL sparks (fx/cartfx.js) ----------
+  // A small ES module, added when the page is idle and only where something can be added to the cart
+  // (or on the first press of such a button). Until it is ready, and wherever it declines (low-power
+  // devices, reduced data, no WebGL), the card still flies, just without sparks.
+  const CAN_ADD = "[data-cart-add], [data-add-to-cart], [data-zg-add], [data-zg-d-add], [data-list-cart], [data-dock-cart], [data-showroom]";
+  let fxRequested = false;
+  function loadCartFx() {
+    if (fxRequested || reducedMotion.matches) return;
+    fxRequested = true;
+    const holder = document.querySelector("[data-cart-fx]");
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = (holder && holder.dataset.cartFx) || "/js/fx/cartfx.js";
+    document.head.append(script);
+  }
+  const cartFx = () => (window.NxCartFx && window.NxCartFx.ready ? window.NxCartFx : null);
+  const whenIdle = run => ("requestIdleCallback" in window ? window.requestIdleCallback(run, { timeout: 3000 }) : setTimeout(run, 1200));
+  if (document.querySelector(CAN_ADD)) {
+    if (document.readyState === "complete") whenIdle(loadCartFx);
+    else window.addEventListener("load", () => whenIdle(loadCartFx), { once: true });
+  }
+  document.addEventListener("pointerdown", event => {
+    if (event.target instanceof Element && event.target.closest(CAN_ADD)) loadCartFx();
+  }, { capture: true, passive: true });
+
+  // The flight's timing curve is the site's --ease-in-out token, solved here so the script and the CSS
+  // move alike.
+  let flightEase = null;
+  function easing() {
+    if (flightEase) return flightEase;
+    const match = /cubic-bezier\(([^)]+)\)/.exec(Nx.motionEase("--ease-in-out"));
+    const numbers = match ? match[1].split(",").map(Number) : [];
+    const [x1, y1, x2, y2] = numbers.length === 4 && numbers.every(Number.isFinite) ? numbers : [0.65, 0, 0.35, 1];
+    const curve = (a1, a2, t) => (((1 - 3 * a2 + 3 * a1) * t + (3 * a2 - 6 * a1)) * t + 3 * a1) * t;
+    flightEase = x => {
+      if (x <= 0) return 0;
+      if (x >= 1) return 1;
+      let lo = 0;
+      let hi = 1;
+      for (let i = 0; i < 18; i += 1) {
+        const mid = (lo + hi) / 2;
+        if (curve(x1, x2, mid) < x) lo = mid;
+        else hi = mid;
+      }
+      return curve(y1, y2, (lo + hi) / 2);
+    };
+    return flightEase;
+  }
+
+  // Runs fn(dt) on every frame until it returns false: on the site's shared ticker, or its own loop.
+  function everyFrame(fn) {
+    if (window.NxTicker) {
+      let stop = null;
+      stop = window.NxTicker.add((time, dt) => { if (fn(dt) === false && stop) stop(); });
+      return () => stop();
+    }
+    let id = 0;
+    let last = 0;
+    let running = true;
+    const loop = now => {
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+      last = now;
+      if (fn(dt) === false) running = false;
+      if (running) id = requestAnimationFrame(loop);
+    };
+    id = requestAnimationFrame(loop);
+    return () => { running = false; cancelAnimationFrame(id); };
+  }
+
+  const clampTo = (value, min, max) => Math.min(max, Math.max(min, value));
+
   // Starts a flight from an element (a photo, or a whole card) showing the photo src.
-  // Returns { landed, abort }: landed resolves when the photo reaches the cart (or straight away when
-  // there is no flight); abort() sends it back to where it came from.
+  // The photo becomes a small 3D card: it lifts off, then flies along a curve that rises above both ends,
+  // banking into the turn and pitching with the climb while a band of light sweeps across it, shrinks
+  // as it nears the cart, and lands with a burst of sparks (cartfx.js). Every frame writes transform and
+  // opacity only.
+  // Returns { landed, abort }: landed resolves when the card reaches the cart (or straight away when
+  // there is no flight); abort() flies it back to where it came from, where it fades out in a grey puff.
   Nx.startFlight = function startFlight(source, src) {
-    if (!source || reducedMotion.matches || typeof Element.prototype.animate !== "function") return NO_FLIGHT;
+    if (!source || reducedMotion.matches || typeof window.requestAnimationFrame !== "function") return NO_FLIGHT;
     const from = source.getBoundingClientRect();
     const photo = src || (source.tagName === "IMG" ? source.currentSrc || source.src : "");
     // Nothing to fly from (no photo, or the photo is off screen): the cart icon still catches the item.
     if (!from.width || !photo || from.bottom < 0 || from.top > window.innerHeight) return NO_FLIGHT;
-    const duration = Nx.motionMs("--duration-slower", 700);
-    const target = cartTarget(duration + 1200);
+    const durationMs = Nx.motionMs("--duration-slower", 700);
+    const target = cartTarget(durationMs + 1200);
     if (!target) return NO_FLIGHT;
 
     const size = Math.max(56, Math.min(120, from.width * 0.42));
     const sx = from.left + from.width / 2;
     const sy = from.top + from.height / 2;
-    const ghost = document.createElement("img");
-    ghost.src = photo;
-    ghost.alt = "";
-    ghost.className = "fly-ghost";
-    ghost.setAttribute("aria-hidden", "true");
-    ghost.style.width = `${size}px`;
-    ghost.style.height = `${size}px`;
-    ghost.style.left = `${sx - size / 2}px`;
-    ghost.style.top = `${sy - size / 2}px`;
-    document.body.append(ghost);
+    const card = document.createElement("div");
+    card.className = "fly-card";
+    card.setAttribute("aria-hidden", "true");
+    const image = document.createElement("img");
+    image.alt = "";
+    image.decoding = "async";
+    image.src = photo;
+    const sheen = document.createElement("span");
+    sheen.className = "fly-card-sheen";
+    card.append(image, sheen);
+    card.style.width = `${size}px`;
+    card.style.height = `${size}px`;
+    card.style.left = `${sx - size / 2}px`;
+    card.style.top = `${sy - size / 2}px`;
+    document.body.append(card);
 
-    // A curve that rises above both ends, leaning towards the side it comes from.
+    // The curve: a quadratic from the card (0, 0) to the cart (dx, dy) through a raised control point.
     const dx = target.x - sx;
     const dy = target.y - sy;
     const lift = Math.max(90, Math.hypot(dx, dy) * 0.32);
     const cx = dx * 0.35;
     const cy = Math.min(0, dy) - lift;
-    const STEPS = 12;
-    const frames = [];
-    for (let i = 0; i <= STEPS; i += 1) {
-      const t = i / STEPS;
-      const u = 1 - t;
-      const x = 2 * u * t * cx + t * t * dx;
-      const y = 2 * u * t * cy + t * t * dy;
-      const scale = 1 - 0.84 * t * t;                       // shrinks most at the end
-      const spin = Math.sin(t * Math.PI) * (dx >= 0 ? 14 : -14); // tips into the turn, then levels
-      frames.push({
-        offset: t,
-        transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${spin.toFixed(1)}deg) scale(${scale.toFixed(3)})`,
-        opacity: t < 0.82 ? 1 : 1 - (t - 0.82) * 3.6
-      });
-    }
-    // A short lift-off from the card before the flight.
-    frames[1] = { ...frames[1], transform: `${frames[1].transform} scale(1.08)` };
-    const animation = ghost.animate(frames, { duration, easing: Nx.motionEase("--ease-in-out"), fill: "forwards" });
+    const side = dx >= 0 ? 1 : -1;
+    const ease = easing();
+    const seconds = durationMs / 1000;
 
-    let aborted = false;
-    const arrived = animation.finished.then(() => {
-      if (aborted) return;
-      catchAt(target.icon);
-      ghost.remove();
-    }, () => {});
-    // Browsers pause animations in background tabs: the cart count and message never wait on the flight
+    let t = 0;          // time through the flight, 0 to 1
+    let direction = 1;  // 1 towards the cart, -1 back to the card
+    let finished = false;
+    let settle = null;
+    let stopFrames = null;
+    const arrived = new Promise(resolve => { settle = resolve; });
+
+    // Places the card at eased progress p, and returns where it is (for the sparks).
+    const place = p => {
+      const u = 1 - p;
+      const x = 2 * u * p * cx + p * p * dx;
+      const y = 2 * u * p * cy + p * p * dy;
+      // Direction of travel (the curve's slope), for the tilt and the sparks.
+      const vx = 2 * u * cx + 2 * p * (dx - cx);
+      const vy = 2 * u * cy + 2 * p * (dy - cy);
+      const speed = Math.hypot(vx, vy) || 1;
+      const arc = Math.sin(p * Math.PI);
+      const liftOff = Math.sin(clampTo(p / 0.22, 0, 1) * Math.PI);   // a quick rise before it shrinks
+      const scale = (1 + 0.12 * liftOff) * (1 - 0.82 * p * p);
+      const rotateY = side * 38 * arc;                                 // banks into the turn
+      const rotateX = clampTo((-vy / speed) * 26 * arc + 10 * liftOff, -32, 32); // pitches with the climb
+      const rotateZ = side * 12 * arc;
+      const opacity = direction > 0 ? (p < 0.9 ? 1 : 1 - (p - 0.9) * 6) : clampTo(p / 0.35, 0, 1);
+      card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) perspective(600px) rotateX(${rotateX.toFixed(1)}deg) rotateY(${rotateY.toFixed(1)}deg) rotateZ(${rotateZ.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
+      card.style.opacity = String(Math.round(opacity * 100) / 100);
+      // The light sweeps across as the card turns.
+      sheen.style.transform = `translateX(${(-70 + 140 * p + side * arc * 12).toFixed(1)}%)`;
+      return { x: sx + x, y: sy + y, vx: vx * direction, vy: vy * direction, size: size * scale };
+    };
+
+    const end = landedOnCart => {
+      if (finished) return;
+      finished = true;
+      if (stopFrames) stopFrames();
+      const fx = cartFx();
+      if (landedOnCart) {
+        catchAt(target.icon);
+        if (fx) fx.burst(target.x, target.y);
+      } else if (fx) {
+        fx.puff(sx, sy);
+      }
+      card.remove();
+      settle();
+    };
+
+    place(0);
+    stopFrames = everyFrame(dt => {
+      if (finished) return false;
+      // Going back is a little quicker than going out.
+      t = clampTo(t + (direction * dt) / (direction > 0 ? seconds : seconds * 0.6), 0, 1);
+      const at = place(ease(t));
+      const fx = cartFx();
+      if (fx && direction > 0 && t > 0.08 && t < 0.97) fx.trail(at.x, at.y, at.vx, at.vy, at.size);
+      if (direction > 0 && t >= 1) end(true);
+      else if (direction < 0 && t <= 0) end(false);
+      return !finished;
+    });
+
+    // Browsers pause frames in background tabs: the cart count and message never wait on the flight
     // for longer than it should take.
-    const landed = Promise.race([arrived, new Promise(resolve => setTimeout(resolve, duration + 250))]);
+    const landed = Promise.race([arrived, new Promise(resolve => setTimeout(resolve, durationMs + 250))]);
     return {
       landed,
       abort() {
-        if (aborted) return;
-        aborted = true;
-        // Fly back to the card from wherever it is now, and fade out there.
-        const back = animation.playState === "finished" ? null : animation;
-        if (back) {
-          back.updatePlaybackRate(-1.6);
-          back.finished.catch(() => {}).then(() => ghost.remove());
-        } else {
-          ghost.remove();
-        }
+        // Already on the cart: nothing to undo on screen (the count is simply not changed).
+        if (finished) return;
+        direction = -1;
       }
     };
   };

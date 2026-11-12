@@ -8,7 +8,7 @@
 <a class="skip-link" href="#main">Skip to content</a>
 <%# The top promo strip (free delivery, returns, shipping, help) was removed: the header starts the page.
     The same links are in the footer. %>
-<header class="site-header" data-site-header data-free-delivery="<%= store.freeDeliveryMin %>" data-shopper="<%= !currentUser ? 'guest' : currentUser.role %>" data-wish-ids="<%= JSON.stringify(savedIds) %>">
+<header class="site-header" data-site-header data-free-delivery="<%= store.freeDeliveryMin %>" data-shopper="<%= !currentUser ? 'guest' : currentUser.role %>" data-wish-ids="<%= JSON.stringify(savedIds) %>" data-cart-fx="<%= asset('/js/fx/cartfx.js') %>">
   <div class="mainbar">
     <div class="container mainbar-inner">
       <button type="button" class="header-btn nav-toggle" data-drawer-open="site-drawer" aria-controls="site-drawer" aria-expanded="false">
