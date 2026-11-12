@@ -51,3 +51,16 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false          # Nexthlon <orders@your-domain>
+      # The business details India's e-commerce rules ask for (footer, policy pages, invoices).
+      - key: STORE_LEGAL_NAME
+        sync: false
+      - key: STORE_ADDRESS
+        sync: false          # Building, street, City, State PIN, India
+      - key: STORE_GSTIN
+        sync: false
+      - key: STORE_SUPPORT_EMAIL
+        sync: false
+      - key: STORE_SUPPORT_PHONE
+        sync: false
+      - key: STORE_GRIEVANCE_OFFICER
+        sync: false

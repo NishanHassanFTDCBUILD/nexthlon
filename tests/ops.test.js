@@ -27,7 +27,10 @@ const production = {
   S3_BUCKET: "nexthlon",
   S3_ACCESS_KEY_ID: "key",
   S3_SECRET_ACCESS_KEY: "secret",
-  STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in"
+  STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in",
+  STORE_LEGAL_NAME: "Nexthlon Sports Private Limited", STORE_ADDRESS: "12 MG Road, Bengaluru, Karnataka 560001, India",
+  STORE_GSTIN: "29ABCDE1234F1Z5", STORE_SUPPORT_EMAIL: "support@nexthlon.in", STORE_SUPPORT_PHONE: "+91 80 4000 0000",
+  STORE_GRIEVANCE_OFFICER: "A. Officer"
 };
 
 test("a good development setup has no errors and no warnings", () => {
@@ -36,6 +39,15 @@ test("a good development setup has no errors and no warnings", () => {
 
 test("a complete production setup has no errors and no warnings", () => {
   assert.deepEqual(checkEnv(production), { errors: [], warnings: [] });
+});
+
+test("a live shop is warned about placeholder business details, and a wrong support email stops it", () => {
+  const { STORE_GSTIN, STORE_SUPPORT_PHONE, ...withoutTwo } = production;
+  const { errors, warnings } = checkEnv(withoutTwo);
+  assert.deepEqual(errors, []);
+  assert.deepEqual(warnings.map(line => line.split(":")[0]).sort(), ["STORE_GSTIN", "STORE_SUPPORT_PHONE"]);
+  assert.match(checkEnv({ ...production, STORE_SUPPORT_EMAIL: "not-an-email" }).errors.join(" "), /STORE_SUPPORT_EMAIL/);
+  assert.match(checkEnv({ ...production, STORE_GSTIN: "1234" }).warnings.join(" "), /STORE_GSTIN/);
 });
 
 test("every problem is reported at once, not one per run", () => {

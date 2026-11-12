@@ -1,16 +1,19 @@
-// Store details shown on the policy pages, the footer and the contact page.
-// Everything in [square brackets] is a placeholder: replace it with your real details
-// before applying for Razorpay. Amounts are in paise (₹1 = 100 paise).
+// Store details shown on the policy pages, the footer, the contact page, invoices and emails.
+// The business details come from settings (STORE_* in .env or the host's dashboard), so going live needs
+// no code change. Anything still in [square brackets] is a placeholder: India's e-commerce rules and
+// Razorpay both need the real ones, and the startup check warns about them in production
+// (config/schema.js). Amounts are in paise (₹1 = 100 paise).
+const setting = (name, placeholder) => (process.env[name] || "").trim() || placeholder;
 
 const STORE = {
   brandName: "Nexthlon",
-  legalName: "[Your registered business name]",
-  address: "[Building, street], [City], [State] [PIN code], India",
-  gstin: "[Your GSTIN]",
-  supportEmail: "[support@your-domain.in]",
-  supportPhone: "[+91 00000 00000]",
-  supportHours: "Monday to Saturday, 10 am to 6 pm IST",
-  grievanceOfficer: "[Name of grievance officer]",
+  legalName: setting("STORE_LEGAL_NAME", "[Your registered business name]"),
+  address: setting("STORE_ADDRESS", "[Building, street], [City], [State] [PIN code], India"),
+  gstin: setting("STORE_GSTIN", "[Your GSTIN]"),
+  supportEmail: setting("STORE_SUPPORT_EMAIL", "[support@your-domain.in]"),
+  supportPhone: setting("STORE_SUPPORT_PHONE", "[+91 00000 00000]"),
+  supportHours: setting("STORE_SUPPORT_HOURS", "Monday to Saturday, 10 am to 6 pm IST"),
+  grievanceOfficer: setting("STORE_GRIEVANCE_OFFICER", "[Name of grievance officer]"),
   freeDeliveryMin: 49900, // free delivery above ₹499
   deliveryFee: 4000, // ₹40 below that
   returnDays: 7,

@@ -183,6 +183,20 @@ function checkEnv(env = process.env) {
     warn("SMTP_HOST", "is not set, so no email can be sent (order emails, password resets). Set SMTP_HOST and its login, or MAIL_DRIVER=brevo with BREVO_API_KEY.");
   }
 
+  // ---------- Store details (config/store.js) ----------
+  // The legally required business details. Placeholders are fine while building, not in a live shop.
+  const STORE_SETTINGS = { STORE_LEGAL_NAME: "registered business name", STORE_ADDRESS: "business address", STORE_GSTIN: "GSTIN",
+    STORE_SUPPORT_EMAIL: "support email", STORE_SUPPORT_PHONE: "support phone number", STORE_GRIEVANCE_OFFICER: "grievance officer's name" };
+  if (production) {
+    for (const [name, what] of Object.entries(STORE_SETTINGS)) {
+      if (!text(env, name)) warn(name, `is not set, so the site shows a placeholder for the ${what}. India's e-commerce rules and Razorpay need the real one.`);
+    }
+  }
+  const supportEmail = text(env, "STORE_SUPPORT_EMAIL");
+  if (supportEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(supportEmail)) fail("STORE_SUPPORT_EMAIL", `"${supportEmail}" is not an email address.`);
+  const gstin = text(env, "STORE_GSTIN");
+  if (gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) warn("STORE_GSTIN", `"${gstin}" does not look like a GSTIN (15 characters, for example 29ABCDE1234F1Z5).`);
+
   // ---------- Monitoring and logs ----------
   const dsn = text(env, "SENTRY_DSN");
   if (dsn) {
