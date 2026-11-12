@@ -17,4 +17,4 @@ You need: the GitHub repo (already connected), the MongoDB Atlas database, a Clo
 8. **Your domain:** Render > Settings > Custom Domains, follow the DNS steps, then change `SITE_URL` and `MAIL_FROM` to it.
 9. **Test everything:** sign up, reset password, order (cash on delivery), admin login.
 
-Free Render plans sleep after inactivity, which also pauses emails and background jobs: use the paid `starter` plan for a real shop.
+The blueprint uses the **free** plan (good for a demo): it sleeps after 15 minutes idle, the first visit then takes about 50 seconds, and emails and background jobs pause while it sleeps. For a real shop, change `plan: free` to `plan: starter` in `render.yaml` (about $7 a month).

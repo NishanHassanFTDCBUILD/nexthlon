@@ -4,7 +4,7 @@ services:
   - type: web
     name: nexthlon
     runtime: docker
-    plan: starter            # "free" also works for a demo, but it sleeps when idle and jobs/emails pause with it
+    plan: free               # demo: sleeps after 15 min idle (first visit ~50s, jobs/emails pause). Use "starter" for a real shop.
     region: singapore        # closest Render region to India
     healthCheckPath: /healthz
     autoDeploy: true
