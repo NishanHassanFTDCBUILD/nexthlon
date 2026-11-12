@@ -345,6 +345,36 @@
     }, { signal });
   });
 
+  // ---------- Tables that scroll can be reached by keyboard ----------
+  // A table wider (or taller) than its box scrolls, so keyboard users must be able to focus it and use the
+  // arrow keys (WCAG 2.1.1). Only boxes that really scroll get a tab stop, named after the table's caption
+  // or the nearest heading. Checked again when a section loads (the console swaps them without a reload)
+  // and when the window is resized.
+  function labelScrollingTables() {
+    document.querySelectorAll(".table-wrap").forEach(box => {
+      const scrolls = box.scrollWidth > box.clientWidth + 1 || box.scrollHeight > box.clientHeight + 1;
+      if (!scrolls) {
+        if (box.dataset.scrollRegion) { box.removeAttribute("tabindex"); box.removeAttribute("role"); box.removeAttribute("aria-label"); delete box.dataset.scrollRegion; }
+        return;
+      }
+      if (box.dataset.scrollRegion) return;
+      const caption = box.querySelector("caption");
+      const section = box.closest("section, .panel, main");
+      const heading = section && section.querySelector("h1, h2, h3");
+      const name = (caption && caption.textContent.trim()) || (heading && heading.textContent.trim()) || "Table";
+      box.dataset.scrollRegion = "1";
+      box.setAttribute("tabindex", "0");
+      box.setAttribute("role", "region");
+      box.setAttribute("aria-label", `${name}, scrolls`);
+    });
+  }
+  let tableTimer = 0;
+  const scheduleTables = () => { clearTimeout(tableTimer); tableTimer = setTimeout(labelScrollingTables, 150); };
+  labelScrollingTables();
+  window.addEventListener("resize", scheduleTables, { passive: true });
+  const content = document.querySelector(".admin-content") || document.querySelector("main");
+  if (content && "MutationObserver" in window) new MutationObserver(scheduleTables).observe(content, { childList: true, subtree: true });
+
   // ---------- System status: re-read the health check on demand ----------
   Pages.define("admin-system", (root, signal) => {
     root.addEventListener("click", event => {

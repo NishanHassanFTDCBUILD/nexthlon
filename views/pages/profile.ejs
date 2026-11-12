@@ -19,7 +19,7 @@
     <% addresses.forEach(function (a) { %>
       <article class="address-card <%= a.isDefault ? 'is-default' : '' %>" aria-label="Address for <%= a.fullName %><%= a.isDefault ? ', default' : '' %>">
         <div class="address-card-head">
-          <h3><%= a.fullName %></h3>
+          <h2 class="address-name"><%= a.fullName %></h2>
           <span class="address-type-pill"><%- icon(a.type === 'work' ? 'box' : a.type === 'other' ? 'pin' : 'home', 'i-xs') %> <%= a.type === 'work' ? 'Work' : a.type === 'other' ? 'Other' : 'Home' %></span>
           <% if (a.isDefault) { %><span class="pill pill-blue"><%- icon('check', 'i-xs') %> Default</span><% } %>
         </div>

@@ -97,3 +97,10 @@ test("full-height and pinned sizes use svh or dvh (vh is only a fallback written
   }
   assert.deepEqual(bad, [], "vh without an svh/dvh line after it");
 });
+
+test("every stylesheet closes its comments (an open /* at the end swallows the next file in the bundle)", () => {
+  for (const f of fs.readdirSync(DIR).filter(f => f.endsWith(".css"))) {
+    const src = fs.readFileSync(path.join(DIR, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    assert.ok(!src.includes("/*"), `${f} has a comment that is never closed`);
+  }
+});

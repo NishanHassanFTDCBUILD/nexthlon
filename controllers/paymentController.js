@@ -32,7 +32,7 @@ const retry = asyncHandler(async (req, res) => {
 const verify = asyncHandler(async (req, res) => {
   const ids = readIds(req.body);
   if (!RAZORPAY_ORDER.test(ids.razorpayOrderId) || !RAZORPAY_PAYMENT.test(ids.razorpayPaymentId) || !ids.signature) {
-    throw new HttpError(400, "We could not confirm this payment.");
+    throw new HttpError(400, "We could not confirm this payment: the details from the payment window were incomplete. Check your orders page; if money was taken it is refunded automatically.");
   }
   const order = await paymentService.verifyPayment(req.user._id, ids);
   const ok = order.paymentStatus === "paid" || order.paymentStatus === "refunded" || order.paymentStatus === "partially_refunded";

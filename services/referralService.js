@@ -47,7 +47,7 @@ async function ensureCode(user) {
       if (error.code !== 11000) throw error;
     }
   }
-  throw new Error("Could not create a referral code.");
+  throw new Error("We couldn't make your invite code just now. Refresh the page to try again.");
 }
 
 // Finds the customer who owns this code, for sign-up. Throws a field error for a bad code.

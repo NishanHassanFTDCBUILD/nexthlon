@@ -113,7 +113,8 @@
     const plotH = height - pad.t - pad.b;
     const n = data.length;
     const band = plotW / Math.max(n, 1);
-    const maxRevenue = niceMax(Math.max(...data.map(d => d.revenue), 0));
+    // At least a ₹1,000 axis: with no sales yet, a 1-paisa axis printed "₹0" on every line.
+    const maxRevenue = niceMax(Math.max(...data.map(d => d.revenue), 100000));
     const maxOrders = countMax(Math.max(...data.map(d => d.orders), 0), 4);
     const svg = svgEl("svg", { width, height, viewBox: `0 0 ${width} ${height}`, "aria-hidden": "true" });
     for (let i = 0; i <= 4; i++) {

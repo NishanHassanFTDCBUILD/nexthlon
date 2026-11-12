@@ -174,6 +174,13 @@
   --space-6: clamp(36px, 1.111vw + 32px, 48px);       /* 36 → 48px */
   --space-8: clamp(44px, 1.852vw + 37.33px, 64px);    /* 44 → 64px */
   --space-10: clamp(52px, 2.593vw + 42.67px, 80px);   /* 52 → 80px */
+  /* The compact steps used inside controls (between the 4px steps above): icon gaps, chip and
+     button padding, table cells. Named by size so they are easy to pick. */
+  --space-xxs: 2px;
+  --space-xs: 6px;
+  --space-sm: 10px;
+  --space-md: 14px;
+  --space-lg: 18px;
 
   /* ---------- Layout ---------- */
   --container: 1440px;                       /* widest content column; grows on wide screens */

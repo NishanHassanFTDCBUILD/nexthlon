@@ -22,7 +22,7 @@
 
   /* ---------- Cart: thumb-sized quantity buttons; "Save for later" on one line ---------- */
   .qty-btn, .qty-sm .qty-btn { width: var(--tap); height: var(--tap); }
-  .cart-item-actions { flex-wrap: wrap; row-gap: 8px; }
+  .cart-item-actions { flex-wrap: wrap; row-gap: var(--space-1); }
   .cart-item-actions .link-btn { white-space: nowrap; }
 
   /* ---------- Checkout: the steps (address, summary, payment) come first, the price summary after ---------- */
@@ -43,15 +43,15 @@
   .au-motto { left: var(--space-2); }
 
   /* ---------- Home: "Shop by sport", two tiles per row (was one 405px tile per row) ---------- */
-  .depth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .depth-tile { padding: 8px; gap: 2px; }
-  .depth-title { margin-top: 4px; font-size: var(--text-base); line-height: 1.2; }
+  .depth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
+  .depth-tile { padding: var(--space-1); gap: var(--space-xxs); }
+  .depth-title { margin-top: var(--space-half); font-size: var(--text-base); line-height: 1.2; }
   .depth-price { font-size: var(--text-xs); }
 
   /* ---------- Home: "Deals of the day", two flip cards per row on every phone ---------- */
-  .flip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .flip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
   .flip-inner { min-height: 262px; }
-  .flip-face { padding: 10px; gap: 4px; }
+  .flip-face { padding: var(--space-sm); gap: var(--space-half); }
   .flip-name { font-size: var(--text-sm); }
   .flip-off { font-size: var(--text-3xl); }
   .flip-toggle { width: var(--tap); height: var(--tap); right: 8px; bottom: 8px; }
@@ -65,13 +65,13 @@
   /* ---------- Home: showcase labels stay whole (they were squeezed to 3 lines and clipped) ---------- */
   .showcase-label { max-width: 48%; }
   .showcase-label .showcase-line { display: none; }
-  .showcase-label span { padding: 5px 10px; font-size: var(--text-xs); white-space: nowrap; }
+  .showcase-label span { padding: 5px var(--space-sm); font-size: var(--text-xs); white-space: nowrap; }
 
   /* ---------- Product cards: price line, then the saving; delivery note on one line ---------- */
-  .product-body { padding: 10px 12px 12px; }
-  .product-card .price-row { gap: 0 6px; }
+  .product-body { padding: var(--space-sm) var(--space-1h) var(--space-1h); }
+  .product-card .price-row { gap: 0 var(--space-xs); }
   .product-card .price-row .off { flex-basis: 100%; font-size: var(--text-xs); }
-  .product-foot { flex-wrap: wrap; row-gap: 6px; }
+  .product-foot { flex-wrap: wrap; row-gap: var(--space-xs); }
   .product-delivery { white-space: nowrap; }
 
   /* ---------- No text smaller than 12px ---------- */
@@ -84,7 +84,7 @@
   .news-row input { flex: none; height: 48px; }
   .news-row .btn { min-height: 48px; }
   .footer-news-copy p { display: none; }
-  .footer-grid { gap: 22px 16px; padding-top: var(--space-3); padding-bottom: var(--space-3); }
+  .footer-grid { gap: 22px var(--space-2); padding-top: var(--space-3); padding-bottom: var(--space-3); }
   .footer-brand p:not(.footer-tagline) { display: none; }
   /* Link groups: one per row, each a tap-to-open section (closed at first; app.js). */
   .footer-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
@@ -96,10 +96,10 @@
   .footer-col .footer-caret { display: block; color: var(--on-dark-muted); transition: transform var(--duration) var(--ease); }
   .footer-col[open] .footer-caret { transform: rotate(180deg); }
   .site-footer h2 { margin: 0; }
-  .site-footer nav ul { display: block; columns: 2; column-gap: 16px; padding-bottom: 10px; }
+  .site-footer nav ul { display: block; columns: 2; column-gap: var(--space-2); padding-bottom: var(--space-sm); }
   .site-footer nav li { break-inside: avoid; }
   .site-footer nav a, .footer-legal a { display: inline-block; padding: 9px 0; }
-  .footer-trust { gap: 12px; padding-top: var(--space-2); padding-bottom: var(--space-2); }
+  .footer-trust { gap: var(--space-1h); padding-top: var(--space-2); padding-bottom: var(--space-2); }
   /* These three repeat the trust cards on the home page and the product page. */
   .footer-badges { display: none; }
 

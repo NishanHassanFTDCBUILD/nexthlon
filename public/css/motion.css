@@ -9,7 +9,7 @@
    ========================================================================== */
 
 /* Section heading underline. Static (always drawn) unless motion is allowed. */
-.section-head h2, .admin-section-title { position: relative; padding-bottom: 8px; }
+.section-head h2, .admin-section-title { position: relative; padding-bottom: var(--space-1); }
 .section-head h2::after, .admin-section-title::after {
   content: ""; position: absolute; left: 0; bottom: 0; width: 56px; height: 3px; border-radius: 3px;
   background: linear-gradient(90deg, var(--brand), var(--accent)); transform-origin: left;
@@ -249,13 +249,6 @@
 }
 
 /* ---------- Micro-interactions ---------- */
-/* Rolling numbers (Nx.rollNumber): the new value slides in while the old one leaves. The script only
-   builds these spans when motion is allowed, so there is nothing to switch off for reduced motion. */
-.is-rolling { overflow: clip; }
-.is-rolling:not(.count-dot) { position: relative; }
-.roll-now { display: inline-block; }
-.roll-ghost { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
-
 /* Wishlist heart: saving bursts six dots out of it (they spread by scaling one tiny dot and its
    shadows, and fade). Removing does not burst. */
 @media (prefers-reduced-motion: no-preference) {
@@ -281,3 +274,4 @@
   .success-step { animation: nx-reveal-up var(--duration-long) var(--ease-out) both; animation-delay: calc(var(--duration-slow) + var(--i, 0) * var(--stagger) * 3); }
   .success-track .is-done .success-track-dot { animation: cart-bump var(--duration-slow) var(--ease-spring) both; animation-delay: calc(var(--duration-slower) + var(--duration-slow)); }
 }
+

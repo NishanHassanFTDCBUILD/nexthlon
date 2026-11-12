@@ -65,7 +65,7 @@
       <article class="dash-kpi" data-kpi="<%= c.key %>">
         <div class="dash-kpi-head">
           <h2><%= c.label %></h2>
-          <% if (c.hint) { %><span class="dash-hint" title="<%= c.hint %>" aria-label="<%= c.hint %>"><%- icon('info', 'i-xs') %></span><% } %>
+          <% if (c.hint) { %><span class="dash-hint" role="img" title="<%= c.hint %>" aria-label="<%= c.hint %>"><%- icon('info', 'i-xs') %></span><% } %>
         </div>
         <strong class="dash-kpi-value"><%= fmt(c.value, c.format) %></strong>
         <div class="dash-kpi-foot">

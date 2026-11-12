@@ -431,7 +431,7 @@
         flatCtx.drawImage(out, 0, 0);
         blob = await toBlob(flat, "image/jpeg", 0.88);
       }
-      if (!blob) throw new Error("The photo could not be saved.");
+      if (!blob) throw new Error("This browser couldn't save the edited photo. Try again, or use “Replace photo” to upload it as it is.");
       if (blob.size <= MAX_BYTES) {
         const ext = blob.type === "image/webp" ? "webp" : "jpg";
         const name = `${state.baseName.replace(/[^\w-]+/g, "-").slice(0, 40) || "photo"}-edited.${ext}`;
@@ -453,7 +453,7 @@
       // A canvas "tainted" by a photo from another site without CORS can't be read back.
       const message = error && error.name === "SecurityError"
         ? "This photo can't be edited here. Use “Replace photo” to pick the file again."
-        : (error && error.message) || "The photo could not be saved.";
+        : (error && error.message) || "The photo couldn't be saved. Try again, or use “Replace photo” to upload it as it is.";
       showStatus(message, true);
     } finally {
       window.Nx && window.Nx.busy(els.apply, false);

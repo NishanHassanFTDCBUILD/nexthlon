@@ -15,21 +15,21 @@
 .fx-grip { display: none; }
 
 /* ---------- Head: title, live count, active badge, clear ---------- */
-.fx-head { display: flex; align-items: center; gap: var(--space-1h); padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+.fx-head { display: flex; align-items: center; gap: var(--space-1h); padding: var(--space-lg) var(--space-2h) var(--space-md); border-bottom: 1px solid var(--line); }
 .fx-title { margin-right: auto; min-width: 0; }
-.fx-title h2 { display: flex; align-items: center; gap: 8px; margin: 0; font: var(--weight-black, 800) var(--text-lg)/1 var(--display); letter-spacing: 0.02em; text-transform: uppercase; }
+.fx-title h2 { display: flex; align-items: center; gap: var(--space-1); margin: 0; font: var(--weight-black, 800) var(--text-lg)/1 var(--display); letter-spacing: 0.02em; text-transform: uppercase; }
 .fx-title h2 .i { color: var(--brand-ink); }
-.fx-total { margin: 6px 0 0; font-size: var(--text-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
+.fx-total { margin: var(--space-xs) 0 0; font-size: var(--text-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
 .fx-badge { flex: none; min-width: 22px; height: 22px; padding: 0 7px; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font: var(--weight-bold) var(--text-xs)/22px var(--font); text-align: center; }
 .fx-clear { flex: none; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--line-hover); text-underline-offset: 3px; }
 @media (hover: hover) { .fx-clear:hover { color: var(--brand-ink); text-decoration-color: currentColor; } }
 .fx-close { display: none; place-items: center; width: 40px; height: 40px; flex: none; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: var(--ink); cursor: pointer; }
 
 /* ---------- Groups ---------- */
-.fx-form { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 20px 20px; scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+.fx-form { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-half) var(--space-2h) var(--space-2h); scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
 .fx-group { border-bottom: 1px solid var(--line); }
 .fx-group:last-of-type { border-bottom: 0; }
-.fx-group-head { display: flex; align-items: center; gap: 8px; padding: 16px 0; list-style: none; cursor: pointer; font-size: var(--text-sm); font-weight: var(--weight-bold); color: var(--ink); }
+.fx-group-head { display: flex; align-items: center; gap: var(--space-1); padding: var(--space-2) 0; list-style: none; cursor: pointer; font-size: var(--text-sm); font-weight: var(--weight-bold); color: var(--ink); }
 .fx-group-head::-webkit-details-marker { display: none; }
 .fx-group-head > span { margin-right: auto; }
 @media (hover: hover) { .fx-group-head:hover .fx-caret { color: var(--ink); } }
@@ -39,20 +39,20 @@
 /* The dot (or count) on a group that holds a choice, so it shows even when the group is closed. */
 .fx-dot { flex: none; min-width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--brand); box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.18); font: normal var(--weight-bold) var(--text-2xs)/16px var(--font); color: var(--on-brand); text-align: center; }
 .fx-dot.has-num { height: 16px; padding: 0 5px; }
-.fx-group-body { margin: 0; padding: 0 0 18px; border: 0; min-width: 0; }
+.fx-group-body { margin: 0; padding: 0 0 var(--space-lg); border: 0; min-width: 0; }
 .fx-group[open] .fx-group-body { animation: fx-open var(--duration) var(--ease-out); }
 @keyframes fx-open { from { opacity: 0; transform: translateY(-4px); } }
 
 /* ---------- Pills (category, rating, discount): a radio drawn as a chip ---------- */
-.fx-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.fx-pills { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 /* The whole label is the pill: name, then the product count as a quiet number. */
 .fx-pill {
-  position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 14px; border-radius: var(--radius-pill);
+  position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 var(--space-md); border-radius: var(--radius-pill);
   background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); font-size: var(--text-sm); font-weight: var(--weight-semibold); white-space: nowrap; cursor: pointer;
   transition: background var(--duration-quick) var(--ease), border-color var(--duration-quick) var(--ease), color var(--duration-quick) var(--ease), transform var(--duration) var(--ease-spring), box-shadow var(--duration-quick) var(--ease);
 }
 .fx-pill input, .fx-check input, .fx-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
-.fx-pill > span { display: inline-flex; align-items: center; gap: 4px; }
+.fx-pill > span { display: inline-flex; align-items: center; gap: var(--space-half); }
 .fx-pill em { font-style: normal; font-size: var(--text-2xs); font-weight: var(--weight-bold); color: var(--muted); font-variant-numeric: tabular-nums; }
 @media (hover: hover) { .fx-pill:hover { border-color: var(--line-hover); color: var(--ink); } }
 .fx-pill:active { transform: scale(0.96); }
@@ -63,14 +63,14 @@
 .fx-pill-star:has(input:checked) .i { color: var(--on-brand); }
 
 /* ---------- Price ---------- */
-.fx-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-.fx-preset { min-height: 32px; padding: 0 12px; border-radius: var(--radius-pill); border: 1px dashed var(--line-hover); background: none; color: var(--ink-2); font: var(--weight-semibold) var(--text-xs)/1 var(--font); cursor: pointer; transition: background var(--duration-quick) var(--ease), border-color var(--duration-quick) var(--ease), color var(--duration-quick) var(--ease); }
+.fx-presets { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-bottom: var(--space-lg); }
+.fx-preset { min-height: 32px; padding: 0 var(--space-1h); border-radius: var(--radius-pill); border: 1px dashed var(--line-hover); background: none; color: var(--ink-2); font: var(--weight-semibold) var(--text-xs)/1 var(--font); cursor: pointer; transition: background var(--duration-quick) var(--ease), border-color var(--duration-quick) var(--ease), color var(--duration-quick) var(--ease); }
 @media (hover: hover) { .fx-preset:hover { border-style: solid; color: var(--ink); } }
 .fx-preset.is-active { border-style: solid; border-color: var(--brand); background: var(--brand-soft); color: var(--brand-ink); }
 .fx-preset:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* Two range inputs on one track; only their handles take the pointer. */
-.fx-range { position: relative; height: 28px; margin: 0 4px 14px; }
+.fx-range { position: relative; height: 28px; margin: 0 var(--space-half) var(--space-md); }
 .fx-track { position: absolute; left: 0; right: 0; top: 12px; height: 4px; border-radius: 4px; background: var(--surface-3); }
 .fx-fill { position: absolute; top: 0; bottom: 0; left: calc(var(--from, 0) * 100%); right: calc((1 - var(--to, 1)) * 100%); border-radius: 4px; background: linear-gradient(90deg, var(--brand-press), var(--brand)); box-shadow: 0 0 12px rgba(var(--brand-rgb), 0.4); }
 .fx-range input[type="range"] { position: absolute; inset: 0; width: 100%; height: 28px; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
@@ -82,10 +82,10 @@
 .fx-range input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(var(--brand-rgb), 0.35); }
 .fx-range input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(var(--brand-rgb), 0.35); }
 
-.fx-price-boxes { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.fx-price-boxes { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-1); }
 .fx-money { position: relative; display: block; min-width: 0; }
 .fx-money i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: var(--text-sm); color: var(--muted); pointer-events: none; }
-.fx-money input { width: 100%; height: 42px; padding: 0 10px 0 26px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font: var(--weight-semibold) var(--text-sm)/1 var(--font); font-variant-numeric: tabular-nums; -moz-appearance: textfield; transition: border-color var(--duration-quick) var(--ease), box-shadow var(--duration-quick) var(--ease); }
+.fx-money input { width: 100%; height: 42px; padding: 0 var(--space-sm) 0 26px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font: var(--weight-semibold) var(--text-sm)/1 var(--font); font-variant-numeric: tabular-nums; -moz-appearance: textfield; transition: border-color var(--duration-quick) var(--ease), box-shadow var(--duration-quick) var(--ease); }
 .fx-money input::-webkit-inner-spin-button, .fx-money input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .fx-money input::placeholder { color: var(--muted-2); font-weight: var(--weight-regular, 400); }
 .fx-money input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.18); }
@@ -95,12 +95,12 @@
 .fx-go:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* ---------- Brand: search + custom checkboxes ---------- */
-.fx-search { position: relative; display: block; margin-bottom: 10px; }
+.fx-search { position: relative; display: block; margin-bottom: var(--space-sm); }
 .fx-search .i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
-.fx-search input { width: 100%; height: 38px; padding: 0 12px 0 32px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink); font-size: var(--text-sm); }
+.fx-search input { width: 100%; height: 38px; padding: 0 var(--space-1h) 0 var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface-2); color: var(--ink); font-size: var(--text-sm); }
 .fx-search input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.18); }
-.fx-checks { display: grid; gap: 2px; }
-.fx-check { position: relative; display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: 0 -10px; border-radius: var(--radius-sm); font-size: var(--text-sm); color: var(--ink-2); cursor: pointer; transition: background var(--duration-fast) var(--ease); }
+.fx-checks { display: grid; gap: var(--space-xxs); }
+.fx-check { position: relative; display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-1) var(--space-sm); margin: 0 -10px; border-radius: var(--radius-sm); font-size: var(--text-sm); color: var(--ink-2); cursor: pointer; transition: background var(--duration-fast) var(--ease); }
 @media (hover: hover) { .fx-check:hover { background: var(--surface-2); color: var(--ink); } }
 .fx-check.is-extra, .fx-check.is-filtered-out { display: none; }
 .fx-checks.is-expanded .fx-check.is-extra:not(.is-filtered-out) { display: flex; }
@@ -110,14 +110,14 @@
 .fx-check input:checked ~ span:not(.fx-box) { color: var(--ink); font-weight: var(--weight-semibold); }
 .fx-check input:focus-visible + .fx-box { outline: 2px solid var(--brand); outline-offset: 2px; }
 .fx-check em { margin-left: auto; font-style: normal; font-size: var(--text-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
-.fx-none { margin: 8px 0 0; font-size: var(--text-sm); color: var(--muted); }
-.fx-more { margin-top: 8px; padding: 6px 0; border: 0; background: none; color: var(--brand-ink); font: var(--weight-bold) var(--text-sm)/1 var(--font); cursor: pointer; }
+.fx-none { margin: var(--space-1) 0 0; font-size: var(--text-sm); color: var(--muted); }
+.fx-more { margin-top: var(--space-1); padding: var(--space-xs) 0; border: 0; background: none; color: var(--brand-ink); font: var(--weight-bold) var(--text-sm)/1 var(--font); cursor: pointer; }
 @media (hover: hover) { .fx-more:hover { text-decoration: underline; text-underline-offset: 3px; } }
 
 /* ---------- Availability switch ---------- */
-.fx-group-flat { padding: 16px 0 4px; }
-.fx-switch { position: relative; display: flex; align-items: center; gap: 12px; cursor: pointer; }
-.fx-switch-text { flex: 1; display: grid; gap: 2px; }
+.fx-group-flat { padding: var(--space-2) 0 var(--space-half); }
+.fx-switch { position: relative; display: flex; align-items: center; gap: var(--space-1h); cursor: pointer; }
+.fx-switch-text { flex: 1; display: grid; gap: var(--space-xxs); }
 .fx-switch-text strong { font-size: var(--text-sm); }
 .fx-switch-text small { font-size: var(--text-xs); color: var(--muted); }
 .fx-switch-ui { position: relative; width: 46px; height: 26px; flex: none; border-radius: var(--radius-pill); background: var(--surface-3); border: 1px solid var(--line-strong); transition: background var(--duration-quick) var(--ease), border-color var(--duration-quick) var(--ease); }
@@ -131,12 +131,12 @@
 
 /* The "Filters" button in the results toolbar (phones and tablets). */
 .filter-open { display: none; }
-.filter-open .count-badge { margin-left: 6px; }
+.filter-open .count-badge { margin-left: var(--space-xs); }
 
 /* ---------- Tablets and small laptops ---------- */
 @media (max-width: 1024px) {
   .catalog { grid-template-columns: 256px minmax(0, 1fr); gap: var(--space-3); }
-  .fx-head, .fx-form { padding-left: 16px; padding-right: 16px; }
+  .fx-head, .fx-form { padding-left: var(--space-2); padding-right: var(--space-2); }
 }
 
 /* ---------- Phones and tablets: a bottom sheet ---------- */
@@ -156,15 +156,15 @@
   html.js .catalog .fx.is-open { transform: none; visibility: visible; transition: transform var(--duration-medium) var(--ease-out); }
   html.js .catalog .fx-panel { border-radius: 24px 24px 0 0; border-bottom: 0; box-shadow: 0 -20px 60px rgba(var(--black-rgb), 0.55); }
   html.js .catalog .fx-form { overflow-y: auto; }
-  html.js .catalog .fx-grip { display: block; width: 44px; height: 5px; margin: 10px auto 0; border-radius: 5px; background: var(--line-hover); }
-  html.js .catalog .fx-head { padding-top: 10px; }
+  html.js .catalog .fx-grip { display: block; width: 44px; height: 5px; margin: var(--space-sm) auto 0; border-radius: 5px; background: var(--line-hover); }
+  html.js .catalog .fx-head { padding-top: var(--space-sm); }
   html.js .catalog .fx-clear { display: none; }
   html.js .catalog .fx-close { display: inline-grid; }
   html.js .catalog .fx-foot {
-    display: flex; align-items: center; gap: 12px; padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    display: flex; align-items: center; gap: var(--space-1h); padding: 12px 16px max(12px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--line); background: var(--surface);
   }
-  .fx-foot-clear { flex: none; padding: 0 6px; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+  .fx-foot-clear { flex: none; padding: 0 var(--space-xs); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
   .fx-foot-show { flex: 1; min-height: 50px; border: 0; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font: var(--weight-bold) var(--text-base)/1 var(--font); cursor: pointer; box-shadow: var(--shadow-brand); }
   html.js .catalog .filter-open { display: inline-flex; flex: none; }
   .drawer-backdrop { position: fixed; inset: 0; z-index: var(--z-drawer-scrim); background: rgba(var(--navy-950-rgb), 0.6); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: fx-fade var(--duration-medium) var(--ease); }
