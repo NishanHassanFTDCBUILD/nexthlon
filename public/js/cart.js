@@ -59,16 +59,46 @@
   const empty = page.querySelector("[data-cart-empty]");
   const headingCount = page.querySelector("[data-cart-heading-count]");
 
+  // A row leaving the cart folds back and away in 3D, then the rows below glide up into its place
+  // (each measured before and after, so only transform moves). With reduced motion it simply goes.
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+  function removeRow(row) {
+    if (row.dataset.leaving) return row.leaving;
+    row.dataset.leaving = "true";
+    if (reduced.matches || typeof row.animate !== "function") {
+      row.remove();
+      return (row.leaving = Promise.resolve());
+    }
+    const others = [...row.parentElement.children].filter(other => other !== row);
+    const before = new Map(others.map(other => [other, other.getBoundingClientRect().top]));
+    row.style.pointerEvents = "none";
+    row.style.transformOrigin = "50% 0%";
+    const fold = row.animate([
+      { transform: "perspective(900px) rotateX(0deg) translateZ(0)", opacity: 1 },
+      { transform: "perspective(900px) rotateX(-78deg) translateZ(-60px) translateY(-10px)", opacity: 0 }
+    ], { duration: Nx.motionMs("--duration-slow", 400), easing: Nx.motionEase("--ease-in-out"), fill: "forwards" });
+    row.leaving = fold.finished.catch(() => {}).then(() => {
+      row.remove();
+      others.forEach(other => {
+        const shift = before.get(other) - other.getBoundingClientRect().top;
+        if (shift) other.animate([{ transform: `translateY(${shift}px)` }, { transform: "none" }], { duration: Nx.motionMs("--duration-medium", 320), easing: Nx.motionEase("--ease-out") });
+      });
+    });
+    return row.leaving;
+  }
+
   // Brings every number on the page in line with the cart the server sent back.
   function render(cart) {
     const { items, summary } = cart;
     const byId = new Map(items.map(item => [item.productId, item]));
+    const leaving = [];
     page.querySelectorAll("[data-cart-item]").forEach(row => {
       const item = byId.get(row.dataset.cartItem);
       if (!item) {
-        row.remove();
+        leaving.push(removeRow(row));
         return;
       }
+      if (row.dataset.leaving) return;
       Nx.rollNumber(row.querySelector("[data-cart-qty]"), item.quantity);
       row.querySelector("[data-cart-line-total]").textContent = item.available ? formatPrice(item.lineTotal) : "—";
       row.querySelector('[data-cart-step="-1"]').disabled = !item.available || item.quantity <= 1;
@@ -106,9 +136,14 @@
     headingCount.textContent = `${summary.count} ${summary.count === 1 ? "item" : "items"}`;
 
     const isEmpty = items.length === 0;
-    listPanel.hidden = isEmpty;
-    summaryBox.hidden = isEmpty;
-    empty.hidden = !isEmpty;
+    // The last row folds away first, then the empty cart shows.
+    const showEmpty = () => {
+      listPanel.hidden = isEmpty;
+      summaryBox.hidden = isEmpty;
+      empty.hidden = !isEmpty;
+    };
+    if (isEmpty && leaving.length) Promise.all(leaving).then(showEmpty);
+    else showEmpty();
     Nx.setCartCount(summary.count);
   }
 

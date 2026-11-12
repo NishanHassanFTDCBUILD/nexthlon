@@ -99,6 +99,9 @@
           const y = (clientY - box.top) / box.height - 0.5;
           card.style.setProperty("--tilt-x", `${(-y * max * 2).toFixed(2)}deg`);
           card.style.setProperty("--tilt-y", `${(x * max * 2).toFixed(2)}deg`);
+          // The same position as plain numbers (-1 to 1), for layers inside the card that move by pixels.
+          card.style.setProperty("--tilt-nx", (x * 2).toFixed(3));
+          card.style.setProperty("--tilt-ny", (y * 2).toFixed(3));
           // The glare is twice the card's size, centred on it; moving it puts its bright centre under the cursor.
           card.style.setProperty("--glare-x", `${(x * box.width).toFixed(1)}px`);
           card.style.setProperty("--glare-y", `${(y * box.height).toFixed(1)}px`);
@@ -111,6 +114,8 @@
         card.classList.remove("is-tilting");
         card.style.setProperty("--tilt-x", "0deg");
         card.style.setProperty("--tilt-y", "0deg");
+        card.style.setProperty("--tilt-nx", "0");
+        card.style.setProperty("--tilt-ny", "0");
       });
     });
   }

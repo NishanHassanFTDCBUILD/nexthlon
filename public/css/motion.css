@@ -59,6 +59,11 @@
     transition: transform var(--duration-fast) var(--ease-linear);
   }
   .js-motion .product-card[data-tilt].is-tilting { box-shadow: var(--sh-md); }
+  /* Depth inside a tilting product card: the photo slides against the tilt like a window onto it, and
+     the quick-add button floats the other way, nearer the eye (motion.js sets --tilt-nx/-ny, -1 to 1). */
+  .js-motion .product-card[data-tilt] .product-media img { transition: transform var(--duration-long) var(--ease), translate var(--duration-long) var(--ease); }
+  .js-motion .product-card[data-tilt].is-tilting .product-media img { translate: calc(var(--tilt-nx, 0) * -8px) calc(var(--tilt-ny, 0) * -8px); transition-duration: var(--duration-long), var(--duration-fast); }
+  .js-motion .product-card[data-tilt].is-tilting .card-add:not(:active) { translate: calc(var(--tilt-nx, 0) * 5px) calc(var(--tilt-ny, 0) * 5px); }
   .tilt-glare {
     position: absolute; z-index: var(--layer-2); left: -50%; top: -50%; width: 200%; height: 200%;
     pointer-events: none; opacity: 0; border-radius: 50%;
@@ -235,14 +240,18 @@
 }
 
 /* ---------- Page transitions (cross-document View Transitions) ----------
-   Moving between pages cross-fades the content while the header stays where it is, and a product
-   card's photo flows into the product page's big photo (app.js names the clicked card's photo just
-   before the page changes). Browsers without View Transitions simply change page. Off for reduced motion. */
+   Moving between pages, the old page sinks back a little as it fades and the new one rises into place,
+   while the header stays where it is, and a product card's photo flows into the product page's big
+   photo (app.js names the clicked card's photo just before the page changes). Transform and opacity
+   only. Browsers without View Transitions simply change page. Off for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   @view-transition { navigation: auto; }
   .site-header { view-transition-name: site-header; }
   .pdx-photo { view-transition-name: product-photo; }
-  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--duration-medium); animation-timing-function: var(--ease-out); }
+  ::view-transition-old(root) { animation: nx-page-out var(--duration-medium) var(--ease-in-out) both; }
+  ::view-transition-new(root) { animation: nx-page-in var(--duration-long) var(--ease-out) both; }
+  @keyframes nx-page-out { to { opacity: 0; transform: scale(0.985); } }
+  @keyframes nx-page-in { from { opacity: 0; transform: translateY(14px); } }
   ::view-transition-group(product-photo) { animation-duration: var(--duration-long); animation-timing-function: var(--ease-out); }
   ::view-transition-old(product-photo), ::view-transition-new(product-photo) { height: 100%; object-fit: cover; overflow: clip; }
   ::view-transition-group(site-header) { animation-duration: var(--duration-medium); }

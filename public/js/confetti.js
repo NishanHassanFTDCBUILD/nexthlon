@@ -13,6 +13,8 @@
   Nx.confetti = function confetti(canvas, { keep = false } = {}) {
     if (!canvas || !canvas.getContext || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const ctx = canvas.getContext("2d");
+    // The canvas already holds a WebGL context (the 3D confetti started and then failed): skip.
+    if (!ctx) return;
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     let width = 0;
     let height = 0;
@@ -79,10 +81,18 @@
       .catch(() => { /* the address line is enough */ });
   }
   // The confetti follows the tick drawing itself on the success page (motion.css), so the two
-  // read as one moment instead of competing.
+  // read as one moment instead of competing. The WebGL confetti (fx/confetti3d.js, a module on this
+  // page) fires from both bottom corners and pops out of the tick; without it, the 2D confetti above.
   const canvas = document.querySelector("[data-confetti]");
   if (canvas) {
+    const tick = document.querySelector(".success-draw");
     const wait = Nx.motionMs ? Nx.motionMs("--duration-slow", 400) * 2 : 800;
-    setTimeout(() => Nx.confetti(canvas), document.querySelector(".success-draw") ? wait : 0);
+    setTimeout(() => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const box = tick ? tick.getBoundingClientRect() : null;
+      const popAt = box && box.width ? { x: box.left + box.width / 2, y: box.top + box.height / 2 } : null;
+      if (window.NxConfetti3d && window.NxConfetti3d(canvas, { popAt })) return;
+      Nx.confetti(canvas);
+    }, tick ? wait : 0);
   }
 })();

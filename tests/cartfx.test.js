@@ -1,5 +1,6 @@
-// The fly-to-cart sparks (public/js/fx/cartfx.js): the particle pool runs in Node without a browser,
-// and loading the module without a window must not try to draw anything.
+// The WebGL effects in public/js/fx: the fly-to-cart sparks (cartfx.js) and the order-success confetti
+// (confetti3d.js). Their physics run in Node without a browser, and loading the modules without a
+// window must not try to draw anything.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
@@ -56,4 +57,37 @@ test("cart sparks: written sparks shrink and fade over their life", async () => 
   // The output buffer limits how many are written.
   pool.spawn(0, 0, 0, 0);
   assert.equal(pool.write(new Float32Array(5)), 1);
+});
+
+const loadConfetti = () => import(pathToFileURL(path.join(__dirname, "..", "public", "js", "fx", "confetti3d.js")).href);
+
+test("order confetti: loading the module without a browser sets nothing up", async () => {
+  const confetti = await loadConfetti();
+  assert.equal(typeof confetti.celebrate, "function");
+  assert.equal(typeof globalThis.NxConfetti3d, "undefined");
+});
+
+test("order confetti: strips fire up from both bottom corners and pop out of the tick", async () => {
+  const { makePieces } = await loadConfetti();
+  let seed = 1;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const pieces = makePieces(100, 1000, 800, { popX: 500, popY: 250, colors: 6, rand });
+  assert.equal(pieces.length, 100);
+  const left = pieces.filter(p => p.x < 100);
+  const right = pieces.filter(p => p.x > 900);
+  const pop = pieces.filter(p => p.x === 500 && p.y === 250);
+  assert.equal(left.length, 40);
+  assert.equal(right.length, 40);
+  assert.equal(pop.length, 20);
+  assert.ok(left.every(p => p.vy < 0 && p.vx > 0), "the left cannon fires up and to the right");
+  assert.ok(right.every(p => p.vy < 0 && p.vx < 0), "the right cannon fires up and to the left");
+  assert.ok(pieces.every(p => p.color >= 0 && p.color < 6));
+});
+
+test("order confetti: strips slow down, fall, and flutter no faster than paper falls", async () => {
+  const { makePieces, stepPieces } = await loadConfetti();
+  const pieces = makePieces(10, 1000, 800);
+  for (let i = 0; i < 300; i += 1) stepPieces(pieces, 1 / 60, i / 60);
+  assert.ok(pieces.every(p => p.vy > 0 && p.vy <= 240), "after five seconds every strip is falling, slowly");
+  assert.ok(pieces.every(p => Math.abs(p.vx) < 5), "the cannon speed has worn off");
 });

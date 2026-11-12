@@ -590,9 +590,51 @@
     const counter = gallery.querySelector("[data-gallery-index]");
     if (!main || !thumbs.length) return;
     let current = Math.max(0, thumbs.findIndex(thumb => thumb.getAttribute("aria-current") === "true"));
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    // Changing photo turns it like a page in 3D: the old photo swings away and fades, the new one swings
+    // in from the other side, and a band of light crosses as it settles. dir is 1 (next) or -1 (back).
+    // A copy of the old photo does the leaving, so the real image only ever changes its src.
+    const turn = dir => {
+      const box = main.closest("[data-stage]");
+      if (!box || reduced.matches || typeof main.animate !== "function" || !main.currentSrc) return;
+      const ms = window.Nx && Nx.motionMs ? Nx.motionMs("--duration-slow", 400) * 1.4 : 560;
+      const ease = window.Nx && Nx.motionEase ? Nx.motionEase("--ease-out") : "ease-out";
+      box.querySelectorAll(".pdx-photo-leaving, .pdx-photo-light").forEach(old => old.remove());
+      const leaving = document.createElement("img");
+      leaving.className = "pdx-photo pdx-photo-leaving";
+      leaving.alt = "";
+      leaving.setAttribute("aria-hidden", "true");
+      leaving.src = main.currentSrc;
+      // Only the real photo may carry the page-transition name (two with one name cancel the transition).
+      leaving.style.viewTransitionName = "none";
+      main.after(leaving);
+      const light = document.createElement("span");
+      light.className = "pdx-photo-light";
+      light.setAttribute("aria-hidden", "true");
+      leaving.after(light);
+      leaving.animate([
+        { transform: "perspective(1200px) rotateY(0deg) translateZ(0)", opacity: 1 },
+        { transform: `perspective(1200px) rotateY(${-dir * 62}deg) translateZ(-120px) translateX(${-dir * 18}%)`, opacity: 0 }
+      ], { duration: ms * 0.8, easing: ease, fill: "forwards" }).finished.catch(() => {}).then(() => leaving.remove());
+      main.animate([
+        { transform: `perspective(1200px) rotateY(${dir * 48}deg) translateZ(-160px) translateX(${dir * 14}%)`, opacity: 0 },
+        { transform: "none", opacity: 1 }
+      ], { duration: ms, easing: ease });
+      light.animate([
+        { transform: `translateX(${dir > 0 ? -110 : 110}%)`, opacity: 0 },
+        { opacity: 1, offset: 0.4 },
+        { transform: `translateX(${dir > 0 ? 110 : -110}%)`, opacity: 0 }
+      ], { duration: ms * 1.1, easing: ease }).finished.catch(() => {}).then(() => light.remove());
+    };
 
     const show = index => {
-      current = (index + thumbs.length) % thumbs.length;
+      const next = (index + thumbs.length) % thumbs.length;
+      if (next === current) return;
+      // The shorter way round decides the direction (the last photo going on to the first is "next").
+      const step = index - current;
+      turn(step > 0 ? 1 : -1);
+      current = next;
       const thumb = thumbs[current];
       // The big photo comes in several sizes: switch its srcset together with its src, or the browser
       // would keep choosing from the previous photo's set.
