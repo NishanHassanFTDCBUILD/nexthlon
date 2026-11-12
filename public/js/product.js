@@ -635,7 +635,7 @@
       data.breakdown.forEach(row => {
         const li = reviewsBox.querySelector(`[data-review-bars] [data-stars="${row.stars}"]`);
         if (!li) return;
-        li.querySelector(".pdx-bar i").style.width = `${Math.round((row.count / maxBar) * 100)}%`;
+        li.querySelector(".pdx-bar i").style.setProperty("--share", (maxBar ? row.count / maxBar : 0).toFixed(3));
         li.querySelector(".pdx-bar-n").textContent = String(row.count);
       });
       if (empty) empty.hidden = total > 0;

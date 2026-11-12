@@ -40,7 +40,16 @@
       if ((box.top < viewHeight && box.bottom > 0) || inSideScroller(el)) revealNow(el);
     });
 
+    // Scroll-driven animations (motion.css): the entrance follows the scroll position, so the observer
+    // below only marks items as revealed (that draws the heading underlines).
+    const scrollDriven = Boolean(window.CSS && CSS.supports && CSS.supports("animation-timeline: view()"));
+    if (scrollDriven) root.classList.add("sd-reveal");
+
     const observer = new IntersectionObserver(entries => {
+      if (scrollDriven) {
+        entries.filter(entry => entry.isIntersecting).forEach(entry => { entry.target.classList.add("is-revealed"); observer.unobserve(entry.target); });
+        return;
+      }
       // Items that come into view together are staggered in page order, 80ms apart.
       const visible = entries.filter(entry => entry.isIntersecting).map(entry => entry.target);
       visible.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));

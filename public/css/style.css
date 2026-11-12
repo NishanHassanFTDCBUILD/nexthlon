@@ -230,7 +230,7 @@
 .confirm-dialog p { color: var(--ink-2); }
 .confirm-dialog .dialog-actions { align-self: stretch; }
 .sheet-dialog { width: 680px; }
-.sheet-form { gap: 0; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); }
+.sheet-form { gap: 0; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); max-height: calc(100dvh - 48px); }
 .dialog-head { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6); border-bottom: 1px solid var(--line); }
 .dialog-head > div { flex: 1; min-width: 0; }
 .dialog-head h2 { font-size: var(--fs-lg); }
@@ -518,7 +518,7 @@
 .photo-editor-stage { position: relative; flex: 1 1 auto; min-height: 220px; display: grid; place-items: center; padding: var(--sp-5); background: var(--floor-2); overflow: hidden; }
 .photo-editor-frame { position: relative; display: block; max-width: 100%; line-height: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
 .photo-editor-frame[hidden] { display: none; }
-.photo-editor-frame canvas { display: block; max-width: 100%; max-height: min(56vh, 520px); max-height: min(56svh, 520px); width: auto; height: auto; border-radius: 4px; }
+.photo-editor-frame canvas { display: block; max-width: 100%; max-height: min(56vh, 520px); max-height: min(56dvh, 520px); width: auto; height: auto; border-radius: 4px; }
 .photo-editor-frame.is-turning canvas { animation: pe-turn var(--duration-medium) var(--ease-out); }
 @keyframes pe-turn { from { opacity: 0.35; transform: scale(0.97); } }
 .photo-crop { position: absolute; cursor: move; touch-action: none; outline: 2px solid var(--white); box-shadow: 0 0 0 9999px rgba(var(--navy-rgb), 0.58); }
@@ -715,7 +715,7 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 .suggest-status:empty { display: none; }
 .suggest-status.is-loading::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin var(--loop-fast) var(--ease-linear) infinite; }
 .suggest-status.is-error { color: var(--danger); }
-.suggest-list { list-style: none; margin: 0; padding: 0; max-height: min(420px, 60vh); overflow-y: auto; }
+.suggest-list { list-style: none; margin: 0; padding: 0; max-height: min(420px, 60vh); max-height: min(420px, 60dvh); overflow-y: auto; }
 .suggest-list li a { display: flex; align-items: center; gap: var(--space-1h); padding: 8px 10px; border-radius: var(--radius-sm); color: var(--ink); text-decoration: none; }
 .suggest-list li[aria-selected="true"] a { background: var(--brand-soft); }
 @media (hover: hover) { .suggest-list li a:hover { background: var(--brand-soft); } }

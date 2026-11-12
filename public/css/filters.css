@@ -149,7 +149,7 @@
 
   html.js .catalog .fx {
     position: fixed; z-index: var(--z-drawer); left: 0; right: 0; bottom: 0; top: auto; margin: 0;
-    max-height: min(88vh, 760px); border-radius: 24px 24px 0 0;
+    max-height: min(88vh, 760px); max-height: min(88dvh, 760px); border-radius: 24px 24px 0 0;
     transform: translateY(105%); visibility: hidden;
     transition: transform var(--duration-medium) var(--ease-out), visibility 0s var(--ease-linear) var(--duration-medium);
   }

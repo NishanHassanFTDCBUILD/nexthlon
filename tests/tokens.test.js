@@ -79,3 +79,21 @@ test("interface durations stay between 150ms and 700ms", () => {
     assert.ok(ms >= 150 && ms <= 700, `--duration${name ? "-" + name : ""} is ${ms}ms`);
   }
 });
+
+test("transitions never animate layout (size or position): only transform, opacity and paint", () => {
+  const LAYOUT = /^(width|height|min-width|min-height|max-width|max-height|top|left|right|bottom|inset|margin[\w-]*|padding[\w-]*|border-width|font-size|letter-spacing|grid-template[\w-]*|flex[\w-]*|all)$/;
+  const bad = decls.filter(d => d.prop === "transition" || d.prop === "transition-property").filter(d => d.value.split(",").some(layer => LAYOUT.test(layer.trim().split(/\s+/)[0])));
+  assert.equal(bad.length, 0, `Transitions on layout properties:\n${report(bad)}`);
+});
+
+test("full-height and pinned sizes use svh or dvh (vh is only a fallback written just before them)", () => {
+  const bad = [];
+  for (const f of files) {
+    const src = fs.readFileSync(path.join(DIR, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const m of src.matchAll(/([-\w]+)\s*:\s*([^;{}]*\d(?:\.\d+)?vh\b[^;{}]*);?\s*(?:\1\s*:\s*([^;{}]*))?/g)) {
+      if (/[ds]vh/.test(m[2]) || /\dsvh|\ddvh/.test(m[3] || "")) continue;
+      bad.push(`${f}: ${m[1]}: ${m[2].slice(0, 60)}`);
+    }
+  }
+  assert.deepEqual(bad, [], "vh without an svh/dvh line after it");
+});

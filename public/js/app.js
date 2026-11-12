@@ -437,11 +437,25 @@
     if ("ResizeObserver" in window) new ResizeObserver(update).observe(header);
 
     const phone = window.matchMedia("(max-width: 720px)");
+    // Bars that stick under the header move with it. Their "top" changes at once, and a transform that
+    // starts where they were glides them there, so only transform animates (no layout on every frame).
+    const followers = [...document.querySelectorAll(".toolbar-sticky")];
     const setTucked = on => {
       if (on === tucked) return;
       tucked = on;
+      const before = followers.map(bar => bar.getBoundingClientRect().top);
       header.classList.toggle("is-tucked", on);
       update();
+      followers.forEach((bar, i) => {
+        const shift = before[i] - bar.getBoundingClientRect().top;
+        if (!shift) return;
+        bar.style.transition = "none";
+        bar.style.transform = `translateY(${shift}px)`;
+        requestAnimationFrame(() => {
+          bar.style.transition = "";
+          bar.style.transform = "";
+        });
+      });
     };
     let lastY = window.scrollY;
     // Cheap enough to run on every scroll event (a few numbers and at most one class change).
@@ -550,11 +564,36 @@
     phone.addEventListener("change", fit);
   }
 
+  // ---------- Page transitions: the product photo flies into the product page ----------
+  // motion.css turns on cross-document View Transitions. Just before the page changes, the photo of the
+  // card that was clicked gets the name the product page gives its big photo, so the browser morphs one
+  // into the other. Only one element may carry a name, so the current page's own product photo (going
+  // from one product to a related one) gives it up first.
+  function setupPageTransitions() {
+    if (!("onpageswap" in window)) return;
+    let clicked = null;
+    document.addEventListener("click", event => {
+      const link = event.target.closest && event.target.closest('a[href^="/products/"]');
+      clicked = link || null;
+    }, true);
+    window.addEventListener("pageswap", event => {
+      if (!event.viewTransition || !clicked) return;
+      const card = clicked.closest(".product-card, .zg-card, .rail-card, .wish-card, [data-product-card]") || clicked;
+      const photo = card.querySelector("img");
+      if (!photo) return;
+      document.querySelectorAll(".pdx-photo").forEach(img => { img.style.viewTransitionName = "none"; });
+      photo.style.viewTransitionName = "product-photo";
+      // If the page comes back from the back/forward cache, it must not keep the name.
+      event.viewTransition.finished.finally(() => { photo.style.viewTransitionName = ""; });
+    });
+  }
+
   setupMenus();
   setupHeader();
   setupLogout();
   setupReveal();
   setupFooterGroups();
+  setupPageTransitions();
   showFlash();
   renewAfterBounce();
 })();

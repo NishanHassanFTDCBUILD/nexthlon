@@ -16,19 +16,27 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :root {
-    --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-    --motion-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
-  }
-
   /* ---------- Scroll reveal ---------- */
   .js-motion [data-reveal]:not(button):not(.is-revealed) { opacity: 0; }
   .js-motion [data-reveal]:not(button).is-revealed:not([data-reveal-done]) {
-    animation: nx-reveal-up var(--duration-slower) var(--motion-ease) var(--reveal-delay, 0ms) backwards;
+    animation: nx-reveal-up var(--duration-slower) var(--ease) var(--reveal-delay, 0ms) backwards;
   }
   .js-motion [data-reveal="fade"].is-revealed:not([data-reveal-done]) { animation-name: nx-reveal-fade; }
   .js-motion [data-reveal="scale"].is-revealed:not([data-reveal-done]) { animation-name: nx-reveal-scale; }
   @keyframes nx-reveal-up { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+
+  /* Where the browser supports scroll-driven animations (motion.js adds .sd-reveal), the entrance is tied
+     to the scroll position instead of a timer: no observer, no script per item, and scrolling back up plays
+     it in reverse. Items already on screen or in a sideways row are shown straight away (data-reveal-done). */
+  .js-motion.sd-reveal [data-reveal]:not(button):not([data-reveal-done]),
+  .js-motion.sd-reveal [data-reveal]:not(button).is-revealed:not([data-reveal-done]) {
+    opacity: 1;
+    animation: nx-reveal-up var(--ease-out) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 60%;
+  }
+  .js-motion.sd-reveal [data-reveal="fade"]:not([data-reveal-done]) { animation-name: nx-reveal-fade; }
+  .js-motion.sd-reveal [data-reveal="scale"]:not([data-reveal-done]) { animation-name: nx-reveal-scale; }
   @keyframes nx-reveal-fade { from { opacity: 0; } to { opacity: 1; } }
   @keyframes nx-reveal-scale { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
 
@@ -38,13 +46,13 @@
   .js-motion [data-reveal].is-revealed h2::after,
   .js-motion .admin-section-title[data-reveal].is-revealed::after {
     transform: scaleX(1);
-    transition: transform var(--duration-slower) var(--motion-ease) calc(var(--reveal-delay, 0ms) + var(--duration));
+    transition: transform var(--duration-slower) var(--ease) calc(var(--reveal-delay, 0ms) + var(--duration));
   }
 
   /* ---------- 3D tilt with a light glare (mouse only; motion.js never tilts on touch) ---------- */
   .js-motion [data-tilt] {
     --tilt-x: 0deg; --tilt-y: 0deg;
-    transition: transform var(--duration-long) var(--motion-ease);
+    transition: transform var(--duration-long) var(--ease);
   }
   .js-motion [data-tilt].is-tilting {
     transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-4px);
@@ -56,16 +64,16 @@
     pointer-events: none; opacity: 0; border-radius: 50%;
     background: radial-gradient(circle at center, rgba(var(--white-rgb), 0.38), rgba(var(--white-rgb), 0) 38%);
     transform: translate(var(--glare-x, 0), var(--glare-y, 0));
-    transition: opacity var(--duration-slow) var(--motion-ease);
+    transition: opacity var(--duration-slow) var(--ease);
     mix-blend-mode: soft-light;
   }
   .is-tilting > .tilt-glare { opacity: 1; }
 
   /* ---------- Buttons: lift, shadow and press ---------- */
-  .js-motion .btn { isolation: isolate; transition: transform var(--duration-quick) var(--motion-spring); }
+  .js-motion .btn { isolation: isolate; transition: transform var(--duration-quick) var(--ease-spring); }
   .js-motion .btn::after {
     content: ""; position: absolute; z-index: var(--z-below); inset: 0; border-radius: inherit; pointer-events: none;
-    box-shadow: 0 10px 24px rgba(var(--navy-rgb), 0.22); opacity: 0; transition: opacity var(--duration-quick) var(--motion-ease);
+    box-shadow: 0 10px 24px rgba(var(--navy-rgb), 0.22); opacity: 0; transition: opacity var(--duration-quick) var(--ease);
   }
   .js-motion .btn-primary::after { box-shadow: 0 12px 28px rgba(var(--brand-rgb), 0.42); }
   @media (hover: hover) { .js-motion .btn:hover:not(:disabled) { transform: translateY(-2px); } }
@@ -77,7 +85,7 @@
   /* Two layers swap by opacity: solid at the top of the page, frosted glass once scrolled. */
   .js-motion .site-header { background: transparent; }
   .js-motion .site-header::before,
-  .js-motion .site-header::after { content: ""; position: absolute; inset: 0; z-index: var(--z-below); pointer-events: none; transition: opacity var(--duration-medium) var(--motion-ease); }
+  .js-motion .site-header::after { content: ""; position: absolute; inset: 0; z-index: var(--z-below); pointer-events: none; transition: opacity var(--duration-medium) var(--ease); }
   .js-motion .site-header::before { background: var(--navy-900); }
   .js-motion .site-header::after {
     background: rgba(var(--navy-rgb), 0.8);
@@ -91,14 +99,14 @@
 
   /* ---------- Images fade in once loaded ---------- */
   .js-motion img.is-loading { opacity: 0; }
-  .js-motion img.is-loaded { transition: opacity var(--duration-long) var(--motion-ease), transform var(--duration-long) var(--ease); }
+  .js-motion img.is-loaded { transition: opacity var(--duration-long) var(--ease), transform var(--duration-long) var(--ease); }
 }
 
 /* ---------- Checkout step transition and coupon pop ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .js-motion .step-body.step-enter { animation: nx-step-in var(--duration-slow) var(--motion-ease) both; }
+  .js-motion .step-body.step-enter { animation: nx-step-in var(--duration-slow) var(--ease) both; }
   @keyframes nx-step-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
-  .js-motion .coupon-applied.is-popped { animation: nx-coupon-pop var(--duration-long) var(--motion-spring); }
+  .js-motion .coupon-applied.is-popped { animation: nx-coupon-pop var(--duration-long) var(--ease-spring); }
   @keyframes nx-coupon-pop { 0% { transform: scale(0.94); opacity: 0.4; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: none; } }
 }
 
@@ -109,22 +117,22 @@
   @keyframes nx-glow { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(1.6); } }
 
   /* Payment cards: the chosen card's details slide open, the Pay button shines and presses. */
-  .js-motion .pay-card-details.is-entering { animation: nx-details-in var(--duration-medium) var(--motion-ease) both; }
+  .js-motion .pay-card-details.is-entering { animation: nx-details-in var(--duration-medium) var(--ease) both; }
   @keyframes nx-details-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-  .pay-card.is-selected .pay-tick { animation: nx-tick-pop var(--duration-slow) var(--motion-spring); }
+  .pay-card.is-selected .pay-tick { animation: nx-tick-pop var(--duration-slow) var(--ease-spring); }
   @keyframes nx-tick-pop { 0% { transform: scale(0.6); } 100% { transform: scale(1); } }
-  .pay-btn { transition: transform var(--duration-fast) var(--motion-ease), box-shadow var(--duration-quick) var(--motion-ease); }
+  .pay-btn { transition: transform var(--duration-fast) var(--ease), box-shadow var(--duration-quick) var(--ease); }
   @media (hover: hover) { .pay-btn:hover:not(:disabled) { transform: translateY(-2px); } }
-  @media (hover: hover) { .pay-btn:hover:not(:disabled)::after { transform: translateX(260%) skewX(-18deg); transition: transform var(--duration-slower) var(--motion-ease); } }
+  @media (hover: hover) { .pay-btn:hover:not(:disabled)::after { transform: translateX(260%) skewX(-18deg); transition: transform var(--duration-slower) var(--ease); } }
   .pay-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
   .summary-list .is-counting { opacity: 0.85; }
 
   /* The overlay card pops in; each state animates its own icon. */
-  .pay-overlay.is-open .pay-overlay-card { animation: nx-pay-in var(--duration-medium) var(--motion-ease) both; }
+  .pay-overlay.is-open .pay-overlay-card { animation: nx-pay-in var(--duration-medium) var(--ease) both; }
   @keyframes nx-pay-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
   .pay-icon-lock .pay-pulse { animation: nx-pay-pulse var(--loop-short) var(--ease-out) infinite; }
   @keyframes nx-pay-pulse { from { opacity: 1; transform: scale(0.7); } to { opacity: 0; transform: scale(1.1); } }
-  .pay-icon-lock .pay-lock-shackle { animation: nx-shackle var(--loop-short) var(--motion-ease) infinite; }
+  .pay-icon-lock .pay-lock-shackle { animation: nx-shackle var(--loop-short) var(--ease) infinite; }
   @keyframes nx-shackle { 0%, 20% { transform: translateY(-4px); } 45%, 100% { transform: none; } }
   .pay-ring-arc { animation: nx-spin var(--loop-fast) var(--ease-linear) infinite; }
   @keyframes nx-spin { to { transform: rotate(360deg); } }
@@ -138,7 +146,7 @@
   .pay-overlay[data-state="failed"] .pay-overlay-card.is-entering { animation: nx-shake var(--duration-long) var(--ease-in-out) var(--duration-slower); }
   @keyframes nx-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
   .pay-overlay[data-state="success"] .pay-result, .pay-overlay[data-state="success"] .pay-actions,
-  .pay-overlay[data-state="failed"] .pay-actions { animation: nx-details-in var(--duration-slow) var(--motion-ease) var(--duration-slower) both; }
+  .pay-overlay[data-state="failed"] .pay-actions { animation: nx-details-in var(--duration-slow) var(--ease) var(--duration-slower) both; }
 
   /* Payment status badges: Paid pulses, Pending breathes. */
   .pay-status-paid .pay-status-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: nx-dot-pulse var(--loop-short) var(--ease-out) infinite; }
@@ -149,8 +157,8 @@
   /* The tracking timeline draws in, one step after another. */
   .js-motion .timeline.will-draw:not(.is-drawn) .timeline-step { opacity: 0; }
   .js-motion .timeline.will-draw:not(.is-drawn) .timeline-step::before { opacity: 0; }
-  .js-motion .timeline.is-drawn .timeline-step { animation: nx-step-rise var(--duration-slow) var(--motion-ease) calc(var(--step, 0) * var(--duration-fast)) both; }
-  .js-motion .timeline.is-drawn .timeline-step::before { transform-origin: left center; animation: nx-line-draw var(--duration-slow) var(--motion-ease) calc(var(--step, 0) * var(--duration-fast)) both; }
+  .js-motion .timeline.is-drawn .timeline-step { animation: nx-step-rise var(--duration-slow) var(--ease) calc(var(--step, 0) * var(--duration-fast)) both; }
+  .js-motion .timeline.is-drawn .timeline-step::before { transform-origin: left center; animation: nx-line-draw var(--duration-slow) var(--ease) calc(var(--step, 0) * var(--duration-fast)) both; }
   @keyframes nx-step-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
   @keyframes nx-line-draw { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
 }
@@ -225,4 +233,18 @@
 @media (prefers-reduced-motion: no-preference) {
   .is-filled { animation: nx-filled var(--duration-long) var(--ease-out); }
   @keyframes nx-filled { from { opacity: 0.35; } to { opacity: 1; } }
+}
+
+/* ---------- Page transitions (cross-document View Transitions) ----------
+   Moving between pages cross-fades the content while the header stays where it is, and a product
+   card's photo flows into the product page's big photo (app.js names the clicked card's photo just
+   before the page changes). Browsers without View Transitions simply change page. Off for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  .site-header { view-transition-name: site-header; }
+  .pdx-photo { view-transition-name: product-photo; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--duration-medium); animation-timing-function: var(--ease-out); }
+  ::view-transition-group(product-photo) { animation-duration: var(--duration-long); animation-timing-function: var(--ease-out); }
+  ::view-transition-old(product-photo), ::view-transition-new(product-photo) { height: 100%; object-fit: cover; overflow: clip; }
+  ::view-transition-group(site-header) { animation-duration: var(--duration-medium); }
 }

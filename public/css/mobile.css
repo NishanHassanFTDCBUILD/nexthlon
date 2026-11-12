@@ -11,7 +11,7 @@
   .site-header { position: sticky; top: 0; transition: transform var(--duration-medium) var(--ease-out); }
   .site-header.is-tucked { transform: translateY(-100%); }
   /* Bars that stick below it follow it up and down. */
-  .toolbar-sticky { top: var(--header-h); transition: top var(--duration-medium) var(--ease-out); }
+  .toolbar-sticky { top: var(--header-h); transition: transform var(--duration-medium) var(--ease-out); }
 
   /* ---------- Search: more room to type (the category list hides; search covers everything) ---------- */
   .search .search-cat, .search label[for="search-category"] { display: none; }
@@ -34,7 +34,7 @@
   .count-dot, .address-type-pill, .label-caps { font-size: var(--text-xs); }
 
   /* ---------- Sign in / Create account: a short scene strip, so the form fits on the first screen ---------- */
-  .au-scene { height: clamp(176px, 25vh, 210px); min-height: 0; }
+  .au-scene { height: clamp(176px, 25vh, 210px); height: clamp(176px, 25svh, 210px); min-height: 0; }
   .au-motto { bottom: 14px; }
   .au-motto-line { font-size: var(--text-motto-sm); margin: 0; min-height: 0; max-width: 52%; }
   .au-scene-fallback span { width: 200px; margin: -100px 0 0 -100px; top: 46%; }

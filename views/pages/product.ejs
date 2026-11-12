@@ -273,7 +273,7 @@
           <% reviews.breakdown.forEach(function (row) { %>
             <li data-stars="<%= row.stars %>">
               <span><%= row.stars %> <%- icon('star', 'i-xs') %></span>
-              <span class="pdx-bar"><i style="width: <%= Math.round(row.count / maxBar * 100) %>%"></i></span>
+              <span class="pdx-bar"><i style="--share: <%= (maxBar ? row.count / maxBar : 0).toFixed(3) %>"></i></span>
               <span class="pdx-bar-n"><%= row.count %></span>
             </li>
           <% }) %>

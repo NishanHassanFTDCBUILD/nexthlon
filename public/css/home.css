@@ -11,7 +11,7 @@
 .hero3d { position: relative; background: var(--navy-950); color: var(--white); --focus: var(--accent); }
 /* Tall while its scene runs (will-3d is set in <head>, so the height is final from the first paint);
    back to one screen if the scene can't start (no WebGL). */
-.will-3d .hero3d:not(.no-webgl):not(.is-static), .hero3d.has-webgl:not(.is-static) { height: 260vh; }
+.will-3d .hero3d:not(.no-webgl):not(.is-static), .hero3d.has-webgl:not(.is-static) { height: 260vh; height: 260svh; }
 .hero3d-sticky { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 560px; overflow: hidden; display: flex; align-items: flex-end; }
 .hero3d-sticky::after { content: ""; position: absolute; z-index: var(--layer-1); left: 0; right: 0; bottom: 0; height: 70%; background: linear-gradient(rgba(var(--navy-rgb), 0), rgba(var(--navy-rgb), 0.86)); pointer-events: none; }
 .hero3d-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: 0; transition: opacity var(--duration-slower) var(--ease); }
@@ -26,7 +26,7 @@
 .hf-card-1 { left: 72%; top: 14%; transform: translateZ(80px) rotateY(-18deg) rotateZ(6deg); }
 .hf-card-2 { left: 50%; top: 52%; transform: translateZ(30px) rotateY(16deg) rotateZ(-8deg); }
 .hf-card-3 { left: 84%; top: 50%; transform: translateZ(-40px) rotateY(-26deg); }
-.hero3d-content { position: relative; z-index: var(--layer-2); padding-bottom: clamp(48px, 9vh, 110px); }
+.hero3d-content { position: relative; z-index: var(--layer-2); padding-bottom: clamp(48px, 9vh, 110px); padding-bottom: clamp(48px, 9svh, 110px); }
 /* Laptops and desktops: the hero starts at the very top of the page, behind the sticky header,
    so the first screen already shows the whole hero (headline, buttons and the stage line), exactly
    as it looks once pinned. --hero-pull is the header's measured height (home.js); --header-h is
@@ -103,7 +103,7 @@
 .zg-chip:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* ----- The 3D room (wide screens) ----- */
-.showroom.is-3d { height: 250vh; }
+.showroom.is-3d { height: 250vh; height: 250svh; }
 .showroom.is-3d .showroom-pin { position: sticky; top: 0; height: 100vh; height: 100svh; padding: 0; overflow: hidden; }
 .showroom.is-3d .showroom-head { position: absolute; left: 0; right: 0; top: calc(var(--header-h) + var(--space-2)); margin: 0 auto; pointer-events: none; }
 .showroom.is-3d .showroom-head a { pointer-events: auto; }
@@ -228,7 +228,7 @@
 .sport-ring.is-row .sport-card { flex: 0 0 min(260px, 72vw); scroll-snap-align: center; }
 
 /* ----- The 3D ring ----- */
-.sport-ring.is-ring { --scene-h: clamp(520px, 70vh, 700px); }
+.sport-ring.is-ring { --scene-h: clamp(520px, 70vh, 700px); --scene-h: clamp(520px, 70svh, 700px); }
 .sport-ring.is-ring .sport-ring-pin { overflow: hidden; padding: var(--space-4) 0 var(--space-3); }
 .sport-ring.is-ring .sport-ring-bg { display: block; position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .sport-ring-glow { position: absolute; left: 50%; top: 58%; width: min(1100px, 150vw); aspect-ratio: 1.6; transform: translate(-50%, -50%); background: radial-gradient(closest-side, color-mix(in srgb, var(--sport) 40%, transparent), transparent); opacity: 0; transition: opacity var(--duration-slower) var(--ease); }
@@ -285,7 +285,7 @@
 .sport-ring.is-waiting .sport-card-float { opacity: 0; }
 
 /* Scroll-pinned (wide screens): the section is tall and the ring stays on screen while it turns. */
-.sport-ring.is-pinned { height: calc(100vh + (var(--count) - 1) * 55vh); }
+.sport-ring.is-pinned { height: calc(100vh + (var(--count) - 1) * 55vh); height: calc(100svh + (var(--count) - 1) * 55svh); }
 .sport-ring.is-pinned .sport-ring-pin { position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: calc(var(--header-h) + var(--space-2)) 0 var(--space-2); }
 .sport-ring.is-pinned .sport-ring-stage { flex: 0 1 var(--scene-h); min-height: 470px; }
 .sport-ring.is-pinned .sport-ring-head { margin-bottom: var(--space-1); }
@@ -378,7 +378,7 @@
   .stats3d { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 720px) {
-  .will-3d .hero3d:not(.no-webgl):not(.is-static), .hero3d.has-webgl:not(.is-static) { height: 220vh; }
+  .will-3d .hero3d:not(.no-webgl):not(.is-static), .hero3d.has-webgl:not(.is-static) { height: 220vh; height: 220svh; }
   .hero3d-title { max-width: none; }
   .hero3d-actions .btn { flex: 1 1 auto; }
   .hf-card { display: none; }
