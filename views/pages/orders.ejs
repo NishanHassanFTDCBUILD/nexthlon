@@ -25,7 +25,7 @@
         <a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="page"' : '' %>><%= label %></a>
       <% }) %>
     </nav>
-    <form class="orders-search" action="/orders" method="get" role="search" data-orders-filter>
+    <form class="orders-search" action="/orders" method="get" role="search" aria-label="Search your orders" data-orders-filter>
       <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
       <span class="select-wrap">
         <label class="sr-only" for="order-period">Time</label>

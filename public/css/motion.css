@@ -171,8 +171,13 @@
 @media (prefers-reduced-motion: no-preference) {
   /* The headline: each letter turns up from rotateX(90deg). */
   .js-motion .hero3d-title .char { transform-origin: 50% 100%; animation: nx-char-in var(--duration-slower) var(--ease-out) calc(var(--i) * var(--stagger) + var(--duration-fast)) both; }
-  @keyframes nx-char-in { from { opacity: 0; transform: rotateX(90deg) translateY(18px); } to { opacity: 1; transform: none; } }
-  .js-motion .hero3d-kicker, .js-motion .hero3d-text, .js-motion .hero3d-actions { animation: nx-reveal-up var(--duration-slower) var(--ease-out) var(--duration-medium) both; }
+  /* The letters start dim, not invisible: the headline is the page's largest paint, and an invisible
+     first frame would hold Largest Contentful Paint back until the last letter lands. They only rise (no
+     rotation or scale), so each letter paints at its full size from the first frame. */
+  @keyframes nx-char-in { from { opacity: 0.15; transform: translateY(0.35em); } to { opacity: 1; transform: none; } }
+  /* The hero is the first screen, so its text starts dim instead of invisible (see nx-char-in). */
+  .js-motion .hero3d-kicker, .js-motion .hero3d-text, .js-motion .hero3d-actions { animation: nx-hero-rise var(--duration-slower) var(--ease-out) var(--duration-medium) both; }
+  @keyframes nx-hero-rise { from { opacity: 0.15; transform: translateY(16px); } to { opacity: 1; transform: none; } }
   .js-motion .hero3d-text { animation-delay: var(--duration-slow); }
   .js-motion .hero3d-actions { animation-delay: var(--duration-long); }
   .hero3d-scroll span { transform-origin: top; animation: nx-scroll-cue var(--loop-short) var(--ease-in-out) infinite; }
@@ -216,3 +221,8 @@
   .flip-inner { transition: none; }
 }
 
+/* A field the page filled for the shopper (town and state from the PIN code) fades in, so the change is noticed. */
+@media (prefers-reduced-motion: no-preference) {
+  .is-filled { animation: nx-filled var(--duration-long) var(--ease-out); }
+  @keyframes nx-filled { from { opacity: 0.35; } to { opacity: 1; } }
+}

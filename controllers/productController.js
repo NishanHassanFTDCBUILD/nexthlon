@@ -1,6 +1,7 @@
 const productService = require("../services/productService");
 const reviewService = require("../services/reviewService");
 const { estimateDelivery } = require("../services/deliveryService");
+const { lookupPincode } = require("../services/pincodeService");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { readIdList, validateReview, hasErrors } = require("../utils/validators");
 
@@ -62,4 +63,13 @@ const deliveryEstimate = asyncHandler(async (req, res) => {
   res.json({ estimate });
 });
 
-module.exports = { listProducts, searchProducts, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate };
+// GET /api/delivery/pincode/560038 -> { place: { pincode, city, state, source } }
+// The address form fills city and state from it; both stay editable.
+const pincodeLookup = asyncHandler(async (req, res) => {
+  const place = await lookupPincode(req.params.pincode);
+  if (!place) throw new HttpError(400, "Enter a valid 6-digit PIN code.", { pincode: "Enter a valid 6-digit PIN code." });
+  res.set("Cache-Control", "private, max-age=86400");
+  res.json({ place });
+});
+
+module.exports = { listProducts, searchProducts, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };

@@ -153,11 +153,13 @@
   }
 
   // What pressing the button will do, from the chosen card (and how to pay the rest).
+  // UPI is paid through Razorpay too; it only opens Razorpay's window on UPI first.
+  const online = kind => kind === "upi" ? { kind: "razorpay", upi: true } : { kind };
   function plan() {
     const method = chosenMethod();
-    if (method !== "wallet") return { kind: method, useWallet: false };
+    if (method !== "wallet") return { ...online(method), useWallet: false };
     if (current && current.coveredByWallet) return { kind: "wallet", useWallet: true };
-    return { kind: restMethod(), useWallet: true };
+    return { ...online(restMethod()), useWallet: true };
   }
 
   function updatePlaceText() {
@@ -196,13 +198,13 @@
       codNote.textContent = quote.codAllowed ? codNote.dataset.ok : codNote.dataset.off;
       if (cod.checked && cod.disabled) {
         cod.checked = false;
-        const online = methodInput("razorpay");
+        const online = methodInput("upi");
         if (!online.disabled) online.checked = true;
       }
     } else if (restBox) {
       restBox.hidden = quote.coveredByWallet;
       const restCod = restBox.querySelector('input[value="cod"]');
-      const restOnline = restBox.querySelector('input[value="razorpay"]');
+      const restOnline = restBox.querySelector('input[value="upi"]');
       restCod.disabled = !quote.codAllowed;
       if (restCod.checked && restCod.disabled) {
         restCod.checked = false;
@@ -347,7 +349,7 @@
       });
       if (checkout && Nx.payOnline) {
         placeButton.disabled = true;
-        Nx.payOnline(checkout, Nx.prefillFrom(page), { onChooseOther: chooseOther, keepCart: isBuyNow });
+        Nx.payOnline(checkout, Nx.prefillFrom(page), { onChooseOther: chooseOther, keepCart: isBuyNow, upi: Boolean(p.upi) });
       } else {
         processing = false;
         refresh();

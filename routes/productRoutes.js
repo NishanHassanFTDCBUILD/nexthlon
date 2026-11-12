@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const products = require("../controllers/productController");
 const { requireAuth, requireRole } = require("../middleware/auth");
-const { reviewLimiter } = require("../middleware/rateLimit");
+const { reviewLimiter, pincodeLimiter } = require("../middleware/rateLimit");
 
 // Mounted at /api. Public: no sign-in needed to browse.
 // "/products/search" and "/products/lookup" must come before "/products/:id", or they would be read as ids.
@@ -13,5 +13,6 @@ router.post("/products/:id/reviews", requireAuth, requireRole("customer"), revie
 router.get("/products/:id", products.getProduct);
 router.get("/categories", products.listCategories);
 router.get("/delivery/estimate", products.deliveryEstimate);
+router.get("/delivery/pincode/:pincode", pincodeLimiter, products.pincodeLookup);
 
 module.exports = router;

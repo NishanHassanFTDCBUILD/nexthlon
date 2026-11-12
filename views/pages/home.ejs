@@ -82,7 +82,7 @@
           <div>
             <span class="section-kicker">Featured gear</span>
             <h2 id="showroom-title">The zero-gravity showroom</h2>
-            <p class="showroom-hint">Move your mouse to look around. Scroll to fly through.</p>
+            <p class="showroom-hint"><span class="hint-mouse">Move your mouse to look around. Scroll to fly through.</span><span class="hint-touch">Scroll to fly through. Tap a product to open it.</span></p>
           </div>
           <a class="section-link" href="/products">See all gear <%- icon('arrow-right', 'i-sm') %></a>
         </div>
@@ -93,7 +93,7 @@
               <article class="zg-card" data-zg-card data-id="<%= p.id %>" data-stock="<%= p.stock %>" data-rating="<%= p.rating %>" data-reviews="<%= p.ratingCount %>">
                 <div class="zg-float">
                   <div class="zg-glass">
-                    <span class="zg-media"><img src="<%= sizedUrl(p.image, 800) %>" alt="<%= p.name %>" width="320" height="320" loading="lazy" decoding="async"></span>
+                    <span class="zg-media"><img src="<%= sizedUrl(p.image, 800) %>" srcset="<%= srcsetFor(p.image) %>" sizes="(max-width: 720px) 88vw, 320px" alt="<%= p.name %>" width="320" height="320" loading="lazy" decoding="async"></span>
                     <div class="zg-body">
                       <% if (p.brand) { %><span class="zg-brand"><%= p.brand %></span><% } %>
                       <a class="zg-link" href="/products/<%= p.slug %>" data-zg-link><span class="zg-name"><%= p.name %></span></a>
@@ -186,7 +186,7 @@
                   <span class="sport-card-float">
                     <span class="sport-card-tilt">
                       <span class="sport-card-media">
-                        <% if (s.image) { %><img src="<%= s.image %>" alt="" width="320" height="450" loading="lazy" decoding="async"><% } %>
+                        <% if (s.image) { %><img src="<%= sizedUrl(s.image, 400) %>" srcset="<%= srcsetFor(s.image) %>" sizes="(max-width: 720px) 60vw, 320px" alt="" width="320" height="450" loading="lazy" decoding="async"><% } %>
                         <span class="sport-card-shade"></span>
                         <span class="sport-card-glare"></span>
                       </span>
@@ -241,8 +241,8 @@
       <div class="showcase-stage" data-showcase-stage aria-hidden="true">
         <span class="showcase-light"></span>
         <div class="showcase-scene">
-          <img class="showcase-product" src="<%= sizedUrl(star.image, 800) %>" alt="" width="420" height="420" loading="lazy" decoding="async">
-          <img class="showcase-reflection" src="<%= sizedUrl(star.image, 800) %>" alt="" width="420" height="420" loading="lazy" decoding="async">
+          <img class="showcase-product" src="<%= sizedUrl(star.image, 800) %>" srcset="<%= srcsetFor(star.image) %>" sizes="(max-width: 720px) 70vw, 420px" alt="" width="420" height="420" loading="lazy" decoding="async">
+          <img class="showcase-reflection" src="<%= sizedUrl(star.image, 400) %>" alt="" width="420" height="420" loading="lazy" decoding="async">
           <span class="showcase-podium"><span class="podium-top"></span><span class="podium-ring"></span></span>
         </div>
         <% (star.highlights && star.highlights.length ? star.highlights.slice(0, 3) : ['Chosen by athletes', 'Genuine brand', 'Easy returns']).forEach(function (line, i) { %>
@@ -320,7 +320,7 @@
       <div class="depth-grid">
         <% categories.forEach(function (c) { %>
           <a class="depth-tile" data-reveal data-tilt href="/products?category=<%= c.slug %>">
-            <span class="depth-media"><img src="<%= c.image %>" alt="" loading="lazy" decoding="async" width="320" height="320"></span>
+            <span class="depth-media"><img src="<%= sizedUrl(c.image, 400) %>" srcset="<%= srcsetFor(c.image) %>" sizes="(max-width: 720px) 45vw, 320px" alt="" loading="lazy" decoding="async" width="320" height="320"></span>
             <span class="depth-title"><%= c.name %></span>
             <span class="depth-price"><%= c.count %> <%= c.count === 1 ? 'item' : 'items' %> · from <%= formatPrice(c.fromPrice) %></span>
           </a>
@@ -391,7 +391,7 @@
       </div>
       <div class="rail" data-rail>
         <button type="button" class="rail-btn rail-prev" data-rail-step="-1" aria-label="Scroll recently viewed left" disabled><%- icon('chevron-left') %></button>
-        <div class="rail-track" data-rail-track data-recent-track tabindex="0" role="region" aria-label="Recently viewed" aria-busy="true">
+        <div class="rail-track" data-rail-track data-recent-track tabindex="0" role="group" aria-label="Recently viewed, scrolls sideways" aria-busy="true">
           <% for (let n = 0; n < 5; n++) { %>
             <div class="skeleton-card" aria-hidden="true"><div class="skeleton skeleton-media"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line is-short"></div></div>
           <% } %>

@@ -8,7 +8,6 @@
   const buyItem = isBuyNow ? (quote.lines[0] || quote.items[0]) : null;
 %>
 <main id="main" class="container page checkout<%= isBuyNow ? ' is-buy-now' : '' %>" data-checkout data-source="<%= isBuyNow ? 'buynow' : 'cart' %>" data-prefill-name="<%= currentUser.name %>" data-prefill-email="<%= currentUser.email %>" data-prefill-phone="<%= currentUser.phone || (chosen ? chosen.phone : '') %>">
-  <%- include('../partials/verify-banner') %>
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %>
     <% if (isBuyNow && buyItem) { %><a href="/products/<%= buyItem.slug %>"><%= buyItem.name %></a><% } else { %><a href="/cart">Cart</a><% } %>
@@ -114,10 +113,28 @@
             <div class="form-alert" data-form-alert aria-live="assertive"></div>
             <%
               const walletReady = quote.walletBalance > 0;
-              const firstChoice = razorpayEnabled ? 'razorpay' : quote.codAllowed ? 'cod' : walletReady ? 'wallet' : '';
+              // UPI comes first: it is how most people in India pay online.
+              const firstChoice = razorpayEnabled ? 'upi' : quote.codAllowed ? 'cod' : walletReady ? 'wallet' : '';
             %>
             <fieldset class="pay-methods">
               <legend class="sr-only">Choose how to pay</legend>
+
+              <div class="pay-card <%= razorpayEnabled ? '' : 'is-disabled' %>" data-pay-card="upi" data-tilt data-tilt-max="4">
+                <label class="pay-card-head">
+                  <input type="radio" name="paymentMethod" value="upi" <%= razorpayEnabled ? '' : 'disabled' %> <%= firstChoice === 'upi' ? 'checked' : '' %> aria-describedby="pay-upi-note">
+                  <span class="pay-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></span>
+                  <span class="pay-card-icon"><%- icon('bolt') %></span>
+                  <span class="pay-card-title">
+                    <strong>UPI</strong>
+                    <span class="muted" id="pay-upi-note"><%= razorpayEnabled ? 'Google Pay, PhonePe, Paytm or any UPI app' : 'Online payment is not set up yet' %></span>
+                  </span>
+                  <span class="pill pill-green pay-card-tag">Fastest</span>
+                </label>
+                <div class="pay-card-details" data-pay-details>
+                  <p>Razorpay's secure window opens on UPI: pick your app on a phone, or scan the QR code on a computer.</p>
+                  <% if (razorpayEnabled) { %><p class="muted">Test mode: no real money moves.</p><% } %>
+                </div>
+              </div>
 
               <div class="pay-card <%= razorpayEnabled ? '' : 'is-disabled' %>" data-pay-card="razorpay" data-tilt data-tilt-max="4">
                 <label class="pay-card-head">
@@ -125,13 +142,12 @@
                   <span class="pay-tick" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></span>
                   <span class="pay-card-icon"><%- icon('credit-card') %></span>
                   <span class="pay-card-title">
-                    <strong>UPI / Cards / Netbanking</strong>
+                    <strong>Cards, netbanking and wallets</strong>
                     <span class="muted" id="pay-razorpay-note"><%= razorpayEnabled ? 'Powered by Razorpay' : 'Online payment is not set up yet' %></span>
                   </span>
-                  <span class="pill pill-green pay-card-tag">Instant</span>
                 </label>
                 <div class="pay-card-details" data-pay-details>
-                  <p>You pay in Razorpay's secure window: UPI apps, debit and credit cards, netbanking and wallets. Nexthlon never sees or stores your card details.</p>
+                  <p>You pay in Razorpay's secure window: debit and credit cards, netbanking, EMI and wallets. Nexthlon never sees or stores your card details.</p>
                   <% if (razorpayEnabled) { %><p class="muted">Test mode: no real money moves.</p><% } %>
                 </div>
               </div>
@@ -151,7 +167,8 @@
                     <p data-wallet-note>Your wallet balance is used first.</p>
                     <fieldset class="pay-rest" data-pay-rest hidden>
                       <legend>Pay the remaining <strong data-sum="total" data-value="<%= t.total %>"><%= formatPrice(t.total) %></strong> with</legend>
-                      <label class="choice"><input type="radio" name="restMethod" value="razorpay" <%= razorpayEnabled ? 'checked' : 'disabled' %>><span>UPI / Cards / Netbanking</span></label>
+                      <label class="choice"><input type="radio" name="restMethod" value="upi" <%= razorpayEnabled ? 'checked' : 'disabled' %>><span>UPI</span></label>
+                      <label class="choice"><input type="radio" name="restMethod" value="razorpay" <%= razorpayEnabled ? '' : 'disabled' %>><span>Cards, netbanking and wallets</span></label>
                       <label class="choice"><input type="radio" name="restMethod" value="cod" <%= razorpayEnabled ? '' : 'checked' %>><span>Cash on Delivery</span></label>
                     </fieldset>
                   <% } else { %>
@@ -193,6 +210,8 @@
     </div>
 
     <div class="checkout-side">
+      <%# Order updates go to this email, so it's asked for here, beside the steps instead of above them. %>
+      <%- include('../partials/verify-banner') %>
       <aside class="cart-summary panel checkout-summary" aria-labelledby="price-title" data-summary>
         <h2 id="price-title" class="panel-title">Price details</h2>
         <dl class="summary-list" aria-live="polite">

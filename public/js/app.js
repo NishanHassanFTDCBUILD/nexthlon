@@ -324,8 +324,8 @@
       void badge.offsetWidth;
       badge.classList.add("is-bumped");
     });
-    document.querySelectorAll("[data-cart-link]").forEach(link => {
-      link.setAttribute("aria-label", `Cart, ${total} ${total === 1 ? "item" : "items"}`);
+    document.querySelectorAll("[data-cart-count-text]").forEach(text => {
+      text.textContent = `, ${total} ${total === 1 ? "item" : "items"}`;
     });
   };
 

@@ -47,7 +47,7 @@
                 </div>
                 <strong class="cart-line-total" data-cart-line-total><%= item.available ? formatPrice(item.lineTotal) : '—' %></strong>
                 <div class="cart-links">
-                  <button type="button" class="link-btn" data-cart-save aria-label="Save <%= item.name %> for later"><%- icon('heart', 'i-xs') %> Save for later</button>
+                  <button type="button" class="link-btn" data-cart-save aria-label="Save for later: <%= item.name %>"><%- icon('heart', 'i-xs') %> Save for later</button>
                   <button type="button" class="link-btn cart-remove" data-cart-remove aria-label="Remove <%= item.name %> from your cart"><%- icon('trash', 'i-xs') %> Remove</button>
                 </div>
               </div>

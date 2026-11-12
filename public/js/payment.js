@@ -263,6 +263,8 @@
         // (on http://localhost it would be blocked as mixed content).
         ...(window.location.protocol === "https:" ? { image: `${window.location.origin}/img/favicon.svg` } : {}),
         prefill,
+        // Paying by UPI: Razorpay's window opens on UPI, with every other method still below it.
+        ...(options.upi ? { config: { display: { blocks: { upi: { name: "Pay by UPI", instruments: [{ method: "upi" }] } }, sequence: ["block.upi"], preferences: { show_default_blocks: true } } } } : {}),
         theme: { color: BRAND },
         handler: response => {
           flow.done = true;

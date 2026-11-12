@@ -111,4 +111,14 @@ const twoFactorLimiter = rateLimit({
   message: { message: "Too many attempts. Please wait 15 minutes and try again." }
 });
 
-module.exports = { forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
+// PIN code lookups call India Post for the shopper. 60 in 15 minutes is plenty for typing addresses,
+// and stops anyone using the store as a free proxy.
+const pincodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many PIN code lookups. Type the city and state yourself, or try again in a few minutes." }
+});
+
+module.exports = { pincodeLimiter, forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };

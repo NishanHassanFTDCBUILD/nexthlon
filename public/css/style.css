@@ -35,7 +35,18 @@
 .loading-bar { position: absolute; left: var(--sp-3); right: var(--sp-3); bottom: -1px; height: 3px; border-radius: 3px; overflow: hidden; display: none; }
 .loading-bar::before { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, var(--blue), var(--cyan)); border-radius: 3px; animation: indeterminate var(--loop-fast) var(--ease) infinite; }
 .results.is-loading .loading-bar { display: block; }
-.results.is-loading .product-grid { opacity: 0.55; pointer-events: none; }
+/* While filters reload, the cards in place turn into skeletons (same layout, so nothing jumps when the
+   new results land): the photo and text are covered by the shimmer that empty skeletons use. */
+.results.is-loading .product-grid { pointer-events: none; }
+.results.is-loading .product-card .product-media,
+.results.is-loading .product-card .product-body { position: relative; }
+.results.is-loading .product-card .product-media::after,
+.results.is-loading .product-card .product-body::after {
+  content: ""; position: absolute; inset: 0; z-index: var(--layer-3); border-radius: inherit;
+  background: linear-gradient(100deg, var(--surface-3) 30%, var(--surface-2) 50%, var(--surface-3) 70%) 0 0 / 300% 100%;
+  animation: nx-skeleton-sweep var(--loop-short) var(--ease-in-out) infinite;
+}
+@keyframes nx-skeleton-sweep { from { opacity: 0.92; } 50% { opacity: 1; } to { opacity: 0.92; } }
 
 
 /* ---------- Product page ---------- */
@@ -960,7 +971,9 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 }
 @media (max-width: 1024px) {
   .nav-toggle { display: inline-grid; }
-  .account-text, .header-link-text { display: none; }
+  .account-text { display: none; }
+  /* Hidden from sight only: "Cart" stays the start of the link's name for screen readers and voice control. */
+  .header-link-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .account-btn, .header-link { padding: 4px; }
   .brand-word small { display: none; }
   .mainbar-inner { gap: var(--space-1h); }
@@ -1500,4 +1513,10 @@ html.is-pay-locked, html.is-pay-locked body { overflow: hidden; }
 @media (max-width: 560px) {
   .reviews .section-actions { width: 100%; }
   .reviews .section-actions .btn { flex: 1 1 auto; }
+}
+
+/* Checkout steps on a narrow phone: three equal columns that always fit (they overflowed by 11px at 320px). */
+@media (max-width: 420px) {
+  .stepper { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-half); }
+  .stepper li { justify-content: center; min-width: 0; padding: var(--space-half) var(--space-1) var(--space-half) var(--space-half); }
 }

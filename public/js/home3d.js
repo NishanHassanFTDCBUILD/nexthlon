@@ -218,8 +218,20 @@ if (hero) {
 // the ring one sport at a time; drag or swipe (with inertia, then a snap), the tabs, the dots, the
 // arrow keys and a 4-second timer turn it too. The card facing the front is the active one.
 // With reduced motion it becomes a plain swipe row; without JavaScript it is a grid of links.
+// It sits several screens down, so it is set up (cards cloned for the mirror, sizes measured) when it
+// comes within a screen and a half, not while the first screen is still painting.
 const sportRing = document.querySelector("[data-sport-ring]");
-if (sportRing) setUpSportRing(sportRing);
+if (sportRing) {
+  if (!("IntersectionObserver" in window)) setUpSportRing(sportRing);
+  else {
+    const ringWatch = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      ringWatch.disconnect();
+      setUpSportRing(sportRing);
+    }, { rootMargin: "150% 0px" });
+    ringWatch.observe(sportRing);
+  }
+}
 
 function setUpSportRing(section) {
   const stage = section.querySelector("[data-ring-stage]");

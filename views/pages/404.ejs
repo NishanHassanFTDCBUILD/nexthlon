@@ -6,7 +6,7 @@
     <span class="error-code" aria-hidden="true">404</span>
     <h1>This trail ends here</h1>
     <p class="muted"><%= message %></p>
-    <form class="error-search" action="/products" method="get" role="search">
+    <form class="error-search" action="/products" method="get" role="search" aria-label="Search for a product">
       <label class="sr-only" for="error-q">Search Nexthlon</label>
       <%- icon('search', 'i-sm') %>
       <input id="error-q" type="search" name="q" maxlength="80" placeholder="Search for gear instead…">

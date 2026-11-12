@@ -9,7 +9,9 @@
 
 /* ---------- Hero ---------- */
 .hero3d { position: relative; background: var(--navy-950); color: var(--white); --focus: var(--accent); }
-.hero3d.has-webgl:not(.is-static) { height: 260vh; }
+/* Tall while its scene runs (will-3d is set in <head>, so the height is final from the first paint);
+   back to one screen if the scene can't start (no WebGL). */
+.will-3d .hero3d:not(.no-webgl):not(.is-static), .hero3d.has-webgl:not(.is-static) { height: 260vh; }
 .hero3d-sticky { position: sticky; top: 0; height: 100vh; height: 100svh; min-height: 560px; overflow: hidden; display: flex; align-items: flex-end; }
 .hero3d-sticky::after { content: ""; position: absolute; z-index: var(--layer-1); left: 0; right: 0; bottom: 0; height: 70%; background: linear-gradient(rgba(var(--navy-rgb), 0), rgba(var(--navy-rgb), 0.86)); pointer-events: none; }
 .hero3d-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: 0; transition: opacity var(--duration-slower) var(--ease); }
@@ -376,7 +378,7 @@
   .stats3d { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 720px) {
-  .hero3d.has-webgl:not(.is-static) { height: 220vh; }
+  .will-3d .hero3d:not(.no-webgl):not(.is-static), .hero3d.has-webgl:not(.is-static) { height: 220vh; }
   .hero3d-title { max-width: none; }
   .hero3d-actions .btn { flex: 1 1 auto; }
   .hf-card { display: none; }

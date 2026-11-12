@@ -15,16 +15,22 @@
       <div class="form-grid form-grid-2">
         <div class="field">
           <label for="a-fullName">Full name</label>
-          <input id="a-fullName" name="fullName" autocomplete="name" required maxlength="60" aria-describedby="a-fullName-error">
+          <input id="a-fullName" name="fullName" autocomplete="name" autocapitalize="words" enterkeyhint="next" required maxlength="60" aria-describedby="a-fullName-error">
           <p class="field-error" id="a-fullName-error" data-error-for="fullName"></p>
         </div>
         <div class="field">
           <label for="a-phone">Mobile number</label>
           <div class="input-prefix">
             <span>+91</span>
-            <input id="a-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" required maxlength="10" placeholder="10-digit number" aria-describedby="a-phone-error">
+            <input id="a-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" enterkeyhint="next" required maxlength="10" placeholder="10-digit number" aria-describedby="a-phone-error">
           </div>
           <p class="field-error" id="a-phone-error" data-error-for="phone"></p>
+        </div>
+        <div class="field field-wide pin-field">
+          <label for="a-pincode">PIN code</label>
+          <input id="a-pincode" name="pincode" inputmode="numeric" pattern="[0-9]*" autocomplete="postal-code" enterkeyhint="next" required maxlength="6" placeholder="6 digits" aria-describedby="a-pincode-hint a-pincode-error" data-pincode-lookup>
+          <p class="hint" id="a-pincode-hint" data-pincode-status aria-live="polite">Town and state fill in from the PIN code.</p>
+          <p class="field-error" id="a-pincode-error" data-error-for="pincode"></p>
         </div>
         <div class="field field-wide">
           <label for="a-line1">Flat, house no., building, street</label>
@@ -40,11 +46,6 @@
           <label for="a-landmark">Landmark <span class="optional">(optional)</span></label>
           <input id="a-landmark" name="landmark" maxlength="80" placeholder="e.g. near Apollo hospital" aria-describedby="a-landmark-error">
           <p class="field-error" id="a-landmark-error" data-error-for="landmark"></p>
-        </div>
-        <div class="field">
-          <label for="a-pincode">PIN code</label>
-          <input id="a-pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" required maxlength="6" placeholder="6 digits" aria-describedby="a-pincode-error">
-          <p class="field-error" id="a-pincode-error" data-error-for="pincode"></p>
         </div>
         <div class="field">
           <label for="a-city">Town or city</label>

@@ -16,7 +16,7 @@
     </header>
 
     <div class="toolbar">
-      <form class="toolbar-search" action="<%= adminPath %>/customers" method="get" role="search">
+      <form class="toolbar-search" action="<%= adminPath %>/customers" method="get" role="search" aria-label="Search customers">
         <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
         <label class="sr-only" for="user-search">Search customers</label>
         <%- icon('search', 'i-sm') %>

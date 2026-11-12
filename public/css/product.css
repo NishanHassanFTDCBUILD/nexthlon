@@ -44,10 +44,7 @@
 /* One column (tablets): no room beside the photo, so the photo itself zooms in place. */
 .pdx-stage.is-inplace .pdx-photo { transform-origin: var(--zoom-pos, 50% 50%); transform: scale(2.5); transition: none; }
 .pdx-stage.is-zooming { cursor: crosshair; }
-.hint-touch { display: none; }
 @media (hover: none), (pointer: coarse) {
-  .hint-mouse { display: none; }
-  .hint-touch { display: inline; }
   .pdx-stage-hint { opacity: 1; transform: none; }
 }
 .pdx-stage-top { position: absolute; inset: var(--space-2) var(--space-2) auto; z-index: var(--layer-2); display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
@@ -169,7 +166,8 @@
 .pdx-ship-perks .is-no .i { color: var(--danger); }
 
 /* ---------- Stock, discount badge, in-cart ---------- */
-.pdx-stock { margin: 0; font-size: var(--text-lg); font-weight: var(--weight-bold); }
+/* Said once, beside the buttons, and quieter than the price. */
+.pdx-stock { margin: 0; font-size: var(--text-base); font-weight: var(--weight-semibold); }
 .pdx-stock.is-ok { color: var(--success); }
 .pdx-stock.is-low { color: var(--warning); }
 .pdx-stock.is-out { color: var(--danger); }

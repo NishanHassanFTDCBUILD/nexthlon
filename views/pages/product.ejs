@@ -71,7 +71,6 @@
           <h1 class="pdx-title" data-split><%= product.name %></h1>
           <div class="pdx-meta">
             <a class="pdx-chip" href="/products?category=<%= cat.slug %>"><%= cat.name %></a>
-            <%- include('../partials/stock', { stock: product.stock }) %>
             <% if (product.ratingCount > 0) { %>
               <a class="pdx-rating" href="#reviews"><%- icon('star', 'i-xs') %> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %> <%= product.ratingCount === 1 ? 'review' : 'reviews' %>)</span><span class="sr-only">, rated out of 5</span></a>
             <% } %>

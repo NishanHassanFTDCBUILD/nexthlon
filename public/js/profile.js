@@ -100,6 +100,57 @@
     button.addEventListener("click", () => dialog.close());
   });
 
+  // ---------- PIN code fills the town and state ----------
+  // Six digits in, a lookup goes out; the town and state are filled only if they are empty or were filled
+  // by an earlier lookup, so nothing the shopper typed is ever replaced. The hint says what happened.
+  const pinInput = addressForm.querySelector("[data-pincode-lookup]");
+  const pinStatus = addressForm.querySelector("[data-pincode-status]");
+  const cityInput = addressForm.elements.city;
+  const stateSelect = addressForm.elements.state;
+  const pinHint = pinStatus ? pinStatus.textContent : "";
+  let lastPin = "";
+  let pinRequest = 0;
+  const fillIfFree = (field, value) => {
+    if (!value || (field.value && field.dataset.auto !== "1")) return false;
+    field.value = value;
+    field.dataset.auto = "1";
+    field.classList.remove("is-filled");
+    void field.offsetWidth;
+    field.classList.add("is-filled");
+    return true;
+  };
+  [cityInput, stateSelect].forEach(field => field.addEventListener("input", () => { delete field.dataset.auto; }));
+
+  async function lookUpPin() {
+    const pin = pinInput.value;
+    if (pin.length !== 6 || pin === lastPin) return;
+    lastPin = pin;
+    const request = ++pinRequest;
+    pinStatus.textContent = "Finding your town…";
+    try {
+      const { place } = await Nx.api(`/api/delivery/pincode/${encodeURIComponent(pin)}`);
+      if (request !== pinRequest) return;
+      const gotCity = fillIfFree(cityInput, place.city);
+      const gotState = fillIfFree(stateSelect, place.state);
+      pinStatus.textContent = place.city && place.state ? `${place.city}, ${place.state}. Change them if they're not right.`
+        : place.state ? `Filled in ${place.state}. Type your town or city.`
+        : "We couldn't find this PIN code. Check the digits, or type your town and state.";
+      if (!gotCity && !gotState && (place.city || place.state)) pinStatus.textContent = `This PIN code is in ${[place.city, place.state].filter(Boolean).join(", ")}.`;
+    } catch (error) {
+      if (request === pinRequest) pinStatus.textContent = "Type your town and state: the PIN code lookup isn't answering right now.";
+    }
+  }
+  if (pinInput && pinStatus) {
+    pinInput.addEventListener("input", () => {
+      // Digits only (a pasted "560 038" works too).
+      const digits = pinInput.value.replace(/\D/g, "").slice(0, 6);
+      if (digits !== pinInput.value) pinInput.value = digits;
+      if (digits.length < 6) { lastPin = ""; pinStatus.textContent = pinHint; return; }
+      lookUpPin();
+    });
+    dialog.addEventListener("close", () => { lastPin = ""; pinStatus.textContent = pinHint; delete cityInput.dataset.auto; delete stateSelect.dataset.auto; });
+  }
+
   addressForm.addEventListener("submit", async event => {
     event.preventDefault();
     const values = Nx.formValues(addressForm);

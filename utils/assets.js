@@ -38,13 +38,24 @@ function assetUrl(urlPath) {
 const NAME = /^[a-z0-9-]+$/;
 const bundles = new Map();
 
+// A safe minifier: the stylesheets are a third comments and indentation. It drops comments and collapses
+// runs of whitespace (around braces and semicolons entirely) and touches nothing else, so selectors, calc()
+// and strings mean exactly what they did. The file markers between stylesheets stay for debugging.
+function minifyCss(css) {
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*([{};])\s*/g, "$1")
+    .trim();
+}
+
 function readBundle(names) {
   const key = names.join(",");
   const files = names.map(name => path.join(PUBLIC_DIR, "css", `${name}.css`));
   const stamp = files.map(file => fs.statSync(file).mtimeMs).join(",");
   const known = bundles.get(key);
   if (known && (isProduction || known.stamp === stamp)) return known;
-  const css = files.map((file, i) => `/* ---- ${names[i]}.css ---- */\n${fs.readFileSync(file, "utf8")}`).join("\n");
+  const css = files.map((file, i) => `/* ---- ${names[i]}.css ---- */\n${minifyCss(fs.readFileSync(file, "utf8"))}`).join("\n");
   const hash = crypto.createHash("sha1").update(css).digest("hex").slice(0, 10);
   const bundle = { css, hash, stamp, url: `/css/bundle.css?files=${key}&v=${hash}` };
   // The site uses a dozen or so combinations; a cap stops made-up lists from filling memory.

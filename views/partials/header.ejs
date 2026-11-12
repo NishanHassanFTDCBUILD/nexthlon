@@ -18,10 +18,10 @@
       <%# The link is named by its visible words (plus "home"), so voice control matches what people see. %>
       <a class="brand" href="/">
         <span class="brand-mark"><%- icon('bolt') %></span>
-        <span class="brand-word">NEXTHLON<small>Performance gear</small></span><span class="sr-only">, home</span>
+        <span class="brand-word">NEXTHLON <small>Performance gear</small></span><span class="sr-only">, home</span>
       </a>
 
-      <form class="search" action="/products" method="get" role="search" data-search>
+      <form class="search" action="/products" method="get" role="search" aria-label="Search the store" data-search>
         <label class="sr-only" for="search-category">Category</label>
         <span class="search-cat">
           <select id="search-category" name="category">
@@ -99,13 +99,13 @@
             </span>
             <span class="header-link-text">Wishlist</span>
           </a>
-          <a class="header-link cart-link <%= path === '/cart' ? 'is-active' : '' %>" href="/cart" data-cart-link
-             aria-label="Cart, <%= count %> <%= count === 1 ? 'item' : 'items' %>">
+          <%# The link's name is its own words ("Cart, 2 items"), so voice control can say what it sees. %>
+          <a class="header-link cart-link <%= path === '/cart' ? 'is-active' : '' %>" href="/cart" data-cart-link>
             <span class="header-link-icon cart-icon">
               <%- icon('cart') %>
-              <span class="count-dot cart-badge" data-cart-count <%= count ? '' : 'hidden' %>><%= count %></span>
+              <span class="count-dot cart-badge" aria-hidden="true" data-cart-count <%= count ? '' : 'hidden' %>><%= count %></span>
             </span>
-            <span class="header-link-text">Cart</span>
+            <span class="header-link-text">Cart</span><span class="sr-only" data-cart-count-text>, <%= count %> <%= count === 1 ? 'item' : 'items' %></span>
           </a>
         <% } %>
       </div>
