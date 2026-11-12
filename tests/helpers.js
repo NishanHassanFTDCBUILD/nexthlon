@@ -13,3 +13,6 @@ process.env.ADMIN_PATH = process.env.TEST_ADMIN_PATH || "/admin";
 process.env.RAZORPAY_KEY_ID = "rzp_test_dummykey";
 process.env.RAZORPAY_KEY_SECRET = "test-key-secret";
 process.env.RAZORPAY_WEBHOOK_SECRET = "test-webhook-secret";
+// Photos go to the local disk, so a Cloudinary or bucket login in your own .env is never used by the tests.
+// A test file that needs another driver sets it itself before loading the app.
+process.env.STORAGE_DRIVER = "local";

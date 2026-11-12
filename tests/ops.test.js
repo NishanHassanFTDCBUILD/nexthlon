@@ -286,7 +286,8 @@ test("TRUST_PROXY: off in development, one proxy by default in production, or th
 // ---------- The photo bucket and the browser ----------
 test("with a bucket, the Content Security Policy lets the browser load photos from it; without one it does not", () => {
   const script = "const app = require('./app'); const s = app.listen(0, async () => { const r = await fetch('http://127.0.0.1:' + s.address().port + '/api/health'); process.stdout.write(r.headers.get('content-security-policy')); s.close(); process.exit(0); });";
-  const env = { MONGODB_URI: "mongodb://127.0.0.1:1/x", JWT_SECRET: good.JWT_SECRET, NODE_ENV: "development", LOG_LEVEL: "error" };
+  // STORAGE_DRIVER is set so a photo service in your own .env (dotenv fills only what is missing) can't change the answer.
+  const env = { MONGODB_URI: "mongodb://127.0.0.1:1/x", JWT_SECRET: good.JWT_SECRET, NODE_ENV: "development", LOG_LEVEL: "error", STORAGE_DRIVER: "local" };
   const withBucket = run(script, { ...env, STORAGE_DRIVER: "s3", S3_ENDPOINT: "https://abc.r2.cloudflarestorage.com", S3_BUCKET: "b", S3_ACCESS_KEY_ID: "k", S3_SECRET_ACCESS_KEY: "s", STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in/" }).stdout;
   assert.match(withBucket, /img-src 'self' data: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com https:\/\/cdn\.nexthlon\.in;/);
   const without = run(script, env).stdout;
