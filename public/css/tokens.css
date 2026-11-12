@@ -56,6 +56,27 @@
   --accent-rgb: 212, 255, 58;
   --volt: #d4ff3a;
   --volt-rgb: 212, 255, 58;
+  --volt-hover: #e2ff74;       /* fixed volt shades for the always-dark areas */
+  --volt-link-hover: #e8ff9a;
+  --volt-light: #ecff9e;
+  --volt-light-rgb: 236, 255, 158;
+  --volt-pale: #f1ffc4;
+  --volt-dim: #8fcf00;
+  --volt-deep: #4d6b00;
+
+  /* ---------- Fixed neutrals: photos, overlays, masks and the always-dark areas ----------
+     These never change with the theme. Write translucent versions as rgba(var(--white-rgb), 0.5). */
+  --white: #fff;
+  --white-rgb: 255, 255, 255;
+  --black: #000;
+  --black-rgb: 0, 0, 0;
+  --ivory: #f5f5f0;
+  --ivory-rgb: 245, 245, 240;
+  --star: #f5a623;             /* rating stars */
+  --star-rgb: 245, 166, 35;
+  --dot-red: #ff5f56;          /* the three window dots on the recovery "terminal" */
+  --dot-amber: #ffbd2e;
+  --dot-green: #27c93f;
 
   /* ---------- Ember: sale and deal badges only ---------- */
   --deal: #ff5a1f;
@@ -69,14 +90,23 @@
   --navy-800: #121214;
   --navy-700: #1a1a1e;
   --navy-600: #232328;
+  --navy-500: #2c2c33;
+  --navy-850: #0e0e10;
   --navy-rgb: 10, 10, 11;
+  --navy-950-rgb: 5, 5, 6;
+  --navy-800-rgb: 18, 18, 20;
+  --navy-700-rgb: 26, 26, 30;
 
   /* ---------- Status ---------- */
   --success: #34d399;
   --success-rgb: 52, 211, 153;
   --success-soft: rgba(52, 211, 153, 0.12);
   --success-line: rgba(52, 211, 153, 0.3);
+  --success-light: #6ee7b7;
+  --success-bright: #5fe0a3;   /* success text on dark toasts and footer forms */
+  --success-pale: #9ff0cb;
   --on-success: #0a0a0b;
+  --warning-rgb: 251, 191, 36;
   --warning: #fbbf24;
   --warning-strong: #f59e0b;
   --warning-soft: rgba(251, 191, 36, 0.12);
@@ -88,8 +118,17 @@
   --danger-soft-2: rgba(248, 113, 113, 0.2);
   --danger-line: rgba(248, 113, 113, 0.32);
   --on-danger: #0a0a0b;
+  --danger-bright: #ff8080;    /* error text and lines on always-dark areas (footer, toasts) */
+  --danger-bright-rgb: 255, 128, 128;
+  --danger-pale: #ffb4b4;
+  --danger-pale-rgb: 255, 180, 180;
+  --danger-deep: #5c1414;      /* error toast background */
   --info: #60a5fa;
   --info-soft: rgba(96, 165, 250, 0.12);
+  --chart-violet: #a78bfa;     /* admin chart series */
+  --chart-violet-strong: #7c3aed;
+  --chart-cyan: #22d3ee;
+  --chart-cyan-strong: #0891b2;
 
   /* ---------- Surfaces and text ---------- */
   --bg: #0a0a0b;               /* obsidian page floor */
@@ -149,9 +188,10 @@
      Body sizes grow by one or two pixels between a 360px phone and a 1440px screen;
      the two tiny label sizes stay fixed so dense rows never reflow. On ultra-wide
      screens the root size itself grows (see "Wide screens" below), so everything follows. */
-  --text-2xs: 0.6875rem;                                              /* 11px */
+  --text-2xs: 0.75rem;                                                /* 12px: the smallest text anywhere (was 11px) */
+  --text-field: max(1rem, 16px);                                      /* 16px or more: field text on touch screens (Safari zooms in below 16px) */
   --text-xs: 0.75rem;                                                 /* 12px */
-  --text-sm: clamp(0.8125rem, 0.0926vw + 0.7917rem, 0.875rem);       /* 13 → 14px */
+  --text-sm: 0.875rem;                                                /* 14px: secondary text and controls (was 13px on phones) */
   --text-base: clamp(0.9375rem, 0.0926vw + 0.9167rem, 1rem);         /* 15 → 16px */
   --text-md: clamp(1.0625rem, 0.0926vw + 1.0417rem, 1.125rem);       /* 17 → 18px */
   --text-lg: clamp(1.25rem, 0.1852vw + 1.2083rem, 1.375rem);         /* 20 → 22px */
@@ -162,6 +202,31 @@
   --text-4xl: clamp(2.375rem, 1.85vw + 1.9563rem, 3.625rem);         /* 38 → 58px */
   --text-hero: clamp(2.75rem, 6.4vw, 5.75rem);                       /* 44 → 92px */
   --text-display: clamp(3.25rem, 8.4vw, 8.25rem);                    /* 52 → 132px */
+  /* Numbers that must not reflow (prices, stats) stay fixed. */
+  --text-num-md: 1.75rem;                                             /* 28px */
+  --text-num-lg: 2rem;                                                /* 32px */
+  --text-num-xl: 2.5rem;                                              /* 40px, account and admin stat numbers */
+  --text-num-display: 3.25rem;                                        /* 52px, average review score */
+  /* Page titles: one size for every page heading on a laptop (phones use --text-3xl). */
+  --text-page-title: 2.5rem;                                          /* 40px */
+  --text-page-title-fluid: clamp(1.875rem, 4vw, 2.5rem);              /* 30 → 40px, error, info and success pages */
+  --text-brand: 1.5625rem;                                            /* 25px, the NEXTHLON word in the header */
+  --text-stat: clamp(1.375rem, 1.6vw + 0.75rem, 1.875rem);           /* 22 → 30px, admin KPI values */
+  /* Display sizes for single places, kept here so every size lives in one file. */
+  --text-lead: clamp(1.1875rem, 1.5vw, 1.5rem);                       /* 19 → 24px, product story */
+  --text-title: clamp(1.5rem, 2.4vw, 1.875rem);                       /* 24 → 30px, product title (classic layout) */
+  --text-title-display: clamp(2.5rem, 4.2vw, 4.5rem);                 /* 40 → 72px, product title */
+  --text-price-display: clamp(3rem, 4.6vw, 4.75rem);                  /* 48 → 76px, product price */
+  --text-marquee: clamp(2rem, 4.4vw, 4rem);                           /* 32 → 64px, product marquee */
+  --text-ring: clamp(5.5rem, 19vw, 18.75rem);                         /* 88 → 300px, sport ring word */
+  --text-motto: clamp(2.75rem, 6vw, 6rem);                            /* 44 → 96px, sign-in motto */
+  --text-motto-md: clamp(2.25rem, 10vw, 3.75rem);                     /* 36 → 60px */
+  --text-motto-sm: clamp(1.75rem, 8.6vw, 2.25rem);                    /* 28 → 36px */
+  --text-hero-short: clamp(2.25rem, 11svh, 3.5rem);                   /* home hero on a phone held sideways */
+  --text-feature-num: 3.5rem;                                         /* 56px, product feature numbers */
+  --text-score: clamp(3.5rem, 5vw, 5rem);                             /* 56 → 80px, product rating score */
+  --text-quote-mark: 8.75rem;                                         /* 140px, decorative quote mark */
+  --text-error-code: clamp(6.875rem, 18vw, 11.25rem);                 /* 110 → 180px, the 404 number */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
@@ -204,17 +269,46 @@
   --z-dropdown: 50;
   --z-drawer: 60;
   --z-modal: 70;
+  --z-modal-top: calc(var(--z-modal) + 1);   /* a viewer opened from inside a dialog */
   --z-toast: 1000;
+  --z-flyer: 1100;             /* the photo that flies to the cart, above toasts */
+  --z-grain: 2147483000;       /* the film-grain overlay: on top of everything, never clickable */
+  --z-subbar: 20;              /* bars that stick under the header */
+  --z-scrim: calc(var(--z-header) - 1);
+  --z-drawer-scrim: calc(var(--z-drawer) - 5);
+  /* Stacking inside one component (its own stacking context): photo, overlay, badge, control. */
+  --z-below: -1;
+  --z-flat: 0;
+  --layer-1: 1;
+  --layer-2: 2;
+  --layer-3: 3;
+  --layer-4: 4;
+  --layer-top: 10;
 
   /* ---------- Motion ---------- */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast: 0.15s;
-  --duration: 0.25s;
+  --ease-linear: linear;       /* loops and progress bars only */
+  /* Interface motion: 150 to 700ms, nothing outside this scale. */
+  --duration-fast: 0.15s;      /* press, hover colour */
+  --duration-quick: 0.2s;
+  --duration: 0.25s;           /* most transitions */
+  --duration-medium: 0.32s;    /* drawers, sheets, the header tucking away */
   --duration-slow: 0.4s;
-  --duration-slower: 0.7s;
+  --duration-long: 0.55s;      /* reveals */
+  --duration-slower: 0.7s;     /* the longest entrance */
+  --stagger: 32ms;             /* delay between items in a list or a line of letters */
+  /* Ambient loops (spinners, shimmer, drifting backgrounds). They carry no information, and
+     prefers-reduced-motion stops them. */
+  --loop-fast: 0.8s;
+  --loop-short: 1.6s;
+  --loop-medium: 2.4s;
+  --loop: 4.5s;
+  --loop-long: 6s;
+  --loop-drift: 18s;
+  --loop-drift-slow: 34s;
 
   --header-h: 112px;
 
@@ -369,6 +463,6 @@
    Only colours change; nothing moves. Off when the visitor prefers reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   html.theme-switching, html.theme-switching *, html.theme-switching *::before, html.theme-switching *::after {
-    transition: background-color 0.35s var(--ease), color 0.35s var(--ease), border-color 0.35s var(--ease), fill 0.35s var(--ease), stroke 0.35s var(--ease), box-shadow 0.35s var(--ease) !important;
+    transition: background-color var(--duration-medium) var(--ease), color var(--duration-medium) var(--ease), border-color var(--duration-medium) var(--ease), fill var(--duration-medium) var(--ease), stroke var(--duration-medium) var(--ease), box-shadow var(--duration-medium) var(--ease) !important;
   }
 }

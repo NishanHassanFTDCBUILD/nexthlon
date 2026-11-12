@@ -72,7 +72,7 @@ Breakpoints the CSS uses (documented in `public/css/tokens.css`): 420, 560, 720,
 
 ## 4. Text and readability
 
-- [ ] **Body text is never under 12px on phones**. Labels may be 11px on tablets and up.
+- [ ] **No text is ever under 12px**, at any size (`--text-2xs` is 12px). Fields are 16px or more on touch screens, or iOS zooms in (`--text-field`).
 - [ ] **Text scales with the browser's text size**: set Chrome's font size to "Very large". Text
       grows and nothing overlaps or gets cut off (sizes are in `rem`).
 - [ ] **Line length** stays under about 75 characters on wide screens.
@@ -139,8 +139,8 @@ touch targets on the current page.
     tinyText: all.filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && !(e instanceof SVGElement) && parseFloat(getComputedStyle(e).fontSize) < 12).slice(0, 5).map(label).join(", ") || "none",
     smallTargets: matchMedia("(pointer: coarse)").matches
       ? [...document.querySelectorAll("a[href],button,select,summary")].filter(e => vis(e) && getComputedStyle(e).display !== "inline" && !e.closest(".product-name")).filter(e => {
-          const r = e.getBoundingClientRect(); const b = getComputedStyle(e, "::before");
-          const grow = b.content !== "none" && b.position === "absolute" ? Math.max(0, -parseFloat(b.top) || 0) * 2 : 0;
+          const r = e.getBoundingClientRect();
+          const grow = ["::before", "::after"].map(p => getComputedStyle(e, p)).reduce((g, s) => s.content !== "none" && s.position === "absolute" ? Math.max(g, Math.max(0, -parseFloat(s.top) || 0) * 2) : g, 0);
           return Math.min(r.width, r.height) + grow < 44;
         }).slice(0, 8).map(label).join(", ") || "none"
       : "switch device mode to Mobile first"
