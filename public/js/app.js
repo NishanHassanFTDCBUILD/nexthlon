@@ -312,13 +312,82 @@
     }
   };
 
+  // ---------- Motion helpers: script animations use the same tokens as the CSS ----------
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const tokenValue = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  // "--duration-slower" -> 700 (tokens.css writes seconds or milliseconds).
+  Nx.motionMs = function motionMs(name, fallback = 250) {
+    const value = tokenValue(name);
+    const number = parseFloat(value);
+    if (!Number.isFinite(number)) return fallback;
+    return /ms$/.test(value) ? number : number * 1000;
+  };
+  Nx.motionEase = function motionEase(name) {
+    return tokenValue(name) || "ease";
+  };
+  Nx.reducedMotion = () => reduceMotion.matches;
+
+  // A number counts from one value to another (prices, savings). Only the text changes, so nothing moves;
+  // format turns the number into text. With reduced motion it jumps straight to the end.
+  Nx.countUp = function countUp(el, to, { from = 0, format = String, duration = Nx.motionMs("--duration-long", 550) } = {}) {
+    el.dataset.countTarget = String(to);
+    if (reduceMotion.matches || from === to) {
+      el.textContent = format(to);
+      return;
+    }
+    const started = performance.now();
+    const step = now => {
+      if (el.dataset.countTarget !== String(to)) return; // a newer value took over
+      const progress = Math.min(1, (now - started) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = format(progress < 1 ? from + (to - from) * eased : to);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+
+  // A small number (a quantity, a count) rolls: the old value slides out and the new one in, up when it
+  // grows and down when it shrinks. The element itself always holds the new value, so screen readers
+  // hear one number; the outgoing copy is decoration (aria-hidden). Transform and opacity only.
+  Nx.rollNumber = function rollNumber(el, value) {
+    const next = String(value);
+    const previous = el.dataset.value !== undefined ? el.dataset.value : el.textContent.trim();
+    el.dataset.value = next;
+    if (previous === next) return;
+    if (reduceMotion.matches || typeof Element.prototype.animate !== "function" || !el.getClientRects().length) {
+      el.textContent = next;
+      return;
+    }
+    const now = document.createElement("span");
+    now.className = "roll-now";
+    now.textContent = next;
+    const ghost = document.createElement("span");
+    ghost.className = "roll-ghost";
+    ghost.setAttribute("aria-hidden", "true");
+    ghost.textContent = previous;
+    el.replaceChildren(now, ghost);
+    el.classList.add("is-rolling");
+    const up = Number(next) >= Number(previous);
+    const timing = { duration: Nx.motionMs("--duration-medium", 320), easing: Nx.motionEase("--ease-out") };
+    ghost.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: `translateY(${up ? "-80%" : "80%"})`, opacity: 0 }], timing);
+    now.animate([{ transform: `translateY(${up ? "80%" : "-80%"})`, opacity: 0 }, { transform: "translateY(0)", opacity: 1 }], timing)
+      .finished.catch(() => {}).then(() => {
+        if (el.dataset.value !== next) return; // a newer roll took over
+        el.textContent = next;
+        el.classList.remove("is-rolling");
+      });
+  };
+
   // ---------- Header cart count ----------
-  // Updates the badge on the header cart icon after any cart change, without reloading.
+  // Updates the badge on the header cart icon after any cart change, without reloading: the number rolls
+  // and the badge bumps.
   Nx.setCartCount = function setCartCount(count) {
     const total = Math.max(0, Number(count) || 0);
     document.querySelectorAll("[data-cart-count]").forEach(badge => {
-      badge.textContent = String(total);
+      const wasHidden = badge.hidden;
       badge.hidden = total === 0;
+      if (wasHidden) badge.textContent = String(total);
+      else Nx.rollNumber(badge, total);
       badge.classList.remove("is-bumped");
       // Restart the little bump animation (the class is styled in style.css).
       void badge.offsetWidth;

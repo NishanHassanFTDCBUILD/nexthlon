@@ -4,17 +4,31 @@
 <% const activeCount = order.items.reduce(function (sum, item) { return sum + item.quantity; }, 0); %>
 <main id="main" class="container page">
   <canvas class="confetti" data-confetti aria-hidden="true"></canvas>
-  <section class="success-card section-box" aria-labelledby="success-title">
-    <span class="success-icon"><%- icon('check', 'i-xl') %></span>
-    <h1 id="success-title">Thank you! Your order is placed.</h1>
-    <p class="muted">Order <strong><%= order.orderId %></strong> · <%= activeCount %> <%= activeCount === 1 ? 'item' : 'items' %> · <%= formatPrice(order.total) %></p>
-    <p data-success-delivery data-pincode="<%= order.address.pincode %>" aria-live="polite">Delivering to <%= order.address.fullName %>, <%= order.address.city %> <%= order.address.pincode %>.</p>
+  <%# The moment an order lands: the tick draws itself, then the details arrive one after another
+       (--i sets the order), and confetti follows the tick (confetti.js). All still for reduced motion. %>
+  <section class="success-card section-box" aria-labelledby="success-title" data-success>
+    <svg class="success-draw" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="28"/>
+      <path d="M19 33l9 9 17-19"/>
+    </svg>
+    <h1 id="success-title" class="success-step" style="--i: 1">Thank you! Your order is placed.</h1>
+    <p class="muted success-step" style="--i: 2">Order <strong><%= order.orderId %></strong> · <%= activeCount %> <%= activeCount === 1 ? 'item' : 'items' %> · <%= formatPrice(order.total) %></p>
+    <p class="success-step" style="--i: 3" data-success-delivery data-pincode="<%= order.address.pincode %>" aria-live="polite">Delivering to <%= order.address.fullName %>, <%= order.address.city %> <%= order.address.pincode %>.</p>
     <% if (order.paymentMethod === 'cod') { %>
-      <p class="pill pill-amber"><%- icon('wallet', 'i-xs') %> Pay <%= formatPrice(order.total) %> in cash or UPI on delivery</p>
+      <p class="pill pill-amber success-step" style="--i: 4"><%- icon('wallet', 'i-xs') %> Pay <%= formatPrice(order.total) %> in cash or UPI on delivery</p>
     <% } else if (order.paymentStatus === 'paid') { %>
-      <p class="pill pill-green"><%- icon('check', 'i-xs') %> Payment received</p>
+      <p class="pill pill-green success-step" style="--i: 4"><%- icon('check', 'i-xs') %> Payment received</p>
     <% } %>
-    <div class="success-actions">
+    <div class="success-next success-step" style="--i: 5">
+      <h2 class="success-next-title">What happens next</h2>
+      <ol class="success-track">
+        <li class="is-done"><span class="success-track-dot" aria-hidden="true"><%- icon('check', 'i-xs') %></span><strong>Order placed</strong><small>Just now</small></li>
+        <li><span class="success-track-dot" aria-hidden="true"></span><strong>Confirmed</strong><small>We check stock and pack it</small></li>
+        <li><span class="success-track-dot" aria-hidden="true"></span><strong>Shipped</strong><small>You get an email with tracking</small></li>
+        <li><span class="success-track-dot" aria-hidden="true"></span><strong>Delivered</strong><small data-success-eta>At your door</small></li>
+      </ol>
+    </div>
+    <div class="success-actions success-step" style="--i: 6">
       <a class="btn btn-primary" href="/orders/<%= order.orderId %>"><%- icon('package-check', 'i-sm') %> Track your order</a>
       <a class="btn btn-ghost" href="/products">Continue shopping</a>
     </div>

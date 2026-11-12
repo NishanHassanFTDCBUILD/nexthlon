@@ -125,7 +125,6 @@
   @media (hover: hover) { .pay-btn:hover:not(:disabled) { transform: translateY(-2px); } }
   @media (hover: hover) { .pay-btn:hover:not(:disabled)::after { transform: translateX(260%) skewX(-18deg); transition: transform var(--duration-slower) var(--ease); } }
   .pay-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-  .summary-list .is-counting { opacity: 0.85; }
 
   /* The overlay card pops in; each state animates its own icon. */
   .pay-overlay.is-open .pay-overlay-card { animation: nx-pay-in var(--duration-medium) var(--ease) both; }
@@ -247,4 +246,38 @@
   ::view-transition-group(product-photo) { animation-duration: var(--duration-long); animation-timing-function: var(--ease-out); }
   ::view-transition-old(product-photo), ::view-transition-new(product-photo) { height: 100%; object-fit: cover; overflow: clip; }
   ::view-transition-group(site-header) { animation-duration: var(--duration-medium); }
+}
+
+/* ---------- Micro-interactions ---------- */
+/* Rolling numbers (Nx.rollNumber): the new value slides in while the old one leaves. The script only
+   builds these spans when motion is allowed, so there is nothing to switch off for reduced motion. */
+.is-rolling { overflow: clip; }
+.is-rolling:not(.count-dot) { position: relative; }
+.roll-now { display: inline-block; }
+.roll-ghost { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+
+/* Wishlist heart: saving bursts six dots out of it (they spread by scaling one tiny dot and its
+   shadows, and fade). Removing does not burst. */
+@media (prefers-reduced-motion: no-preference) {
+  .wish-btn.is-bursting::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
+    border-radius: 50%; pointer-events: none;
+    background: var(--deal);
+    box-shadow: 0 -15px 0 var(--deal), 13px -8px 0 var(--volt), 13px 8px 0 var(--deal), 0 15px 0 var(--volt), -13px 8px 0 var(--deal), -13px -8px 0 var(--volt);
+    animation: nx-heart-burst var(--duration-long) var(--ease-out) forwards;
+  }
+  @keyframes nx-heart-burst { from { transform: scale(0.3); opacity: 1; } 60% { opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+  /* The coupon saving lands: the chip pops (Nx.countUp counts the rupees). */
+  .coupon-applied.is-popped .coupon-chip { animation: cart-bump var(--duration-slow) var(--ease-spring); }
+}
+
+/* Order placed: the tick draws (ring, then mark), the details rise one after another, the first step
+   of "what happens next" fills last. Confetti (confetti.js) starts when the tick is done. */
+@media (prefers-reduced-motion: no-preference) {
+  .success-draw circle { animation: nx-draw-circle var(--duration-long) var(--ease-out) both; }
+  .success-draw path { animation: nx-draw-mark var(--duration-slow) var(--ease-out) var(--duration-slow) both; }
+  .success-draw { animation: nx-success-pop var(--duration-long) var(--ease-spring) both; }
+  @keyframes nx-success-pop { from { transform: scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+  .success-step { animation: nx-reveal-up var(--duration-long) var(--ease-out) both; animation-delay: calc(var(--duration-slow) + var(--i, 0) * var(--stagger) * 3); }
+  .success-track .is-done .success-track-dot { animation: cart-bump var(--duration-slow) var(--ease-spring) both; animation-delay: calc(var(--duration-slower) + var(--duration-slow)); }
 }

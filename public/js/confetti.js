@@ -5,7 +5,10 @@
   "use strict";
 
   const Nx = window.Nx || (window.Nx = {});
-  const colours = ["#d4ff3a", "#ecff9e", "#f5f5f0", "#34d399", "#60a5fa", "#ff5a1f"];
+  // The brand colours, read from tokens.css (with the same values as a fallback).
+  const style = getComputedStyle(document.documentElement);
+  const colours = [["--volt", "#d4ff3a"], ["--volt-light", "#ecff9e"], ["--ivory", "#f5f5f0"], ["--success", "#34d399"], ["--info", "#60a5fa"], ["--deal", "#ff5a1f"]]
+    .map(([name, fallback]) => style.getPropertyValue(name).trim() || fallback);
 
   Nx.confetti = function confetti(canvas, { keep = false } = {}) {
     if (!canvas || !canvas.getContext || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -65,10 +68,21 @@
   };
 
   const note = document.querySelector("[data-success-delivery]");
+  const eta = document.querySelector("[data-success-eta]");
   if (note && note.dataset.pincode) {
     Nx.api(`/api/delivery/estimate?pincode=${encodeURIComponent(note.dataset.pincode)}`)
-      .then(({ estimate }) => { note.textContent = `${note.textContent} Expected delivery: ${estimate.label}.`; })
+      .then(({ estimate }) => {
+        if (!estimate || !estimate.label) return;
+        note.textContent = `${note.textContent} Expected delivery: ${estimate.label}.`;
+        if (eta) eta.textContent = estimate.label;
+      })
       .catch(() => { /* the address line is enough */ });
   }
-  Nx.confetti(document.querySelector("[data-confetti]"));
+  // The confetti follows the tick drawing itself on the success page (motion.css), so the two
+  // read as one moment instead of competing.
+  const canvas = document.querySelector("[data-confetti]");
+  if (canvas) {
+    const wait = Nx.motionMs ? Nx.motionMs("--duration-slow", 400) * 2 : 800;
+    setTimeout(() => Nx.confetti(canvas), document.querySelector(".success-draw") ? wait : 0);
+  }
 })();

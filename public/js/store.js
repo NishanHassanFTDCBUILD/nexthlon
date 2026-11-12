@@ -64,7 +64,7 @@
       { transform: "translate(0, 0) scale(1)", opacity: 1 },
       { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 60}px) scale(0.6)`, opacity: 0.9, offset: 0.55 },
       { transform: `translate(${dx}px, ${dy}px) scale(0.12)`, opacity: 0.2 }
-    ], { duration: 750, easing: "cubic-bezier(0.5, 0, 0.2, 1)" });
+    ], { duration: Nx.motionMs("--duration-slower", 700), easing: Nx.motionEase("--ease-in-out") });
     return animation.finished.catch(() => {}).then(() => ghost.remove());
   }
 
@@ -219,9 +219,15 @@
         ? await Nx.api("/api/wishlist", { method: "POST", body: { productId: id } })
         : await Nx.api(`/api/wishlist/${id}`, { method: "DELETE" });
       Nx.applyWishlist(reply.wishlist);
-      button.classList.remove("is-popped");
+      button.classList.remove("is-popped", "is-bursting");
       void button.offsetWidth;
       button.classList.add("is-popped");
+      // Saving bursts a ring of dots out of the heart (motion.css); removing just settles.
+      if (saving) {
+        button.classList.add("is-bursting");
+        button.addEventListener("animationend", event => { if (event.pseudoElement === "::after") button.classList.remove("is-bursting"); });
+        setTimeout(() => button.classList.remove("is-bursting"), Nx.motionMs ? Nx.motionMs("--duration-long", 550) + 100 : 650);
+      }
       Nx.toast(reply.message);
     } catch (error) {
       Nx.toast(error.message, "error");

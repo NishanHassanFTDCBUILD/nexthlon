@@ -75,7 +75,7 @@
         row.remove();
         return;
       }
-      row.querySelector("[data-cart-qty]").textContent = String(item.quantity);
+      Nx.rollNumber(row.querySelector("[data-cart-qty]"), item.quantity);
       row.querySelector("[data-cart-line-total]").textContent = item.available ? formatPrice(item.lineTotal) : "—";
       row.querySelector('[data-cart-step="-1"]').disabled = !item.available || item.quantity <= 1;
       row.querySelector('[data-cart-step="1"]').disabled = !item.available || item.quantity >= item.maxQuantity;
@@ -162,7 +162,8 @@
     }
 
     if (step) {
-      const quantity = Number(row.querySelector("[data-cart-qty]").textContent) + Number(step.dataset.cartStep);
+      const shown = row.querySelector("[data-cart-qty]");
+      const quantity = Number(shown.dataset.value || shown.textContent) + Number(step.dataset.cartStep);
       await change(row, () => Nx.api(`/api/cart/items/${id}`, { method: "PATCH", body: { quantity } }));
       return;
     }

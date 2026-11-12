@@ -108,17 +108,8 @@
       el.textContent = prefix + Nx.formatPrice(paise);
       return;
     }
-    const started = performance.now();
-    const step = now => {
-      if (el.dataset.value !== String(paise)) return; // a newer total took over
-      const progress = Math.min(1, (now - started) / 500);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const value = progress < 1 ? Math.round((from + (paise - from) * eased) / 100) * 100 : paise;
-      el.textContent = prefix + Nx.formatPrice(value);
-      el.classList.toggle("is-counting", progress < 1);
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
+    // Whole rupees while it counts, the exact amount at the end.
+    Nx.countUp(el, paise, { from, format: value => prefix + Nx.formatPrice(value === paise ? paise : Math.round(value / 100) * 100) });
   }
 
   function setMoney(name, paise) {
@@ -256,8 +247,12 @@
     applied.hidden = !quote.coupon;
     couponForm.hidden = Boolean(quote.coupon);
     if (quote.coupon) {
-      applied.querySelector("[data-coupon-code]").textContent = quote.coupon.code;
-      applied.querySelector("[data-coupon-saving]").textContent = `You save ${Nx.formatPrice(quote.coupon.saving)}`;
+      const codeEl = applied.querySelector("[data-coupon-code]");
+      const fresh = codeEl.textContent !== quote.coupon.code;
+      codeEl.textContent = quote.coupon.code;
+      // A new coupon: its saving counts up from ₹0, so the shopper sees what it is worth.
+      const saving = applied.querySelector("[data-coupon-saving]");
+      Nx.countUp(saving, quote.coupon.saving, { from: fresh ? 0 : quote.coupon.saving, format: value => `You save ${Nx.formatPrice(Math.round(value))}` });
     }
     notice.hidden = !quote.couponNotice;
     notice.querySelector("span").textContent = quote.couponNotice || "";
