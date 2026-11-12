@@ -7,7 +7,99 @@
 // Everything moves on the site's one shared ticker (public/js/motion/ticker.js).
 import { prefersReducedMotion, finePointer, deviceTier } from "./3d/interaction.js";
 import { clamp, damp } from "./3d/math.js";
+import { Scene, Mesh } from "./3d/scene.js";
+import { supportsWebGL } from "./3d/gl.js";
 
+// ---------- The dust field (WebGL) ----------
+// Volt particles fill a deep box in front of the camera. As the showroom camera flies forward they
+// stream towards the viewer and wrap round to the back, so the room feels deep and the flight feels
+// fast; they brighten with speed and turn with the mouse look. One draw call; drawn from the
+// showroom's own frame (never a loop of its own).
+const DUST_DEPTH = 24;
+const dustShader = {
+  vertex: `
+    attribute vec3 aPosition;
+    attribute vec3 aRandom;
+    uniform mat4 uModel, uView, uProjection;
+    uniform float uTime, uTravel, uScale, uSpeed, uIntro;
+    varying float vAlpha;
+    varying float vMix;
+    void main() {
+      vec3 p = aPosition;
+      p.z = mod(p.z + uTravel + uTime * 0.25, ${DUST_DEPTH.toFixed(1)}) - ${DUST_DEPTH.toFixed(1)};
+      float t = uTime * (0.3 + aRandom.y * 0.4) + aRandom.x * 6.2831;
+      p.x += sin(t) * 0.12;
+      p.y += cos(t * 0.8) * 0.12;
+      vec4 mv = uView * uModel * vec4(p, 1.0);
+      gl_Position = uProjection * mv;
+      float depth = -mv.z;
+      // A real size in the room (0.03 to 0.09 units) seen in perspective: uScale is drawing-buffer
+      // pixels per unit at a depth of 1.
+      gl_PointSize = clamp((0.03 + aRandom.z * 0.06) * uScale * (1.0 + uSpeed * 0.4) / max(depth, 0.5), 1.5, 30.0);
+      // Fades in from the far end and out just before it reaches the viewer.
+      float fade = smoothstep(0.4, 2.5, depth) * (1.0 - smoothstep(14.0, ${DUST_DEPTH.toFixed(1)}, depth));
+      vAlpha = fade * (0.45 + 0.55 * aRandom.z) * (0.7 + uSpeed * 0.8) * uIntro;
+      vMix = aRandom.y;
+    }`,
+  fragment: `
+    precision mediump float;
+    varying float vAlpha;
+    varying float vMix;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      if (d > 0.5) discard;
+      float light = (smoothstep(0.25, 0.0, d) * 0.8 + smoothstep(0.5, 0.0, d) * 0.35) * vAlpha;
+      vec3 color = mix(vec3(0.83, 1.0, 0.23), vec3(0.95, 1.0, 0.8), vMix * 0.6);
+      gl_FragColor = vec4(color * light, light);
+    }`
+};
+
+function buildDustField(canvas, tier) {
+  const count = tier === "high" ? 1400 : 700;
+  const maxRatio = tier === "high" ? 1.5 : 1.25;
+  const scene = new Scene(canvas, { maxRatio, camera: { fov: 60, position: [0, 0, 0.001], target: [0, 0, -1], far: 60 } });
+  // The showroom draws each frame itself; the scene's own observers only matter for its loop, which
+  // never starts.
+  const positions = new Float32Array(count * 3);
+  const random = new Float32Array(count * 3);
+  for (let i = 0; i < count; i += 1) {
+    positions[i * 3] = (Math.random() * 2 - 1) * 7;
+    positions[i * 3 + 1] = (Math.random() * 2 - 1) * 4.5;
+    positions[i * 3 + 2] = Math.random() * DUST_DEPTH;
+    random[i * 3] = Math.random();
+    random[i * 3 + 1] = Math.random();
+    random[i * 3 + 2] = Math.random();
+  }
+  const dots = scene.add(new Mesh(scene.gl, { positions }, {
+    ...dustShader,
+    blending: "additive",
+    depthTest: false,
+    attributes: { aRandom: { data: random, size: 3 } },
+    uniforms: { uTravel: 0, uScale: 1, uSpeed: 0, uIntro: 0 }
+  }));
+  let lastZ = null;
+  let speed = 0;
+  return {
+    // cam: the showroom camera (z in pixels flown, rx/ry in degrees); intro: 0 to 1 as the room appears.
+    draw(time, dt, cam, intro) {
+      if (lastZ === null) lastZ = cam.z;
+      const moved = dt > 0 ? Math.abs(cam.z - lastZ) / dt : 0;
+      lastZ = cam.z;
+      speed = damp(speed, clamp(moved / 1400, 0, 1), 6, dt);
+      dots.uniforms.uTravel = cam.z / 90;
+      dots.uniforms.uSpeed = speed;
+      dots.uniforms.uIntro = intro;
+      // Drawing-buffer pixels per unit at depth 1, for a 60° field of view (the canvas size is the one
+      // from the last frame; render() resizes it).
+      dots.uniforms.uScale = Math.max(1, canvas.height) / (2 * Math.tan(Math.PI / 6));
+      dots.rotation[0] = (-cam.rx * Math.PI) / 180 * 0.8;
+      dots.rotation[1] = (-cam.ry * Math.PI) / 180 * 0.8;
+      scene.render(time);
+    }
+  };
+}
+
+// Started here, after the settings above exist (a const used before its line throws).
 const section = document.querySelector("[data-showroom]");
 if (section) setUpShowroom(section);
 
@@ -134,7 +226,7 @@ function setUpShowroom(root) {
       float: card.querySelector(".zg-float"),
       link: card.querySelector("[data-zg-link]"),
       x: 0, y: 0, z: 0, face: 0, phase: 0, speed: 1, amp: 10,
-      hot: false, h: 0, fog: -1, fade: -1, far: false, gone: false
+      hot: false, h: 0, fog: -1, fade: -1, far: false, gone: false, small: false
     }));
     cards.slice(items.length).forEach(card => { card.hidden = true; });
     root.classList.add("is-3d");
@@ -149,7 +241,11 @@ function setUpShowroom(root) {
     let restoring = false; // focus coming back after closing the detail card
 
     // Places the cards: z spread evenly from near to far, alternating sides, each spot tried up to
-    // 40 times to keep cards apart on screen and inside the stage.
+    // 80 times. A spot is checked from three points of the fly-through (the start, a third and two
+    // thirds of the way), not only from the start, so cards stay apart while you fly. Two cards at a
+    // similar depth covering each other hides a product, so that counts most; a far card peeking out
+    // behind a near one just reads as depth, so it counts little.
+    const VIEWS = [0, FLIGHT / 3, (FLIGHT * 2) / 3];
     function place() {
       const box = stage.getBoundingClientRect();
       const head = root.querySelector(".showroom-head").getBoundingClientRect();
@@ -159,36 +255,50 @@ function setUpShowroom(root) {
       const cardW = items[0].card.offsetWidth || 220;
       const cardH = items[0].card.offsetHeight || 300;
       const rand = seeded(20261105);
-      const placed = [];
+      const placed = []; // { x, y, z } in world units
       size = {
         w: box.width,
         h: box.height,
         top: root.getBoundingClientRect().top + window.scrollY,
         travel: Math.max(1, root.offsetHeight - window.innerHeight)
       };
+      // Where a card at world (x, y, z) shows on screen when the camera has flown camZ forward.
+      const project = (x, y, z, camZ) => {
+        const d = z + camZ;
+        if (d > 150) return null; // already passed the viewer
+        const s = PERSPECTIVE / (PERSPECTIVE - d);
+        return { x: x * s, y: y * s, w: cardW * s, h: cardH * s };
+      };
+      const covered = (a, b) => overlapArea(a, b) / Math.min(a.w * a.h, b.w * b.h);
       items.forEach((item, i) => {
         const z = -140 - (i / Math.max(1, items.length - 1)) * 1460 + (rand() - 0.5) * 80;
         const s = PERSPECTIVE / (PERSPECTIVE - z);
         const side = i % 2 === 0 ? -1 : 1;
         let best = null;
-        for (let attempt = 0; attempt < 40; attempt += 1) {
-          const rect = {
-            x: side * (0.13 + rand() * 0.3) * size.w,
-            y: minY + rand() * (maxY - minY),
-            w: cardW * s,
-            h: cardH * s
-          };
-          const outside = Math.max(0, Math.abs(rect.x) + rect.w / 2 - (size.w / 2 - 16))
-            + Math.max(0, minY - (rect.y - rect.h / 2)) + Math.max(0, rect.y + rect.h / 2 - maxY);
-          const score = placed.reduce((sum, other) => sum + overlapArea(other, rect), 0) + outside * 400;
-          if (!best || score < best.score) best = { ...rect, score };
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          const screenX = side * (0.1 + rand() * 0.36) * size.w;
+          const screenY = minY + rand() * (maxY - minY);
+          const world = { x: screenX / s, y: screenY / s, z };
+          const start = project(world.x, world.y, z, 0);
+          const outside = Math.max(0, Math.abs(start.x) + start.w / 2 - (size.w / 2 - 16))
+            + Math.max(0, minY - (start.y - start.h / 2)) + Math.max(0, start.y + start.h / 2 - maxY);
+          let score = outside * 4;
+          placed.forEach(other => {
+            const weight = Math.abs(other.z - z) < 520 ? 4 : 0.6;
+            VIEWS.forEach(camZ => {
+              const a = project(world.x, world.y, z, camZ);
+              const b = project(other.x, other.y, other.z, camZ);
+              if (a && b) score += covered(a, b) * weight;
+            });
+          });
+          if (!best || score < best.score) best = { ...world, screenX, score };
           if (score === 0) break;
         }
         placed.push(best);
-        item.x = best.x / s;
-        item.y = best.y / s;
+        item.x = best.x;
+        item.y = best.y;
         item.z = z;
-        item.face = (-best.x / size.w) * 34;
+        item.face = (-best.screenX / size.w) * 34;
         item.phase = rand() * Math.PI * 2;
         item.speed = 0.45 + rand() * 0.5;
         item.amp = 8 + rand() * 12;
@@ -197,9 +307,20 @@ function setUpShowroom(root) {
       sizeDust();
     }
 
-    // ----- Volt dust: tiny slow particles on a 2D canvas (none on low-end devices) -----
+    // ----- Volt dust -----
+    // A WebGL field of particles in depth that streams past as the camera flies (buildDustField).
+    // Without WebGL: a few slow motes on a 2D canvas. None on low-end devices.
     const dust = root.querySelector("[data-showroom-dust]");
-    const ctx = tier === "low" || !dust ? null : dust.getContext("2d");
+    let field = null;
+    if (dust && tier !== "low" && supportsWebGL()) {
+      try {
+        field = buildDustField(dust, tier);
+      } catch (error) {
+        field = null;
+        if (window.console) console.warn("Showroom dust skipped:", error.message);
+      }
+    }
+    const ctx = tier === "low" || !dust || field ? null : dust.getContext("2d");
     const motes = ctx ? Array.from({ length: tier === "high" ? 80 : 45 }, () => ({
       x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: 0.2 + Math.random() * 0.8,
       vx: (Math.random() - 0.5) * 0.012, vy: -0.004 - Math.random() * 0.01
@@ -212,7 +333,11 @@ function setUpShowroom(root) {
       dust.height = Math.round(size.h * dustRatio);
       ctx.setTransform(dustRatio, 0, 0, dustRatio, 0, 0);
     }
-    function drawDust(dt) {
+    function drawDust(time, dt) {
+      if (field) {
+        field.draw(time, dt, cam, intro);
+        return;
+      }
       if (!ctx) return;
       ctx.clearRect(0, 0, size.w, size.h);
       ctx.fillStyle = "#d4ff3a";
@@ -286,13 +411,20 @@ function setUpShowroom(root) {
           item.far = far;
           item.card.classList.toggle("is-far", far);
         }
+        // Too small on screen for its own buttons (they would be tiny): a click opens the detail card,
+        // which has full-size ones.
+        const small = PERSPECTIVE / (PERSPECTIVE - Math.min(d, PERSPECTIVE - 1)) < 0.72;
+        if (small !== item.small) {
+          item.small = small;
+          item.card.classList.toggle("is-small", small);
+        }
         const gone = fade < 0.05;
         if (gone !== item.gone) {
           item.gone = gone;
           item.card.classList.toggle("is-gone", gone);
         }
       });
-      drawDust(dt);
+      drawDust(time, dt);
     }
 
     // ----- Mouse camera (mouse only) -----

@@ -60,6 +60,12 @@
         if (action) action.focus({ preventScroll: true });
       }
     });
+    // On a touch screen there is no hover: a tap anywhere on the card turns it (not only the small
+    // button), and a tap on an empty part of the back turns it back. Links and buttons keep their own job.
+    card.addEventListener("click", event => {
+      if (event.target.closest("a, button") || window.matchMedia("(hover: hover)").matches) return;
+      toggle.click();
+    });
     card.addEventListener("keydown", event => {
       if (event.key === "Escape" && card.classList.contains("is-flipped")) {
         card.classList.remove("is-flipped");

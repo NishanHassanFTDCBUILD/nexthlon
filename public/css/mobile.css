@@ -63,9 +63,9 @@
   .sport-ring-word { -webkit-text-stroke-color: rgba(var(--white-rgb), 0.22); }
 
   /* ---------- Home: showcase labels stay whole (they were squeezed to 3 lines and clipped) ---------- */
-  .showcase-label { max-width: 48%; }
-  .showcase-label .showcase-line { display: none; }
-  .showcase-label span { padding: 5px var(--space-sm); font-size: var(--text-xs); white-space: nowrap; }
+  /* The podium's callouts covered the product and cut their words off on a phone. The same points are
+     listed right under the photo, so the photo stands alone here. */
+  .showcase-label { display: none; }
 
   /* ---------- Product cards: price line, then the saving; delivery note on one line ---------- */
   .product-body { padding: var(--space-sm) var(--space-1h) var(--space-1h); }
