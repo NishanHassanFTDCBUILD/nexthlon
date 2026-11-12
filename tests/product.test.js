@@ -83,6 +83,44 @@ test("photo plan keeps only the product's own photos and allows at most 4", () =
   assert.deepEqual(planImages({ current, keepRaw: JSON.stringify(current), mainRaw: "new:3", newCount: 0 }).main, { kind: "kept", value: "/a.jpg" });
 });
 
+test("an edited photo keeps its place in the photo order", () => {
+  const current = ["/a.jpg", "/b.jpg", "/c.jpg"];
+  // Photo 2 (/b.jpg) was edited in the browser: it comes back as upload new:0, in the same place.
+  const edited = planImages({
+    current,
+    keepRaw: JSON.stringify(["/a.jpg", "/c.jpg"]),
+    mainRaw: "/a.jpg",
+    orderRaw: JSON.stringify(["/a.jpg", "new:0", "/c.jpg"]),
+    newCount: 1
+  });
+  assert.equal(edited.error, undefined);
+  assert.deepEqual(edited.removed, ["/b.jpg"]);
+  assert.deepEqual(orderImages(edited, ["/b2.webp"]), ["/a.jpg", "/b2.webp", "/c.jpg"]);
+
+  // The edited photo was the main one: it stays first.
+  const editedMain = planImages({
+    current,
+    keepRaw: JSON.stringify(["/b.jpg", "/c.jpg"]),
+    mainRaw: "new:0",
+    orderRaw: JSON.stringify(["new:0", "/b.jpg", "/c.jpg"]),
+    newCount: 1
+  });
+  assert.deepEqual(orderImages(editedMain, ["/a2.webp"]), ["/a2.webp", "/b.jpg", "/c.jpg"]);
+
+  // No order sent (older pages): kept photos first, then uploads, as before.
+  const noOrder = planImages({ current, keepRaw: JSON.stringify(["/a.jpg"]), mainRaw: "/a.jpg", newCount: 1 });
+  assert.deepEqual(orderImages(noOrder, ["/n.webp"]), ["/a.jpg", "/n.webp"]);
+
+  // The order must list exactly the kept photos and the uploads, once each.
+  const base = { current, keepRaw: JSON.stringify(["/a.jpg"]), newCount: 1 };
+  assert.ok(planImages({ ...base, orderRaw: "not json" }).error);
+  assert.ok(planImages({ ...base, orderRaw: JSON.stringify(["/a.jpg"]) }).error);
+  assert.ok(planImages({ ...base, orderRaw: JSON.stringify(["/a.jpg", "new:0", "new:0"]) }).error);
+  assert.ok(planImages({ ...base, orderRaw: JSON.stringify(["/a.jpg", "new:1"]) }).error);
+  assert.ok(planImages({ ...base, orderRaw: JSON.stringify(["/b.jpg", "new:0"]) }).error);
+  assert.ok(planImages({ ...base, orderRaw: JSON.stringify(["https://evil.example/x.jpg", "new:0"]) }).error);
+});
+
 test("admin product filters ignore bad values", () => {
   assert.deepEqual(readAdminFilters({ q: ["x"], category: "Nope", status: "deleted", sort: "$where", page: "-1" }),
     { q: "", category: "", status: "all", sort: "newest", page: 1 });

@@ -131,7 +131,9 @@ function readJsonList(value) {
 //   mainRaw:  the main photo: a kept URL, or "new:<n>" for the n-th uploaded file
 //   newCount: how many files were uploaded
 // Returns { error } or { keep, removed, main } where main is { kind: "kept"|"new", value }.
-function planImages({ current = [], keepRaw, mainRaw, newCount = 0 }) {
+// orderRaw (optional) is the order the admin sees on screen: each entry is a kept photo's address or
+// "new:<n>" for the n-th upload. It keeps an edited photo (sent again as a new upload) in its place.
+function planImages({ current = [], keepRaw, mainRaw, orderRaw, newCount = 0 }) {
   const list = readJsonList(keepRaw);
   if (list === null) return { error: "The photo list could not be read. Reload the page and try again." };
   const keep = [...new Set(list)].filter(url => current.includes(url));
@@ -147,12 +149,22 @@ function planImages({ current = [], keepRaw, mainRaw, newCount = 0 }) {
   if (newMatch && Number(newMatch[1]) < newCount) main = { kind: "new", value: Number(newMatch[1]) };
   else if (keep.includes(mainText)) main = { kind: "kept", value: mainText };
 
-  return { keep, removed: current.filter(url => !keep.includes(url)), main };
+  const order = readJsonList(orderRaw);
+  if (order === null) return { error: "The photo order could not be read. Reload the page and try again." };
+  if (order.length) {
+    const expected = [...keep, ...Array.from({ length: newCount }, (_, i) => `new:${i}`)];
+    const sameSet = order.length === expected.length && new Set(order).size === order.length &&
+      order.every(entry => expected.includes(entry));
+    if (!sameSet) return { error: "The photo order could not be read. Reload the page and try again." };
+  }
+
+  return { keep, removed: current.filter(url => !keep.includes(url)), main, order };
 }
 
 // Turns a plan plus the saved upload URLs into the final photo list, main photo first.
 function orderImages(plan, newUrls) {
-  const all = [...plan.keep, ...newUrls];
+  const fromToken = entry => (/^new:\d$/.test(entry) ? newUrls[Number(entry.slice(4))] : entry);
+  const all = plan.order && plan.order.length ? plan.order.map(fromToken) : [...plan.keep, ...newUrls];
   const mainUrl = plan.main.kind === "kept" ? plan.main.value : newUrls[plan.main.value];
   return [mainUrl, ...all.filter(url => url !== mainUrl)];
 }
@@ -205,7 +217,7 @@ async function persist(product, value, plan, files, category) {
 }
 
 async function createProduct({ value, errors, body, files }) {
-  const plan = planImages({ current: [], keepRaw: "[]", mainRaw: body.mainImage, newCount: files.length });
+  const plan = planImages({ current: [], keepRaw: "[]", mainRaw: body.mainImage, orderRaw: body.imageOrder, newCount: files.length });
   if (plan.error) errors.images = plan.error;
   checkUploads(files, errors);
   const category = await checkCategory(value, errors);
@@ -215,7 +227,7 @@ async function createProduct({ value, errors, body, files }) {
 
 async function updateProduct(productId, { value, errors, body, files }) {
   const product = await findProduct(productId);
-  const plan = planImages({ current: imagesOf(product), keepRaw: body.keepImages, mainRaw: body.mainImage, newCount: files.length });
+  const plan = planImages({ current: imagesOf(product), keepRaw: body.keepImages, mainRaw: body.mainImage, orderRaw: body.imageOrder, newCount: files.length });
   if (plan.error) errors.images = plan.error;
   checkUploads(files, errors);
   const category = await checkCategory(value, errors);

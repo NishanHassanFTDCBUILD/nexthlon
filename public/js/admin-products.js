@@ -111,6 +111,12 @@
         img.width = 160;
         img.height = 160;
         li.append(img);
+        if (item.edited) {
+          const tag = document.createElement("span");
+          tag.className = "image-edited-badge";
+          tag.textContent = "Edited";
+          li.append(tag);
+        }
 
         const bar = document.createElement("div");
         bar.className = "image-tile-bar";
@@ -131,6 +137,14 @@
           });
           bar.append(makeMain);
         }
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "icon-btn icon-btn-sm image-edit";
+        edit.dataset.editId = String(item.id);
+        edit.setAttribute("aria-label", `Edit photo ${index + 1}: crop, rotate or replace`);
+        edit.title = "Edit photo";
+        edit.innerHTML = iconSvg("edit");
+        edit.addEventListener("click", () => editPhoto(item, index, edit));
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "icon-btn icon-btn-sm image-remove";
@@ -141,12 +155,59 @@
           showImageError("");
           render();
         });
-        bar.append(remove);
+        const actions = document.createElement("span");
+        actions.className = "image-tile-actions";
+        actions.append(edit, remove);
+        bar.append(actions);
         li.append(bar);
         tiles.append(li);
       });
       addTile.hidden = items.length >= MAX_IMAGES;
       countLabel.textContent = `${items.length} of ${MAX_IMAGES} added`;
+    }
+
+    // The editor (public/js/image-editor.js) is loaded the first time it is needed.
+    let editorLoading = null;
+    function loadEditor() {
+      if (window.NxImageEditor) return Promise.resolve(window.NxImageEditor);
+      if (!editorLoading) {
+        editorLoading = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = manager.dataset.editorSrc;
+          script.onload = () => (window.NxImageEditor ? resolve(window.NxImageEditor) : reject(new Error("missing")));
+          script.onerror = () => reject(new Error("The photo editor could not be loaded."));
+          document.head.append(script);
+        }).catch(error => {
+          editorLoading = null;
+          throw error;
+        });
+      }
+      return editorLoading;
+    }
+
+    // An edited photo becomes a new upload in the same place (and stays the main photo if it was).
+    // The old file is deleted only when the product is saved.
+    async function editPhoto(item, index, button) {
+      showImageError("");
+      let editor;
+      try {
+        Nx.busy(button, true, "");
+        editor = await loadEditor();
+      } catch (error) {
+        Nx.toast(error.message, "error");
+        return;
+      } finally {
+        Nx.busy(button, false);
+      }
+      const result = await editor.open({ url: item.kind === "kept" ? item.url : "", file: item.kind === "new" ? item.file : null, label: `Photo ${index + 1}` });
+      if (result && items.includes(item)) {
+        Object.assign(item, { kind: "new", file: result.file, src: result.src, edited: true });
+        delete item.url;
+        render();
+        Nx.toast("Photo updated. Save the product to keep the change.");
+      }
+      const again = tiles.querySelector(`[data-edit-id="${item.id}"]`);
+      if (again) again.focus();
     }
 
     // Previews use data: URLs, which the Content Security Policy already allows for images.
@@ -195,6 +256,8 @@
       const kept = items.filter(item => item.kind === "kept");
       const fresh = items.filter(item => item.kind === "new");
       data.append("keepImages", JSON.stringify(kept.map(item => item.url)));
+      // The order on screen, so an edited photo keeps its place.
+      data.append("imageOrder", JSON.stringify(items.map(item => (item.kind === "kept" ? item.url : `new:${fresh.indexOf(item)}`))));
       fresh.forEach(item => data.append("images", item.file, item.file.name));
       const main = items.find(item => item.id === mainId);
       if (main) data.append("mainImage", main.kind === "kept" ? main.url : `new:${fresh.indexOf(main)}`);

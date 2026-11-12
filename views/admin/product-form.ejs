@@ -97,8 +97,8 @@
 
         <section class="panel product-images-panel" aria-labelledby="images-title">
           <h2 id="images-title" class="panel-title">Photos</h2>
-          <p class="muted">Up to 4 JPG, PNG or WEBP images, 2 MB each. Choose which one is the main photo.</p>
-          <div class="image-manager" data-image-manager data-existing="<%= JSON.stringify(p.images) %>">
+          <p class="muted">Up to 4 JPG, PNG or WEBP images, 2 MB each. Choose the main photo, and use the pencil to crop, rotate or replace one.</p>
+          <div class="image-manager" data-image-manager data-existing="<%= JSON.stringify(p.images) %>" data-editor-src="<%= asset('/js/image-editor.js') %>">
             <ul class="image-tiles" data-image-tiles></ul>
             <label class="image-add" data-image-add>
               <input type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple class="sr-only" data-image-input aria-describedby="p-images-error">
