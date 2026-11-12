@@ -73,7 +73,7 @@
 
 /* Result lists (top bar search and palette) */
 .admin-list-group { padding: var(--space-sm) var(--space-sm) var(--space-half); font-size: var(--text-2xs); font-weight: var(--weight-bold); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-2); list-style: none; }
-.admin-list-item { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; padding: var(--space-xs) var(--space-sm); border-radius: 8px; cursor: pointer; list-style: none; color: var(--ink-2); }
+.admin-list-item { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-xs); cursor: pointer; list-style: none; color: var(--ink-2); }
 .admin-list-item .i { color: var(--muted); flex: none; }
 .admin-list-item.is-active { background: var(--surface-2); color: var(--ink); }
 @media (hover: hover) { .admin-list-item:hover { background: var(--surface-2); color: var(--ink); } }
@@ -89,7 +89,7 @@
 .admin-badge[hidden] { display: none; }
 .admin-bell-pop { right: 0; width: min(360px, calc(100vw - 32px)); }
 .admin-bell-list { list-style: none; margin: 0; padding: var(--space-xs); }
-.admin-bell-item { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; padding: var(--space-xs) var(--space-sm); border-radius: 8px; color: var(--ink-2); text-decoration: none; font-size: var(--text-sm); }
+.admin-bell-item { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-xs); color: var(--ink-2); text-decoration: none; font-size: var(--text-sm); }
 .admin-bell-item span { flex: 1; }
 .admin-bell-item strong { min-width: 28px; padding: var(--space-xxs) var(--space-1); border-radius: var(--radius-pill); background: var(--brand-soft); color: var(--brand-ink); font-size: var(--text-xs); text-align: center; }
 .admin-bell-item .i { color: var(--muted); }
@@ -266,7 +266,7 @@ body.admin-menu-open { overflow: hidden; }
 .dash-warn { stroke: var(--chart-warn); background: var(--chart-warn); }
 
 /* Tooltip */
-.dash-tip { position: absolute; z-index: var(--z-raised); display: flex; flex-direction: column; gap: var(--space-xxs); padding: var(--space-1) var(--space-sm); border-radius: 8px; background: var(--ink); color: var(--bg); font-size: var(--text-xs); line-height: 1.35; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-md); }
+.dash-tip { position: absolute; z-index: var(--z-raised); display: flex; flex-direction: column; gap: var(--space-xxs); padding: var(--space-1) var(--space-sm); border-radius: var(--radius-xs); background: var(--ink); color: var(--bg); font-size: var(--text-xs); line-height: 1.35; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-md); }
 .dash-tip[hidden] { display: none; }
 .dash-tip strong { font-size: var(--text-xs); }
 
@@ -298,7 +298,7 @@ body.admin-menu-open { overflow: hidden; }
 .dash-stock { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .dash-stock li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: var(--space-1) var(--space-1h); align-items: center; padding: var(--space-sm) 0; border-bottom: 1px solid var(--line); }
 .dash-stock li:last-child { border-bottom: 0; }
-.dash-stock img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: var(--surface-2); }
+.dash-stock img { width: 40px; height: 40px; border-radius: var(--radius-xs); object-fit: cover; background: var(--surface-2); }
 .dash-stock-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); min-width: 0; font-size: var(--text-sm); font-weight: 600; }
 .dash-stock-name a { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .dash-restock { grid-column: 2; display: flex; gap: var(--space-xs); }
@@ -433,7 +433,7 @@ body.admin-menu-open { overflow: hidden; }
 .admin-items li:last-child { border-bottom: 0; }
 .admin-items li.is-cancelled { opacity: 0.55; }
 .admin-items input { width: 18px; height: 18px; accent-color: var(--brand); }
-.admin-items img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; background: var(--surface-2); }
+.admin-items img { width: 48px; height: 48px; border-radius: var(--radius-xs); object-fit: cover; background: var(--surface-2); }
 .admin-items-name { display: flex; flex-direction: column; min-width: 0; font-weight: 600; font-size: var(--text-sm); }
 .admin-items-name a { color: var(--ink); }
 .admin-items-total { text-align: right; }
@@ -442,7 +442,7 @@ body.admin-menu-open { overflow: hidden; }
 .admin-stack-form textarea { width: 100%; min-height: 64px; padding: var(--space-1) var(--space-sm); border-radius: var(--radius-xs); border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--ink); resize: vertical; }
 .admin-stack-form .btn { align-self: flex-start; }
 .admin-return.is-open { border-color: var(--warning); }
-.admin-quote { margin: 0; padding: var(--space-sm) var(--space-1h); border-left: 3px solid var(--line-strong); background: var(--surface-2); border-radius: 0 8px 8px 0; font-style: italic; }
+.admin-quote { margin: 0; padding: var(--space-sm) var(--space-1h); border-left: 3px solid var(--line-strong); background: var(--surface-2); border-radius: 0 var(--radius-xs) var(--radius-xs) 0; font-style: italic; }
 .admin-photos { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .admin-photos img { width: 96px; height: 96px; border-radius: 10px; object-fit: cover; border: 1px solid var(--line); }
 .admin-decision { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--line); }
@@ -471,7 +471,7 @@ body.admin-menu-open { overflow: hidden; }
 .admin-cart-who > span:last-child { display: flex; flex-direction: column; min-width: 0; }
 .admin-cart-who small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-cart-items { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
-.admin-cart-item { display: inline-flex; align-items: center; gap: var(--space-xs); padding: 3px var(--space-1) 3px 3px; border-radius: 8px; background: var(--surface-2); font-size: var(--text-xs); }
+.admin-cart-item { display: inline-flex; align-items: center; gap: var(--space-xs); padding: 3px var(--space-1) 3px 3px; border-radius: var(--radius-xs); background: var(--surface-2); font-size: var(--text-xs); }
 .admin-cart-item img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
 .admin-cart-item.is-gone { opacity: 0.5; text-decoration: line-through; }
 .admin-cart-value { display: flex; flex-direction: column; align-items: flex-end; }
@@ -557,6 +557,12 @@ body.admin-menu-open { overflow: hidden; }
    With a mouse the console stays compact; on a touch screen every control is at least 44px tall. */
 @media (pointer: coarse) {
   .admin-body :where(.admin-group-btn, .admin-nav a, .segmented a, .segmented button, .btn-sm, .btn-xs, .page-num, .admin-tabs a) { min-height: var(--tap); }
-  .admin-body :where(select, input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), .select-wrap select) { min-height: var(--tap); }
+  /* More specific than the console's own field styles (.admin-field select, .admin-filter-search input). */
+  .admin-body :is(.admin-content, .admin-bar) :where(select, input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea) { min-height: var(--tap); }
+  .admin-body :where([role="tab"], .back-link, summary) { min-height: var(--tap); display: inline-flex; align-items: center; }
+  /* Links in table cells and lists (order numbers, customer names) get the full row height to tap. */
+  .admin-body .admin-content td a:not(.btn), .admin-body :is(.dash-rank-name, .dash-stock-name, .admin-items-name, .admin-who span) > a { display: inline-flex; align-items: center; min-height: var(--tap); }
+  .admin-body .admin-content li a:not(.btn) { min-height: var(--tap); }
+  .admin-body .admin-content .btn { min-height: var(--tap); }
   .admin-body :where(.segmented a, .segmented button) { display: inline-flex; align-items: center; }
 }

@@ -1,9 +1,9 @@
 <%# The admin sidebar: collapsible groups from config/adminNav.js, a static volt highlight on the active section. %>
 <aside class="admin-side" id="admin-side" aria-label="Admin" data-admin-side>
   <div class="admin-side-head">
-    <a class="brand" href="<%= adminPath %>/dashboard" aria-label="Nexthlon admin dashboard">
+    <a class="brand" href="<%= adminPath %>/dashboard">
       <span class="brand-mark"><%- icon('bolt') %></span>
-      <span class="brand-word">NEXTHLON<small>Admin console</small></span>
+      <span class="brand-word">NEXTHLON <small>Admin console</small></span><span class="sr-only">, dashboard</span>
     </a>
     <button type="button" class="icon-btn admin-side-close" data-admin-menu-close aria-label="Close menu"><%- icon('x') %></button>
   </div>

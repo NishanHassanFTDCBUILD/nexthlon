@@ -269,7 +269,7 @@
 .au-forgot a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-1); margin-right: calc(var(--space-1) * -1); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); border-radius: var(--radius-sm); }
 @media (hover: hover) { .au-forgot a:hover { color: var(--brand-ink); text-decoration: none; } }
 
-.au-badge-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: var(--space-1); border-radius: 16px; background: var(--brand-soft-2); color: var(--brand-ink); box-shadow: inset 0 0 0 1px rgba(var(--brand-rgb), 0.3); }
+.au-badge-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: var(--space-1); border-radius: var(--radius); background: var(--brand-soft-2); color: var(--brand-ink); box-shadow: inset 0 0 0 1px rgba(var(--brand-rgb), 0.3); }
 .au-badge-icon .i { width: 24px; height: 24px; }
 .au-badge-icon.is-warn { background: var(--warning-soft); color: var(--warning); box-shadow: inset 0 0 0 1px rgba(var(--warning-rgb), 0.32); }
 

@@ -107,7 +107,7 @@
   .breadcrumb a, .pdx-crumbs a, .pdx-text-btn, .pdx-brand, .section-link, .join-signin, .link-btn, .pdx-facts a { position: relative; }
   .breadcrumb a::after, .pdx-crumbs a::after, .pdx-text-btn::after, .pdx-brand::after, .section-link::after, .join-signin::after,
   .link-btn::after, .pdx-facts a::after {
-    content: ""; position: absolute; inset: -12px -6px;
+    content: ""; position: absolute; inset: -13px -6px;
   }
   .sport-dot { width: 34px; height: 34px; }
   .pdx-meta .pdx-chip { min-height: var(--tap); }

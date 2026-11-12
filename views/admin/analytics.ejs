@@ -107,7 +107,7 @@
   <%# ---------- Splits ---------- %>
   <div class="dash-row dash-row-2">
     <section class="panel dash-card" aria-labelledby="an-pay-title">
-      <div class="dash-card-head"><h2 id="an-pay-title">Payment methods</h2><span class="muted"><%= totalPayments %> orders</span></div>
+      <div class="dash-card-head"><h2 id="an-pay-title">Payment methods</h2><span class="muted"><%= totalPayments %> <%= totalPayments === 1 ? 'order' : 'orders' %></span></div>
       <div class="dash-chart dash-chart-donut" data-chart="payments" role="img" tabindex="0" aria-label="Payment methods: <%= payments.map(function (p) { return (paymentLabels[p.key] || p.key) + ' ' + p.count; }).join(', ') || 'no orders' %>."></div>
       <% if (!payments.length) { %><p class="muted dash-empty">No orders in this period.</p><% } %>
     </section>

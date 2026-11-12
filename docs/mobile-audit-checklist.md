@@ -122,6 +122,31 @@ Breakpoints the CSS uses (documented in `public/css/tokens.css`): 420, 560, 720,
       `Cache-Control: public, max-age=31536000, immutable`.
 - [ ] **Text is gzipped** (`Content-Encoding: gzip` on HTML, CSS and JS).
 
+## What to check on a real phone
+
+Emulators can't prove these. Do them on an iPhone (Safari) and an Android phone (Chrome) after each release
+that touches the store, and especially before going live.
+
+- [ ] **Home hero:** the 3D scene starts when you first scroll or touch (or after 4 seconds), the page stays
+      smooth while it does, and scrolling through the pinned hero, showroom and sport ring never stutters.
+- [ ] **Address bar:** scroll so Safari's address bar hides and shows: the pinned sections and the phone
+      filter sheet don't jump, and no sheet's bottom hides under the toolbar.
+- [ ] **Checkout with one thumb at 320-375px:** UPI is chosen first and opens Razorpay on UPI; the PIN code
+      fills the town and state; every field opens the right keyboard (numbers for phone and PIN) and the page
+      never zooms in when a field is tapped.
+- [ ] **Page transitions (Chrome on Android):** tapping a product card, its photo flows into the product
+      page while the header stays still; Back works normally.
+- [ ] **Micro-interactions:** the cart badge and cart quantities roll, the wishlist heart bursts, the coupon
+      saving counts up, the order-placed tick draws and the confetti follows it.
+- [ ] **No stuck hover:** tap a card, a button and a link, then lift your finger: nothing stays highlighted.
+- [ ] **Screen readers:** VoiceOver (iPhone) and TalkBack (Android) through home, a product, add to cart
+      ("Cart, 2 items" is read), checkout and the order page. The automated checks (axe) pass, but only a
+      real screen reader proves the reading order and announcements.
+- [ ] **Reduced motion** switched on in the phone's settings: nothing moves, nothing is hidden, and every
+      page still reads well.
+- [ ] **Notch and home bar** with the phone held sideways: nothing hides under the notch, and the product
+      buy bar and toasts sit above the home bar.
+
 ## Audit snippet
 
 Paste into the DevTools console in device mode. It lists sideways overflow, tiny text and small

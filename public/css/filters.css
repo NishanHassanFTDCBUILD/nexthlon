@@ -149,12 +149,12 @@
 
   html.js .catalog .fx {
     position: fixed; z-index: var(--z-drawer); left: 0; right: 0; bottom: 0; top: auto; margin: 0;
-    max-height: min(88vh, 760px); max-height: min(88dvh, 760px); border-radius: 24px 24px 0 0;
+    max-height: min(88vh, 760px); max-height: min(88dvh, 760px); border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     transform: translateY(105%); visibility: hidden;
     transition: transform var(--duration-medium) var(--ease-out), visibility 0s var(--ease-linear) var(--duration-medium);
   }
   html.js .catalog .fx.is-open { transform: none; visibility: visible; transition: transform var(--duration-medium) var(--ease-out); }
-  html.js .catalog .fx-panel { border-radius: 24px 24px 0 0; border-bottom: 0; box-shadow: 0 -20px 60px rgba(var(--black-rgb), 0.55); }
+  html.js .catalog .fx-panel { border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-bottom: 0; box-shadow: 0 -20px 60px rgba(var(--black-rgb), 0.55); }
   html.js .catalog .fx-form { overflow-y: auto; }
   html.js .catalog .fx-grip { display: block; width: 44px; height: 5px; margin: var(--space-sm) auto 0; border-radius: 5px; background: var(--line-hover); }
   html.js .catalog .fx-head { padding-top: var(--space-sm); }

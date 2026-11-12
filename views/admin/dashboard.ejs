@@ -99,11 +99,11 @@
   <%# ---------- Splits ---------- %>
   <div class="dash-row dash-row-3">
     <section class="panel dash-card" aria-labelledby="chart-status-title">
-      <div class="dash-card-head"><h2 id="chart-status-title">Orders by status</h2><span class="muted"><%= totalOrders %> orders</span></div>
+      <div class="dash-card-head"><h2 id="chart-status-title">Orders by status</h2><span class="muted"><%= totalOrders %> <%= totalOrders === 1 ? 'order' : 'orders' %></span></div>
       <div class="dash-chart dash-chart-donut" data-chart="statuses" role="img" tabindex="0" aria-label="Orders by status: <%= charts.statuses.map(function (s) { return (statusLabels[s.key] || s.key) + ' ' + s.count; }).join(', ') || 'no orders' %>."></div>
     </section>
     <section class="panel dash-card" aria-labelledby="chart-pay-title">
-      <div class="dash-card-head"><h2 id="chart-pay-title">Payment methods</h2><span class="muted"><%= totalPayments %> orders</span></div>
+      <div class="dash-card-head"><h2 id="chart-pay-title">Payment methods</h2><span class="muted"><%= totalPayments %> <%= totalPayments === 1 ? 'order' : 'orders' %></span></div>
       <div class="dash-chart dash-chart-donut" data-chart="payments" role="img" tabindex="0" aria-label="Payment methods: <%= charts.payments.map(function (p) { return (paymentLabels[p.key] || p.key) + ' ' + p.count; }).join(', ') || 'no orders' %>."></div>
     </section>
     <section class="panel dash-card" aria-labelledby="chart-nr-title">
