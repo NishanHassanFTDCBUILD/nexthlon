@@ -1,14 +1,15 @@
 const SupportTicket = require("../models/SupportTicket");
 const Order = require("../models/Order");
-const Counter = require("../models/Counter");
 const auditService = require("./auditService");
 const { HttpError } = require("../utils/http");
+const { TICKET_STATUSES } = require("../config/support");
+const counterService = require("../services/counterService");
 
 const PAGE_SIZE = 20;
 const TICKET_ID = /^HLP-\d{6}$/;
 
 async function nextTicketId() {
-  return `HLP-${String(await Counter.next("ticket")).padStart(6, "0")}`;
+  return `HLP-${String(await counterService.nextNumber("ticket")).padStart(6, "0")}`;
 }
 
 // What the customer and the admin see. The customer's email is only shown to admins.
@@ -77,7 +78,7 @@ async function replyAsCustomer(user, ticketId, { message }) {
 // ---------- Admins ----------
 
 async function listAll({ status = "all", page = 1 } = {}) {
-  const filter = SupportTicket.STATUSES.includes(status) ? { status } : {};
+  const filter = TICKET_STATUSES.includes(status) ? { status } : {};
   const current = Math.max(1, Number.parseInt(page, 10) || 1);
   const [tickets, total, counts] = await Promise.all([
     SupportTicket.find(filter).sort({ updatedAt: -1 }).skip((current - 1) * PAGE_SIZE).limit(PAGE_SIZE).populate("user", "name email").lean(),
@@ -88,7 +89,7 @@ async function listAll({ status = "all", page = 1 } = {}) {
   return {
     tickets: tickets.map(ticket => toTicket(ticket, { forAdmin: true })),
     counts: { open: countOf("open"), pending: countOf("pending"), resolved: countOf("resolved") },
-    filters: { status: SupportTicket.STATUSES.includes(status) ? status : "all" },
+    filters: { status: TICKET_STATUSES.includes(status) ? status : "all" },
     pagination: { page: current, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total, limit: PAGE_SIZE }
   };
 }

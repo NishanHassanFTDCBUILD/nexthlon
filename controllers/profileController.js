@@ -7,6 +7,7 @@ const auditService = require("../services/auditService");
 const authMailService = require("../services/authMailService");
 const { background } = require("../utils/background");
 const { siteUrlFor } = require("../utils/emailLayout");
+const { toPublicUser } = require("../utils/publicUser");
 
 function checked(validate, body) {
   const { errors, value } = validate(body);
@@ -16,13 +17,13 @@ function checked(validate, body) {
 
 // GET /api/profile
 function getProfile(req, res) {
-  res.json({ user: req.user.toSafeJSON() });
+  res.json({ user: toPublicUser(req.user) });
 }
 
 // PATCH /api/profile
 const updateProfile = asyncHandler(async (req, res) => {
   const user = await profileService.updateProfile(req.user._id, checked(validateProfile, req.body));
-  res.json({ message: "Your profile has been updated.", user: user.toSafeJSON() });
+  res.json({ message: "Your profile has been updated.", user: toPublicUser(user) });
 });
 
 // PATCH /api/profile/password

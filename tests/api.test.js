@@ -763,7 +763,7 @@ test("the category offer applies when it beats the product offer, and prices fol
   const racket = await makeProduct({ name: "Smash Racket", slug: "smash-racket", category: "Badminton", brand: "Volt", price: 2000, mrp: 2500, stock: 6, image: "/img/favicon.svg", offerPercent: 10 });
   assert.equal(racket.price, 180000);
   const category = await Category.findOneAndUpdate({ nameKey: "badminton" }, { $set: { offerPercent: 25 } }, { new: true });
-  await Product.syncCategory(category);
+  await categoryService.syncProducts(category);
   categoryService.invalidate();
   const res = await call("GET", "/api/products/smash-racket");
   assert.equal(res.data.product.price, 150000);
@@ -776,7 +776,7 @@ test("the category offer applies when it beats the product offer, and prices fol
 
 test("hidden categories hide their products, and their direct links show the friendly 404 page", async () => {
   const category = await Category.findOneAndUpdate({ nameKey: "badminton" }, { $set: { isListed: false } }, { new: true });
-  await Product.syncCategory(category);
+  await categoryService.syncProducts(category);
   categoryService.invalidate();
   assert.equal((await call("GET", "/api/products/smash-racket")).status, 404);
   const page = await call("GET", "/products/smash-racket");
@@ -788,7 +788,7 @@ test("hidden categories hide their products, and their direct links show the fri
 
   category.isListed = true;
   await category.save();
-  await Product.syncCategory(category);
+  await categoryService.syncProducts(category);
   categoryService.invalidate();
   assert.equal((await call("GET", "/api/products/smash-racket")).status, 200);
 });

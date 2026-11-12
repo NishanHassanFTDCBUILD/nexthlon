@@ -9,6 +9,7 @@ const { HttpError, asyncHandler } = require("../utils/http");
 const { formatPaise } = require("../utils/money");
 const accountService = require("../services/accountService");
 const logger = require("../utils/logger");
+const { toPublicUser } = require("../utils/publicUser");
 
 // Adds the sign-in to the account's login activity (browser and masked IP). Never blocks signing in.
 async function noteLogin(req, user) {
@@ -31,7 +32,7 @@ function scopeFrom(body) {
 async function sendSignedIn(req, res, user, status, message) {
   const { rawToken, familyId } = await refreshTokenService.issue(user, refreshTokenService.deviceFrom(req));
   const token = startSession(res, { user, refreshToken: rawToken, familyId });
-  res.status(status).json({ message, user: user.toSafeJSON(), token });
+  res.status(status).json({ message, user: toPublicUser(user), token });
 }
 
 // POST /api/signup
@@ -120,13 +121,13 @@ const refresh = asyncHandler(async (req, res) => {
   if (result.concurrent) {
     const token = signToken(result.user);
     setAuthCookie(res, token, scope);
-    return res.json({ message: "Session already renewed.", user: result.user.toSafeJSON(), token, concurrent: true });
+    return res.json({ message: "Session already renewed.", user: toPublicUser(result.user), token, concurrent: true });
   }
 
   const token = startSession(res, { user: result.user, refreshToken: result.rawToken, familyId: result.familyId });
   res.json({
     message: "Session renewed.",
-    user: result.user.toSafeJSON(),
+    user: toPublicUser(result.user),
     token,
     // Only handed back to a caller that sent the token in the body; a browser reads its cookie.
     refreshToken: fromBody ? result.rawToken : undefined
@@ -135,7 +136,7 @@ const refresh = asyncHandler(async (req, res) => {
 
 // GET /api/me
 function me(req, res) {
-  res.json({ user: req.user.toSafeJSON() });
+  res.json({ user: toPublicUser(req.user) });
 }
 
 // Signing out has two halves. The access token is stateless, so it is enough to delete its cookie.

@@ -1,9 +1,11 @@
 const mongoose = require("mongoose");
 const Category = require("../models/Category");
 const Product = require("../models/Product");
+const { PRICE_PIPELINE } = require("../utils/pricing");
 const { CATEGORIES } = require("../config/catalog");
 const { slugify } = require("../utils/slug");
 const { HttpError } = require("../utils/http");
+const { LISTED_CATEGORY } = require("../utils/queryFilters");
 
 // The listed categories are read on every page (header, menus), so they are kept in memory
 // for a short time. Any admin change clears this straight away.
@@ -16,7 +18,7 @@ function invalidate() {
 
 async function listedCategories() {
   if (cache && cache.expires > Date.now()) return cache.list;
-  const list = await Category.find({ ...Category.LISTED })
+  const list = await Category.find({ ...LISTED_CATEGORY })
     .sort({ sortOrder: 1, name: 1 })
     .select("name slug image offerPercent")
     .lean();
@@ -28,7 +30,7 @@ async function listedCategories() {
 async function findListedBySlug(slug) {
   const key = String(slug || "").trim().toLowerCase();
   if (!key || key.length > 80) return null;
-  return Category.findOne({ slug: key, ...Category.LISTED }).lean();
+  return Category.findOne({ slug: key, ...LISTED_CATEGORY }).lean();
 }
 
 async function uniqueCategorySlug(name, exceptId) {
@@ -68,7 +70,7 @@ async function migrateProductCategories() {
     const sample = await Product.collection.findOne({ category: name }, { projection: { image: 1 } });
     const category = await ensureCategory(name, sample ? sample.image : "");
     await Product.collection.updateMany({ category: name }, { $set: { category: category._id } });
-    await Product.syncCategory(category);
+    await syncProducts(category);
   }
   // Categories without a picture borrow one from their best-selling-looking product.
   const bare = await Category.find({ image: "" }).lean();
@@ -86,7 +88,16 @@ async function getCategory(categoryId) {
   return category;
 }
 
+// A category's offer or visibility changed: copy it onto its products and redo their prices.
+function syncProducts(category) {
+  return Product.updateMany({ category: category._id }, [
+    { $set: { categoryOffer: category.offerPercent || 0, categoryListed: category.isListed !== false } },
+    ...PRICE_PIPELINE
+  ]);
+}
+
 module.exports = {
+  syncProducts,
   invalidate,
   listedCategories,
   findListedBySlug,

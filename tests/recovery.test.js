@@ -25,6 +25,7 @@ const twoFactor = require("../services/twoFactorService");
 const { hashPassword } = require("../services/authService");
 const { idle } = require("../utils/background");
 const { renderEmail } = require("../utils/emailLayout");
+const { toPublicUser } = require("../utils/publicUser");
 
 const dbUrl = new URL(process.env.TEST_MONGODB_URI);
 dbUrl.pathname = `${dbUrl.pathname.replace(/\/$/, "")}_recovery`;
@@ -509,8 +510,8 @@ test("setting up two-step login: a QR code, a first code to prove it, recovery c
   // Nothing of it is ever sent to a browser, or found by an ordinary read.
   const ordinary = await User.findById(admin._id);
   assert.equal(ordinary.twoFactor.secretEnc, undefined);
-  assert.equal(ordinary.toSafeJSON().twoFactor, undefined);
-  assert.ok(!JSON.stringify(ordinary.toSafeJSON()).includes(secret));
+  assert.equal(toPublicUser(ordinary).twoFactor, undefined);
+  assert.ok(!JSON.stringify(toPublicUser(ordinary)).includes(secret));
 
   assert.equal((await call("POST", "/api/admin/2fa/setup", { cookie })).status, 409, "already on");
   assert.deepEqual((await call("GET", "/api/admin/2fa", { cookie })).data.recoveryCodesLeft, 10);

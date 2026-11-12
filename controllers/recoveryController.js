@@ -7,6 +7,7 @@ const { endSession } = require("../services/tokenService");
 const { validateForgot, validatePasswordReset, validateToken, hasErrors } = require("../utils/validators");
 const { siteUrlFor } = require("../utils/emailLayout");
 const { HttpError, asyncHandler } = require("../utils/http");
+const { toPublicUser } = require("../utils/publicUser");
 
 function checked(validate, body) {
   const { errors, value } = validate(body);
@@ -38,7 +39,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 const verifyEmail = asyncHandler(async (req, res) => {
   const { token } = checked(validateToken, req.body);
   const user = await emailVerificationService.verify(token);
-  res.json({ message: "Your email is confirmed. Thank you!", user: user.toSafeJSON() });
+  res.json({ message: "Your email is confirmed. Thank you!", user: toPublicUser(user) });
 });
 
 // POST /api/account/email/resend   (signed-in customers)

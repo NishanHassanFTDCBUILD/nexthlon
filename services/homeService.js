@@ -1,5 +1,6 @@
 const productService = require("./productService");
 const Product = require("../models/Product");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -90,7 +91,7 @@ async function findGearImages(sports, categories) {
     const category = byName.get(sport.name);
     if (!look || !look.gear || !category) return null;
     const product = await Product.findOne({
-      ...Product.LISTED,
+      ...LISTED_PRODUCT,
       category: category.id,
       $and: [{ name: { $regex: look.gear, $options: "i" } }, { name: { $not: NOT_GEAR } }]
     }).sort({ ratingCount: -1, ratingAverage: -1, _id: 1 }).select("image").lean();

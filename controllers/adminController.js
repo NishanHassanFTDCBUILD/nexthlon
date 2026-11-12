@@ -1,6 +1,5 @@
 const supportService = require("../services/supportService");
 const auditService = require("../services/auditService");
-const SupportTicket = require("../models/SupportTicket");
 const adminService = require("../services/adminService");
 const dashboardService = require("../services/dashboardService");
 const analyticsService = require("../services/analyticsService");
@@ -8,6 +7,7 @@ const settingsService = require("../services/settingsService");
 const { validateReferralSetting, validateCodSetting, validateTicketReply, validateAdminSearch, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { formatPaise } = require("../utils/money");
+const { TICKET_STATUSES } = require("../config/support");
 
 // GET /api/admin/dashboard?range=today|7d|30d|month|year|custom&from=&to=
 // The store counts (stats) plus KPIs, chart series and panels for the date range.
@@ -81,7 +81,7 @@ const listTickets = asyncHandler(async (req, res) => {
 
 // POST /api/admin/tickets/:ticketId/reply   { message, status? }
 const replyTicket = asyncHandler(async (req, res) => {
-  const { errors, value } = validateTicketReply(req.body, SupportTicket.STATUSES);
+  const { errors, value } = validateTicketReply(req.body, TICKET_STATUSES);
   if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
   const ticket = await supportService.replyAsAdmin(req.user, req.params.ticketId, value, auditService.fromRequest(req));
   res.json({ message: "Reply sent to the customer.", ticket });

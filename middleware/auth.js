@@ -2,6 +2,7 @@ const User = require("../models/User");
 const config = require("../config/env");
 const { KINDS, verifyToken, clearAuthCookie, readSessionCookie } = require("../services/tokenService");
 const { HttpError } = require("../utils/http");
+const { toPublicUser } = require("../utils/publicUser");
 
 // Which session a request belongs to: the admin console (its pages under ADMIN_PATH and the
 // /api/admin APIs) or the store (everything else). Each reads only its own cookie.
@@ -50,7 +51,7 @@ async function attachUser(req, res, next) {
       req.authProblem = "blocked";
     } else {
       req.user = user;
-      res.locals.currentUser = user.toSafeJSON();
+      res.locals.currentUser = toPublicUser(user);
     }
 
     // Only the ACCESS cookie goes. The refresh cookie is deliberately left alone: an access token

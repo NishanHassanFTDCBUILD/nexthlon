@@ -6,7 +6,6 @@ const reviewService = require("../services/reviewService");
 const listService = require("../services/listService");
 const supportService = require("../services/supportService");
 const auditService = require("../services/auditService");
-const SupportTicket = require("../models/SupportTicket");
 const { endSession, readSessionCookie } = require("../services/tokenService");
 const emailVerificationService = require("../services/emailVerificationService");
 const { siteUrlFor } = require("../utils/emailLayout");
@@ -15,6 +14,8 @@ const {
   validateListName, validateTicket, validateTicketReply, hasErrors
 } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
+const { TICKET_TOPICS } = require("../config/support");
+const { toPublicUser } = require("../utils/publicUser");
 
 function checked(validate, body, ...extra) {
   const { errors, value } = validate(body, ...extra);
@@ -28,7 +29,7 @@ function checked(validate, body, ...extra) {
 const changeEmail = asyncHandler(async (req, res) => {
   const user = await accountService.changeEmail(req.user._id, checked(validateEmailChange, req.body), auditService.fromRequest(req));
   emailVerificationService.sendInBackground(user, { baseUrl: siteUrlFor(req), ip: req.ip });
-  res.json({ message: "Your sign-in email has been changed. We sent a link to the new address: please confirm it.", user: user.toSafeJSON() });
+  res.json({ message: "Your sign-in email has been changed. We sent a link to the new address: please confirm it.", user: toPublicUser(user) });
 });
 
 // POST /api/account/logout-all
@@ -149,7 +150,7 @@ const shareList = asyncHandler(async (req, res) => {
 // ---------- Help requests ----------
 
 const createTicket = asyncHandler(async (req, res) => {
-  const ticket = await supportService.createTicket(req.user, checked(validateTicket, req.body, SupportTicket.TOPICS));
+  const ticket = await supportService.createTicket(req.user, checked(validateTicket, req.body, TICKET_TOPICS));
   res.status(201).json({ message: `Request ${ticket.ticketId} sent. We usually reply within a day.`, ticket });
 });
 

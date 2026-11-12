@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
-// A sport or product group. Unlisted categories, and every product in them, are hidden from shoppers.
+// A sport or product group. Unlisted categories, and every product in them, are hidden from shoppers
+// (utils/queryFilters.js LISTED_CATEGORY).
 // offerPercent is the category offer; a product gets the higher of its own offer and this one.
 const categorySchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 40 },
@@ -19,7 +20,4 @@ categorySchema.pre("validate", function setNameKey(next) {
   next();
 });
 
-const Category = mongoose.model("Category", categorySchema);
-Category.LISTED = Object.freeze({ isListed: true });
-
-module.exports = Category;
+module.exports = mongoose.model("Category", categorySchema);

@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const Review = require("../models/Review");
 const Product = require("../models/Product");
 const { HttpError } = require("../utils/http");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
+const { VISIBLE_REVIEW } = require("../utils/queryFilters");
 
 const PAGE_SIZE = 5;
 // How many reviews one customer may post for the same product.
@@ -61,8 +63,8 @@ async function ratingBreakdown(productId) {
 // page can offer a Delete button on them (nobody else's id is ever sent).
 async function listReviews(productId, page = 1, viewerId = null) {
   const [reviews, total, breakdown] = await Promise.all([
-    Review.find({ product: productId, ...Review.VISIBLE }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
-    Review.countDocuments({ product: productId, ...Review.VISIBLE }),
+    Review.find({ product: productId, ...VISIBLE_REVIEW }).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+    Review.countDocuments({ product: productId, ...VISIBLE_REVIEW }),
     ratingBreakdown(productId)
   ]);
   const viewer = viewerId ? String(viewerId) : null;
@@ -76,7 +78,7 @@ async function listReviews(productId, page = 1, viewerId = null) {
 // The one review to feature on the product page: the best-rated (4 or 5 stars), verified buyers
 // first, then the most detailed. Null when the product has no such review.
 async function featuredReview(productId) {
-  const [review] = await Review.find({ product: productId, rating: { $gte: 4 }, ...Review.VISIBLE })
+  const [review] = await Review.find({ product: productId, rating: { $gte: 4 }, ...VISIBLE_REVIEW })
     .sort({ verified: -1, rating: -1, createdAt: -1 }).limit(20).lean()
     .then(rows => rows.sort((a, b) => (b.verified - a.verified) || (b.rating - a.rating) || (b.body.length - a.body.length)));
   return review ? publicReview(review) : null;
@@ -97,7 +99,7 @@ async function refreshProductRating(productId) {
 
 async function addReview(user, productId, value) {
   if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
-  const product = await Product.findOne({ _id: productId, ...Product.LISTED }).select("_id").lean();
+  const product = await Product.findOne({ _id: productId, ...LISTED_PRODUCT }).select("_id").lean();
   if (!product) throw new HttpError(404, "Product not found.");
   const status = await reviewStatus(user, product._id);
   if (status.reason === "limit") throw new HttpError(409, LIMIT_MESSAGE);
@@ -137,7 +139,7 @@ async function waitingForReview(userId) {
   if (!rows.length) return [];
   const reviewed = new Set((await Review.find({ user: id }).select("product").lean()).map(review => String(review.product)));
   const pending = rows.filter(row => !reviewed.has(String(row._id)));
-  const products = await Product.find({ _id: { $in: pending.map(row => row._id) }, ...Product.LISTED }).select("name slug image").lean();
+  const products = await Product.find({ _id: { $in: pending.map(row => row._id) }, ...LISTED_PRODUCT }).select("name slug image").lean();
   const byId = new Map(products.map(product => [String(product._id), product]));
   return pending
     .map(row => ({ product: byId.get(String(row._id)), deliveredAt: row.deliveredAt }))

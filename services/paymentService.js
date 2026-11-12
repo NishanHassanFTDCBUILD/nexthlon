@@ -21,6 +21,7 @@ const walletService = require("./walletService");
 const razorpay = require("./razorpayService");
 const { HttpError } = require("../utils/http");
 const { inTransaction } = require("../utils/transaction");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 function checkoutPayload(order, razorpayOrder) {
   // ONLY what Razorpay Checkout needs. Never the key secret.
@@ -90,7 +91,7 @@ async function retryPayment(userId, orderId) {
     throw new HttpError(400, "This order does not need a payment.");
   }
   for (const item of order.items.filter(line => line.status !== "cancelled")) {
-    const product = await Product.findOne({ _id: item.product, ...Product.LISTED }).select("stock").lean();
+    const product = await Product.findOne({ _id: item.product, ...LISTED_PRODUCT }).select("stock").lean();
     if (!product || product.stock < item.quantity) throw new HttpError(409, `${item.name} is no longer available in that quantity. Please cancel this order and order again.`);
   }
   return { order, checkout: await attachRazorpayOrder(order) };

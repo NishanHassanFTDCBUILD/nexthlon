@@ -5,7 +5,7 @@ const { validateProduct, hasErrors } = require("../utils/validators");
 const { slugify } = require("../utils/slug");
 const { detectImageType, isUploadedImage } = require("../services/imageService");
 const { planImages, orderImages, readAdminFilters } = require("../services/adminProductService");
-const Product = require("../models/Product");
+const { priceFor } = require("../utils/pricing");
 
 const CATEGORY_ID = "64b0000000000000000000c1";
 const good = { name: "TrailFlex 2 Shoes", category: CATEGORY_ID, brand: "", price: "2999", mrp: "3999", stock: "4", description: " Light and fast. " };
@@ -46,8 +46,8 @@ test("product name is 3 to 120 characters and the category must be a real id", (
 test("the discount is worked out from price and M.R.P., never from the form", () => {
   assert.equal(validateProduct({ ...good, discountPercent: "99" }).value.discountPercent, undefined);
   assert.equal(validateProduct({ ...good, price: "1" }).value.price, undefined);
-  assert.equal(Product.discountFor(2999, 3999), 25);
-  assert.equal(Product.discountFor(500, 500), 0);
+  assert.equal(priceFor({ basePrice: 2999, mrp: 3999 }).discountPercent, 25);
+  assert.equal(priceFor({ basePrice: 500, mrp: 500 }).discountPercent, 0);
 });
 
 test("slugs are lowercase words joined by hyphens", () => {

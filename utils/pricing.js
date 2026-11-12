@@ -21,7 +21,7 @@ function bestOfferFor({ offerPercent = 0, categoryOffer = 0 } = {}) {
   return product >= category ? { percent: product, source: "product" } : { percent: category, source: "category" };
 }
 
-// Half rounds up, written as floor(x + 0.5) so it matches the database pipeline in models/Product.js.
+// Half rounds up, written as floor(x + 0.5) so it matches PRICE_PIPELINE below.
 const roundHalfUp = value => Math.floor(value + 0.5);
 
 function priceFor({ basePrice, mrp, offerPercent = 0, categoryOffer = 0 }) {
@@ -82,4 +82,19 @@ function orderTotals({ itemCount = 0, mrpTotal = 0, subtotal = 0, coupon = null,
   };
 }
 
-module.exports = { bestOfferFor, priceFor, roundHalfUp, deliveryFeeFor, couponDiscountFor, couponProblem, orderTotals };
+// The same sums as priceFor, written as a database update pipeline, for changing many products at
+// once (a category offer changed, or old products being upgraded).
+const halfUp = expr => ({ $floor: { $add: [expr, 0.5] } });
+const PRICE_PIPELINE = Object.freeze([
+  { $set: { bestOffer: { $max: [{ $ifNull: ["$offerPercent", 0] }, { $ifNull: ["$categoryOffer", 0] }] } } },
+  { $set: { price: halfUp({ $divide: [{ $multiply: ["$basePrice", { $subtract: [100, "$bestOffer"] }] }, 100] }) } },
+  {
+    $set: {
+      discountPercent: {
+        $cond: [{ $gt: ["$mrp", "$price"] }, halfUp({ $multiply: [{ $divide: [{ $subtract: ["$mrp", "$price"] }, "$mrp"] }, 100] }), 0]
+      }
+    }
+  }
+]);
+
+module.exports = { PRICE_PIPELINE, halfUp, bestOfferFor, priceFor, roundHalfUp, deliveryFeeFor, couponDiscountFor, couponProblem, orderTotals };

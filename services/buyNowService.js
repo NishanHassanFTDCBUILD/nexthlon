@@ -3,6 +3,7 @@ const BuyNow = require("../models/BuyNow");
 const Product = require("../models/Product");
 const cartService = require("./cartService");
 const { HttpError } = require("../utils/http");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 // How long a Buy now checkout stays open before it has to be started again.
 const TTL_MS = 30 * 60 * 1000;
@@ -18,7 +19,7 @@ const EXPIRED_MESSAGE = "Your Buy now checkout has expired. Open the product and
 // Saves (or replaces) the customer's Buy now product. Same quantity rules as the cart.
 async function start(userId, productId, rawQuantity) {
   if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
-  const product = await Product.findOne({ _id: productId, ...Product.LISTED }).lean();
+  const product = await Product.findOne({ _id: productId, ...LISTED_PRODUCT }).lean();
   if (!product) throw new HttpError(404, "Product not found.");
   const quantity = Number(rawQuantity);
   const problem = cartService.quantityProblem(product, quantity);

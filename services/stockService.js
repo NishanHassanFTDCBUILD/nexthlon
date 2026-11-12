@@ -1,6 +1,7 @@
 const Product = require("../models/Product");
 const { HttpError } = require("../utils/http");
 const { supportsTransactions, inTransaction } = require("../utils/transaction");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 // Taking stock is ATOMIC per product: "$inc stock by -qty, but only if stock >= qty" is one
 // database operation, so two shoppers can never both buy the last item and stock never goes
@@ -12,7 +13,7 @@ async function takeStock(lines, session = null) {
   const taken = [];
   for (const line of lines) {
     const result = await Product.updateOne(
-      { _id: line.product, ...Product.LISTED, stock: { $gte: line.quantity } },
+      { _id: line.product, ...LISTED_PRODUCT, stock: { $gte: line.quantity } },
       { $inc: { stock: -line.quantity } },
       { session }
     );

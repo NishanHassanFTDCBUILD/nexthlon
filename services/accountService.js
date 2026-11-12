@@ -16,6 +16,7 @@ const auditService = require("./auditService");
 const refreshTokenService = require("./refreshTokenService");
 const { browserName } = require("../utils/device");
 const { HttpError } = require("../utils/http");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 // My Account > Recently viewed shows the last 10 products.
 const RECENT_LIMIT = 10;
@@ -56,7 +57,7 @@ async function recentlyViewed(userId, limit = RECENT_LIMIT) {
   const user = await User.findById(userId).select("recentlyViewed").lean();
   const ids = (user && user.recentlyViewed ? user.recentlyViewed : []).map(entry => String(entry.product));
   if (!ids.length) return [];
-  const products = await Product.find({ _id: { $in: ids }, ...Product.LISTED }).lean();
+  const products = await Product.find({ _id: { $in: ids }, ...LISTED_PRODUCT }).lean();
   const byId = new Map(products.map(product => [String(product._id), product]));
   return ids.map(id => byId.get(id)).filter(Boolean).slice(0, limit);
 }
@@ -159,7 +160,7 @@ async function recommendations(userId, exclude = [], limit = 6) {
   const productIds = [...seenIds].filter(mongoose.isValidObjectId);
   const bought = await Product.find({ _id: { $in: productIds } }).select("category").lean();
   const categories = [...new Set([...bought, ...recent].map(product => String(product.category)).filter(Boolean))];
-  const filter = { ...Product.LISTED, stock: { $gt: 0 }, _id: { $nin: productIds } };
+  const filter = { ...LISTED_PRODUCT, stock: { $gt: 0 }, _id: { $nin: productIds } };
   let picks = categories.length
     ? await Product.find({ ...filter, category: { $in: categories } }).sort({ ratingAverage: -1, discountPercent: -1 }).limit(limit).lean()
     : [];

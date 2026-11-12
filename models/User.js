@@ -49,19 +49,6 @@ const userSchema = new mongoose.Schema({
 
 userSchema.index({ referralCode: 1 }, { unique: true, sparse: true });
 
-// The only user fields that are ever sent to the browser.
-userSchema.methods.toSafeJSON = function toSafeJSON() {
-  return {
-    id: String(this._id),
-    name: this.name,
-    email: this.email,
-    phone: this.phone,
-    role: this.role,
-    isBlocked: this.isBlocked,
-    emailVerified: Boolean(this.emailVerifiedAt),
-    referralCode: this.referralCode || "",
-    createdAt: this.createdAt
-  };
-};
+// What the browser may see of a user: utils/publicUser.js.
 
 module.exports = mongoose.model("User", userSchema);

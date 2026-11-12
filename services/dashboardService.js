@@ -9,6 +9,7 @@ const WalletTransaction = require("../models/WalletTransaction");
 const LoginActivity = require("../models/LoginActivity");
 const { LOW_STOCK_LIMIT } = require("../config/catalog");
 const { PAID_STATUSES } = require("../utils/orderRules");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 const TZ = "Asia/Kolkata";
 const IST_MS = 330 * 60 * 1000;
@@ -322,11 +323,11 @@ async function panels() {
     Order.countDocuments({ orderStatus: "confirmed" }),
     Order.countDocuments({ orderStatus: "return_requested" }),
     Order.countDocuments({ paymentStatus: "failed", orderStatus: { $ne: "cancelled" } }),
-    Product.countDocuments({ ...Product.LISTED, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
-    Product.countDocuments({ ...Product.LISTED, stock: 0 }),
-    Product.find({ ...Product.LISTED, stock: { $lte: LOW_STOCK_LIMIT } }).sort({ stock: 1, name: 1 }).limit(8).select("name stock image").lean(),
+    Product.countDocuments({ ...LISTED_PRODUCT, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
+    Product.countDocuments({ ...LISTED_PRODUCT, stock: 0 }),
+    Product.find({ ...LISTED_PRODUCT, stock: { $lte: LOW_STOCK_LIMIT } }).sort({ stock: 1, name: 1 }).limit(8).select("name stock image").lean(),
     User.find({ role: "customer", isDeleted: { $ne: true } }).sort({ createdAt: -1 }).limit(6).select("name email createdAt isBlocked").lean(),
-    Product.countDocuments({ ...Product.LISTED }),
+    Product.countDocuments({ ...LISTED_PRODUCT }),
     User.countDocuments({ role: "customer" }),
     User.countDocuments({ role: "customer", isBlocked: true }),
     User.countDocuments({ role: "customer", createdAt: { $gte: new Date(Date.now() - 7 * DAY) } })

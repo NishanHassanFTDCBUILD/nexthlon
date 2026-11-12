@@ -6,6 +6,7 @@ const { LOW_STOCK_LIMIT } = require("../config/catalog");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
 const refreshTokenService = require("./refreshTokenService");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 const PAGE_SIZE = 15;
 
@@ -19,11 +20,11 @@ async function getDashboardStats() {
     User.countDocuments({ role: "customer" }),
     User.countDocuments({ role: "customer", isBlocked: true }),
     User.countDocuments({ role: "customer", createdAt: { $gte: weekAgo } }),
-    Product.countDocuments({ ...Product.LISTED }),
-    Product.countDocuments({ ...Product.LISTED, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
-    Product.countDocuments({ ...Product.LISTED, stock: 0 }),
+    Product.countDocuments({ ...LISTED_PRODUCT }),
+    Product.countDocuments({ ...LISTED_PRODUCT, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
+    Product.countDocuments({ ...LISTED_PRODUCT, stock: 0 }),
     User.find({ role: "customer" }).sort({ createdAt: -1 }).limit(6).lean(),
-    Product.find({ ...Product.LISTED, stock: { $lte: LOW_STOCK_LIMIT } })
+    Product.find({ ...LISTED_PRODUCT, stock: { $lte: LOW_STOCK_LIMIT } })
       .sort({ stock: 1, name: 1 }).limit(6).select("name slug stock image category").populate("category", "name").lean()
   ]);
 
@@ -112,8 +113,8 @@ async function notifications(now = new Date()) {
     Order.countDocuments({ createdAt: { $gte: dayAgo } }),
     Order.countDocuments({ orderStatus: "placed" }),
     Order.countDocuments({ orderStatus: "return_requested" }),
-    Product.countDocuments({ ...Product.LISTED, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
-    Product.countDocuments({ ...Product.LISTED, stock: 0 })
+    Product.countDocuments({ ...LISTED_PRODUCT, stock: { $gt: 0, $lte: LOW_STOCK_LIMIT } }),
+    Product.countDocuments({ ...LISTED_PRODUCT, stock: 0 })
   ]);
   const items = [
     { key: "new-orders", label: "New orders in the last 24 hours", count: newOrders, section: "orders", icon: "package-check" },

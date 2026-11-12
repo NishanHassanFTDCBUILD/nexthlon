@@ -26,7 +26,4 @@ reviewSchema.index({ product: 1, isHidden: 1, createdAt: -1 });
 reviewSchema.index({ createdAt: -1 });
 reviewSchema.index({ isHidden: 1, createdAt: -1 });
 
-// What the store is allowed to show.
-reviewSchema.statics.VISIBLE = Object.freeze({ isHidden: { $ne: true } });
-
 module.exports = mongoose.model("Review", reviewSchema);

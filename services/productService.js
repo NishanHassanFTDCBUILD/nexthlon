@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const categoryService = require("./categoryService");
 const { HttpError } = require("../utils/http");
 const { bestOfferFor } = require("../utils/pricing");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 const PAGE_SIZE = 12;
 // "relevance" ranks by text-search score when there is a search, and by best deals otherwise.
@@ -100,7 +101,7 @@ async function listProducts(query) {
     if (!category) throw new HttpError(404, "That category is not available.");
   }
 
-  const base = { ...Product.LISTED };
+  const base = { ...LISTED_PRODUCT };
   if (category) base.category = category._id;
   const { clause, mode } = await searchClause(base, filters.q);
   // "scope" is everything the shopper searched for; the facets (brands, price range) come from it,
@@ -154,7 +155,7 @@ async function getCategorySummaries() {
   const [categories, groups] = await Promise.all([
     categoryService.listedCategories(),
     Product.aggregate([
-      { $match: { ...Product.LISTED } },
+      { $match: { ...LISTED_PRODUCT } },
       { $sort: { discountPercent: -1 } },
       { $group: { _id: "$category", count: { $sum: 1 }, fromPrice: { $min: "$price" }, image: { $first: "$image" } } }
     ])
@@ -183,26 +184,26 @@ async function getProduct(idOrSlug) {
   if (!key || key.length > 120) return null;
   const conditions = [{ slug: key }];
   if (mongoose.isValidObjectId(key)) conditions.push({ _id: key });
-  return Product.findOne({ $or: conditions, ...Product.LISTED }).populate("category", CATEGORY_FIELDS).lean();
+  return Product.findOne({ $or: conditions, ...LISTED_PRODUCT }).populate("category", CATEGORY_FIELDS).lean();
 }
 
 function getRelatedProducts(product, limit = 8) {
   const categoryId = product.category && product.category._id ? product.category._id : product.category;
-  return Product.find({ ...Product.LISTED, category: categoryId, _id: { $ne: product._id } })
+  return Product.find({ ...LISTED_PRODUCT, category: categoryId, _id: { $ne: product._id } })
     .sort({ ratingAverage: -1, discountPercent: -1, _id: 1 }).limit(limit).lean();
 }
 
 async function getHomeSections() {
   const [deals, newest, categories, brands] = await Promise.all([
-    Product.find({ ...Product.LISTED, discountPercent: { $gt: 0 } }).sort({ discountPercent: -1, _id: 1 }).limit(10).lean(),
-    Product.find({ ...Product.LISTED }).sort({ createdAt: -1, _id: -1 }).limit(10).lean(),
+    Product.find({ ...LISTED_PRODUCT, discountPercent: { $gt: 0 } }).sort({ discountPercent: -1, _id: 1 }).limit(10).lean(),
+    Product.find({ ...LISTED_PRODUCT }).sort({ createdAt: -1, _id: -1 }).limit(10).lean(),
     getCategorySummaries(),
-    Product.distinct("brand", { ...Product.LISTED })
+    Product.distinct("brand", { ...LISTED_PRODUCT })
   ]);
   // Best sellers: the best-rated in-stock items that are not already in the deals row
   // (highest price first while there are no ratings yet).
   const bestSellers = await Product.find({
-    ...Product.LISTED, stock: { $gt: 0 }, _id: { $nin: deals.map(p => p._id) }
+    ...LISTED_PRODUCT, stock: { $gt: 0 }, _id: { $nin: deals.map(p => p._id) }
   }).sort({ ratingCount: -1, ratingAverage: -1, price: -1, _id: 1 }).limit(10).lean();
   return { deals, newest, bestSellers, categories, brands: brands.filter(Boolean).sort() };
 }
@@ -210,7 +211,7 @@ async function getHomeSections() {
 // Listed products for the given ids, in the same order as the ids. Unknown or unlisted ids are skipped.
 async function getProductsByIds(ids) {
   if (!ids.length) return [];
-  const found = await Product.find({ ...Product.LISTED, _id: { $in: ids } }).populate("category", CATEGORY_FIELDS).lean();
+  const found = await Product.find({ ...LISTED_PRODUCT, _id: { $in: ids } }).populate("category", CATEGORY_FIELDS).lean();
   const byId = new Map(found.map(p => [String(p._id), p]));
   return ids.map(id => byId.get(id)).filter(Boolean);
 }

@@ -3,6 +3,7 @@ const Wishlist = require("../models/Wishlist");
 const Product = require("../models/Product");
 const cartService = require("./cartService");
 const { HttpError } = require("../utils/http");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 const MAX_ITEMS = 100;
 
@@ -51,7 +52,7 @@ async function countItems(userId) {
 // Saving twice is fine: the product just moves to the top of the list.
 async function addProduct(userId, productId) {
   const id = toObjectId(productId);
-  const product = await Product.findOne({ _id: id, ...Product.LISTED }).select("name").lean();
+  const product = await Product.findOne({ _id: id, ...LISTED_PRODUCT }).select("name").lean();
   if (!product) throw new HttpError(404, "This product is no longer available.");
   await Wishlist.updateOne({ user: userId }, { $pull: { products: id } });
   await Wishlist.updateOne(

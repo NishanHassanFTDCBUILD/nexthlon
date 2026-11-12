@@ -5,6 +5,7 @@ const Product = require("../models/Product");
 const wishlistService = require("./wishlistService");
 const cartService = require("./cartService");
 const { HttpError } = require("../utils/http");
+const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
 const MAX_LISTS = 10;
 const MAX_ITEMS = 100;
@@ -88,7 +89,7 @@ async function addItem(userId, listId, productId) {
   }
   const id = productObjectId(productId);
   const list = await findOwnedList(userId, listId);
-  const product = await Product.exists({ _id: id, ...Product.LISTED });
+  const product = await Product.exists({ _id: id, ...LISTED_PRODUCT });
   if (!product) throw new HttpError(404, "This product is no longer available.");
   await ShoppingList.updateOne({ _id: list._id }, { $pull: { products: id } });
   await ShoppingList.updateOne({ _id: list._id }, { $push: { products: { $each: [id], $position: 0, $slice: MAX_ITEMS } } });

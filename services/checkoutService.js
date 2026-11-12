@@ -3,7 +3,6 @@ const events = require("../events");
 const Address = require("../models/Address");
 const Cart = require("../models/Cart");
 const Order = require("../models/Order");
-const Counter = require("../models/Counter");
 const cartService = require("./cartService");
 const buyNowService = require("./buyNowService");
 const couponService = require("./couponService");
@@ -13,6 +12,7 @@ const { HttpError } = require("../utils/http");
 const { orderTotals } = require("../utils/pricing");
 const settingsService = require("./settingsService");
 const { formatPaise } = require("../utils/money");
+const counterService = require("../services/counterService");
 
 // Placed here at once. Online payment (razorpay) goes through paymentService.
 // "wallet" is used when the wallet covers the whole amount.
@@ -22,7 +22,7 @@ const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 // NX-2026-000123: the year (in India) and a running number for that year.
 async function nextOrderId(now = new Date()) {
   const year = new Date(now.getTime() + IST_OFFSET_MS).getUTCFullYear();
-  const seq = await Counter.next(`order-${year}`);
+  const seq = await counterService.nextNumber(`order-${year}`);
   return `NX-${year}-${String(seq).padStart(6, "0")}`;
 }
 

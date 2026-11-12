@@ -6,11 +6,12 @@ const listService = require("../services/listService");
 const reviewService = require("../services/reviewService");
 const supportService = require("../services/supportService");
 const Order = require("../models/Order");
-const SupportTicket = require("../models/SupportTicket");
 const orderRules = require("../utils/orderRules");
 const { readSessionCookie } = require("../services/tokenService");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
+const { TICKET_STATUSES } = require("../config/support");
+const { TICKET_TOPICS } = require("../config/support");
 
 const baseUrl = req => `${req.protocol}://${req.get("host")}`;
 
@@ -85,7 +86,7 @@ const help = asyncHandler(async (req, res) => {
     title: "Help & support | Nexthlon",
     tickets,
     orders,
-    topics: SupportTicket.TOPICS,
+    topics: TICKET_TOPICS,
     selectedOrder: orders.some(order => order.orderId === wanted) ? wanted : "",
     labels: orderRules.STATUS_LABELS
   });
@@ -109,12 +110,12 @@ const sharedList = asyncHandler(async (req, res) => {
 const adminTickets = asyncHandler(async (req, res) => {
   const data = await supportService.listAll(req.query);
   const link = linkBuilder(`${config.adminPath}/tickets`, { status: data.filters.status === "all" ? "" : data.filters.status });
-  res.render("admin/tickets", { title: "Support tickets | Nexthlon Admin", link, statuses: SupportTicket.STATUSES, ...data });
+  res.render("admin/tickets", { title: "Support tickets | Nexthlon Admin", link, statuses: TICKET_STATUSES, ...data });
 });
 
 const adminTicket = asyncHandler(async (req, res) => {
   const data = await supportService.getForAdmin(req.params.ticketId);
-  res.render("admin/ticket", { title: `Ticket ${data.ticketId} | Nexthlon Admin`, ticket: data, statuses: SupportTicket.STATUSES });
+  res.render("admin/ticket", { title: `Ticket ${data.ticketId} | Nexthlon Admin`, ticket: data, statuses: TICKET_STATUSES });
 });
 
 module.exports = { overview, buyAgain, coupons, lists, recent, security, notifications, referral, help, ticket, sharedList, adminTickets, adminTicket };

@@ -1,7 +1,5 @@
 const mongoose = require("mongoose");
-
-const TICKET_STATUSES = ["open", "pending", "resolved"];
-const TICKET_TOPICS = ["Order", "Payment", "Delivery", "Return or refund", "Account", "Other"];
+const { TICKET_STATUSES, TICKET_TOPICS } = require("../config/support");
 
 const messageSchema = new mongoose.Schema({
   from: { type: String, enum: ["customer", "admin"], required: true },
@@ -25,8 +23,5 @@ const supportTicketSchema = new mongoose.Schema({
 
 supportTicketSchema.index({ user: 1, updatedAt: -1 });
 supportTicketSchema.index({ status: 1, updatedAt: -1 });
-
-supportTicketSchema.statics.STATUSES = TICKET_STATUSES;
-supportTicketSchema.statics.TOPICS = TICKET_TOPICS;
 
 module.exports = mongoose.model("SupportTicket", supportTicketSchema);
