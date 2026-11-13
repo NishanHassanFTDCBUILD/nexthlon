@@ -1316,6 +1316,11 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 
 .orders-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1h); margin-bottom: var(--space-2); }
 .orders-toolbar .segmented { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+/* Each order-status label stays on one line, so the row scrolls sideways cleanly instead of squeezing
+   "On the way" onto two lines. The fading edge shows there is more to see. */
+.orders-toolbar .segmented a { flex: none; white-space: nowrap; }
+.orders-toolbar .segmented { -webkit-mask-image: linear-gradient(90deg, var(--black) calc(100% - var(--space-5)), transparent); mask-image: linear-gradient(90deg, var(--black) calc(100% - var(--space-5)), transparent); }
+@media (min-width: 721px) { .orders-toolbar .segmented { -webkit-mask-image: none; mask-image: none; } }
 .orders-search { display: flex; gap: var(--space-1); flex-wrap: wrap; flex: 1; justify-content: flex-end; min-width: 0; }
 .orders-search .select-wrap select { height: 48px; }
 .orders-search .toolbar-search { max-width: 420px; }
