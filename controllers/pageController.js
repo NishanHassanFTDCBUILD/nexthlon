@@ -17,10 +17,11 @@ const settingsService = require("../services/settingsService");
 const twoFactorService = require("../services/twoFactorService");
 const accountService = require("../services/accountService");
 const reviewService = require("../services/reviewService");
+const recommendationService = require("../services/recommendationService");
 const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
 const Address = require("../models/Address");
-const Cart = require("../models/Cart");
+const { readGuestCart } = require("../middleware/guestCart");
 const { CONTACT_TOPICS, STORE } = require("../config/store");
 const { INDIAN_STATES, LOW_STOCK_LIMIT, MAX_ADDRESSES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
@@ -59,7 +60,10 @@ const products = asyncHandler(async (req, res) => {
   const categories = await productService.getCategorySummaries();
   const { q, brands, min, max, discount, rating, inStock, sort, view } = result.filters;
   const category = result.category;
-  const heading = q ? `Results for "${q}"` : category ? category.name : "All sports gear";
+  // A misspelt search that found nothing as typed shows the corrected words ("Results for \"shoes\"")
+  // with a note about what was typed.
+  const corrected = result.correctedQuery;
+  const heading = q ? `Results for "${corrected || q}"` : category ? category.name : "All sports gear";
   // Every filter lives in the URL, so a filtered page can be bookmarked, shared or reloaded.
   const link = linkBuilder("/products", {
     q,
@@ -88,6 +92,7 @@ const products = asyncHandler(async (req, res) => {
   res.render("pages/products", {
     title: `${heading} | Nexthlon`,
     heading,
+    correctedQuery: corrected,
     categories,
     sorts: productService.SORTS,
     discountSteps: productService.DISCOUNT_STEPS,
@@ -106,25 +111,29 @@ const productDetail = asyncHandler(async (req, res) => {
     accountService.recordView(req.user._id, product._id).catch(() => {});
   }
   const customer = req.user && req.user.role === "customer" ? req.user : null;
-  const [related, reviews, reviewStatus, featured, shipTo, inCart, codLimit] = await Promise.all([
+  const [related, reviews, reviewStatus, featured, shipTo, inCart, codLimit, together] = await Promise.all([
     productService.getRelatedProducts(product),
     reviewService.listReviews(product._id, 1, req.user && req.user.role === "customer" ? req.user._id : null),
     reviewService.reviewStatus(req.user || null, product._id),
     reviewService.featuredReview(product._id),
     // "Deliver to ..." uses the customer's default address (or their newest one).
     customer ? Address.findOne({ user: customer._id }).sort({ isDefault: -1, updatedAt: -1 }).select("fullName city pincode").lean() : null,
-    // How many of this product are already in the customer's cart.
-    customer ? Cart.findOne({ user: customer._id }).select("items").lean()
-      .then(cart => (cart && cart.items.find(item => String(item.product) === String(product._id))) || null)
-      .then(item => (item ? item.quantity : 0)) : 0,
-    settingsService.get("codLimit")
+    // How many of this product are already in the cart (the customer's, or a guest's).
+    cartService.quantityInCart(customer ? customer._id : (!req.user && readGuestCart(req) ? { guest: readGuestCart(req) } : null), product._id),
+    settingsService.get("codLimit"),
+    // "Frequently bought together", from real orders (empty until there are some).
+    recommendationService.boughtTogether(product._id, 4)
   ]);
+  // Bought together first; the related row then skips those, so no product shows twice.
+  const togetherProducts = together.map(entry => entry.product);
+  const togetherIds = new Set(togetherProducts.map(p => String(p._id)));
   res.render("pages/product", {
     title: `${product.name} | Nexthlon`,
     metaDescription: (product.description || product.name).slice(0, 155),
     product,
     offer: productService.offerLabel(product),
-    related,
+    related: related.filter(p => !togetherIds.has(String(p._id))),
+    together: togetherProducts,
     reviews,
     reviewStatus,
     featured,
@@ -169,9 +178,13 @@ const profile = asyncHandler(async (req, res) => {
   res.render("pages/profile", { title: "Your account | Nexthlon", addresses, states: INDIAN_STATES, maxAddresses: MAX_ADDRESSES });
 });
 
+// Customers see their account's cart, guests the cart kept by their cookie (checkout asks them to sign in).
 const cart = asyncHandler(async (req, res) => {
-  const data = await cartService.getCart(req.user._id);
-  res.render("pages/cart", { title: "Your cart | Nexthlon", checkoutOpen: true, ...data });
+  const owner = req.user ? req.user._id : (readGuestCart(req) ? { guest: readGuestCart(req) } : null);
+  const data = await cartService.getCart(owner);
+  // "Customers also bought": products often ordered with what is in the cart.
+  const alsoBought = data.items.length ? await recommendationService.forCart(data.items.map(item => item.productId), 4) : [];
+  res.render("pages/cart", { title: "Your cart | Nexthlon", checkoutOpen: true, alsoBought, ...data });
 });
 
 // ---------- Checkout and orders ----------

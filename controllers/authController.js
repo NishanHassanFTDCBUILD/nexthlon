@@ -10,6 +10,8 @@ const { formatPaise } = require("../utils/money");
 const accountService = require("../services/accountService");
 const logger = require("../utils/logger");
 const { toPublicUser } = require("../utils/publicUser");
+const cartService = require("../services/cartService");
+const { readGuestCart, clearGuestCart } = require("../middleware/guestCart");
 
 // Adds the sign-in to the account's login activity (browser and masked IP). Never blocks signing in.
 async function noteLogin(req, user) {
@@ -17,6 +19,22 @@ async function noteLogin(req, user) {
     await accountService.recordLogin(user._id, { userAgent: req.get("user-agent"), ip: req.ip });
   } catch (error) {
     logger.warn("login_activity.failed", { error });
+  }
+}
+
+// What a guest put in their cart before signing in moves into the account's cart, and the guest cart
+// cookie goes. Never blocks signing in: if it fails, the guest cart simply stays for next time.
+// Returns a sentence for the welcome message ("" when nothing moved).
+async function bringGuestCart(req, res, user) {
+  const guest = readGuestCart(req);
+  if (!guest) return "";
+  try {
+    const { moved } = await cartService.mergeGuestCart(user._id, guest);
+    clearGuestCart(res);
+    return moved ? ` The ${moved === 1 ? "item" : "items"} in your cart ${moved === 1 ? "is" : "are"} saved to your account.` : "";
+  } catch (error) {
+    logger.warn("guest_cart.merge_failed", { error });
+    return "";
   }
 }
 
@@ -44,7 +62,8 @@ const signup = asyncHandler(async (req, res) => {
   // Ask them to confirm the address. In the background: they are signing up, not waiting for an email server.
   emailVerificationService.sendInBackground(user, { baseUrl: siteUrlFor(req), ip: req.ip });
   const bonus = user.referralReward ? ` ${formatPaise(user.referralReward)} has been added to your wallet.` : "";
-  await sendSignedIn(req, res, user, 201, `Welcome to Nexthlon! Your account is ready.${bonus}`);
+  const carried = await bringGuestCart(req, res, user);
+  await sendSignedIn(req, res, user, 201, `Welcome to Nexthlon! Your account is ready.${bonus}${carried}`);
 });
 
 // POST /api/login
@@ -53,7 +72,8 @@ const login = asyncHandler(async (req, res) => {
   if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
   const user = await authService.authenticate(value, "customer");
   await noteLogin(req, user);
-  await sendSignedIn(req, res, user, 200, `Welcome back, ${user.name.split(" ")[0]}!`);
+  const carried = await bringGuestCart(req, res, user);
+  await sendSignedIn(req, res, user, 200, `Welcome back, ${user.name.split(" ")[0]}!${carried}`);
 });
 
 // POST /api/admin/login

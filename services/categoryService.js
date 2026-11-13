@@ -6,6 +6,7 @@ const { CATEGORIES } = require("../config/catalog");
 const { slugify } = require("../utils/slug");
 const { HttpError } = require("../utils/http");
 const { LISTED_CATEGORY } = require("../utils/queryFilters");
+const memo = require("../utils/memo");
 
 // The listed categories are read on every page (header, menus), so they are kept in memory
 // for a short time. Any admin change clears this straight away.
@@ -14,6 +15,8 @@ let cache = null;
 
 function invalidate() {
   cache = null;
+  // Category names, photos and offers show on the home page and in related products too.
+  memo.forget("catalog:");
 }
 
 async function listedCategories() {

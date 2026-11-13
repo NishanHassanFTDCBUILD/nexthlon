@@ -8,8 +8,8 @@ const { readIdList, validateReview, hasErrors } = require("../utils/validators")
 // GET /api/products?q=&category=&brand=&min=&max=&discount=&rating=&inStock=1&sort=&page=
 // Prices are in paise; min and max in the query are whole rupees.
 const listProducts = asyncHandler(async (req, res) => {
-  const { products, pagination, filters, facets } = await productService.listProducts(req.query);
-  res.json({ products: products.map(productService.toPublicProduct), pagination, filters, facets });
+  const { products, pagination, filters, facets, correctedQuery } = await productService.listProducts(req.query);
+  res.json({ products: products.map(productService.toPublicProduct), pagination, filters, facets, correctedQuery });
 });
 
 // GET /api/products/search?q=

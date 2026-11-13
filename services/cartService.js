@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Cart = require("../models/Cart");
+const GuestCart = require("../models/GuestCart");
 const Product = require("../models/Product");
 const { HttpError } = require("../utils/http");
 const { STORE } = require("../config/store");
@@ -87,25 +88,34 @@ function toObjectId(productId) {
   return new mongoose.Types.ObjectId(String(productId));
 }
 
-async function findOrCreateCart(userId) {
+// Whose cart: a signed-in customer (their user id) or a guest ({ guest: <token hash> }, see
+// middleware/guestCart.js). Every rule below is the same for both; only where the cart is kept differs.
+function storeFor(owner) {
+  if (owner && typeof owner === "object" && typeof owner.guest === "string") {
+    return { Model: GuestCart, filter: { tokenHash: owner.guest } };
+  }
+  return { Model: Cart, filter: { user: owner } };
+}
+
+async function findOrCreateCart(owner) {
+  const { Model, filter } = storeFor(owner);
   try {
-    return await Cart.findOneAndUpdate(
-      { user: userId },
-      { $setOnInsert: { user: userId, items: [] } },
-      { upsert: true, new: true }
-    );
+    return await Model.findOneAndUpdate(filter, { $setOnInsert: { ...filter, items: [] } }, { upsert: true, new: true });
   } catch (error) {
     // Two first-time adds at the same moment: the other one created the cart.
-    if (error.code === 11000) return Cart.findOne({ user: userId });
+    if (error.code === 11000) return Model.findOne(filter);
     throw error;
   }
 }
 
 // Loads the cart with live product data. Deleted products are dropped, and quantities above
 // the current stock are lowered, so the stored cart always follows the rules.
-// couponCode is the coupon chosen at checkout (checked again by checkoutService).
-async function getCart(userId) {
-  const cart = await Cart.findOne({ user: userId }).populate("items.product");
+// couponCode is the coupon chosen at checkout (checked again by checkoutService); guests have none.
+// No owner (a guest who has not added anything yet): an empty cart.
+async function getCart(owner) {
+  if (!owner) return { ...buildCartView([]), couponCode: "" };
+  const { Model, filter } = storeFor(owner);
+  const cart = await Model.findOne(filter).populate("items.product");
   if (!cart) return { ...buildCartView([]), couponCode: "" };
 
   let changed = false;
@@ -125,16 +135,27 @@ async function getCart(userId) {
 }
 
 // The number shown on the header cart icon.
-async function countItems(userId) {
-  const cart = await Cart.findOne({ user: userId }).select("items.quantity").lean();
+async function countItems(owner) {
+  if (!owner) return 0;
+  const { Model, filter } = storeFor(owner);
+  const cart = await Model.findOne(filter).select("items.quantity").lean();
   return cart ? cart.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
 }
 
+// How many of one product are already in the cart (the product page says "2 already in your cart").
+async function quantityInCart(owner, productId) {
+  if (!owner || !mongoose.isValidObjectId(productId)) return 0;
+  const { Model, filter } = storeFor(owner);
+  const cart = await Model.findOne(filter).select("items").lean();
+  const line = cart && cart.items.find(item => String(item.product) === String(productId));
+  return line ? line.quantity : 0;
+}
+
 // Adds a product, or raises the quantity if it is already in the cart.
-async function addItem(userId, productId, quantity) {
+async function addItem(owner, productId, quantity) {
   const id = toObjectId(productId);
   const product = await Product.findById(id).lean();
-  const cart = await findOrCreateCart(userId);
+  const cart = await findOrCreateCart(owner);
   const existing = cart.items.find(item => item.product.equals(id));
   const already = existing ? existing.quantity : 0;
 
@@ -153,12 +174,13 @@ async function addItem(userId, productId, quantity) {
   if (existing) existing.quantity = already + quantity;
   else cart.items.push({ product: id, quantity });
   await cart.save();
-  return { product, cart: await getCart(userId) };
+  return { product, cart: await getCart(owner) };
 }
 
-async function updateQuantity(userId, productId, quantity) {
+async function updateQuantity(owner, productId, quantity) {
   const id = toObjectId(productId);
-  const cart = await Cart.findOne({ user: userId });
+  const { Model, filter } = storeFor(owner);
+  const cart = owner ? await Model.findOne(filter) : null;
   const item = cart && cart.items.find(line => line.product.equals(id));
   if (!item) throw new HttpError(404, "This item is not in your cart.");
   const product = await Product.findById(id).lean();
@@ -166,19 +188,51 @@ async function updateQuantity(userId, productId, quantity) {
   if (problem) throw new HttpError(400, problem);
   item.quantity = quantity;
   await cart.save();
-  return getCart(userId);
+  return getCart(owner);
 }
 
-async function removeItem(userId, productId) {
+async function removeItem(owner, productId) {
   const id = toObjectId(productId);
-  const result = await Cart.updateOne({ user: userId, "items.product": id }, { $pull: { items: { product: id } } });
+  if (!owner) throw new HttpError(404, "This item is not in your cart.");
+  const { Model, filter } = storeFor(owner);
+  const result = await Model.updateOne({ ...filter, "items.product": id }, { $pull: { items: { product: id } } });
   if (!result.modifiedCount) throw new HttpError(404, "This item is not in your cart.");
-  return getCart(userId);
+  return getCart(owner);
 }
 
-async function clearCart(userId) {
-  await Cart.updateOne({ user: userId }, { $set: { items: [], couponCode: "" } });
+async function clearCart(owner) {
+  if (owner) {
+    const { Model, filter } = storeFor(owner);
+    await Model.updateOne(filter, { $set: Model === Cart ? { items: [], couponCode: "" } : { items: [] } });
+  }
   return buildCartView([]);
+}
+
+// At sign-in or sign-up, everything the guest added moves into the account's cart. A product already
+// in both is added together, but never above the usual limit (stock, and 5 of each); products no longer
+// sold are left out. The guest cart is then deleted. Returns how many units were added.
+async function mergeGuestCart(userId, tokenHash) {
+  if (!tokenHash) return { moved: 0 };
+  const guest = await GuestCart.findOne({ tokenHash }).populate("items.product");
+  if (!guest) return { moved: 0 };
+  let moved = 0;
+  const lines = guest.items.filter(line => line.product && isAvailable(line.product));
+  if (lines.length) {
+    const cart = await findOrCreateCart(userId);
+    for (const line of lines) {
+      const product = line.product;
+      const existing = cart.items.find(item => item.product.equals(product._id));
+      const have = existing ? existing.quantity : 0;
+      const next = Math.min(limitFor(product), have + line.quantity);
+      if (next <= have) continue;
+      moved += next - have;
+      if (existing) existing.quantity = next;
+      else cart.items.push({ product: product._id, quantity: next });
+    }
+    if (moved) await cart.save();
+  }
+  await GuestCart.deleteOne({ _id: guest._id });
+  return { moved };
 }
 
 module.exports = {
@@ -191,6 +245,8 @@ module.exports = {
   buildCartView,
   getCart,
   countItems,
+  quantityInCart,
+  mergeGuestCart,
   addItem,
   updateQuantity,
   removeItem,

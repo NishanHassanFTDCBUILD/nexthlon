@@ -47,7 +47,7 @@
                 </div>
                 <strong class="cart-line-total" data-cart-line-total><%= item.available ? formatPrice(item.lineTotal) : '—' %></strong>
                 <div class="cart-links">
-                  <button type="button" class="link-btn" data-cart-save aria-label="Save for later: <%= item.name %>"><%- icon('heart', 'i-xs') %> Save for later</button>
+                  <% if (currentUser) { %><button type="button" class="link-btn" data-cart-save aria-label="Save for later: <%= item.name %>"><%- icon('heart', 'i-xs') %> Save for later</button><% } %>
                   <button type="button" class="link-btn cart-remove" data-cart-remove aria-label="Remove <%= item.name %> from your cart"><%- icon('trash', 'i-xs') %> Remove</button>
                 </div>
               </div>
@@ -86,6 +86,19 @@
       <a class="btn btn-ghost btn-block" href="/products">Continue shopping</a>
     </aside>
   </div>
+
+  <% if (typeof alsoBought !== 'undefined' && alsoBought.length) { %>
+    <%# Products often ordered with what is in this cart (recommendationService). %>
+    <section class="section" aria-labelledby="also-title">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">Goes well with your cart</span>
+          <h2 id="also-title">Customers also bought</h2>
+        </div>
+      </div>
+      <%- include('../partials/rail', { products: alsoBought, label: 'Customers also bought' }) %>
+    </section>
+  <% } %>
 </main>
 
 <%- include('../partials/footer', { scripts: ['cart'] }) %>

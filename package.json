@@ -19,6 +19,7 @@
     "jobs:retry": "node scripts/jobsStatus.js --retry",
     "emails:preview": "node scripts/previewEmails.js",
     "images:migrate": "node scripts/migrateImages.js",
+    "load:test": "node scripts/loadTest.js",
     "test": "node --test"
   },
   "engines": {

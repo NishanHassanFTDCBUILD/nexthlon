@@ -85,7 +85,8 @@
     return { item, link };
   }
 
-  function render(products, query) {
+  // corrected: the spelling-corrected words when the words as typed found nothing ("shoees" -> "shoes").
+  function render(products, query, corrected) {
     list.replaceChildren();
     options = [];
     active = -1;
@@ -122,8 +123,10 @@
     list.append(item);
     options.push(item);
 
+    const shown = Math.min(products.length, MAX_SUGGESTIONS);
+    const count = `${shown} ${shown === 1 ? "suggestion" : "suggestions"}`;
     setStatus(products.length
-      ? `${Math.min(products.length, MAX_SUGGESTIONS)} suggestions. Use the up and down arrows to choose.`
+      ? `${corrected ? `Showing results for "${corrected}". ` : ""}${count}. Use the up and down arrows to choose.`
       : `No products match "${query}". Press Enter to search anyway.`, products.length ? "" : "empty");
     open();
   }
@@ -146,7 +149,7 @@
       if (!response.ok) throw new Error("search failed");
       const data = await response.json();
       if (input.value.trim() !== query) return;
-      render(Array.isArray(data.products) ? data.products : [], query);
+      render(Array.isArray(data.products) ? data.products : [], query, typeof data.correctedQuery === "string" ? data.correctedQuery : "");
     } catch (error) {
       if (error.name === "AbortError") return;
       setStatus("Suggestions are not available right now. Press Enter to search.", "error");

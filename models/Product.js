@@ -55,4 +55,15 @@ productSchema.pre("validate", function setPrices(next) {
   next();
 });
 
+// Any change to a product (an admin edit, stock going down with an order, a price offer) clears the
+// short-lived catalogue cache (utils/memo.js), so this server shows it on the very next page.
+// Other servers catch up when their copy runs out (30 seconds at most).
+const memo = require("../utils/memo");
+const forgetCatalog = () => memo.forget("catalog:");
+productSchema.post("save", forgetCatalog);
+productSchema.post(["updateOne", "updateMany", "findOneAndUpdate", "deleteOne", "deleteMany", "findOneAndDelete", "replaceOne"], forgetCatalog);
+productSchema.post("deleteOne", { document: true, query: false }, forgetCatalog);
+productSchema.post("insertMany", forgetCatalog);
+productSchema.post("bulkWrite", forgetCatalog);
+
 module.exports = mongoose.model("Product", productSchema);

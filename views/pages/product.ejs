@@ -158,14 +158,9 @@
           <% if (product.stock <= 0) { %>
             <button class="pdx-btn pdx-btn-buy" type="button" disabled>Out of stock</button>
             <p class="pdx-note">This item is sold out right now. Check back soon.</p>
-          <% } else if (!currentUser) { %>
-            <%# Guests sign in first, then come straight back to this product. %>
-            <div class="pdx-ctas">
-              <a class="pdx-btn pdx-btn-cart" href="/login?next=<%= backHere %>" data-magnetic><%- icon('cart', 'i-sm') %> Add to cart</a>
-              <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= buyAfterLogin %>" data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</a>
-            </div>
-            <p class="pdx-note">Sign in to buy. New here? <a href="/signup?next=<%= backHere %>">Create an account</a>.</p>
           <% } else if (shopper) { %>
+            <%# Guests add to a cart of their own (it moves into their account when they sign in); only
+                 "Buy now", which goes straight to checkout, asks them to sign in first. %>
             <form class="pdx-order" data-add-to-cart data-product-id="<%= product._id %>" novalidate>
               <div class="pdx-qty-row">
                 <label for="qty">Quantity</label>
@@ -178,8 +173,13 @@
               </div>
               <div class="pdx-ctas">
                 <button class="pdx-btn pdx-btn-cart" type="submit" data-magnetic><%- icon('cart', 'i-sm') %> <span data-cart-label>Add to cart</span></button>
-                <button class="pdx-btn pdx-btn-buy" type="button" data-buy-now data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</button>
+                <% if (currentUser) { %>
+                  <button class="pdx-btn pdx-btn-buy" type="button" data-buy-now data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</button>
+                <% } else { %>
+                  <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= buyAfterLogin %>" data-magnetic><%- icon('bolt', 'i-sm') %> Buy now</a>
+                <% } %>
               </div>
+              <% if (!currentUser) { %><p class="pdx-note">No account needed to fill your cart. You sign in at checkout.</p><% } %>
             </form>
           <% } %>
 
@@ -338,6 +338,19 @@
     </section>
   </div>
 
+  <% if (together.length) { %>
+    <%# Products that real customers ordered together with this one (recommendationService). %>
+    <section class="section container" aria-labelledby="together-title">
+      <div class="section-head" data-reveal>
+        <div>
+          <span class="section-kicker">Customers who bought this also bought</span>
+          <h2 id="together-title">Frequently bought together</h2>
+        </div>
+      </div>
+      <%- include('../partials/rail', { products: together, label: 'Frequently bought together' }) %>
+    </section>
+  <% } %>
+
   <% if (related.length) { %>
     <section class="section container" aria-labelledby="related-title">
       <div class="section-head" data-reveal>
@@ -359,8 +372,8 @@
         <strong><%= product.name %></strong>
         <span><% if (product.discountPercent > 0) { %><em class="pdx-off pdx-off-sm">-<%= product.discountPercent %>%</em> <% } %><%= formatPrice(product.price) %><% if (saving) { %> <s><%= formatPrice(product.mrp) %></s><% } %></span>
       </div>
+      <button type="button" class="pdx-btn pdx-btn-cart" data-dock-cart tabindex="-1"><%- icon('cart', 'i-sm') %><span>Add</span></button>
       <% if (currentUser) { %>
-        <button type="button" class="pdx-btn pdx-btn-cart" data-dock-cart tabindex="-1"><%- icon('cart', 'i-sm') %><span>Add</span></button>
         <button type="button" class="pdx-btn pdx-btn-buy" data-buy-now tabindex="-1"><%- icon('bolt', 'i-sm') %><span>Buy now</span></button>
       <% } else { %>
         <a class="pdx-btn pdx-btn-buy" href="/login?next=<%= buyAfterLogin %>" tabindex="-1"><%- icon('bolt', 'i-sm') %><span>Buy now</span></a>

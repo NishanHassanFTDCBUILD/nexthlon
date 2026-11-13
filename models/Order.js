@@ -119,5 +119,7 @@ orderSchema.index({ paymentMethod: 1, createdAt: -1 });
 orderSchema.index({ "address.city": 1, createdAt: -1 });
 orderSchema.index({ "refunds.at": -1 }, { sparse: true });
 orderSchema.index({ "razorpay.orderId": 1 }, { sparse: true });
+// "Frequently bought together" (recommendationService): orders that contain a product, newest first.
+orderSchema.index({ "items.product": 1, createdAt: -1 });
 
 module.exports = mongoose.model("Order", orderSchema);

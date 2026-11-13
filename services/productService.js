@@ -4,6 +4,8 @@ const categoryService = require("./categoryService");
 const { HttpError } = require("../utils/http");
 const { bestOfferFor } = require("../utils/pricing");
 const { LISTED_PRODUCT } = require("../utils/queryFilters");
+const memo = require("../utils/memo");
+const { correctQuery, vocabularyFrom } = require("../utils/fuzzy");
 
 const PAGE_SIZE = 12;
 // "relevance" ranks by text-search score when there is a search, and by best deals otherwise.
@@ -63,15 +65,36 @@ function readFilters(query = {}) {
   return { q, category, brands, min, max, discount, rating, inStock, sort, view, page };
 }
 
+// Every word the store uses in product names, brands and category names, for spelling help
+// (utils/fuzzy.js). The same for everyone, so kept for 5 minutes; any product change clears it.
+function searchVocabulary() {
+  return memo.remember("catalog:vocab", 5 * 60 * 1000, async () => {
+    const [products, categories] = await Promise.all([
+      Product.find({ ...LISTED_PRODUCT }).select("name brand").lean(),
+      categoryService.listedCategories()
+    ]);
+    return vocabularyFrom([...products.map(p => p.name), ...products.map(p => p.brand), ...categories.map(c => c.name)]);
+  });
+}
+
 // The search part of a query. MongoDB text search handles whole words ("trail shoes");
 // when it finds nothing, a plain "contains" match on name, brand and description catches
-// partial words ("tra") so suggestions still work while typing.
+// partial words ("tra") so suggestions still work while typing. When that finds nothing either, the
+// words are checked for spelling against the store's own words ("shoees" becomes "shoes") and the
+// corrected search is used; the page then says "Showing results for shoes".
 async function searchClause(base, q) {
   if (!q) return { clause: {}, mode: "none" };
   const text = { $text: { $search: q } };
   if (await Product.exists({ ...base, ...text })) return { clause: text, mode: "text" };
   const pattern = new RegExp(escapeRegex(q), "i");
-  return { clause: { $or: [{ name: pattern }, { brand: pattern }, { description: pattern }] }, mode: "contains" };
+  const contains = { $or: [{ name: pattern }, { brand: pattern }, { description: pattern }] };
+  if (await Product.exists({ ...base, ...contains })) return { clause: contains, mode: "contains" };
+  const corrected = correctQuery(q, await searchVocabulary());
+  if (corrected) {
+    const fixed = { $text: { $search: corrected } };
+    if (await Product.exists({ ...base, ...fixed })) return { clause: fixed, mode: "corrected", corrected };
+  }
+  return { clause: contains, mode: "contains" };
 }
 
 // The one place a validated filter becomes a database query. readFilters() has already thrown
@@ -103,14 +126,14 @@ async function listProducts(query) {
 
   const base = { ...LISTED_PRODUCT };
   if (category) base.category = category._id;
-  const { clause, mode } = await searchClause(base, filters.q);
+  const { clause, mode, corrected } = await searchClause(base, filters.q);
   // "scope" is everything the shopper searched for; the facets (brands, price range) come from it,
   // so picking a brand never hides the other brands.
   const scope = { ...base, ...clause };
 
   const filter = toProductQuery(filters, scope);
 
-  const useScore = filters.sort === "relevance" && mode === "text";
+  const useScore = filters.sort === "relevance" && (mode === "text" || mode === "corrected");
   const order = useScore ? { score: { $meta: "textScore" }, _id: 1 } : SORTS[filters.sort].order;
   const finder = Product.find(filter, useScore ? { score: { $meta: "textScore" } } : undefined)
     .sort(order)
@@ -127,6 +150,8 @@ async function listProducts(query) {
     facets,
     filters,
     searchMode: mode,
+    // The spelling-corrected search, when the words as typed found nothing ("shoees" -> "shoes").
+    correctedQuery: corrected || null,
     pagination: { page: filters.page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total, limit: PAGE_SIZE }
   };
 }
@@ -187,10 +212,12 @@ async function getProduct(idOrSlug) {
   return Product.findOne({ $or: conditions, ...LISTED_PRODUCT }).populate("category", CATEGORY_FIELDS).lean();
 }
 
+// The same for every visitor, so kept for 60 seconds (utils/memo.js; any product change clears it).
 function getRelatedProducts(product, limit = 8) {
   const categoryId = product.category && product.category._id ? product.category._id : product.category;
-  return Product.find({ ...LISTED_PRODUCT, category: categoryId, _id: { $ne: product._id } })
-    .sort({ ratingAverage: -1, discountPercent: -1, _id: 1 }).limit(limit).lean();
+  return memo.remember(`catalog:related:${product._id}:${limit}`, 60 * 1000, () =>
+    Product.find({ ...LISTED_PRODUCT, category: categoryId, _id: { $ne: product._id } })
+      .sort({ ratingAverage: -1, discountPercent: -1, _id: 1 }).limit(limit).lean());
 }
 
 async function getHomeSections() {

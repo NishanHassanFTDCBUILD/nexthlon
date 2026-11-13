@@ -1,6 +1,7 @@
 const productService = require("./productService");
 const Product = require("../models/Product");
 const { LISTED_PRODUCT } = require("../utils/queryFilters");
+const memo = require("../utils/memo");
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -130,15 +131,24 @@ function buildFeatured({ bestSellers = [], newest = [], deals = [] } = {}, size 
     }));
 }
 
-async function getHomePage(now = new Date()) {
+// The home page is the same for every visitor apart from the deal countdown, and it takes about ten
+// queries to build, so the built sections are kept for 30 seconds (utils/memo.js; any product or
+// category change clears them at once). Only the countdown is worked out on every request.
+const HOME_TTL_MS = 30 * 1000;
+
+async function buildHomeSections() {
   const sections = await productService.getHomeSections();
   const gearImages = await findGearImages(buildSportRing(sections.categories), sections.categories);
   return {
     ...sections,
     sports: buildSportRing(sections.categories, gearImages),
-    featured: buildFeatured(sections),
-    dealEndsAt: dealEndsAt(now)
+    featured: buildFeatured(sections)
   };
+}
+
+async function getHomePage(now = new Date()) {
+  const sections = await memo.remember("catalog:home", HOME_TTL_MS, buildHomeSections);
+  return { ...sections, dealEndsAt: dealEndsAt(now) };
 }
 
 module.exports = { dealEndsAt, buildSportRing, portraitImage, buildFeatured, getHomePage };

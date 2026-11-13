@@ -121,4 +121,15 @@ const pincodeLimiter = rateLimit({
   message: { message: "Too many PIN code lookups. Type the city and state yourself, or try again in a few minutes." }
 });
 
-module.exports = { pincodeLimiter, forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
+// Cart changes: 150 per 15 minutes per IP address. Far above any real shopper (each tap is one change),
+// but guests can make carts without an account, so a script cannot fill the database with them.
+const cartLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 150,
+  skip: req => req.method === "GET",
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many cart changes. Please wait a few minutes and try again." }
+});
+
+module.exports = { cartLimiter, pincodeLimiter, forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };

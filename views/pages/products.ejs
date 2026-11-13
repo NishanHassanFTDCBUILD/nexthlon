@@ -199,6 +199,9 @@
     <section class="results" aria-labelledby="results-heading" data-results>
       <div class="results-head">
         <h1 id="results-heading" tabindex="-1"><%= heading %></h1>
+        <% if (typeof correctedQuery !== 'undefined' && correctedQuery) { %>
+          <p class="search-corrected" data-search-corrected><%- icon('info', 'i-xs') %> No results for "<%= filters.q %>", so we searched for "<%= correctedQuery %>".</p>
+        <% } %>
         <p class="muted result-count" aria-live="polite" data-results-summary>
           <% if (pagination.total) { %>
             Showing <%= firstItem %>–<%= lastItem %> of <strong><%= pagination.total %></strong> <%= pagination.total === 1 ? 'result' : 'results' %>

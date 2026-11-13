@@ -42,7 +42,11 @@ router.get("/account/referral", accountPage, account.referral);
 router.get("/account/help", accountPage, account.help);
 router.get("/account/help/:ticketId", accountPage, account.ticket);
 router.get("/lists/:shareId", account.sharedList);
-router.get("/cart", customerPage, pages.cart);
+// Guests have a cart too (kept by a cookie); checkout below asks them to sign in. A login that is
+// blocked or has run out is handled exactly like the account pages (sign-in page, or a quiet renewal
+// that comes back here), so a customer never sees an empty guest cart in place of their own.
+const cartPage = (req, res, next) => (req.authProblem ? customerPage(req, res, next) : next());
+router.get("/cart", cartPage, pages.cart);
 router.get("/checkout", customerPage, pages.checkout);
 router.get(["/account/orders", "/orders"], accountPage, pages.orders);
 router.get(["/account/wallet", "/wallet"], accountPage, pages.wallet);

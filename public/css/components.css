@@ -688,3 +688,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; 
 .is-rolling:not(.count-dot) { position: relative; }
 .roll-now { display: inline-block; }
 .roll-ghost { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+
+/* "No results for "shoees", so we searched for "shoes"." under a corrected search's heading. */
+.search-corrected { display: flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-xs); color: var(--muted); font-size: var(--text-sm); }
+.search-corrected .i { color: var(--brand); flex: none; }

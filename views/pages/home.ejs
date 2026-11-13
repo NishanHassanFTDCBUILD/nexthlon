@@ -289,12 +289,9 @@
                   <strong class="flip-name"><%= p.name %></strong>
                   <span class="saving">You save <%= formatPrice(p.mrp - p.price) %></span>
                   <% if (p.stock > 0 && shopper) { %>
-                    <% if (currentUser) { %>
-                      <%# The photo is on the hidden front face, so the flight starts from the whole card (store.js). %>
-                      <button type="button" class="btn btn-primary btn-sm" data-cart-add="<%= p._id %>" data-cart-from="card" data-cart-src="<%= sizedUrl(p.image, 400) %>" data-cart-href="/products/<%= p.slug %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
-                    <% } else { %>
-                      <a class="btn btn-primary btn-sm" href="/login?next=<%= encodeURIComponent('/products/' + p.slug) %>"><%- icon('cart', 'i-sm') %> Sign in to buy</a>
-                    <% } %>
+                    <%# Guests too: their cart moves into their account when they sign in. The photo is on the
+                         hidden front face, so the flight starts from the whole card (store.js). %>
+                    <button type="button" class="btn btn-primary btn-sm" data-cart-add="<%= p._id %>" data-cart-from="card" data-cart-src="<%= sizedUrl(p.image, 400) %>"><%- icon('cart', 'i-sm') %> Add to cart</button>
                   <% } else if (p.stock <= 0) { %>
                     <span class="stock stock-out">Out of stock</span>
                   <% } %>

@@ -265,10 +265,9 @@
   };
 
   // ---------- Add to cart (every button on the site goes through here) ----------
-  // { productId, quantity, source, src, button, href }
+  // { productId, quantity, source, src, button }
   //   source  the element the photo flies from (a photo or a card); src the photo to fly
   //   button  disabled while the request runs; quick-add buttons (.card-add) also show "added" or "max"
-  //   href    where a guest comes back to after signing in
   // Resolves { ok: true, cart } or { ok: false, error }. Never throws.
   const header = document.querySelector("[data-site-header]");
   const role = header ? header.dataset.shopper : "admin";
@@ -290,12 +289,10 @@
     }
   }
 
-  Nx.addToCart = async function addToCart({ productId, quantity = 1, source, src, button, href } = {}) {
-    if (role === "guest") {
-      const back = href || window.location.pathname + window.location.search;
-      window.location.assign(`/login?${new URLSearchParams({ next: back })}`);
-      return { ok: false, error: null };
-    }
+  // Guests add to a cart of their own (kept by a cookie on the server), which moves into their account
+  // when they sign in; only checkout asks them to sign in.
+  Nx.addToCart = async function addToCart({ productId, quantity = 1, source, src, button } = {}) {
+    if (role !== "guest" && role !== "customer") return { ok: false, error: null };
     if (!productId || (button && inFlight.has(button))) return { ok: false, error: null };
     if (button) {
       inFlight.add(button);
@@ -331,7 +328,7 @@
 
   // Any [data-cart-add="<product id>"] button adds one to the cart. The photo flies from the card the
   // button sits in; data-cart-src names a different photo, data-cart-from="card" flies the whole card's
-  // box (for cards whose photo is on a hidden face), data-cart-href is where a guest returns to.
+  // box (for cards whose photo is on a hidden face).
   document.addEventListener("click", event => {
     const button = event.target.closest("[data-cart-add]");
     if (!button || button.disabled) return;
@@ -340,7 +337,7 @@
     const photo = card && card.querySelector("img");
     const source = button.dataset.cartFrom === "card" && card ? card : photo || button;
     const src = button.dataset.cartSrc || (photo ? photo.currentSrc || photo.src : "");
-    Nx.addToCart({ productId: button.dataset.cartAdd, source, src, button, href: button.dataset.cartHref });
+    Nx.addToCart({ productId: button.dataset.cartAdd, source, src, button });
   });
 
   // ---------- Product cards drawn in the browser (same markup as partials/product-card.ejs) ----------
@@ -419,7 +416,6 @@
       add.type = "button";
       add.className = "card-add";
       add.dataset.cartAdd = p.id;
-      add.dataset.cartHref = `/products/${encodeURIComponent(p.slug)}`;
       add.innerHTML = `${iconSvg("cart", "card-add-cart")}${iconSvg("check", "card-add-done")}<span class="sr-only"></span>`;
       add.querySelector(".sr-only").textContent = `Add ${p.name} to cart`;
       card.querySelector(".product-media").append(add);
