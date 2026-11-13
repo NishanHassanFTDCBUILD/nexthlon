@@ -21,8 +21,43 @@ const orderItemSchema = new mongoose.Schema({
   lineTotal: { type: Number, required: true, min: 0 },
   status: { type: String, enum: ORDER_STATUSES, default: "placed" },
   cancelReason: { type: String, default: "" },
-  returnReason: { type: String, default: "" }
+  returnReason: { type: String, default: "" },
+  // GST on this line as invoiced (services/gstService.js): value is what was paid after its share of
+  // any coupon; taxable + cgst + sgst + igst = value. Missing on orders from before GST invoices.
+  tax: { type: new mongoose.Schema({
+    hsn: String, rate: Number, discount: Number, value: Number, taxable: Number, cgst: Number, sgst: Number, igst: Number
+  }, { _id: false }), default: undefined }
 });
+
+// The GST money of one line (an item, or delivery).
+const taxLineSchema = new mongoose.Schema({
+  itemId: { type: mongoose.Schema.Types.ObjectId, default: null },
+  name: String, hsn: String, rate: Number, quantity: Number, value: Number, taxable: Number, cgst: Number, sgst: Number, igst: Number
+}, { _id: false });
+
+// A credit note: invoiced items cancelled or returned, with the tax that goes back.
+const creditNoteSchema = new mongoose.Schema({
+  number: { type: String, required: true },
+  date: { type: Date, default: Date.now },
+  reason: { type: String, default: "" },
+  lines: { type: [taxLineSchema], default: [] },
+  delivery: { type: taxLineSchema, default: null },
+  taxable: Number, cgst: Number, sgst: Number, igst: Number, value: Number
+}, { _id: false });
+
+// The order's GST, fixed when it was placed, so later rate or address changes never alter an invoice.
+const gstSchema = new mongoose.Schema({
+  scheme: { type: String, enum: ["regular", "composition"], default: "regular" },
+  sellerState: String,
+  sellerGstin: String,
+  placeOfSupply: String,
+  interstate: Boolean,
+  taxable: Number, cgst: Number, sgst: Number, igst: Number, tax: Number, value: Number,
+  delivery: { type: taxLineSchema, default: null },
+  // Given when the order is confirmed (cash on delivery / wallet: at once; online: when paid).
+  invoiceNo: { type: String, default: "" },
+  invoiceDate: { type: Date, default: null }
+}, { _id: false });
 
 const addressSnapshotSchema = new mongoose.Schema({
   fullName: String,
@@ -113,7 +148,9 @@ const orderSchema = new mongoose.Schema({
   },
   shipments: { type: [shipmentSchema], default: [] },
   notes: { type: [noteSchema], default: [] },
-  returnDecision: { type: returnDecisionSchema, default: null }
+  returnDecision: { type: returnDecisionSchema, default: null },
+  gst: { type: gstSchema, default: undefined },
+  creditNotes: { type: [creditNoteSchema], default: [] }
 }, { timestamps: true });
 
 orderSchema.index({ user: 1, createdAt: -1 });
@@ -127,5 +164,7 @@ orderSchema.index({ "refunds.at": -1 }, { sparse: true });
 orderSchema.index({ "razorpay.orderId": 1 }, { sparse: true });
 // "Frequently bought together" (recommendationService): orders that contain a product, newest first.
 orderSchema.index({ "items.product": 1, createdAt: -1 });
+// GST: an invoice number is never used twice.
+orderSchema.index({ "gst.invoiceNo": 1 }, { unique: true, partialFilterExpression: { "gst.invoiceNo": { $type: "string", $gt: "" } } });
 
 module.exports = mongoose.model("Order", orderSchema);

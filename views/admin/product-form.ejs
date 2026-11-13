@@ -96,6 +96,65 @@
           </div>
         </section>
 
+        <%
+          const t = p.tax || { hsn: '', rate: null, rateAbove: null, aboveRupees: '' };
+          const s = p.taxSuggestion || { hsn: '9506', label: 'Sports goods', rate: 5, rateAbove: null, above: null };
+          const suggestText = s.label + ': HSN ' + s.hsn + ', ' + s.rate + '%' + (s.rateAbove !== null ? ' up to ₹' + (s.above / 100).toLocaleString('en-IN') + ' a piece, ' + s.rateAbove + '% above' : '');
+        %>
+        <section class="panel product-tax-panel" aria-labelledby="tax-title">
+          <h2 id="tax-title" class="panel-title">GST and legal details</h2>
+          <p class="muted">Shown on the GST invoice and the product page. Leave HSN and rate empty to use the suggestion: <strong data-tax-suggest-text><%= suggestText %></strong>. Rates changed in September 2025, so confirm them with your chartered accountant.</p>
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label for="p-hsn">HSN code</label>
+              <input id="p-hsn" name="hsn" inputmode="numeric" maxlength="8" pattern="\d{4}|\d{6}|\d{8}" value="<%= t.hsn %>" placeholder="<%= s.hsn %>" aria-describedby="p-hsn-error">
+              <p class="field-error" id="p-hsn-error" data-error-for="hsn"></p>
+            </div>
+            <div class="field">
+              <label for="p-gst">GST rate</label>
+              <div class="select-wrap select-field">
+                <select id="p-gst" name="gstRate" aria-describedby="p-gst-error">
+                  <option value="">Use the suggestion (<%= s.rate %>%)</option>
+                  <% [0, 5, 18, 40].forEach(function (r) { %><option value="<%= r %>" <%= t.rate === r ? 'selected' : '' %>><%= r %>%</option><% }) %>
+                </select>
+                <%- icon('chevron-down', 'i-xs') %>
+              </div>
+              <p class="field-error" id="p-gst-error" data-error-for="gstRate"></p>
+            </div>
+            <div class="field">
+              <label for="p-gst-above">Higher rate <span class="optional">(footwear and clothing)</span></label>
+              <div class="select-wrap select-field">
+                <select id="p-gst-above" name="gstRateAbove" aria-describedby="p-gst-above-error">
+                  <option value="">None</option>
+                  <% [5, 18, 40].forEach(function (r) { %><option value="<%= r %>" <%= t.rateAbove === r ? 'selected' : '' %>><%= r %>%</option><% }) %>
+                </select>
+                <%- icon('chevron-down', 'i-xs') %>
+              </div>
+              <p class="field-error" id="p-gst-above-error" data-error-for="gstRateAbove"></p>
+            </div>
+            <div class="field">
+              <label for="p-gst-limit">…for pieces worth more than (₹, before tax)</label>
+              <input id="p-gst-limit" name="gstAbove" type="number" inputmode="decimal" min="1" step="0.01" value="<%= t.aboveRupees %>" placeholder="2500" aria-describedby="p-gst-limit-error">
+              <p class="field-error" id="p-gst-limit-error" data-error-for="gstAbove"></p>
+            </div>
+            <div class="field">
+              <label for="p-origin">Country of origin</label>
+              <input id="p-origin" name="countryOfOrigin" maxlength="60" value="<%= p.countryOfOrigin || 'India' %>" required aria-describedby="p-origin-error">
+              <p class="field-error" id="p-origin-error" data-error-for="countryOfOrigin"></p>
+            </div>
+            <div class="field">
+              <label for="p-netqty">Net quantity</label>
+              <input id="p-netqty" name="netQuantity" maxlength="60" value="<%= p.netQuantity || '' %>" placeholder="e.g. 1 pair, 1 N, 750 ml" aria-describedby="p-netqty-error">
+              <p class="field-error" id="p-netqty-error" data-error-for="netQuantity"></p>
+            </div>
+            <div class="field field-wide">
+              <label for="p-maker">Manufacturer or importer <span class="optional">(name and address)</span></label>
+              <textarea id="p-maker" name="manufacturer" rows="2" maxlength="300" placeholder="e.g. Nexthlon Sports Pvt Ltd, 12 MG Road, Kochi, Kerala 682001" aria-describedby="p-maker-error"><%= p.manufacturer || '' %></textarea>
+              <p class="field-error" id="p-maker-error" data-error-for="manufacturer"></p>
+            </div>
+          </div>
+        </section>
+
         <section class="panel product-options-panel" aria-labelledby="options-title" data-options-editor data-options="<%= JSON.stringify(p.options || []) %>">
           <h2 id="options-title" class="panel-title">Sizes and colours <span class="optional">(optional)</span></h2>
           <p class="muted">Each size or colour has its own stock, and shoppers choose one before adding to the cart. The price is the same for all of them. Leave this empty for a product that comes in one size.</p>

@@ -246,9 +246,19 @@ const orderSuccess = asyncHandler(async (req, res) => {
 
 const orderInvoice = asyncHandler(async (req, res) => {
   const order = await orderService.getOwnedOrder(req.user._id, req.params.orderId);
+  invoiceService.assertInvoiceReady(order);
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="${invoiceService.invoiceNumber(order)}.pdf"`);
+  res.setHeader("Content-Disposition", `attachment; filename="${invoiceService.fileNameFor(invoiceService.invoiceNumber(order))}"`);
   invoiceService.writeInvoice(order, res);
+});
+
+// A GST credit note of the customer's own order (by its position: 0, 1, ...).
+const orderCreditNote = asyncHandler(async (req, res) => {
+  const order = await orderService.getOwnedOrder(req.user._id, req.params.orderId);
+  const note = invoiceService.findCreditNote(order, req.params.index);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${invoiceService.fileNameFor(note.number)}"`);
+  invoiceService.writeCreditNote(order, note, res);
 });
 
 // ---------- Admin pages ----------
@@ -354,6 +364,7 @@ module.exports = {
   orderDetail,
   orderSuccess,
   orderInvoice,
+  orderCreditNote,
   adminLogin,
   adminDashboard,
   adminAnalytics,

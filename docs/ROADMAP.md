@@ -187,6 +187,9 @@ size and colour picker award-level on phone and desktop. Plan first, then wait f
   - store details: `config/store.js` (real details);
   - pages: product page "Details" and the policy pages.
 - **Done when:** a sample invoice for a Kerala-to-Kerala order and one for a Kerala-to-Delhi order both show the correct tax split, and a chartered accountant has checked the format.
+- **Progress (2026-11-13):**
+  - [x] Code: HSN, GST rate (with a second rate above a value per piece, for footwear and clothing), country of origin, manufacturer or importer and net quantity on products (admin form and product page; a suggested HSN and rate when none is set). GST worked out when an order is saved (coupon shared out before tax, delivery at the highest rate, CGST + SGST or IGST by place of supply) and fixed on the order. Gap-free invoice numbers per financial year (`NX/26-27/000001`) given when the order is confirmed, GST tax invoice PDF, credit notes (`CN/…`) for cancelled or returned invoiced items, a "bill of supply" for the composition scheme. Settings `STORE_STATE` and `STORE_GST_SCHEME`. Tests: `tests/gst.test.js` (Kerala-to-Kerala and Kerala-to-Delhi).
+  - [ ] Yours: set `STORE_LEGAL_NAME`, `STORE_ADDRESS`, `STORE_GSTIN`, `STORE_STATE`; confirm each product's HSN and rate; have a chartered accountant check a sample invoice and credit note.
 
 ```text
 Step B4 from docs/ROADMAP.md: make invoices GST-compliant (HSN, GST rate, taxable value,

@@ -133,9 +133,19 @@ const refund = asyncHandler(async (req, res) => {
 
 const invoicePdf = asyncHandler(async (req, res) => {
   const order = await adminOrderService.findOrder(req.params.orderId);
+  invoiceService.assertInvoiceReady(order);
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="${invoiceService.invoiceNumber(order)}.pdf"`);
+  res.setHeader("Content-Disposition", `attachment; filename="${invoiceService.fileNameFor(invoiceService.invoiceNumber(order))}"`);
   invoiceService.writeInvoice(order, res);
+});
+
+// A GST credit note, by its number's position in the order (0, 1, ...).
+const creditNotePdf = asyncHandler(async (req, res) => {
+  const order = await adminOrderService.findOrder(req.params.orderId);
+  const note = invoiceService.findCreditNote(order, req.params.index);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${invoiceService.fileNameFor(note.number)}"`);
+  invoiceService.writeCreditNote(order, note, res);
 });
 
 const packingSlipPdf = asyncHandler(async (req, res) => {
@@ -213,6 +223,6 @@ const remindCart = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  listOrders, exportOrders, getOrder, setStatus, bulkStatus, cancelItems, addShipment, addNote, refund, invoicePdf, packingSlipPdf,
+  listOrders, exportOrders, getOrder, setStatus, bulkStatus, cancelItems, addShipment, addNote, refund, invoicePdf, creditNotePdf, packingSlipPdf,
   listReturns, decideReturn, listTransactions, exportTransactions, getTransaction, reconciliation, listRefunds, listAbandoned, remindCart
 };

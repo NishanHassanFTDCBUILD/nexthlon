@@ -21,7 +21,10 @@
       </p>
     </div>
     <div class="admin-top-actions">
-      <a class="btn btn-ghost btn-sm" href="/api/admin/orders/<%= o.orderId %>/invoice.pdf" download data-full-load><%- icon('file-text', 'i-sm') %> Invoice</a>
+      <a class="btn btn-ghost btn-sm" href="/api/admin/orders/<%= o.orderId %>/invoice.pdf" download data-full-load><%- icon('file-text', 'i-sm') %> Invoice<% if (o.gst && o.gst.invoiceNo && !o.gst.invoiceNo.startsWith('pending:')) { %> <%= o.gst.invoiceNo %><% } %></a>
+      <% (o.creditNotes || []).forEach(function (note, index) { if (String(note.number).startsWith('pending:')) return; %>
+        <a class="btn btn-ghost btn-sm" href="/api/admin/orders/<%= o.orderId %>/credit-notes/<%= index %>.pdf" download data-full-load><%- icon('file-text', 'i-sm') %> Credit note <%= note.number %></a>
+      <% }) %>
       <a class="btn btn-ghost btn-sm" href="/api/admin/orders/<%= o.orderId %>/packing-slip.pdf" download data-full-load><%- icon('box', 'i-sm') %> Packing slip</a>
     </div>
   </header>

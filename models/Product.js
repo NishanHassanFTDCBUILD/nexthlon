@@ -10,6 +10,9 @@ const { priceFor } = require("../utils/pricing");
 // utils/pricing.js PRICE_PIPELINE does the same sums as a database update, for many at once.
 
 // One option: a size and/or a colour, its SKU and its stock. Its _id is what carts and orders refer to.
+// A GST slab (0, 5, 18 or 40), or empty.
+const gstRate = { validator: value => value === null || [0, 5, 18, 40].includes(value), message: "Choose a GST rate of 0, 5, 18 or 40%." };
+
 const variantSchema = new mongoose.Schema({
   size: { type: String, trim: true, default: "", maxlength: 20 },
   colour: { type: String, trim: true, default: "", maxlength: 30 },
@@ -46,6 +49,18 @@ const productSchema = new mongoose.Schema({
     }, { _id: false })],
     default: []
   },
+  // GST (utils/gst.js): the HSN code and rate. rateAbove/above: a second rate for pieces worth more than
+  // `above` paise before tax (footwear and clothing). Empty: the rate suggested from the name is used.
+  tax: {
+    hsn: { type: String, trim: true, default: "", match: /^(\d{4}|\d{6}|\d{8})?$/ },
+    rate: { type: Number, default: null, validate: gstRate },
+    rateAbove: { type: Number, default: null, validate: gstRate },
+    above: { type: Number, default: null, min: 0 }
+  },
+  // Legal Metrology / Consumer Protection (E-Commerce) Rules: shown on the product page.
+  countryOfOrigin: { type: String, trim: true, default: "India", maxlength: 60 },
+  manufacturer: { type: String, trim: true, default: "", maxlength: 300 },
+  netQuantity: { type: String, trim: true, default: "", maxlength: 60 },
   description: { type: String, default: "", maxlength: 4000 },
   highlights: { type: [String], default: [] },
   specs: { type: Map, of: String, default: {} },

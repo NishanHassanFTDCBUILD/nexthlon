@@ -12,6 +12,7 @@ const rules = require("../utils/orderRules");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
 const { inTransaction } = require("../utils/transaction");
+const gstService = require("./gstService");
 
 const PAGE_SIZE = 20;
 const EXPORT_LIMIT = 20000;
@@ -320,6 +321,8 @@ async function decideReturn(orderId, { decision, note, refundMethod }, actor) {
       await order.save({ session });
     });
     if (refund > 0) await refundService.issueRefund(order, refund, { method: refundMethod, reason: `Return approved for ${order.orderId}` });
+    // Returned goods get a GST credit note against the invoice.
+    await gstService.syncCreditNotes(order._id, "Goods returned");
   } else {
     items.forEach(item => { item.status = "delivered"; });
     order.returnDecision = { status: "rejected", note, refundMethod: "", refunded: 0, by: actor._id, at: new Date() };

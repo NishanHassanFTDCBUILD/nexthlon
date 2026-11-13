@@ -8,6 +8,7 @@ const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
 const { STORE } = require("../config/store");
 const rules = require("../utils/orderRules");
+const gstService = require("./gstService");
 
 const PAGE_SIZE = 10;
 const LIST_FILTERS = {
@@ -92,6 +93,8 @@ async function cancelItems(order, items, { reason = "", by = "customer", refundM
   await order.save();
   if (order.orderStatus === "cancelled" && order.couponCode) await couponService.release(order._id);
   if (refund > 0 && refundHandler) await refundHandler(order, refund, { method: refundMethod, reason: `Cancelled: ${reason || "by request"}` });
+  // Invoiced items that are cancelled get a GST credit note.
+  await gstService.syncCreditNotes(order._id, reason ? `Cancelled: ${reason}` : "Order cancelled");
   const itemIds = items.map(item => String(item._id));
   await events.emit("order.cancelled", { orderId: order.orderId, itemIds, reason, by }, { key: `${order.orderId}:${itemIds.join(",")}` });
   return order;

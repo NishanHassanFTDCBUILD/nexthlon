@@ -22,7 +22,12 @@
     </div>
     <div class="order-actions">
       <% if (canRetryPayment) { %><button type="button" class="btn btn-primary btn-sm" data-retry-payment><%- icon('credit-card', 'i-sm') %> Retry payment · <%= formatPrice(order.total) %></button><% } %>
-      <a class="btn btn-ghost btn-sm" href="/orders/<%= order.orderId %>/invoice"><%- icon('box', 'i-sm') %> Download invoice</a>
+      <%# An online order that is not paid yet has no invoice number: the invoice comes with the payment. %>
+      <% const invoiceReady = !order.gst || (order.gst.invoiceNo && !order.gst.invoiceNo.startsWith('pending:')); %>
+      <% if (invoiceReady) { %><a class="btn btn-ghost btn-sm" href="/orders/<%= order.orderId %>/invoice"><%- icon('file-text', 'i-sm') %> Download invoice</a><% } %>
+      <% (order.creditNotes || []).forEach(function (note, index) { if (String(note.number).startsWith('pending:')) return; %>
+        <a class="btn btn-ghost btn-sm" href="/orders/<%= order.orderId %>/credit-notes/<%= index %>"><%- icon('file-text', 'i-sm') %> Credit note <%= note.number %></a>
+      <% }) %>
       <a class="btn btn-ghost btn-sm" href="/account/help?order=<%= order.orderId %>"><%- icon('headset', 'i-sm') %> Get help with this order</a>
       <% if (canReturn) { %><button type="button" class="btn btn-ghost btn-sm" data-open-dialog="return-dialog"><%- icon('rotate-ccw', 'i-sm') %> Return items</button><% } %>
       <% if (canCancel) { %><button type="button" class="btn btn-danger-soft btn-sm" data-open-dialog="cancel-dialog" data-cancel-scope="order"><%- icon('x', 'i-sm') %> Cancel order</button><% } %>

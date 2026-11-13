@@ -52,5 +52,6 @@ router.get(["/account/wallet", "/wallet"], accountPage, pages.wallet);
 router.get("/orders/:orderId", accountPage, pages.orderDetail);
 router.get("/orders/:orderId/success", customerPage, pages.orderSuccess);
 router.get("/orders/:orderId/invoice", customerPage, pages.orderInvoice);
+router.get("/orders/:orderId/credit-notes/:index", customerPage, pages.orderCreditNote);
 
 module.exports = router;

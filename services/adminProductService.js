@@ -5,6 +5,7 @@ const { LOW_STOCK_LIMIT } = require("../config/catalog");
 const { paiseToRupees } = require("../utils/money");
 const { HttpError } = require("../utils/http");
 const { slugify } = require("../utils/slug");
+const { suggestTax } = require("../utils/gst");
 const { escapeRegex, toPositiveInt } = require("./productService");
 const imageService = require("./imageService");
 
@@ -57,6 +58,17 @@ function toAdminProduct(product) {
     image: product.image,
     images: imagesOf(product),
     colourPhotos: (product.colourPhotos || []).map(row => ({ image: row.image, colour: row.colour })),
+    // GST as saved (empty when the suggested rate is used), plus the suggestion, for the form.
+    tax: {
+      hsn: (product.tax && product.tax.hsn) || "",
+      rate: product.tax && Number.isInteger(product.tax.rate) ? product.tax.rate : null,
+      rateAbove: product.tax && Number.isInteger(product.tax.rateAbove) ? product.tax.rateAbove : null,
+      aboveRupees: product.tax && Number.isInteger(product.tax.above) ? paiseToRupees(product.tax.above) : ""
+    },
+    taxSuggestion: suggestTax(product.name, category ? category.name : ""),
+    countryOfOrigin: product.countryOfOrigin || "India",
+    manufacturer: product.manufacturer || "",
+    netQuantity: product.netQuantity || "",
     createdAt: product.createdAt,
     updatedAt: product.updatedAt
   };

@@ -60,6 +60,7 @@ router.post("/orders/:orderId/shipments", adminWriteLimiter, orders.addShipment)
 router.post("/orders/:orderId/notes", adminWriteLimiter, orders.addNote);
 router.post("/orders/:orderId/refunds", adminMoneyLimiter, orders.refund);
 router.get("/orders/:orderId/invoice.pdf", orders.invoicePdf);
+router.get("/orders/:orderId/credit-notes/:index.pdf", orders.creditNotePdf);
 router.get("/orders/:orderId/packing-slip.pdf", orders.packingSlipPdf);
 
 // Returns

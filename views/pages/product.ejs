@@ -280,6 +280,12 @@
         <% specEntries.forEach(function ([key, value]) { %>
           <div><dt><%= key %></dt><dd><%= value %></dd></div>
         <% }) %>
+        <%# Required by India's e-commerce and Legal Metrology rules. %>
+        <% if (product.netQuantity) { %><div><dt>Net quantity</dt><dd><%= product.netQuantity %></dd></div><% } %>
+        <div><dt>Country of origin</dt><dd><%= product.countryOfOrigin || 'India' %></dd></div>
+        <div><dt>Manufacturer / importer</dt><dd><%= product.manufacturer || store.legalName + ', ' + store.address %></dd></div>
+        <div><dt>Sold by</dt><dd><%= store.legalName %></dd></div>
+        <div><dt>Price</dt><dd>Inclusive of all taxes (GST)</dd></div>
       </dl>
     </section>
 

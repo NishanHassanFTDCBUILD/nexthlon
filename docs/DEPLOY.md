@@ -14,6 +14,8 @@ You need: the GitHub repo (already connected), the MongoDB Atlas database, a Clo
    `STORE_LEGAL_NAME`, `STORE_ADDRESS`, `STORE_GSTIN`, `STORE_SUPPORT_EMAIL`, `STORE_SUPPORT_PHONE`, `STORE_GRIEVANCE_OFFICER`:
    your business details for the footer, policy pages, invoices and emails. India's e-commerce rules and Razorpay need the
    real ones; until they are set the site shows a [placeholder] and the startup log warns about each one.
+   `STORE_STATE` (your GST state, default Kerala) and `STORE_GST_SCHEME` (`regular` or `composition`) decide how GST
+   invoices are split; the startup check warns when the GSTIN's first two digits do not match the state.
 5. **Deploy.** When it is live, open `<site>/healthz` (should say ok) and `<site>/readyz` (database reachable).
 6. **First admin and products** (once, from your computer, pointing at the same Atlas database):
    `npm run seed:admin` then `npm run seed:products`, and `npm run images:migrate` for existing photos.

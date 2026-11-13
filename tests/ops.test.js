@@ -29,7 +29,7 @@ const production = {
   S3_SECRET_ACCESS_KEY: "secret",
   STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in",
   STORE_LEGAL_NAME: "Nexthlon Sports Private Limited", STORE_ADDRESS: "12 MG Road, Bengaluru, Karnataka 560001, India",
-  STORE_GSTIN: "29ABCDE1234F1Z5", STORE_SUPPORT_EMAIL: "support@nexthlon.in", STORE_SUPPORT_PHONE: "+91 80 4000 0000",
+  STORE_GSTIN: "29ABCDE1234F1Z5", STORE_STATE: "Karnataka", STORE_SUPPORT_EMAIL: "support@nexthlon.in", STORE_SUPPORT_PHONE: "+91 80 4000 0000",
   STORE_GRIEVANCE_OFFICER: "A. Officer"
 };
 
@@ -307,4 +307,13 @@ test("with a bucket, the Content Security Policy lets the browser load photos fr
   const without = run(script, env).stdout;
   assert.match(without, /img-src 'self' data: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com;/);
   assert.doesNotMatch(without, /cdn\.nexthlon\.in/);
+});
+
+test("the GST state must be a real state and match the GSTIN", () => {
+  const base = { ...production };
+  const wrongState = checkEnv({ ...base, STORE_STATE: "Atlantis" });
+  assert.ok(wrongState.errors.some(line => line.startsWith("STORE_STATE")));
+  const mismatch = checkEnv({ ...base, STORE_STATE: "Kerala" });
+  assert.ok(mismatch.warnings.some(line => line.startsWith("STORE_STATE") && /starts with 29/.test(line)));
+  assert.ok(checkEnv({ ...base, STORE_GST_SCHEME: "simple" }).errors.some(line => line.startsWith("STORE_GST_SCHEME")));
 });

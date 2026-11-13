@@ -488,6 +488,7 @@
 .product-form-grid > .panel:first-child { grid-row: span 2; }
 .product-images-panel { grid-column: 1 / -1; }
 /* Sizes and colours editor (admin-products.js). */
+.product-tax-panel { grid-column: 1 / -1; }
 .product-options-panel { grid-column: 1 / -1; display: grid; gap: var(--space-1h); }
 .options-table-wrap { overflow-x: auto; }
 .options-table { width: 100%; min-width: 520px; border-collapse: collapse; }

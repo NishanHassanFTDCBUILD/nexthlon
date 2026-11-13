@@ -208,6 +208,18 @@ function validateProduct(body = {}) {
   if (value.mrp === null || value.mrp > MAX_PRICE) errors.mrp = "Enter the M.R.P. as a number.";
   else if (value.basePrice !== null && value.mrp < value.basePrice) errors.mrp = "M.R.P. must be the same as or higher than the price.";
   if (value.offerPercent === null) errors.offerPercent = "Enter an offer from 0 to 90 percent.";
+  // GST and the legally required details (B4). Left out entirely means "keep what is there".
+  if (body.hsn !== undefined || body.gstRate !== undefined) {
+    const tax = readProductTax(body);
+    if (tax.errors) Object.assign(errors, tax.errors);
+    else value.tax = tax.value;
+  }
+  for (const [field, max, label] of [["countryOfOrigin", 60, "country of origin"], ["manufacturer", 300, "manufacturer or importer"], ["netQuantity", 60, "net quantity"]]) {
+    if (body[field] === undefined) continue;
+    value[field] = longText(body[field]).replace(/\s*,?\s*\n\s*/g, ", ");
+    if (value[field].length > max) errors[field] = `Keep the ${label} under ${max} characters.`;
+  }
+  if (value.countryOfOrigin === "") errors.countryOfOrigin = "Enter the country of origin (for example India).";
   // Sizes and colours. Left out (an older form or an API call without them) means "keep what is there".
   if (body.options !== undefined) {
     const options = readProductOptions(body.options);
@@ -220,6 +232,28 @@ function validateProduct(body = {}) {
     delete errors.stock;
   } else if (value.stock === null) errors.stock = "Enter stock as a whole number, 0 or more.";
   return { errors, value };
+}
+
+// A product's GST: HSN (4, 6 or 8 digits), the rate, and optionally a higher rate for pieces above a
+// value in rupees (footwear and clothing). All empty means "use the suggested rate" (utils/gst.js).
+const GST_SLABS = [0, 5, 18, 40];
+function readProductTax(body) {
+  const errors = {};
+  const hsn = text(body.hsn).replace(/\s+/g, "");
+  const rateRaw = text(body.gstRate);
+  const aboveRateRaw = text(body.gstRateAbove);
+  const aboveRaw = text(body.gstAbove);
+  if (!hsn && !rateRaw) return { value: { hsn: "", rate: null, rateAbove: null, above: null } };
+  const rate = rateRaw === "" ? null : Number(rateRaw);
+  const rateAbove = aboveRateRaw === "" ? null : Number(aboveRateRaw);
+  const above = aboveRaw === "" ? null : rupeesToPaise(aboveRaw);
+  if (!/^(\d{4}|\d{6}|\d{8})$/.test(hsn)) errors.hsn = "Enter the HSN code: 4, 6 or 8 digits (for example 6404).";
+  if (!GST_SLABS.includes(rate)) errors.gstRate = "Choose the GST rate.";
+  if (rateAbove !== null && !GST_SLABS.includes(rateAbove)) errors.gstRateAbove = "Choose the higher GST rate, or leave it empty.";
+  if ((rateAbove === null) !== (above === null)) errors.gstAbove = "Give both the higher rate and the value it starts above, or neither.";
+  else if (above !== null && (above <= 0 || above > MAX_PRICE)) errors.gstAbove = "Enter the value in rupees, for example 2500.";
+  if (Object.keys(errors).length) return { errors };
+  return { value: { hsn, rate, rateAbove, above } };
 }
 
 // The admin's size and colour rows: [{ id, size, colour, sku, stock }], sent as JSON text.

@@ -10,6 +10,12 @@ const STORE = {
   legalName: setting("STORE_LEGAL_NAME", "[Your registered business name]"),
   address: setting("STORE_ADDRESS", "[Building, street], [City], [State] [PIN code], India"),
   gstin: setting("STORE_GSTIN", "[Your GSTIN]"),
+  // The state the business is registered for GST in. A buyer in the same state pays CGST + SGST,
+  // anyone else IGST (utils/gst.js). Kerala until set.
+  state: setting("STORE_STATE", "Kerala"),
+  // "regular" issues tax invoices with GST shown. "composition" (a small business under the composition
+  // scheme) cannot charge GST, so it issues a "bill of supply" without the tax split.
+  gstScheme: setting("STORE_GST_SCHEME", "regular") === "composition" ? "composition" : "regular",
   supportEmail: setting("STORE_SUPPORT_EMAIL", "[support@your-domain.in]"),
   supportPhone: setting("STORE_SUPPORT_PHONE", "[+91 00000 00000]"),
   supportHours: setting("STORE_SUPPORT_HOURS", "Monday to Saturday, 10 am to 6 pm IST"),

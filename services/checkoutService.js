@@ -13,6 +13,7 @@ const { orderTotals } = require("../utils/pricing");
 const settingsService = require("./settingsService");
 const { formatPaise } = require("../utils/money");
 const counterService = require("../services/counterService");
+const gstService = require("./gstService");
 
 // Placed here at once. Online payment (razorpay) goes through paymentService.
 // "wallet" is used when the wallet covers the whole amount.
@@ -158,11 +159,19 @@ async function saveOrder({ userId, orderId, quote, address, paymentMethod, payme
   if (totals.walletUsed > 0) {
     await walletService.debit(userId, totals.walletUsed, { reason: `Paid for order ${orderId}`, kind: "order", orderId, session, undo });
   }
+  // GST, worked out now from the server's own prices and fixed on the order (services/gstService.js).
+  const { perLine, gst } = await gstService.taxForOrder({
+    lines: quote.lines,
+    couponDiscount: totals.couponDiscount,
+    deliveryFee: totals.deliveryFee,
+    buyerState: address.state
+  });
   const [order] = await Order.create([{
     _id,
     orderId,
     user: userId,
-    items: itemSnapshots(quote.lines),
+    items: itemSnapshots(quote.lines).map((item, index) => ({ ...item, tax: perLine[index] })),
+    gst,
     address: addressSnapshot(address),
     ...orderMoney(totals),
     source: quote.source === "buynow" ? "buynow" : "cart",
@@ -221,9 +230,11 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
     else await Cart.updateOne({ user: userId }, { $set: { items: [], couponCode: "" } }, { session });
     return order;
   });
+  // Confirmed (cash on delivery or wallet): it gets its GST invoice number now.
+  const invoiced = (await gstService.issueInvoice(placed._id)) || placed;
   // Saved for good: tell the rest of the app (the confirmation email is one reaction).
   await events.emit("order.placed", { orderId: placed.orderId }, { key: placed.orderId });
-  return placed;
+  return invoiced;
 }
 
 module.exports = {

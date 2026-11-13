@@ -1154,7 +1154,8 @@ test("orders belong to their customer: lists, details, pages and invoices", asyn
   const pdf = await fetch(`${base}/orders/${placed.orderId}/invoice`, { headers: { Cookie: buyer.cookie } });
   assert.equal(pdf.status, 200);
   assert.equal(pdf.headers.get("content-type"), "application/pdf");
-  assert.match(pdf.headers.get("content-disposition"), /INV-\d{4}-\d{6}\.pdf/);
+  // A GST invoice number per financial year (B4): NX/26-27/000001 -> NX-26-27-000001.pdf.
+  assert.match(pdf.headers.get("content-disposition"), /NX-\d{2}-\d{2}-\d{6}\.pdf/);
   const bytes = Buffer.from(await pdf.arrayBuffer());
   assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
 });

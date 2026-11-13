@@ -17,6 +17,7 @@ const stockService = require("./stockService");
 const orderService = require("./orderService");
 const couponService = require("./couponService");
 const refundService = require("./refundService");
+const gstService = require("./gstService");
 const walletService = require("./walletService");
 const razorpay = require("./razorpayService");
 const { HttpError } = require("../utils/http");
@@ -146,7 +147,8 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
     if (claimed.couponCode) cartChange.$set = { couponCode: "" };
     await Cart.updateOne({ user: claimed.user }, cartChange);
   }
-  // Paid and in stock: this is when an online order counts as placed.
+  // Paid and in stock: this is when an online order counts as placed, and gets its GST invoice number.
+  await gstService.issueInvoice(claimed._id);
   await events.emit("order.placed", { orderId: claimed.orderId }, { key: claimed.orderId });
   return Order.findById(claimed._id);
 }

@@ -214,6 +214,13 @@ function checkEnv(env = process.env) {
   if (supportEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(supportEmail)) fail("STORE_SUPPORT_EMAIL", `"${supportEmail}" is not an email address.`);
   const gstin = text(env, "STORE_GSTIN");
   if (gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) warn("STORE_GSTIN", `"${gstin}" does not look like a GSTIN (15 characters, for example 29ABCDE1234F1Z5).`);
+  // The GST state decides CGST + SGST or IGST on every invoice, so it must be a real state, and match the GSTIN.
+  const { STATE_CODES } = require("../utils/gst");
+  const gstState = text(env, "STORE_STATE") || "Kerala";
+  if (!STATE_CODES[gstState]) fail("STORE_STATE", `"${gstState}" is not an Indian state or union territory as the address form spells it (for example Kerala, Tamil Nadu, Delhi).`);
+  else if (gstin && /^\d{2}/.test(gstin) && gstin.slice(0, 2) !== STATE_CODES[gstState]) warn("STORE_STATE", `The GSTIN starts with ${gstin.slice(0, 2)}, but ${gstState}'s code is ${STATE_CODES[gstState]}. Check STORE_STATE and STORE_GSTIN.`);
+  const scheme = text(env, "STORE_GST_SCHEME");
+  if (scheme && !["regular", "composition"].includes(scheme)) fail("STORE_GST_SCHEME", `"${scheme}" must be regular or composition.`);
 
   // ---------- Monitoring and logs ----------
   const dsn = text(env, "SENTRY_DSN");
