@@ -290,3 +290,17 @@
   .success-track .is-done .success-track-dot { animation: cart-bump var(--duration-slow) var(--ease-spring) both; animation-delay: calc(var(--duration-slower) + var(--duration-slow)); }
 }
 
+
+/* ---------- The address just saved (C2): the tick draws itself and the card glows (Nx.markSaved in app.js).
+   The tick's look is in components.css, so pages without this motion layer (My Account) still show it. ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .saved-tick circle { stroke-dasharray: 63; stroke-dashoffset: 63; animation: nx-tick-draw var(--duration-long) var(--ease-out) forwards; }
+  .saved-tick path { stroke-dasharray: 16; stroke-dashoffset: 16; animation: nx-tick-draw var(--duration-medium) var(--ease-out) var(--duration-medium) forwards; }
+  .is-just-saved { animation: nx-saved-glow calc(var(--duration-slower) * 3) var(--ease-out); }
+  @keyframes nx-tick-draw { to { stroke-dashoffset: 0; } }
+  @keyframes nx-saved-glow {
+    0% { box-shadow: 0 0 0 0 rgba(var(--success-rgb), 0.55); }
+    35% { box-shadow: 0 0 0 6px rgba(var(--success-rgb), 0.25); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--success-rgb), 0); }
+  }
+}

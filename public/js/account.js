@@ -382,7 +382,18 @@
       });
       if (reply) {
         dialog.close();
-        refresh(reply.message);
+        // The section reloads in place; then the saved address gets its "just saved" tick (C2).
+        const savedId = String((reply.address && (reply.address._id || reply.address.id)) || id);
+        const mark = () => Nx.markSaved(document.querySelector(`[data-address-id="${CSS.escape(savedId)}"]`));
+        if (window.NxNav && window.NxNav.reload) {
+          window.NxNav.reload().then(() => {
+            Nx.toast(reply.message);
+            mark();
+          });
+        } else {
+          try { sessionStorage.setItem("nx:address-saved", savedId); } catch { /* no tick, still saved */ }
+          refresh(reply.message);
+        }
       }
     }, signal);
     on(root, "click", "[data-address-delete]", async (event, button) => {

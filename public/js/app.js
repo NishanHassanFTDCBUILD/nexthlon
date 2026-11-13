@@ -339,6 +339,27 @@
   };
   Nx.reducedMotion = () => reduceMotion.matches;
 
+  // "Just saved" (C2): the card scrolls into view with a tick that draws itself and a short glow
+  // (motion.css). With reduced motion the tick is simply there. Used for addresses (profile.js, account.js).
+  Nx.markSaved = function markSaved(card) {
+    if (!card) return;
+    card.querySelectorAll(".saved-tick").forEach(old => old.remove());
+    const tick = document.createElement("span");
+    tick.className = "saved-tick";
+    tick.setAttribute("aria-hidden", "true");
+    tick.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3.2 3.2L17 9"/></svg>';
+    card.classList.remove("is-just-saved");
+    void card.offsetWidth;
+    card.classList.add("is-just-saved");
+    card.append(tick);
+    card.scrollIntoView({ block: "center", behavior: reduceMotion.matches ? "auto" : "smooth" });
+    setTimeout(() => {
+      card.classList.remove("is-just-saved");
+      tick.classList.add("is-leaving");
+      setTimeout(() => tick.remove(), reduceMotion.matches ? 0 : 400);
+    }, 2600);
+  };
+
   // A number counts from one value to another (prices, savings). Only the text changes, so nothing moves;
   // format turns the number into text. With reduced motion it jumps straight to the end.
   Nx.countUp = function countUp(el, to, { from = 0, format = String, duration = Nx.motionMs("--duration-long", 550) } = {}) {

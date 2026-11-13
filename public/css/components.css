@@ -694,3 +694,9 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; 
 /* "No results for "shoees", so we searched for "shoes"." under a corrected search's heading. */
 .search-corrected { display: flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-xs); color: var(--muted); font-size: var(--text-sm); }
 .search-corrected .i { color: var(--brand); flex: none; }
+
+/* "Just saved" tick on a card (Nx.markSaved in app.js). It draws itself where motion.css is loaded. */
+.address-card.is-just-saved, .address-choice.is-just-saved { position: relative; }
+.saved-tick { position: absolute; z-index: var(--z-raised); top: -12px; right: -12px; width: 30px; height: 30px; padding: 1px; border-radius: 50%; background: var(--bg); color: var(--success); box-shadow: 0 0 0 2px var(--bg); pointer-events: none; }
+.saved-tick svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.saved-tick.is-leaving { opacity: 0; transition: opacity var(--duration-slow) var(--ease); }

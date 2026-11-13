@@ -240,7 +240,7 @@ motion tokens for durations and easings. Keep reduced motion and zero layout shi
 and desktop recordings or screenshot sequences. Plan first, then wait for my go-ahead.
 ```
 
-### [ ] C2. Shopping micro-interactions · M
+### [x] C2. Shopping micro-interactions · M
 - **Goal:** every key action gives satisfying feedback.
 - **Pieces:**
   - **Add to cart:** the photo flies to the cart icon and the count ticks up.
@@ -251,6 +251,10 @@ and desktop recordings or screenshot sequences. Plan first, then wait for my go-
   - **Coupon:** a "you saved ₹X" counter.
   - **Order success:** a celebration moment.
 - **Done when:** each one works by touch, mouse and keyboard, and each has a reduced-motion version.
+- **Progress (2026-11-13):**
+  - [x] Already built in the earlier phases: fly-to-cart with the count ticking up, the wishlist heart burst, rolling quantity numbers, skeleton cards while lists and search load, the coupon "you save ₹X" counter, the 3D order-success confetti.
+  - [x] Added: a saved address gets a tick and a short glow and scrolls into view (`Nx.markSaved`); at checkout a newly added address is also selected.
+  - [x] Checked: every one is started by a real button or link (touch, mouse and keyboard alike), and reduced motion stops them all (a site-wide rule, plus checks in the script-driven ones). Fixed on the way: the tick needed its look in components.css, because My Account pages skip the motion layer. Tests: `tests/micro-interactions.test.js`.
 
 ```text
 Step C2 from docs/ROADMAP.md: add award-level micro-interactions: fly-to-cart, wishlist heart burst,

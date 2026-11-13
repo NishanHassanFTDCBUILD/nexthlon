@@ -66,6 +66,26 @@
   }
 
   // ---------- Address book ----------
+  // The address just saved (C2): its card scrolls into view with a tick that draws itself and a short
+  // glow. On checkout it is also chosen, so the shopper can carry straight on. With reduced motion the
+  // tick is simply there.
+  const SAVED_KEY = "nx:address-saved";
+  (function markSavedAddress() {
+    let savedId = null;
+    try {
+      savedId = sessionStorage.getItem(SAVED_KEY);
+      sessionStorage.removeItem(SAVED_KEY);
+    } catch {
+      return;
+    }
+    if (!savedId) return;
+    const radio = document.querySelector(`input[name="addressId"][value="${CSS.escape(savedId)}"]`);
+    if (radio) {
+      radio.checked = true;
+      radio.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    Nx.markSaved(radio ? radio.closest(".address-choice") : document.querySelector(`[data-address-id="${CSS.escape(savedId)}"]`));
+  })();
   const dialog = document.getElementById("address-dialog");
   const addressForm = document.querySelector("[data-address-form]");
   if (!dialog || !addressForm) return;
@@ -162,7 +182,12 @@
       body: values,
       busyLabel: "Saving…"
     });
-    if (result) reloadWith(result.message);
+    if (result) {
+      // After the reload, this address gets the "just saved" tick (below), and checkout selects it.
+      const savedId = (result.address && (result.address._id || result.address.id)) || id;
+      try { sessionStorage.setItem(SAVED_KEY, String(savedId)); } catch { /* private mode: no tick, still saved */ }
+      reloadWith(result.message);
+    }
   });
 
   document.querySelectorAll("[data-address-delete]").forEach(button => {

@@ -17,7 +17,7 @@
       </button>
     <% } %>
     <% addresses.forEach(function (a) { %>
-      <article class="address-card <%= a.isDefault ? 'is-default' : '' %>" aria-label="Address for <%= a.fullName %><%= a.isDefault ? ', default' : '' %>">
+      <article class="address-card <%= a.isDefault ? 'is-default' : '' %>" data-address-id="<%= a._id %>" aria-label="Address for <%= a.fullName %><%= a.isDefault ? ', default' : '' %>">
         <div class="address-card-head">
           <h2 class="address-name"><%= a.fullName %></h2>
           <span class="address-type-pill"><%- icon(a.type === 'work' ? 'box' : a.type === 'other' ? 'pin' : 'home', 'i-xs') %> <%= a.type === 'work' ? 'Work' : a.type === 'other' ? 'Other' : 'Home' %></span>
