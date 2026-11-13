@@ -273,6 +273,15 @@
   const role = header ? header.dataset.shopper : "admin";
   const inFlight = new WeakSet();
 
+  // A guest's page is drawn with an empty cart badge, so it is the same for every guest and a CDN may
+  // keep it. When this browser has a guest cart (the readable nx_has_cart hint; the cart token itself is
+  // httpOnly), the badge is filled in here.
+  if (role === "guest" && /(?:^|;\s*)nx_has_cart=1/.test(document.cookie)) {
+    Nx.api("/api/cart/count")
+      .then(({ count }) => { if (count > 0) Nx.setCartCount(count); })
+      .catch(() => { /* the badge simply stays empty */ });
+  }
+
   function markButton(button, state) {
     if (!button || !button.classList.contains("card-add")) return;
     button.classList.remove("is-added", "is-max");

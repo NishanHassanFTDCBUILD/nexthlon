@@ -118,8 +118,9 @@ const productDetail = asyncHandler(async (req, res) => {
     reviewService.featuredReview(product._id),
     // "Deliver to ..." uses the customer's default address (or their newest one).
     customer ? Address.findOne({ user: customer._id }).sort({ isDefault: -1, updatedAt: -1 }).select("fullName city pincode").lean() : null,
-    // How many of this product are already in the cart (the customer's, or a guest's).
-    cartService.quantityInCart(customer ? customer._id : (!req.user && readGuestCart(req) ? { guest: readGuestCart(req) } : null), product._id),
+    // How many of this product are already in the customer's cart. Not for guests: a signed-out product page
+    // is the same for everyone, so a CDN may keep it (middleware/publicCache.js).
+    customer ? cartService.quantityInCart(customer._id, product._id) : 0,
     settingsService.get("codLimit"),
     // "Frequently bought together", from real orders (empty until there are some).
     recommendationService.boughtTogether(product._id, 4)

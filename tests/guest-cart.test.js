@@ -126,7 +126,11 @@ test("guest cart: the cart page and header count work for guests; checkout and s
   const page = await call(browser, "GET", "/cart");
   assert.equal(page.status, 200);
   assert.match(page.data, /Guest Trail Socks/);
-  assert.match(page.data, /data-cart-count[^>]*>3</, "the header badge counts the guest cart");
+  // The page itself is the same for every guest (a CDN may keep it), so its badge is drawn empty; the
+  // browser fills it in from the count endpoint when the readable hint cookie says there is a cart.
+  assert.match(page.data, /data-cart-count hidden>0</, "the badge is drawn empty");
+  assert.equal((await call(browser, "GET", "/api/cart/count")).data.count, 3);
+  assert.equal(browser.get("nx_has_cart"), "1", "the readable hint holds no token");
   assert.doesNotMatch(page.data, /data-cart-save/, "no save for later without a wishlist");
 
   const checkout = await call(browser, "GET", "/checkout");
@@ -173,6 +177,17 @@ test("guest cart: signing in adds to the account's cart, never above the limit",
   assert.equal(qty(shoe._id), 4, "3 + 2 is capped at the stock of 4");
   assert.equal(qty(socks._id), 1);
   assert.equal(await GuestCart.countDocuments({ tokenHash: hashOf(token) }), 0, "the guest cart is deleted");
+});
+
+test("guest cart: a cart made before the badge hint existed gets the hint on its next cart request", async () => {
+  const browser = jar();
+  await call(browser, "POST", "/api/cart/items", { productId: String(socks._id), quantity: 1 });
+  // An older browser: the cart token, but no readable hint.
+  const old = jar();
+  old.take({ headers: { get: () => `nx_cart=${browser.get("nx_cart")}; Path=/` } });
+  assert.equal(old.get("nx_has_cart"), undefined);
+  await call(old, "POST", "/api/cart/items", { productId: String(socks._id), quantity: 1 });
+  assert.equal(old.get("nx_has_cart"), "1");
 });
 
 test("guest cart: a guest cart expires on its own after 30 days", async () => {

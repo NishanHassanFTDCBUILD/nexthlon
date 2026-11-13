@@ -2,13 +2,14 @@ const router = require("express").Router();
 const orders = require("../controllers/orderController");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { returnPhotos } = require("../middleware/upload");
+const { orderLimiter } = require("../middleware/rateLimit");
 
 // Mounted at /api. Checkout and orders are for signed-in customers only.
 const customer = [requireAuth, requireRole("customer")];
 router.post("/checkout/quote", customer, orders.quote);
 // Buy now: one product checked out on its own; the cart is left as it is.
-router.post("/buy-now", customer, orders.buyNow);
-router.post("/orders", customer, orders.placeOrder);
+router.post("/buy-now", customer, orderLimiter, orders.buyNow);
+router.post("/orders", customer, orderLimiter, orders.placeOrder);
 router.get("/orders", customer, orders.listOrders);
 router.get("/orders/:orderId", customer, orders.getOrder);
 router.post("/orders/:orderId/cancel", customer, orders.cancelOrder);

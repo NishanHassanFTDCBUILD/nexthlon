@@ -1,9 +1,8 @@
 const { countItems } = require("../services/cartService");
 const wishlistService = require("../services/wishlistService");
-const { readGuestCart } = require("./guestCart");
 
 // Puts the number of items in the cart and wishlist on every page, for the header badges.
-// Customers: their account's cart and wishlist. Guests: the cart kept by their cookie (no wishlist).
+// Customers: their account's cart and wishlist. Guests: filled in after the page loads (see below).
 // API calls skip this; they return the full cart or wishlist whenever it changes.
 async function cartCount(req, res, next) {
   res.locals.cartCount = 0;
@@ -15,10 +14,9 @@ async function cartCount(req, res, next) {
         countItems(req.user._id),
         wishlistService.productIds(req.user._id)
       ]);
-    } else if (!req.user) {
-      const guest = readGuestCart(req);
-      if (guest) res.locals.cartCount = await countItems({ guest });
     }
+    // Guests: the page is drawn with an empty badge, so it is the same for every guest and a CDN may keep
+    // it (middleware/publicCache.js); store.js fills the badge in from GET /api/cart/count.
     return next();
   } catch (error) {
     return next(error);

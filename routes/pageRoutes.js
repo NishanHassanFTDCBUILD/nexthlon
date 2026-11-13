@@ -3,23 +3,25 @@ const pages = require("../controllers/pageController");
 const account = require("../controllers/accountPageController");
 const { customerPage, guestOnly } = require("../middleware/auth");
 const { accountShell } = require("../middleware/shell");
+const { publicCache } = require("../middleware/publicCache");
 const recovery = require("../controllers/recoveryController");
 
 // My Account pages: signed-in customers only, without the store's motion layer.
 const accountPage = [customerPage, accountShell];
 
-// Store
-router.get("/", pages.home);
-router.get("/products", pages.products);
-router.get("/products/:slug", pages.productDetail);
+// Store. For signed-out visitors these pages may be kept by a CDN for a short time
+// (middleware/publicCache.js); the cart, checkout and account pages never are.
+router.get("/", publicCache, pages.home);
+router.get("/products", publicCache, pages.products);
+router.get("/products/:slug", publicCache, pages.productDetail);
 
 // Store information and the policies Razorpay asks for
-router.get("/about", pages.infoPage("about"));
-router.get("/contact", pages.infoPage("contact"));
-router.get("/privacy", pages.infoPage("privacy"));
-router.get("/terms", pages.infoPage("terms"));
-router.get("/refund-policy", pages.infoPage("refund"));
-router.get("/shipping-policy", pages.infoPage("shipping"));
+router.get("/about", publicCache, pages.infoPage("about"));
+router.get("/contact", publicCache, pages.infoPage("contact"));
+router.get("/privacy", publicCache, pages.infoPage("privacy"));
+router.get("/terms", publicCache, pages.infoPage("terms"));
+router.get("/refund-policy", publicCache, pages.infoPage("refund"));
+router.get("/shipping-policy", publicCache, pages.infoPage("shipping"));
 
 // Customer account
 router.get("/login", guestOnly, pages.login);

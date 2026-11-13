@@ -10,6 +10,7 @@ const { cartLimiter } = require("../middleware/rateLimit");
 // wishlist still need an account.
 router.use(cartLimiter, cartOwner);
 router.get("/", cart.getCart);
+router.get("/count", cart.countItems);
 router.delete("/", cart.clearCart);
 router.post("/items", cart.addItem);
 router.patch("/items/:productId", cart.updateItem);

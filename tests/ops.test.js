@@ -228,6 +228,7 @@ function errorCall(error, { api = false, id = "req-err-12345" } = {}) {
   const req = { id, method: "POST", originalUrl: (api ? "/api/orders" : "/checkout") + "?token=secret" };
   const res = {
     headersSent: false,
+    set(name, value) { sent.headers = { ...sent.headers, [name]: value }; return this; },
     status(code) { sent.status = code; return this; },
     json(body) { sent.json = body; return this; },
     render(view, locals) { sent.view = view; sent.locals = locals; return this; }
@@ -245,6 +246,7 @@ test("a server error is logged with its request ID, and the shopper never sees t
   assert.match(sent.json.message, /Something went wrong on our side/);
   assert.doesNotMatch(JSON.stringify(sent.json), /secret database detail/);
   assert.equal(sent.json.requestId, "req-err-12345", "the reference to quote when asking for help");
+  assert.match(sent.headers["Cache-Control"], /no-store/, "a failure is never kept by a CDN");
   const [line] = lines;
   assert.match(line, / ERROR http\.error /);
   assert.match(line, /path=\/api\/orders/);

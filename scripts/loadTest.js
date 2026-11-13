@@ -2,6 +2,9 @@
 // once and prints requests per second and response times (median, p95, worst) for each.
 //   node scripts/loadTest.js                       http://localhost:3000, 20 at a time, 10 seconds each
 //   node scripts/loadTest.js http://localhost:3200 --concurrency 50 --seconds 15
+//   node scripts/loadTest.js http://localhost:3200 --ramp 10,25,50,100,200 --path /
+//       raises the number of visitors at once step by step on one page and reports the most this server
+//       handles while 95% of answers stay under half a second (docs/SCALING.md uses that number).
 // Only GET requests to public pages: it never signs in, adds to a cart or places an order, so it is safe
 // to point at a staging copy. Do not point it at a live site you do not own.
 const args = process.argv.slice(2);
@@ -10,8 +13,15 @@ const option = (name, fallback) => {
   const at = args.indexOf(`--${name}`);
   return at >= 0 ? Number(args[at + 1]) : fallback;
 };
-const concurrency = option("concurrency", 20);
+let concurrency = option("concurrency", 20);
 const seconds = option("seconds", 10);
+const textOption = name => {
+  const at = args.indexOf(`--${name}`);
+  return at >= 0 ? args[at + 1] : "";
+};
+const ramp = textOption("ramp").split(",").map(Number).filter(n => n > 0);
+const rampPath = textOption("path") || "/";
+const P95_LIMIT_MS = 500;
 
 async function firstProductPath() {
   const reply = await fetch(`${base}/api/products?limit=1`, { headers: { Accept: "application/json" } });
@@ -55,7 +65,25 @@ async function run(path) {
   };
 }
 
+async function rampTest() {
+  console.log(`Ramp test: ${base}${rampPath}, ${seconds}s per step, goal: 95% of answers under ${P95_LIMIT_MS}ms\n`);
+  console.log("at once".padStart(8), "req/s".padStart(7), "median".padStart(8), "p95".padStart(7), "errors".padStart(7));
+  let best = null;
+  for (const step of ramp) {
+    concurrency = step;
+    const r = await run(rampPath);
+    const ok = r.p95 <= P95_LIMIT_MS && r.errors === 0;
+    console.log(String(step).padStart(8), String(r.perSecond).padStart(7), `${r.median}ms`.padStart(8), `${r.p95}ms`.padStart(7), String(r.errors).padStart(7), ok ? "" : "  over the limit");
+    if (ok && (!best || r.perSecond > best.perSecond)) best = { ...r, step };
+    if (!ok) break;
+  }
+  console.log(best
+    ? `\nThis server handles about ${best.perSecond} requests a second on ${rampPath} (${best.step} at once, p95 ${best.p95}ms).`
+    : "\nEven the first step was over the limit.");
+}
+
 (async () => {
+  if (ramp.length) return rampTest();
   const product = await firstProductPath();
   const paths = ["/", "/products", "/products?q=shoes", "/api/products/search?q=run", product].filter(Boolean);
   console.log(`Load test: ${base}, ${concurrency} at a time, ${seconds}s per page\n`);

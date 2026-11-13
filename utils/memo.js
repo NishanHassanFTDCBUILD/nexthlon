@@ -30,13 +30,22 @@ async function remember(key, ttlMs, load) {
   return pending;
 }
 
-// Drops every key that starts with prefix ("" drops everything).
-function forget(prefix = "") {
+// Drops every key that starts with prefix ("" drops everything), then tells the listeners (cacheSync.js
+// passes it on to the other copies of the store). fromPeer: the clear came from another copy, so it is
+// not passed on again.
+const listeners = [];
+function forget(prefix = "", { fromPeer = false } = {}) {
   for (const [key, entry] of [...entries]) {
     if (!key.startsWith(prefix)) continue;
     if (entry.pending) cancelled.add(entry.pending);
     entries.delete(key);
   }
+  if (!fromPeer) listeners.forEach(listener => listener(prefix));
+}
+
+// listener(prefix) runs after every local clear.
+function onForget(listener) {
+  listeners.push(listener);
 }
 
 // Oldest first: a Map keeps insertion order.
@@ -46,4 +55,4 @@ function trim() {
 
 const size = () => entries.size;
 
-module.exports = { remember, forget, size };
+module.exports = { remember, forget, onForget, size };

@@ -58,6 +58,24 @@ function checkEnv(env = process.env) {
   const pool = text(env, "MONGODB_MAX_POOL");
   if (pool && !(/^\d+$/.test(pool) && Number(pool) >= 1 && Number(pool) <= 100)) fail("MONGODB_MAX_POOL", `"${pool}" must be a number from 1 to 100 (connections per server copy; the default is 20).`);
 
+  // Scaling out (docs/SCALING.md).
+  const copies = text(env, "WEB_CONCURRENCY");
+  if (copies && !(copies === "auto" || (/^\d+$/.test(copies) && Number(copies) >= 1 && Number(copies) <= 32))) {
+    fail("WEB_CONCURRENCY", `"${copies}" must be "auto" (one copy per CPU core) or a number from 1 to 32.`);
+  }
+  const cacheSeconds = text(env, "PUBLIC_CACHE_SECONDS");
+  if (cacheSeconds && !(/^\d+$/.test(cacheSeconds) && Number(cacheSeconds) <= 600)) {
+    fail("PUBLIC_CACHE_SECONDS", `"${cacheSeconds}" must be a number of seconds from 0 (off) to 600.`);
+  }
+  const redisUrl = text(env, "REDIS_URL");
+  if (redisUrl && !/^rediss?:\/\/\S+$/.test(redisUrl)) fail("REDIS_URL", "must start with redis:// or rediss:// (the address your Redis host gives you).");
+  else if (redisUrl && production && redisUrl.startsWith("redis://") && !/localhost|127\.0\.0\.1/.test(redisUrl)) {
+    warn("REDIS_URL", "uses redis:// (not encrypted). Use the rediss:// address if your Redis host offers one.");
+  }
+  // Every server copy opens up to MONGODB_MAX_POOL connections; MongoDB Atlas's free tier allows 500 in all.
+  const perServer = (copies === "auto" ? require("os").availableParallelism() : Number(copies) || 1) * (Number(pool) || 20);
+  if (perServer > 200) warn("MONGODB_MAX_POOL", `${perServer} database connections per server (WEB_CONCURRENCY × MONGODB_MAX_POOL). Atlas's free tier allows 500 for all servers together: lower MONGODB_MAX_POOL, or move to a paid tier.`);
+
   const secret = String(env.JWT_SECRET ?? "");
   if (Buffer.byteLength(secret) < 32) {
     fail("JWT_SECRET", "must be at least 32 characters. Make one with: node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\"");

@@ -43,6 +43,9 @@ function errorHandler(err, req, res, next) {
     monitor.captureException(err, { method: req.method, path: req.originalUrl.split("?")[0] });
   }
 
+  // A failure must never be kept by a CDN (a store page may have said it could be, before it failed).
+  if (status >= 500 || status === 429) res.set("Cache-Control", "no-store, private, max-age=0");
+
   if (isApiRequest(req)) {
     const body = { message };
     if (err.fieldErrors) body.errors = err.fieldErrors;

@@ -48,6 +48,13 @@ function readConfig() {
     // Connections to MongoDB per copy of the app. Atlas's free tier allows 500 in all, so several copies
     // with the driver's default of 100 each could use them up.
     mongoMaxPool: Number(text("MONGODB_MAX_POOL")) || 20,
+    // How many copies of the app this server runs (server.js): "auto" is one per CPU core.
+    webConcurrency: text("WEB_CONCURRENCY") === "auto" ? require("os").availableParallelism() : Number(text("WEB_CONCURRENCY")) || 1,
+    // How long a CDN (Cloudflare) may keep a signed-out page (middleware/publicCache.js). Browsers never
+    // keep it. Off in development, a minute in production, unless PUBLIC_CACHE_SECONDS says otherwise.
+    publicCacheSeconds: text("PUBLIC_CACHE_SECONDS") !== "" ? Number(text("PUBLIC_CACHE_SECONDS")) : (isProduction ? 60 : 0),
+    // Optional Redis (providers/redis.js): rate limits and cache clearing shared by every server copy.
+    redisUrl: text("REDIS_URL"),
     // Background jobs (emails, reminders) run inside this server unless JOBS_ENABLED=false (then run
     // `npm run worker` elsewhere). Several at a time, JOBS_CONCURRENCY (default 2).
     jobs: {

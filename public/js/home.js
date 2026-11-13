@@ -20,7 +20,9 @@
   // ---------- Flip-digit countdown ----------
   const countdown = document.querySelector("[data-countdown]");
   if (countdown) {
-    const ends = Date.now() + Number(countdown.dataset.left || 0);
+    // The end time itself, not "time left when the page was made": a CDN may hand out a copy of this page
+    // made a minute ago (middleware/publicCache.js).
+    const ends = Date.parse(countdown.dataset.ends) || Date.now() + Number(countdown.dataset.left || 0);
     const boxes = { h: countdown.querySelector("[data-countdown-h]"), m: countdown.querySelector("[data-countdown-m]"), s: countdown.querySelector("[data-countdown-s]") };
     const pad = n => String(n).padStart(2, "0");
     // Each changed number flips down like a departure board (motion.css .is-flipping).

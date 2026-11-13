@@ -17,6 +17,8 @@ const { requestId } = require("./middleware/requestId");
 // What the job worker and the event system can do (order emails, cart reminders). Registered before any
 // order code can say "this happened".
 require("./jobs/handlers");
+// With Redis (REDIS_URL), a cleared catalogue cache is cleared on every copy of the store at once.
+require("./services/cacheSync").start();
 
 const app = express();
 //Hide the header that says "Express", so attackers learn less. This reveals less technology information to attackers.

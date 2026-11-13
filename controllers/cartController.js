@@ -13,6 +13,11 @@ const getCart = asyncHandler(async (req, res) => {
   res.json({ cart: await cartService.getCart(req.cartOwner) });
 });
 
+// GET /api/cart/count   the number on the header badge (guest pages fill it in after loading)
+const countItems = asyncHandler(async (req, res) => {
+  res.json({ count: await cartService.countItems(req.cartOwner) });
+});
+
 // POST /api/cart/items   body: { "productId": "...", "quantity": 1 }
 const addItem = asyncHandler(async (req, res) => {
   const { productId, quantity } = checked(validateCartItem, req.body);
@@ -38,4 +43,4 @@ const clearCart = asyncHandler(async (req, res) => {
   res.json({ message: "Your cart is now empty.", cart: await cartService.clearCart(req.cartOwner) });
 });
 
-module.exports = { getCart, addItem, updateItem, removeItem, clearCart };
+module.exports = { getCart, countItems, addItem, updateItem, removeItem, clearCart };
