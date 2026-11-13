@@ -1,6 +1,7 @@
-// Guest cart end-to-end: a visitor fills a cart without an account (kept by an httpOnly cookie, stored
-// only as a hash), sees it on the cart page and in the header, and it moves into their account when they
-// sign up or sign in, within the usual limits. Checkout and "save for later" still need an account.
+// Signed-out visitors and the cart: putting anything in a cart (and Buy now) needs a signed-in account,
+// so a guest's add, change or remove is refused with 401 and makes no cookie; the cart page sends them to
+// sign in and back. Carts that guests filled before this rule (kept by an httpOnly cookie, stored only as
+// a hash) still move into the account at sign-up or sign-in, within the usual limits.
 // Own database (the test database name + "_guestcart"); runs only when TEST_MONGODB_URI is set.
 require("./helpers");
 const test = require("node:test");
@@ -11,6 +12,7 @@ if (!process.env.TEST_MONGODB_URI) {
   return;
 }
 
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const app = require("../app");
 const Product = require("../models/Product");
@@ -45,6 +47,7 @@ function jar() {
         else cookies.set(name, value);
       });
     },
+    set: (name, value) => cookies.set(name, value),
     get: name => cookies.get(name)
   };
 }
@@ -58,6 +61,15 @@ async function call(cookies, method, path, body) {
   cookies.take(response);
   const type = response.headers.get("content-type") || "";
   return { status: response.status, data: type.includes("json") ? await response.json() : await response.text(), location: response.headers.get("location"), setCookie: response.headers.get("set-cookie") || "" };
+}
+
+// A guest cart made before sign-in was required: the browser holds the token, the database its hash.
+async function legacyGuestCart(browser, items) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  await GuestCart.create({ tokenHash: hashOf(token), items });
+  browser.set("nx_cart", token);
+  browser.set("nx_has_cart", "1");
+  return token;
 }
 
 test.before(async () => {
@@ -80,71 +92,49 @@ test.after(async () => {
   await new Promise(resolve => server.close(resolve));
 });
 
-test("guest cart: browsing makes no cart; the first add makes one, kept as a hash behind an httpOnly cookie", async () => {
+test("signed out: adding, changing and removing cart items need a sign-in, and make no cart or cookie", async () => {
   const browser = jar();
+  const before = await GuestCart.countDocuments({});
+  const added = await call(browser, "POST", "/api/cart/items", { productId: String(shoe._id), quantity: 1 });
+  assert.equal(added.status, 401, JSON.stringify(added.data));
+  assert.equal(browser.get("nx_cart"), undefined, "no guest cookie is made");
+  assert.equal((await call(browser, "PATCH", `/api/cart/items/${shoe._id}`, { quantity: 2 })).status, 401);
+  assert.equal((await call(browser, "DELETE", `/api/cart/items/${shoe._id}`)).status, 401);
+  assert.equal((await call(browser, "DELETE", "/api/cart")).status, 401);
+  assert.equal((await call(browser, "POST", `/api/cart/items/${socks._id}/save-for-later`)).status, 401);
+  assert.equal(await GuestCart.countDocuments({}), before, "no guest cart is stored");
+
+  // Reading stays open (the header badge asks), and is simply empty.
   const empty = await call(browser, "GET", "/api/cart");
   assert.equal(empty.status, 200);
   assert.equal(empty.data.cart.summary.count, 0);
-  assert.equal(browser.get("nx_cart"), undefined, "reading the cart does not make a cookie");
-
-  const added = await call(browser, "POST", "/api/cart/items", { productId: String(shoe._id), quantity: 2 });
-  assert.equal(added.status, 201, JSON.stringify(added.data));
-  assert.equal(added.data.cart.summary.count, 2);
-  assert.match(added.setCookie, /nx_cart=[A-Za-z0-9_-]{43};.*HttpOnly/i);
-  assert.match(added.setCookie, /SameSite=Lax/i);
-
-  const token = browser.get("nx_cart");
-  const stored = await GuestCart.findOne({});
-  assert.equal(stored.tokenHash, hashOf(token), "only the hash is stored");
-  assert.notEqual(stored.tokenHash, token);
-  assert.equal(await GuestCart.countDocuments({ tokenHash: token }), 0);
-
-  // The same rules as an account cart: stock and the limit of 5.
-  const tooMany = await call(browser, "POST", "/api/cart/items", { productId: String(shoe._id), quantity: 3 });
-  assert.equal(tooMany.status, 400);
-  assert.equal(tooMany.data.code, "cart_room");
-  const changed = await call(browser, "PATCH", `/api/cart/items/${shoe._id}`, { quantity: 1 });
-  assert.equal(changed.status, 200);
-  assert.equal(changed.data.cart.summary.count, 1);
+  assert.equal((await call(browser, "GET", "/api/cart/count")).data.count, 0);
 });
 
-test("guest cart: another browser cannot see it, and a forged cookie is just an empty cart", async () => {
-  const owner = jar();
-  await call(owner, "POST", "/api/cart/items", { productId: String(socks._id), quantity: 1 });
-  const stranger = jar();
-  assert.equal((await call(stranger, "GET", "/api/cart")).data.cart.summary.count, 0);
-  const forged = jar();
-  forged.take({ headers: { get: () => "nx_cart=not-a-real-token; Path=/" } });
-  const res = await call(forged, "GET", "/api/cart");
-  assert.equal(res.status, 200);
-  assert.equal(res.data.cart.summary.count, 0);
-});
-
-test("guest cart: the cart page and header count work for guests; checkout and save-for-later need an account", async () => {
+test("signed out: Buy now needs a sign-in, and the cart and checkout pages send you to sign in and back", async () => {
   const browser = jar();
-  await call(browser, "POST", "/api/cart/items", { productId: String(socks._id), quantity: 3 });
+  const buy = await call(browser, "POST", "/api/buy-now", { productId: String(shoe._id), quantity: 1 });
+  assert.equal(buy.status, 401);
+
   const page = await call(browser, "GET", "/cart");
-  assert.equal(page.status, 200);
-  assert.match(page.data, /Guest Trail Socks/);
-  // The page itself is the same for every guest (a CDN may keep it), so its badge is drawn empty; the
-  // browser fills it in from the count endpoint when the readable hint cookie says there is a cart.
-  assert.match(page.data, /data-cart-count hidden>0</, "the badge is drawn empty");
-  assert.equal((await call(browser, "GET", "/api/cart/count")).data.count, 3);
-  assert.equal(browser.get("nx_has_cart"), "1", "the readable hint holds no token");
-  assert.doesNotMatch(page.data, /data-cart-save/, "no save for later without a wishlist");
+  assert.equal(page.status, 302);
+  assert.match(page.location, /^\/login\?next=%2Fcart/);
 
   const checkout = await call(browser, "GET", "/checkout");
   assert.equal(checkout.status, 302);
   assert.match(checkout.location, /^\/login\?next=%2Fcheckout/);
-
-  const save = await call(browser, "POST", `/api/cart/items/${socks._id}/save-for-later`);
-  assert.equal(save.status, 401);
 });
 
-test("guest cart: signing up moves it into the new account and clears the cookie", async () => {
+test("signed out: the product page tells guests to sign in to buy", async () => {
+  const page = await call(jar(), "GET", `/products/${shoe.slug}`);
+  assert.equal(page.status, 200);
+  assert.match(page.data, /Sign in<\/a> to add to your cart or buy now/);
+  assert.doesNotMatch(page.data, /No account needed/);
+});
+
+test("an older guest cart moves into a new account at sign-up and the cookie is cleared", async () => {
   const browser = jar();
-  await call(browser, "POST", "/api/cart/items", { productId: String(shoe._id), quantity: 2 });
-  const token = browser.get("nx_cart");
+  const token = await legacyGuestCart(browser, [{ product: shoe._id, quantity: 2 }]);
   const signup = await call(browser, "POST", "/api/signup", { name: "Guest Shopper", email: "guest.shopper@guestcart.test", password: "guest2024run", confirmPassword: "guest2024run" });
   assert.equal(signup.status, 201, JSON.stringify(signup.data));
   assert.match(signup.data.message, /items in your cart are saved to your account/);
@@ -157,18 +147,16 @@ test("guest cart: signing up moves it into the new account and clears the cookie
   assert.equal(await GuestCart.countDocuments({ tokenHash: hashOf(token) }), 0, "the guest cart is deleted");
 });
 
-test("guest cart: signing in adds to the account's cart, never above the limit", async () => {
+test("an older guest cart adds to the account's cart at sign-in, never above the stock", async () => {
   // The account already holds 3 shoes (stock is 4).
   const account = jar();
   await call(account, "POST", "/api/signup", { name: "Mira Rao", email: "mira@guestcart.test", password: "guest2024run", confirmPassword: "guest2024run" });
-  await call(account, "POST", "/api/cart/items", { productId: String(shoe._id), quantity: 3 });
+  const own = await call(account, "POST", "/api/cart/items", { productId: String(shoe._id), quantity: 3 });
+  assert.equal(own.status, 201, JSON.stringify(own.data));
   await call(account, "POST", "/api/logout");
 
-  // As a guest she adds 2 more shoes and some socks, then signs in.
   const browser = jar();
-  await call(browser, "POST", "/api/cart/items", { productId: String(shoe._id), quantity: 2 });
-  await call(browser, "POST", "/api/cart/items", { productId: String(socks._id), quantity: 1 });
-  const token = browser.get("nx_cart");
+  const token = await legacyGuestCart(browser, [{ product: shoe._id, quantity: 2 }, { product: socks._id, quantity: 1 }]);
   const login = await call(browser, "POST", "/api/login", { email: "mira@guestcart.test", password: "guest2024run" });
   assert.equal(login.status, 200, JSON.stringify(login.data));
 
@@ -179,18 +167,15 @@ test("guest cart: signing in adds to the account's cart, never above the limit",
   assert.equal(await GuestCart.countDocuments({ tokenHash: hashOf(token) }), 0, "the guest cart is deleted");
 });
 
-test("guest cart: a cart made before the badge hint existed gets the hint on its next cart request", async () => {
-  const browser = jar();
-  await call(browser, "POST", "/api/cart/items", { productId: String(socks._id), quantity: 1 });
-  // An older browser: the cart token, but no readable hint.
-  const old = jar();
-  old.take({ headers: { get: () => `nx_cart=${browser.get("nx_cart")}; Path=/` } });
-  assert.equal(old.get("nx_has_cart"), undefined);
-  await call(old, "POST", "/api/cart/items", { productId: String(socks._id), quantity: 1 });
-  assert.equal(old.get("nx_has_cart"), "1");
+test("a forged guest cookie is just an empty cart", async () => {
+  const forged = jar();
+  forged.set("nx_cart", "not-a-real-token");
+  const res = await call(forged, "GET", "/api/cart");
+  assert.equal(res.status, 200);
+  assert.equal(res.data.cart.summary.count, 0);
 });
 
-test("guest cart: a guest cart expires on its own after 30 days", async () => {
+test("an older guest cart expires on its own after 30 days", async () => {
   const indexes = await GuestCart.collection.indexes();
   const ttl = indexes.find(index => index.key.updatedAt === 1);
   assert.equal(ttl.expireAfterSeconds, 30 * 24 * 60 * 60);

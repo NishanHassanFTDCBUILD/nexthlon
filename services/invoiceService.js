@@ -16,6 +16,9 @@ const VOLT = "#d4ff3a";     // brand accent, used on the dark header band only
 
 const dateText = value => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date(value));
 
+// "Trail Runner (Size 9 · Red)" for an item bought in a size or colour.
+const itemName = item => (item.option ? `${item.name} (${item.option})` : item.name);
+
 function invoiceNumber(order) {
   return order.orderId.replace(/^NX-/, "INV-");
 }
@@ -76,13 +79,14 @@ function writeInvoice(order, stream) {
   font("body").fontSize(9.5);
   for (const item of order.items) {
     const cancelled = item.status === "cancelled";
-    const nameHeight = doc.heightOfString(item.name, { width: cols[0].w - 12 });
+    const name = itemName(item);
+    const nameHeight = doc.heightOfString(name, { width: cols[0].w - 12 });
     if (y + nameHeight + 20 > doc.page.height - 120) {
       doc.addPage();
       y = 60;
     }
     doc.fillColor(cancelled ? MUTED : INK);
-    doc.text(item.name + (cancelled ? " (cancelled)" : ""), cols[0].x + 6, y, { width: cols[0].w - 12 });
+    doc.text(name + (cancelled ? " (cancelled)" : ""), cols[0].x + 6, y, { width: cols[0].w - 12 });
     doc.text(String(item.quantity), cols[1].x + 6, y, { width: cols[1].w - 12, align: "right" });
     doc.text(money(item.mrp), cols[2].x + 6, y, { width: cols[2].w - 12, align: "right" });
     doc.text(money(item.price), cols[3].x + 6, y, { width: cols[3].w - 12, align: "right" });
@@ -168,13 +172,15 @@ function writePackingSlip(order, stream) {
   y += 30;
   font("body").fontSize(10.5);
   for (const item of order.items.filter(line => line.status !== "cancelled")) {
-    const h = doc.heightOfString(item.name, { width: width - 140 });
+    // The warehouse needs the size and SKU to pick the right box.
+    const name = itemName(item) + (item.sku ? ` · SKU ${item.sku}` : "");
+    const h = doc.heightOfString(name, { width: width - 140 });
     if (y + h + 20 > doc.page.height - 100) {
       doc.addPage();
       y = 60;
     }
     doc.rect(left + 8, y, 12, 12).lineWidth(1).strokeColor(INK).stroke();
-    doc.fillColor(INK).text(item.name, left + 60, y, { width: width - 140 });
+    doc.fillColor(INK).text(name, left + 60, y, { width: width - 140 });
     font("bold").text(String(item.quantity), right - 70, y, { width: 64, align: "right" });
     font("body");
     y += Math.max(h, 14) + 12;

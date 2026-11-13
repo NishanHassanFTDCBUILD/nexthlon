@@ -274,7 +274,7 @@ async function listReturns(query = {}) {
         orderId: order.orderId,
         customer: order.address ? order.address.fullName : "",
         city: order.address ? order.address.city : "",
-        items: (requested.length ? requested : returned).map(item => `${item.name} × ${item.quantity}`),
+        items: (requested.length ? requested : returned).map(item => `${item.name}${item.option ? ` (${item.option})` : ""} × ${item.quantity}`),
         value: rules.itemsValue(order, (requested.length ? requested : returned).map(item => item._id)),
         reason: order.returnReason,
         note: order.returnNote,
@@ -312,8 +312,8 @@ async function decideReturn(orderId, { decision, note, refundMethod }, actor) {
   if (decision === "approve") {
     refund = rules.refundFor(order, items.map(item => item._id));
     await inTransaction(async (session, undo) => {
-      await stockService.returnStock(items.map(item => ({ product: item.product, quantity: item.quantity })), session);
-      undo(() => stockService.returnStock(items.map(item => ({ product: item.product, quantity: -item.quantity }))));
+      await stockService.returnStock(items.map(item => ({ product: item.product, variant: item.variant || null, quantity: item.quantity })), session);
+      undo(() => stockService.returnStock(items.map(item => ({ product: item.product, variant: item.variant || null, quantity: -item.quantity }))));
       items.forEach(item => { item.status = "returned"; });
       order.returnDecision = { status: "approved", note, refundMethod: refund > 0 ? refundMethod : "", refunded: refund, by: actor._id, at: new Date() };
       settle(order, note || "Return approved");

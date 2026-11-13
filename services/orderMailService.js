@@ -31,7 +31,7 @@ function itemsSection(order, base, items = order.items) {
     type: "items",
     items: items.map(item => ({
       name: item.name,
-      detail: [item.brand, `Qty ${item.quantity}`].filter(Boolean).join(" · "),
+      detail: [item.brand, item.option, `Qty ${item.quantity}`].filter(Boolean).join(" · "),
       image: absoluteUrl(sizedUrl(item.image, 200), base),
       price: formatPaise(item.lineTotal)
     }))

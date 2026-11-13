@@ -268,6 +268,9 @@
       } catch (error) {
         flight.abort();
         Nx.busy(button, false);
+        const link = error.code === "option_required" && button.closest("[data-list-item]") && button.closest("[data-list-item]").querySelector('a[href^="/products/"]');
+        // A product with sizes: open its page, where the size is chosen.
+        if (link) return window.location.assign(link.getAttribute("href"));
         Nx.toast(error.message, error.code === "cart_limit" || error.code === "cart_room" ? "info" : "error");
       }
     }, signal);

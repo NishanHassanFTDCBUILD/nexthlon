@@ -85,6 +85,7 @@
                 <img src="<%= sizedUrl(item.image, 200) %>" alt="" width="64" height="64" loading="lazy">
                 <div>
                   <strong><%= item.name %></strong>
+                  <% if (item.option) { %><span class="item-option"><%= item.option %></span><% } %>
                   <span class="muted">Qty <%= item.quantity %> · <%= formatPrice(item.price) %> each</span>
                 </div>
                 <strong><%= formatPrice(item.lineTotal) %></strong>

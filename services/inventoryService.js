@@ -121,10 +121,14 @@ async function listInventory(query = {}) {
 // Returns the stock before and after, for the audit log.
 async function adjustStock(productId, { action, units, note = "" }) {
   if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
-  const before = await Product.findById(productId).select("name stock").lean();
+  const before = await Product.findById(productId).select("name stock variants").lean();
   if (!before) throw new HttpError(404, "Product not found.");
+  // Stock of a product with sizes lives on each size; its total is their sum (models/Product.js).
+  if (before.variants && before.variants.length) {
+    throw new HttpError(400, `${before.name} has sizes or colours. Change each one's stock on the product's edit page.`, null, "has_options");
+  }
 
-  let filter = { _id: productId };
+  let filter = { _id: productId, "variants.0": { $exists: false } };
   let update;
   if (action === "add") {
     filter = { _id: productId, stock: { $lte: MAX_STOCK - units } };

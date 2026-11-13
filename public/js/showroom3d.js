@@ -151,14 +151,15 @@ function setUpShowroom(root) {
   const cards = [...root.querySelectorAll("[data-zg-card]")];
 
   // ---------- Add to cart (every mode) ----------
-  // The shared Nx.addToCart (store.js): the photo flies the moment the button is pressed, guests add to
-  // a cart of their own, and "the most you can buy" is a calm note, not an error.
+  // The shared Nx.addToCart (store.js): the photo flies the moment the button is pressed, guests go to
+  // sign in and come back, a product with sizes opens its page, and "the most you can buy" is a calm note.
   function addToCart(card, quantity, image, button) {
+    const href = card.querySelector("[data-zg-link]").getAttribute("href");
     if (!window.Nx || !Nx.addToCart) {
-      window.location.assign(card.querySelector("[data-zg-link]").getAttribute("href"));
+      window.location.assign(href);
       return;
     }
-    Nx.addToCart({ productId: card.dataset.id, quantity, source: image, button });
+    Nx.addToCart({ productId: card.dataset.id, quantity, source: image, button, href });
   }
   root.addEventListener("click", event => {
     const add = event.target.closest("[data-zg-add]");

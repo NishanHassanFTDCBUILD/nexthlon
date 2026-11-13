@@ -1,10 +1,22 @@
 const mongoose = require("mongoose");
 const { priceFor } = require("../utils/pricing");
 
-// One product = one item with one price and one stock count. No sizes or colours.
-// All money is in paise. "price" is what the shopper pays: basePrice after the better of the
-// product offer and the category offer. It is worked out on save (the hook below), never taken from
-// a form. utils/pricing.js PRICE_PIPELINE does the same sums as a database update, for many at once.
+// One product, one price. It may have options (sizes, colours), each with its own SKU and stock; then the
+// product's stock is the sum of its options, kept in step on every save and every stock change
+// (services/stockService.js), so lists, filters and reports keep reading one number. Without options a
+// product is one item with one stock count, as before.
+// All money is in paise. "price" is what the shopper pays: basePrice after the better of the product
+// offer and the category offer. It is worked out on save (the hook below), never taken from a form.
+// utils/pricing.js PRICE_PIPELINE does the same sums as a database update, for many at once.
+
+// One option: a size and/or a colour, its SKU and its stock. Its _id is what carts and orders refer to.
+const variantSchema = new mongoose.Schema({
+  size: { type: String, trim: true, default: "", maxlength: 20 },
+  colour: { type: String, trim: true, default: "", maxlength: 30 },
+  sku: { type: String, trim: true, default: "", maxlength: 40 },
+  stock: { type: Number, required: true, min: 0, validate: Number.isInteger }
+});
+
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, maxlength: 160 },
   slug: { type: String, required: true, unique: true, trim: true, lowercase: true },
@@ -20,6 +32,8 @@ const productSchema = new mongoose.Schema({
   price: { type: Number, required: true, min: 0 },
   discountPercent: { type: Number, default: 0, min: 0, max: 100 },
   stock: { type: Number, required: true, min: 0, validate: Number.isInteger },
+  // Sizes and colours (empty: the product has none). See the note at the top.
+  variants: { type: [variantSchema], default: [] },
   // The main photo. gallery holds every photo in order, with the main one first.
   image: { type: String, required: true, trim: true },
   gallery: { type: [String], default: [] },
@@ -44,6 +58,12 @@ productSchema.index(
   { name: "text", brand: "text", description: "text" },
   { name: "product_text", weights: { name: 10, brand: 5, description: 1 }, default_language: "english" }
 );
+
+// With options, the product's stock is always the sum of its options' stock.
+productSchema.pre("validate", function sumOptionStock(next) {
+  if (this.variants && this.variants.length) this.stock = this.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+  next();
+});
 
 productSchema.pre("validate", function setPrices(next) {
   if (Number.isFinite(this.basePrice) && Number.isFinite(this.mrp)) {

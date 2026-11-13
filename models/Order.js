@@ -9,6 +9,12 @@ const orderItemSchema = new mongoose.Schema({
   slug: { type: String, required: true },
   brand: { type: String, default: "" },
   image: { type: String, default: "" },
+  // The size or colour bought, for products that have them: its id (stock goes back to it on a cancel
+  // or return), and its label and SKU as they were at the time ("Size 9 · Red"). Empty on older orders
+  // and on products without options.
+  variant: { type: mongoose.Schema.Types.ObjectId, default: null },
+  option: { type: String, default: "" },
+  sku: { type: String, default: "" },
   price: { type: Number, required: true, min: 0 },
   mrp: { type: Number, required: true, min: 0 },
   quantity: { type: Number, required: true, min: 1 },

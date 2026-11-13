@@ -7,6 +7,8 @@ const mongoose = require("mongoose");
 // document is deleted. Prices are never stored: they always come live from the product.
 const guestItemSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+  // The chosen size or colour (models/Product.js variants), for products that have them.
+  variant: { type: mongoose.Schema.Types.ObjectId, default: null },
   quantity: { type: Number, required: true, min: 1, validate: Number.isInteger }
 }, { _id: false });
 

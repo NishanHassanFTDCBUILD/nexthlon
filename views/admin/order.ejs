@@ -50,7 +50,7 @@
               <li class="<%= item.status === 'cancelled' ? 'is-cancelled' : '' %>">
                 <% if (can) { %><input type="checkbox" name="itemIds" value="<%= item._id %>" aria-label="Select <%= item.name %> to cancel"><% } else { %><span class="admin-items-gap"></span><% } %>
                 <img src="<%= sizedUrl(item.image, 200) %>" alt="" width="48" height="48" loading="lazy">
-                <span class="admin-items-name"><a href="/products/<%= item.slug %>" data-nav-skip target="_blank" rel="noopener"><%= item.name %></a><small class="muted"><%= item.quantity %> × <%= formatPrice(item.price) %><% if (item.mrp > item.price) { %> · M.R.P. <s><%= formatPrice(item.mrp) %></s><% } %></small></span>
+                <span class="admin-items-name"><a href="/products/<%= item.slug %>" data-nav-skip target="_blank" rel="noopener"><%= item.name %></a><% if (item.option) { %><small><strong><%= item.option %></strong><% if (item.sku) { %> · SKU <%= item.sku %><% } %></small><% } %><small class="muted"><%= item.quantity %> × <%= formatPrice(item.price) %><% if (item.mrp > item.price) { %> · M.R.P. <s><%= formatPrice(item.mrp) %></s><% } %></small></span>
                 <span class="status-pill status-<%= item.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[item.status] %></span>
                 <strong class="admin-items-total"><%= formatPrice(item.lineTotal) %></strong>
               </li>

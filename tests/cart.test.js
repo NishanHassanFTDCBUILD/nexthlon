@@ -74,10 +74,13 @@ test("a cart line above the current stock is shown at the stock level", () => {
   assert.equal(summary.subtotal, 5998);
 });
 
-test("cart input validation reads only product id and a whole quantity", () => {
+test("cart input validation reads only product id, a whole quantity and an option id", () => {
   const { errors, value } = validateCartItem({ productId: shoe._id, quantity: "2", price: 1 });
   assert.deepEqual(errors, {});
-  assert.deepEqual(value, { productId: shoe._id, quantity: 2 });
+  assert.deepEqual(value, { productId: shoe._id, quantity: 2, variantId: null });
+  const option = "b".repeat(24);
+  assert.equal(validateCartItem({ productId: shoe._id, variantId: option }).value.variantId, option);
+  assert.equal(validateCartItem({ productId: shoe._id, variantId: { $ne: null } }).value.variantId, null, "only an id is read");
   assert.equal(validateCartItem({ productId: shoe._id }).value.quantity, 1);
   assert.ok(validateCartItem({ productId: "../etc", quantity: 1 }).errors.productId);
   assert.ok(validateCartItem({ productId: shoe._id, quantity: "1.5" }).errors.quantity);

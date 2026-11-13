@@ -66,6 +66,8 @@ code { font: 0.9em/1 Consolas, monospace; background: var(--brand-soft); padding
 .page { padding-top: var(--space-2h); padding-bottom: var(--space-8); }
 .section { margin-top: var(--space-5); }
 .muted { color: var(--muted); }
+/* The size or colour of an item in a cart, checkout or order (B3 options). */
+.item-option { display: block; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); }
 /* Instructions that depend on the input: one for a mouse, one for touch. */
 .hint-touch { display: none; }
 @media (hover: none), (pointer: coarse) {

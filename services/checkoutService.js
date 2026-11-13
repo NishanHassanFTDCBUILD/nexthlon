@@ -54,7 +54,7 @@ async function itemsFor(userId, source) {
 async function buildQuote(userId, { useWallet = false, source = "cart" } = {}) {
   const [cart, walletBalance] = await Promise.all([itemsFor(userId, source), walletService.getBalance(userId)]);
   const lines = cart.items.filter(item => item.available);
-  const problems = cart.items.filter(item => !item.available).map(item => `${item.name}: ${item.reason.toLowerCase()}`);
+  const problems = cart.items.filter(item => !item.available).map(item => `${item.name}${item.option ? ` (${item.option})` : ""}: ${item.reason.toLowerCase()}`);
   const { summary } = cart;
 
   let coupon = null;
@@ -111,6 +111,10 @@ function publicQuote(quote) {
 function itemSnapshots(lines) {
   return lines.map(line => ({
     product: line.productId,
+    // The size or colour, as chosen and as it was named at the time (empty for products without options).
+    variant: line.variantId || null,
+    option: line.option || "",
+    sku: line.sku || "",
     name: line.name,
     slug: line.slug,
     brand: line.brand || "",
@@ -195,7 +199,12 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
       : "Cash on Delivery is not available right now. Please choose another payment method.");
   }
 
-  const stockLines = quote.lines.map(line => ({ product: line.productId, quantity: line.quantity, name: line.name }));
+  const stockLines = quote.lines.map(line => ({
+    product: line.productId,
+    variant: line.variantId || null,
+    quantity: line.quantity,
+    name: line.option ? `${line.name} (${line.option})` : line.name
+  }));
   const orderId = await nextOrderId();
   const placed = await stockService.withStock(stockLines, async (session, undo) => {
     const order = await saveOrder({

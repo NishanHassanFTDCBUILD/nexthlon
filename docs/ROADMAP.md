@@ -167,6 +167,10 @@ Plan first, then wait for my go-ahead.
   - a size-guide sheet that slides up on phones and opens as a side panel on desktop;
   - the "Add to cart" button stays disabled, with a gentle shake, until a size is picked.
 - **Done when:** stock is tracked per option everywhere (cart, checkout, returns, admin, reports), old orders still display, and all tests pass.
+- **Progress (2026-11-13):**
+  - [x] Part 1: options in `models/Product.js` (size, colour, SKU, own stock; product stock = their sum; no migration needed, a product without options works as before), atomic per-option stock in `services/stockService.js`, one cart line per size, option kept on Buy now and on each order line (label + SKU), cancels and returns give stock back to that size, size and colour picker with sold-out chips and "Only N left in size X" on the product page, option shown in cart, checkout, orders, admin order, invoice, packing slip and emails, admin options editor (with shoe and clothing size presets), quick restock refused for products with options. Tests: `tests/options.test.js`.
+  - [x] Adding to the cart and Buy now need a signed-in account (signed-out visitors go to sign in and come straight back, with their size kept). Older guest carts still move into the account at sign-in.
+  - [ ] Part 2: size and colour filters on listings, size guide sheet, per-colour photos that swap the gallery, per-option rows in the inventory page and reports.
 
 ```text
 Step B3 from docs/ROADMAP.md: add product options (size and colour, each with its own SKU, stock,

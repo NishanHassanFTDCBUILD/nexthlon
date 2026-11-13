@@ -22,13 +22,15 @@
         </div>
         <ul class="cart-list">
           <% items.forEach(function (item) { %>
-            <li class="cart-item <%= item.available ? '' : 'is-unavailable' %>" data-cart-item="<%= item.productId %>" data-name="<%= item.name %>">
-              <a class="cart-item-media" href="/products/<%= item.slug %>" tabindex="-1" aria-hidden="true">
+            <li class="cart-item <%= item.available ? '' : 'is-unavailable' %>" data-cart-item="<%= item.key || item.productId %>" data-name="<%= item.name %><%= item.option ? ' (' + item.option + ')' : '' %>">
+              <% const itemHref = '/products/' + item.slug + (item.variantId ? '?option=' + item.variantId : ''); %>
+              <a class="cart-item-media" href="<%= itemHref %>" tabindex="-1" aria-hidden="true">
                 <img src="<%= sizedUrl(item.image, 400) %>" alt="" width="112" height="112" loading="lazy">
               </a>
               <div class="cart-item-info">
                 <span class="product-meta"><%= item.brand %></span>
-                <h2 class="cart-item-name"><a href="/products/<%= item.slug %>"><%= item.name %></a></h2>
+                <h2 class="cart-item-name"><a href="<%= itemHref %>"><%= item.name %></a></h2>
+                <% if (item.option) { %><p class="cart-item-option"><%= item.option %><% if (item.sku) { %> <span class="sr-only">SKU <%= item.sku %></span><% } %></p><% } %>
                 <div class="cart-item-price">
                   <span class="price"><%= formatPrice(item.price) %></span>
                   <% if (item.mrp > item.price) { %><span class="mrp">M.R.P. <s><%= formatPrice(item.mrp) %></s></span><span class="price-off"><%= item.discountPercent %>% off</span><% } %>

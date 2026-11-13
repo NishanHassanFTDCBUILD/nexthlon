@@ -7,6 +7,8 @@ const mongoose = require("mongoose");
 const buyNowSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
   product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+  // The chosen size or colour (models/Product.js variants), for products that have them.
+  variant: { type: mongoose.Schema.Types.ObjectId, default: null },
   quantity: { type: Number, required: true, min: 1, validate: Number.isInteger },
   // The coupon chosen on the Buy now checkout (separate from the cart's coupon).
   couponCode: { type: String, default: "" },

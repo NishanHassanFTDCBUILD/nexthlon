@@ -59,6 +59,7 @@
               <img src="<%= sizedUrl(item.image, 200) %>" alt="" width="80" height="80" loading="lazy">
               <div class="order-item-info">
                 <a href="/products/<%= item.slug %>"><strong><%= item.name %></strong></a>
+                <% if (item.option) { %><span class="item-option"><%= item.option %></span><% } %>
                 <span class="muted">Qty <%= item.quantity %> · <%= formatPrice(item.price) %> each<% if (item.mrp > item.price) { %> · M.R.P. <s><%= formatPrice(item.mrp) %></s><% } %></span>
                 <span class="pill <%= pillFor(item.status) %>"><%= labels[item.status] %></span>
               </div>

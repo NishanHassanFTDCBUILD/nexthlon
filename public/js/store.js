@@ -265,7 +265,6 @@
   };
 
   // ---------- Add to cart (every button on the site goes through here) ----------
-  // { productId, quantity, source, src, button }
   //   source  the element the photo flies from (a photo or a card); src the photo to fly
   //   button  disabled while the request runs; quick-add buttons (.card-add) also show "added" or "max"
   // Resolves { ok: true, cart } or { ok: false, error }. Never throws.
@@ -298,10 +297,23 @@
     }
   }
 
-  // Guests add to a cart of their own (kept by a cookie on the server), which moves into their account
-  // when they sign in; only checkout asks them to sign in.
-  Nx.addToCart = async function addToCart({ productId, quantity = 1, source, src, button } = {}) {
-    if (role !== "guest" && role !== "customer") return { ok: false, error: null };
+  // Signing in is needed to use the cart: a signed-out visitor goes to sign in and comes straight back to
+  // the page they were on. (Admins have no cart in the store.)
+  Nx.shopperRole = role;
+  // nextPath: where to land after signing in (default: this page).
+  Nx.signInFirst = function signInFirst(nextPath) {
+    const next = nextPath || window.location.pathname + window.location.search + window.location.hash;
+    window.location.assign(`/login?${new URLSearchParams({ next })}`);
+  };
+
+  // { productId, quantity, variantId (the size, for products with sizes), source, src, button, href }
+  // href: the product page, opened when the product has sizes and none was chosen (a quick-add button).
+  Nx.addToCart = async function addToCart({ productId, quantity = 1, variantId = null, source, src, button, href = "" } = {}) {
+    if (role === "guest") {
+      Nx.signInFirst();
+      return { ok: false, error: null };
+    }
+    if (role !== "customer") return { ok: false, error: null };
     if (!productId || (button && inFlight.has(button))) return { ok: false, error: null };
     if (button) {
       inFlight.add(button);
@@ -310,7 +322,9 @@
     }
     const flight = Nx.startFlight(source, src);
     try {
-      const result = await Nx.api("/api/cart/items", { method: "POST", body: { productId, quantity } });
+      const body = { productId, quantity };
+      if (variantId) body.variantId = variantId;
+      const result = await Nx.api("/api/cart/items", { method: "POST", body });
       await flight.landed;
       Nx.setCartCount(result.cart.summary.count);
       Nx.toast(result.message, "success", { action: { label: "View cart", href: "/cart" } });
@@ -318,6 +332,11 @@
       return { ok: true, cart: result.cart };
     } catch (error) {
       flight.abort();
+      if (error.code === "option_required" && href) {
+        // A product with sizes, added from a card: open its page, where the size is chosen.
+        window.location.assign(href);
+        return { ok: false, error };
+      }
       if (error.code === "cart_limit" || error.code === "cart_room") {
         // Not a failure: the shopper already has as many as they can buy.
         Nx.toast(error.message, "info", { action: { label: "View cart", href: "/cart" } });
@@ -346,7 +365,8 @@
     const photo = card && card.querySelector("img");
     const source = button.dataset.cartFrom === "card" && card ? card : photo || button;
     const src = button.dataset.cartSrc || (photo ? photo.currentSrc || photo.src : "");
-    Nx.addToCart({ productId: button.dataset.cartAdd, source, src, button });
+    const link = card && card.querySelector('a[href^="/products/"]');
+    Nx.addToCart({ productId: button.dataset.cartAdd, source, src, button, href: link ? link.getAttribute("href") : "" });
   });
 
   // ---------- Product cards drawn in the browser (same markup as partials/product-card.ejs) ----------

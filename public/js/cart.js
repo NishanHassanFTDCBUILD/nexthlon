@@ -11,8 +11,9 @@
     const input = root.querySelector("[data-qty-input]");
     const minus = root.querySelector('[data-qty-step="-1"]');
     const plus = root.querySelector('[data-qty-step="1"]');
-    const max = Number(input.max) || 1;
     const clamp = () => {
+      // Read each time: choosing a size changes the most you can buy.
+      const max = Number(input.max) || 1;
       const value = Math.min(max, Math.max(1, Math.round(Number(input.value)) || 1));
       input.value = String(value);
       minus.disabled = value <= 1;
@@ -29,12 +30,124 @@
     return clamp;
   }
 
+  // ---------- Size and colour picker on the product page ----------
+  // Every option (size, colour or both) has its own stock. Choosing one fills the hidden variantId,
+  // updates "Only N left in size X" and the most you can buy, and crosses out the other choices that
+  // are sold out with it. Add to cart and Buy now ask for a choice first (a gentle shake).
+  function setupOptions(form) {
+    const box = form.querySelector("[data-options]");
+    if (!box) return () => null;
+    let options = [];
+    try {
+      options = JSON.parse(box.querySelector("[data-options-json]").textContent) || [];
+    } catch {
+      options = [];
+    }
+    const hidden = box.querySelector("[data-variant-input]");
+    const message = box.querySelector("[data-opt-msg]");
+    const stockLine = document.querySelector("[data-stock-line]");
+    const qty = form.querySelector("[data-qty-input]");
+    const hint = form.querySelector(".pdx-hint");
+    const groups = ["size", "colour"].filter(name => box.querySelector(`[data-opt-group="${name}"]`));
+    const picked = name => {
+      const input = box.querySelector(`input[name="${name}"]:checked`);
+      return input ? input.value : "";
+    };
+    const fits = (option, choice) => groups.every(name => !choice[name] || option[name] === choice[name]);
+    const firstName = groups[0] === "colour" ? "colour" : "size";
+
+    function stockText(option) {
+      const name = [option.size && `size ${option.size}`, option.colour].filter(Boolean).join(", ");
+      if (option.stock <= 0) return { text: `Sold out in ${name}`, tone: "is-out" };
+      if (option.stock <= 5) return { text: `Only ${option.stock} left in ${name} – order soon`, tone: "is-low" };
+      return { text: `In stock in ${name}`, tone: "is-ok" };
+    }
+
+    function refresh() {
+      const choice = Object.fromEntries(groups.map(name => [name, picked(name)]));
+      // A choice in one group crosses out what is sold out with it in the other.
+      groups.forEach(name => {
+        const others = { ...choice, [name]: "" };
+        box.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+          const left = options.filter(option => option[name] === input.value && fits(option, others)).reduce((sum, option) => sum + option.stock, 0);
+          input.disabled = left <= 0;
+          input.closest(".pdx-opt").classList.toggle("is-sold", left <= 0);
+          if (input.disabled && input.checked) input.checked = false;
+        });
+        const label = box.querySelector(`[data-opt-picked="${name}"]`);
+        if (label) label.textContent = picked(name);
+      });
+      const complete = groups.every(name => picked(name));
+      const match = complete ? options.find(option => fits(option, choice) && groups.every(name => option[name] === choice[name])) : null;
+      hidden.value = match && match.stock > 0 ? match.id : "";
+      box.classList.toggle("is-chosen", Boolean(hidden.value));
+      if (match) {
+        const { text, tone } = stockText(match);
+        if (stockLine) {
+          stockLine.textContent = text;
+          stockLine.className = `pdx-stock ${tone}`;
+        }
+        if (qty) {
+          const max = Math.max(1, Math.min(match.stock, 5));
+          qty.max = String(max);
+          qty.dispatchEvent(new Event("change"));
+          if (hint) hint.textContent = `Max ${max} per order`;
+        }
+        message.textContent = "";
+        box.classList.remove("is-asking");
+      }
+    }
+
+    box.addEventListener("change", refresh);
+    // ?option=<id> (a link from the cart, or back from sign-in) chooses that option.
+    const wanted = new URLSearchParams(window.location.search).get("option");
+    const start = options.find(option => option.id === wanted);
+    if (start) {
+      groups.forEach(name => {
+        const input = [...box.querySelectorAll(`input[name="${name}"]`)].find(item => item.value === start[name]);
+        if (input && !input.disabled) input.checked = true;
+      });
+    }
+    refresh();
+
+    // Returns the chosen option id, or asks for one and returns null.
+    return function requireOption() {
+      if (hidden.value) return hidden.value;
+      const missing = groups.find(name => !picked(name)) || firstName;
+      message.textContent = missing === "colour" ? "Choose a colour first." : "Choose a size first.";
+      box.classList.remove("is-asking");
+      void box.offsetWidth;
+      box.classList.add("is-asking");
+      const first = box.querySelector(`input[name="${missing}"]:not(:disabled)`);
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      box.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
+      if (first) first.focus({ preventScroll: true });
+      return null;
+    };
+  }
+
   const addForm = document.querySelector("[data-add-to-cart]");
   if (addForm) {
     const readQuantity = setupStepper(addForm.querySelector("[data-qty]"));
+    const requireOption = setupOptions(addForm);
+    // Product page code (product.js Buy now) asks the same question before going to checkout.
+    addForm.nxRequireOption = () => (addForm.hasAttribute("data-has-options") ? requireOption() : null);
+    // This page with the chosen option (and any extra query, such as buy=now), for after sign-in.
+    addForm.nxReturnPath = (extra = {}) => {
+      const params = new URLSearchParams(window.location.search);
+      const chosen = addForm.querySelector("[data-variant-input]");
+      if (chosen && chosen.value) params.set("option", chosen.value);
+      Object.entries(extra).forEach(([key, value]) => params.set(key, value));
+      const query = params.toString();
+      return window.location.pathname + (query ? `?${query}` : "");
+    };
     // The shared Nx.addToCart (store.js): the photo flies from the gallery the moment you press the button.
     addForm.addEventListener("submit", async event => {
       event.preventDefault();
+      const variantId = addForm.nxRequireOption();
+      if (addForm.hasAttribute("data-has-options") && !variantId) return;
+      // Signed out: sign in first and come back here with the same size still chosen.
+      if (Nx.shopperRole === "guest") return Nx.signInFirst(addForm.nxReturnPath());
       // From the big photo, or from the sticky buy bar's photo when the big one has scrolled away.
       const gallery = document.querySelector("[data-gallery-main]");
       const box = gallery ? gallery.getBoundingClientRect() : null;
@@ -42,6 +155,7 @@
       const result = await Nx.addToCart({
         productId: addForm.dataset.productId,
         quantity: readQuantity(),
+        variantId,
         source: onScreen ? gallery : document.querySelector("[data-dock] img") || gallery,
         src: gallery ? gallery.currentSrc || gallery.src : "",
         button: addForm.querySelector('[type="submit"]')
@@ -90,7 +204,8 @@
   // Brings every number on the page in line with the cart the server sent back.
   function render(cart) {
     const { items, summary } = cart;
-    const byId = new Map(items.map(item => [item.productId, item]));
+    // Rows are keyed by line ("<product>" or "<product>-<size option>"): two sizes are two rows.
+    const byId = new Map(items.map(item => [item.key || item.productId, item]));
     const leaving = [];
     page.querySelectorAll("[data-cart-item]").forEach(row => {
       const item = byId.get(row.dataset.cartItem);

@@ -4,6 +4,7 @@ const Product = require("../models/Product");
 const cartService = require("./cartService");
 const { HttpError } = require("../utils/http");
 const { LISTED_PRODUCT } = require("../utils/queryFilters");
+const { readLineKey } = require("../utils/options");
 
 const MAX_ITEMS = 100;
 
@@ -82,9 +83,12 @@ async function moveToCart(userId, productId) {
 }
 
 // "Save for later": takes the line out of the cart and puts the product on the wishlist.
-async function saveForLater(userId, productId) {
-  const id = toObjectId(productId);
-  const cart = await cartService.removeItem(userId, id);
+// key: the cart line ("<product>" or "<product>-<size>"); the wishlist keeps the product.
+async function saveForLater(userId, key) {
+  const line = readLineKey(key);
+  if (!line) throw new HttpError(404, "This item is not in your cart.");
+  const id = toObjectId(line.productId);
+  const cart = await cartService.removeItem(userId, key);
   await Wishlist.updateOne({ user: userId }, { $pull: { products: id } });
   await Wishlist.updateOne(
     { user: userId },

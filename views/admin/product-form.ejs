@@ -78,7 +78,8 @@
             </div>
             <div class="field">
               <label for="p-stock">Stock</label>
-              <input id="p-stock" name="stock" type="number" inputmode="numeric" min="0" step="1" required value="<%= p.stock %>" aria-describedby="p-stock-error">
+              <input id="p-stock" name="stock" type="number" inputmode="numeric" min="0" step="1" required value="<%= p.stock %>" aria-describedby="p-stock-error p-stock-hint" data-stock-total <%= p.hasOptions ? 'readonly' : '' %>>
+              <p class="hint" id="p-stock-hint" data-stock-hint <%= p.hasOptions ? '' : 'hidden' %>>The total of the sizes below.</p>
               <p class="field-error" id="p-stock-error" data-error-for="stock"></p>
             </div>
             <div class="field">
@@ -93,6 +94,23 @@
               <p class="hint">Worked out from the price and M.R.P.</p>
             </div>
           </div>
+        </section>
+
+        <section class="panel product-options-panel" aria-labelledby="options-title" data-options-editor data-options="<%= JSON.stringify(p.options || []) %>">
+          <h2 id="options-title" class="panel-title">Sizes and colours <span class="optional">(optional)</span></h2>
+          <p class="muted">Each size or colour has its own stock, and shoppers choose one before adding to the cart. The price is the same for all of them. Leave this empty for a product that comes in one size.</p>
+          <div class="options-table-wrap">
+            <table class="options-table" data-options-table hidden>
+              <thead><tr><th scope="col">Size</th><th scope="col">Colour</th><th scope="col">SKU <span class="optional">(optional)</span></th><th scope="col">Stock</th><th scope="col"><span class="sr-only">Remove</span></th></tr></thead>
+              <tbody data-options-rows></tbody>
+            </table>
+          </div>
+          <div class="options-actions">
+            <button type="button" class="btn btn-ghost btn-sm" data-option-add><%- icon('plus', 'i-xs') %> Add a size or colour</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-option-preset="6,7,8,9,10,11">Shoe sizes 6–11</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-option-preset="S,M,L,XL,XXL">Clothing S–XXL</button>
+          </div>
+          <p class="field-error" data-error-for="options" aria-live="polite"></p>
         </section>
 
         <section class="panel product-images-panel" aria-labelledby="images-title">

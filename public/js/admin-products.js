@@ -246,6 +246,76 @@
       render();
     });
 
+    // ---------- Sizes and colours ----------
+    // Rows of size / colour / SKU / stock. With any rows, the stock field shows their total and is locked.
+    const optionsBox = form.querySelector("[data-options-editor]");
+    const optionsTable = optionsBox.querySelector("[data-options-table]");
+    const optionRows = optionsBox.querySelector("[data-options-rows]");
+    const stockTotal = form.querySelector("[data-stock-total]");
+    const stockHint = form.querySelector("[data-stock-hint]");
+    let rowNumber = 0;
+    function cell(name, value, label, attrs) {
+      const td = document.createElement("td");
+      const field = document.createElement("input");
+      Object.assign(field, { value: value === undefined ? "" : String(value), ...attrs });
+      field.setAttribute("aria-label", label);
+      field.dataset.optionField = name;
+      td.append(field);
+      return td;
+    }
+    function syncOptions() {
+      const rows = [...optionRows.children];
+      optionsTable.hidden = rows.length === 0;
+      stockTotal.readOnly = rows.length > 0;
+      stockHint.hidden = rows.length === 0;
+      if (rows.length) {
+        stockTotal.value = String(rows.reduce((sum, row) => sum + (Math.max(0, Math.round(Number(row.querySelector('[data-option-field="stock"]').value))) || 0), 0));
+      }
+    }
+    function addOptionRow(option = {}, focus = false) {
+      rowNumber += 1;
+      const tr = document.createElement("tr");
+      tr.dataset.optionId = option.id || "";
+      tr.append(
+        cell("size", option.size, `Size, row ${rowNumber}`, { maxLength: 20, placeholder: "e.g. 9" }),
+        cell("colour", option.colour, `Colour, row ${rowNumber}`, { maxLength: 30, placeholder: "e.g. Black" }),
+        cell("sku", option.sku, `SKU, row ${rowNumber}`, { maxLength: 40, placeholder: "e.g. TF2-BLK-9" }),
+        cell("stock", option.stock === undefined ? 0 : option.stock, `Stock, row ${rowNumber}`, { type: "number", min: 0, step: 1, inputMode: "numeric" })
+      );
+      const td = document.createElement("td");
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "icon-btn icon-btn-sm";
+      remove.setAttribute("aria-label", "Remove this row");
+      remove.innerHTML = iconSvg("trash");
+      remove.addEventListener("click", () => {
+        const next = tr.nextElementSibling || tr.previousElementSibling;
+        tr.remove();
+        syncOptions();
+        (next ? next.querySelector("input") : optionsBox.querySelector("[data-option-add]")).focus();
+      });
+      td.append(remove);
+      tr.append(td);
+      optionRows.append(tr);
+      syncOptions();
+      if (focus) tr.querySelector("input").focus();
+    }
+    optionsBox.addEventListener("input", event => {
+      if (event.target.dataset.optionField === "stock") syncOptions();
+    });
+    optionsBox.querySelector("[data-option-add]").addEventListener("click", () => addOptionRow({}, true));
+    optionsBox.querySelectorAll("[data-option-preset]").forEach(button => {
+      button.addEventListener("click", () => {
+        const have = new Set([...optionRows.querySelectorAll('[data-option-field="size"]')].map(field => field.value.trim().toLowerCase()));
+        button.dataset.optionPreset.split(",").filter(size => !have.has(size.toLowerCase())).forEach(size => addOptionRow({ size, stock: 0 }));
+      });
+    });
+    JSON.parse(optionsBox.dataset.options || "[]").forEach(option => addOptionRow(option));
+    const readOptions = () => [...optionRows.children].map(row => {
+      const read = name => row.querySelector(`[data-option-field="${name}"]`).value.trim();
+      return { id: row.dataset.optionId, size: read("size"), colour: read("colour"), sku: read("sku"), stock: read("stock") };
+    });
+
     form.addEventListener("submit", async event => {
       event.preventDefault();
       // Everything is checked on the server, which reports every problem at once (photos included).
@@ -253,6 +323,7 @@
       for (const name of ["name", "description", "category", "brand", "price", "mrp", "offerPercent", "stock"]) {
         data.append(name, form.elements[name].value);
       }
+      data.append("options", JSON.stringify(readOptions()));
       const kept = items.filter(item => item.kind === "kept");
       const fresh = items.filter(item => item.kind === "new");
       data.append("keepImages", JSON.stringify(kept.map(item => item.url)));

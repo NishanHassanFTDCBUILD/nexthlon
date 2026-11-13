@@ -208,8 +208,66 @@ function validateProduct(body = {}) {
   if (value.mrp === null || value.mrp > MAX_PRICE) errors.mrp = "Enter the M.R.P. as a number.";
   else if (value.basePrice !== null && value.mrp < value.basePrice) errors.mrp = "M.R.P. must be the same as or higher than the price.";
   if (value.offerPercent === null) errors.offerPercent = "Enter an offer from 0 to 90 percent.";
-  if (value.stock === null) errors.stock = "Enter stock as a whole number, 0 or more.";
+  // Sizes and colours. Left out (an older form or an API call without them) means "keep what is there".
+  if (body.options !== undefined) {
+    const options = readProductOptions(body.options);
+    if (options.error) errors.options = options.error;
+    else value.variants = options.list;
+  }
+  // With options, the product's stock is the sum of theirs (models/Product.js), so the field is ignored.
+  if (value.variants && value.variants.length) {
+    value.stock = value.variants.reduce((sum, option) => sum + option.stock, 0);
+    delete errors.stock;
+  } else if (value.stock === null) errors.stock = "Enter stock as a whole number, 0 or more.";
   return { errors, value };
+}
+
+// The admin's size and colour rows: [{ id, size, colour, sku, stock }], sent as JSON text.
+// Every row needs a size or a colour; either all rows have a size or none do (the same for colour),
+// so the shopper's picker always has a full set to choose from. No two rows may be the same option.
+const MAX_OPTIONS = 60;
+const MAX_OPTION_STOCK = 100000;
+function readProductOptions(raw) {
+  let list = raw;
+  if (typeof raw === "string") {
+    if (raw.trim() === "") return { list: [] };
+    try {
+      list = JSON.parse(raw);
+    } catch {
+      return { error: "The sizes list could not be read. Reload the page and try again." };
+    }
+  }
+  if (!Array.isArray(list)) return { error: "The sizes list could not be read. Reload the page and try again." };
+  if (list.length > MAX_OPTIONS) return { error: `A product can have up to ${MAX_OPTIONS} sizes and colours.` };
+  const out = [];
+  const seen = new Set();
+  for (const [index, row] of list.entries()) {
+    const n = index + 1;
+    if (!row || typeof row !== "object") return { error: `Row ${n} could not be read.` };
+    const option = {
+      id: OBJECT_ID.test(text(row.id)) ? text(row.id) : "",
+      size: text(row.size),
+      colour: text(row.colour),
+      sku: text(row.sku),
+      stock: null
+    };
+    const stockRaw = typeof row.stock === "number" ? String(row.stock) : text(row.stock);
+    if (WHOLE.test(stockRaw) && Number(stockRaw) <= MAX_OPTION_STOCK) option.stock = Number(stockRaw);
+    if (!option.size && !option.colour) return { error: `Row ${n}: enter a size, a colour, or both.` };
+    if (option.size.length > 20) return { error: `Row ${n}: keep the size under 20 characters.` };
+    if (option.colour.length > 30) return { error: `Row ${n}: keep the colour under 30 characters.` };
+    if (option.sku.length > 40) return { error: `Row ${n}: keep the SKU under 40 characters.` };
+    if (option.stock === null) return { error: `Row ${n}: enter stock as a whole number from 0 to ${MAX_OPTION_STOCK.toLocaleString("en-IN")}.` };
+    const key = `${option.size.toLowerCase()}|${option.colour.toLowerCase()}`;
+    if (seen.has(key)) return { error: `Row ${n} is the same as an earlier row (${[option.size, option.colour].filter(Boolean).join(", ")}).` };
+    seen.add(key);
+    out.push(option);
+  }
+  const sized = out.filter(option => option.size).length;
+  const coloured = out.filter(option => option.colour).length;
+  if (sized && sized !== out.length) return { error: "Give every row a size, or leave size empty on all of them." };
+  if (coloured && coloured !== out.length) return { error: "Give every row a colour, or leave colour empty on all of them." };
+  return { list: out };
 }
 
 // A product review. Only the stars, title and text are read; who wrote it comes from the login.
@@ -245,7 +303,10 @@ function validateCartItem(body = {}) {
   if (!/^[a-f0-9]{24}$/i.test(productId)) errors.productId = "Choose a product.";
   const quantity = body.quantity === undefined ? 1 : readQuantity(body.quantity);
   if (quantity === null || quantity < 1) errors.quantity = "Choose a quantity of at least 1.";
-  return { errors, value: { productId, quantity } };
+  // The chosen size or colour, for products that have them. Anything that is not an id is ignored.
+  const raw = text(body.variantId);
+  const variantId = /^[a-f0-9]{24}$/i.test(raw) ? raw : null;
+  return { errors, value: { productId, quantity, variantId } };
 }
 
 // Contact form. "website" is a hidden trap field: people never see it, so only bots fill it in.
@@ -623,6 +684,7 @@ module.exports = {
   validateTwoFactorLogin,
   validateAddress,
   validateProduct,
+  readProductOptions,
   validateCartItem,
   validateCartQuantity,
   validateEmailChange,

@@ -78,7 +78,7 @@ async function cancelItems(order, items, { reason = "", by = "customer", refundM
     item.cancelReason = reason;
   }
   if (items.length !== order.items.length) {
-    order.statusHistory.push({ status: "item_cancelled", by, note: `${items.map(item => item.name).join(", ")} cancelled${reason ? `: ${reason}` : ""}` });
+    order.statusHistory.push({ status: "item_cancelled", by, note: `${items.map(item => (item.option ? `${item.name} (${item.option})` : item.name)).join(", ")} cancelled${reason ? `: ${reason}` : ""}` });
   }
   settleStatus(order, by, reason);
   if (order.orderStatus === "cancelled") order.cancelReason = reason;
@@ -87,7 +87,7 @@ async function cancelItems(order, items, { reason = "", by = "customer", refundM
     order.paymentStatus = "paid";
   }
   if (order.stockReserved) {
-    await stockService.returnStock(items.map(item => ({ product: item.product, quantity: item.quantity })));
+    await stockService.returnStock(items.map(item => ({ product: item.product, variant: item.variant || null, quantity: item.quantity })));
   }
   await order.save();
   if (order.orderStatus === "cancelled" && order.couponCode) await couponService.release(order._id);

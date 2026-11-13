@@ -91,8 +91,11 @@ async function retryPayment(userId, orderId) {
     throw new HttpError(400, "This order does not need a payment.");
   }
   for (const item of order.items.filter(line => line.status !== "cancelled")) {
-    const product = await Product.findOne({ _id: item.product, ...LISTED_PRODUCT }).select("stock").lean();
-    if (!product || product.stock < item.quantity) throw new HttpError(409, `${item.name} is no longer available in that quantity. Please cancel this order and order again.`);
+    const product = await Product.findOne({ _id: item.product, ...LISTED_PRODUCT }).select("stock variants").lean();
+    // An item bought in a size is checked against that size's own stock.
+    const option = item.variant && product ? (product.variants || []).find(v => String(v._id) === String(item.variant)) : null;
+    const left = !product ? 0 : item.variant ? (option ? option.stock : 0) : product.stock;
+    if (left < item.quantity) throw new HttpError(409, `${item.name} is no longer available in that quantity. Please cancel this order and order again.`);
   }
   return { order, checkout: await attachRazorpayOrder(order) };
 }
@@ -121,7 +124,7 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
   // Claim the stock step once; only the call that flips stockReserved takes the stock.
   const claimed = await Order.findOneAndUpdate({ _id: paid._id, stockReserved: false }, { $set: { stockReserved: true } }, { new: true });
   if (!claimed) return paid;
-  const lines = claimed.items.filter(item => item.status !== "cancelled").map(item => ({ product: item.product, quantity: item.quantity, name: item.name }));
+  const lines = claimed.items.filter(item => item.status !== "cancelled").map(item => ({ product: item.product, variant: item.variant || null, quantity: item.quantity, name: item.name }));
   try {
     await stockService.takeStock(lines);
   } catch (error) {
@@ -136,8 +139,10 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
     // A Buy now order: only the Buy now product is used up. The cart is left exactly as it was.
     await buyNowService.clear(claimed.user);
   } else {
-    const productIds = lines.map(line => line.product);
-    const cartChange = { $pull: { items: { product: { $in: productIds } } } };
+    // Only the lines that were bought: the same product and size (another size of it stays in the cart).
+    // variant: null also matches older cart lines that have no option field.
+    const bought = lines.map(line => ({ product: line.product, variant: line.variant || null }));
+    const cartChange = { $pull: { items: { $or: bought } } };
     if (claimed.couponCode) cartChange.$set = { couponCode: "" };
     await Cart.updateOne({ user: claimed.user }, cartChange);
   }

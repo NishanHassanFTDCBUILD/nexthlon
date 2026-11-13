@@ -558,19 +558,24 @@ const Cart = require("../models/Cart");
 let shopperCookie;
 let shoeId;
 
-test("cart: guests have a cart of their own; checkout and Buy now ask them to sign in", async () => {
+test("cart: adding to the cart and Buy now need a sign-in; guests are sent to sign in and back", async () => {
   shoeId = String((await Product.findOne({ slug: "nexthlon-trail-shoe" }))._id);
-  // A guest with no cart yet sees an empty one (tests/guest-cart.test.js covers the guest cart in full).
+  // Reading is open and empty for a guest (tests/guest-cart.test.js covers signed-out visitors in full).
   const guestCart = await call("GET", "/api/cart");
   assert.equal(guestCart.status, 200);
   assert.equal(guestCart.data.cart.summary.count, 0);
-  // The store never reads the admin cookie: an admin there is just a guest.
+  assert.equal((await call("POST", "/api/cart/items", { body: { productId: shoeId, quantity: 1 } })).status, 401);
+  assert.equal((await call("POST", "/api/buy-now", { body: { productId: shoeId, quantity: 1 } })).status, 401);
+  // The store never reads the admin cookie: an admin there is just a guest, and cannot add either.
   assert.equal((await call("GET", "/api/cart", { cookie: adminCookieForProducts })).status, 200);
-  assert.equal((await call("GET", "/cart")).status, 200);
+  assert.equal((await call("POST", "/api/cart/items", { body: { productId: shoeId, quantity: 1 }, cookie: adminCookieForProducts })).status, 401);
+  assert.equal((await call("GET", "/cart")).location, "/login?next=%2Fcart");
   assert.equal((await call("GET", "/checkout")).location, "/login?next=%2Fcheckout");
   const guestPage = await call("GET", "/products/nexthlon-trail-shoe");
   assert.match(guestPage.data, /data-add-to-cart data-product-id=/);
-  assert.match(guestPage.data, /href="\/login\?next=[^"]*buy%3Dnow"[^>]*>[\s\S]*?Buy now/);
+  // Buy now is a button for everyone; store.js sends a guest to sign in and back to checkout.
+  assert.match(guestPage.data, /data-buy-now[^>]*>[\s\S]*?Buy now/);
+  assert.match(guestPage.data, /href="\/login\?next=%2Fproducts%2Fnexthlon-trail-shoe">Sign in<\/a>/);
 
   const shopper = await call("POST", "/api/signup", { body: { name: "Meera Iyer", email: "meera@nexthlon.test", password: "court2024", confirmPassword: "court2024" } });
   shopperCookie = shopper.cookie;

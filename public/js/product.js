@@ -486,9 +486,11 @@
   if (orderForm) {
     orderForm.addEventListener("nx:cart-added", event => {
       const cart = event.detail || {};
-      const line = (cart.items || []).find(item => String(item.productId) === String(orderForm.dataset.productId));
-      if (inCartBox && line) {
-        inCartBox.querySelector("[data-in-cart-qty]").textContent = String(line.quantity);
+      // Every size of this product together.
+      const lines = (cart.items || []).filter(item => String(item.productId) === String(orderForm.dataset.productId));
+      const total = lines.reduce((sum, item) => sum + item.quantity, 0);
+      if (inCartBox && total) {
+        inCartBox.querySelector("[data-in-cart-qty]").textContent = String(total);
         inCartBox.hidden = false;
         inCartBox.classList.remove("is-bump");
         void inCartBox.offsetWidth;
@@ -511,11 +513,18 @@
   // so whatever is already in it stays there. Payment works exactly like the cart checkout.
   const buyNow = async button => {
     if (!orderForm) return;
+    const variantId = orderForm.nxRequireOption ? orderForm.nxRequireOption() : null;
+    if (orderForm.hasAttribute("data-has-options") && !variantId) return;
+    // Signed out: sign in, come back with the same size, and carry straight on to checkout.
+    if (Nx.shopperRole === "guest") return Nx.signInFirst(orderForm.nxReturnPath({ buy: "now" }));
+    if (Nx.shopperRole !== "customer") return;
     const input = orderForm.querySelector("[data-qty-input]");
     const quantity = Math.max(1, Math.round(Number(input && input.value)) || 1);
     if (button) Nx.busy(button, true, "Going to checkout…");
     try {
-      const { redirect } = await Nx.api("/api/buy-now", { method: "POST", body: { productId: orderForm.dataset.productId, quantity } });
+      const body = { productId: orderForm.dataset.productId, quantity };
+      if (variantId) body.variantId = variantId;
+      const { redirect } = await Nx.api("/api/buy-now", { method: "POST", body });
       window.location.href = redirect || "/checkout?buy=now";
     } catch (error) {
       if (button) Nx.busy(button, false);

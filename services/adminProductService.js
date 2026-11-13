@@ -49,6 +49,8 @@ function toAdminProduct(product) {
     bestOffer: product.bestOffer || 0,
     discountPercent: product.discountPercent,
     stock: product.stock,
+    options: (product.variants || []).map(v => ({ id: String(v._id), size: v.size || "", colour: v.colour || "", sku: v.sku || "", stock: v.stock })),
+    hasOptions: Boolean(product.variants && product.variants.length),
     isListed: product.isListed !== false,
     isLowStock: product.stock > 0 && product.stock <= LOW_STOCK_LIMIT,
     status: statusOf(product),
@@ -191,7 +193,13 @@ async function persist(product, value, plan, files, category) {
   const newUrls = await imageService.saveImages(files);
   try {
     const images = orderImages(plan, newUrls);
-    Object.assign(product, value, {
+    const fields = { ...value };
+    if (value.variants) {
+      // A row that was already saved keeps its id, so carts and orders that point at it still find it.
+      const existing = new Set((product.variants || []).map(v => String(v._id)));
+      fields.variants = value.variants.map(({ id, ...option }) => (id && existing.has(id) ? { _id: id, ...option } : option));
+    }
+    Object.assign(product, fields, {
       category: category._id,
       categoryOffer: category.offerPercent || 0,
       categoryListed: category.isListed !== false,
@@ -248,8 +256,10 @@ async function setListed(productId, isListed) {
 const MAX_STOCK = 100000;
 async function restock(productId, add) {
   if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
+  // A product with sizes keeps its stock per size; its total is changed on the edit page, size by size.
+  if (await Product.exists({ _id: productId, "variants.0": { $exists: true } })) throw new HttpError(400, "This product has sizes or colours. Change each one's stock on its edit page.", null, "has_options");
   const product = await Product.findOneAndUpdate(
-    { _id: productId, stock: { $lte: MAX_STOCK - add } },
+    { _id: productId, stock: { $lte: MAX_STOCK - add }, "variants.0": { $exists: false } },
     { $inc: { stock: add } },
     { new: true }
   );

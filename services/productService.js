@@ -276,7 +276,10 @@ function toPublicProduct(product) {
     gallery: product.gallery,
     description: product.description,
     highlights: product.highlights,
-    specs: product.specs || {}
+    specs: product.specs || {},
+    // Sizes and colours, each with its own stock. A product with options needs one chosen to buy it.
+    hasOptions: Boolean(product.variants && product.variants.length),
+    options: (product.variants || []).map(v => ({ id: String(v._id), size: v.size || "", colour: v.colour || "", sku: v.sku || "", stock: v.stock, inStock: v.stock > 0 }))
   };
 }
 

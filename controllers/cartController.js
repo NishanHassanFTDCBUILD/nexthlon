@@ -1,6 +1,7 @@
 const cartService = require("../services/cartService");
 const { validateCartItem, validateCartQuantity, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
+const { optionLabel } = require("../utils/options");
 
 function checked(validate, body) {
   const { errors, value } = validate(body);
@@ -18,14 +19,15 @@ const countItems = asyncHandler(async (req, res) => {
   res.json({ count: await cartService.countItems(req.cartOwner) });
 });
 
-// POST /api/cart/items   body: { "productId": "...", "quantity": 1 }
+// POST /api/cart/items   body: { "productId": "...", "quantity": 1, "variantId": "..." (the size, when it has sizes) }
 const addItem = asyncHandler(async (req, res) => {
-  const { productId, quantity } = checked(validateCartItem, req.body);
-  const { product, cart } = await cartService.addItem(req.cartOwner, productId, quantity);
-  res.status(201).json({ message: `${product.name} added to your cart.`, cart });
+  const { productId, quantity, variantId } = checked(validateCartItem, req.body);
+  const { product, option, cart } = await cartService.addItem(req.cartOwner, productId, quantity, variantId);
+  const label = optionLabel(option);
+  res.status(201).json({ message: `${product.name}${label ? ` (${label})` : ""} added to your cart.`, cart });
 });
 
-// PATCH /api/cart/items/:productId   body: { "quantity": 2 }
+// PATCH /api/cart/items/:productId   body: { "quantity": 2 }   (:productId is the line's key: "<product>" or "<product>-<size>")
 const updateItem = asyncHandler(async (req, res) => {
   const { quantity } = checked(validateCartQuantity, req.body);
   const cart = await cartService.updateQuantity(req.cartOwner, req.params.productId, quantity);

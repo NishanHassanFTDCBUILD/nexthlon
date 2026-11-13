@@ -24,6 +24,7 @@ function toPublicOrder(order) {
       id: String(item._id),
       productId: String(item.product),
       name: item.name,
+      option: item.option || "",
       slug: item.slug,
       image: item.image,
       price: item.price,
@@ -54,11 +55,11 @@ const quote = asyncHandler(async (req, res) => {
   res.json({ quote: checkoutService.publicQuote(result) });
 });
 
-// POST /api/buy-now   body: { productId, quantity }
+// POST /api/buy-now   body: { productId, quantity, variantId (the size, when it has sizes) }
 // Saves the one product to buy now (the cart is not touched) and sends the shopper to its checkout.
 const buyNow = asyncHandler(async (req, res) => {
   const body = req.body || {};
-  await buyNowService.start(req.user._id, body.productId, body.quantity);
+  await buyNowService.start(req.user._id, body.productId, body.quantity, typeof body.variantId === "string" ? body.variantId : null);
   res.status(201).json({ redirect: "/checkout?buy=now" });
 });
 
