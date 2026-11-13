@@ -56,6 +56,7 @@ function toAdminProduct(product) {
     status: statusOf(product),
     image: product.image,
     images: imagesOf(product),
+    colourPhotos: (product.colourPhotos || []).map(row => ({ image: row.image, colour: row.colour })),
     createdAt: product.createdAt,
     updatedAt: product.updatedAt
   };
@@ -163,6 +164,34 @@ function planImages({ current = [], keepRaw, mainRaw, orderRaw, newCount = 0 }) 
   return { keep, removed: current.filter(url => !keep.includes(url)), main, order };
 }
 
+// The colour of each photo, in the order the admin sees them (the same order as imageOrder: kept
+// photos, then new uploads). Sent as JSON: ["Black", "", "Volt"]. "" is a photo for every colour.
+// Returns { error } or { colours } (null when the form did not send any, meaning "keep what is there").
+function readPhotoColours(raw, count) {
+  if (raw === undefined) return { colours: null };
+  const list = readJsonList(raw);
+  if (list === null || list.length !== count || !list.every(value => typeof value === "string" && value.trim().length <= 30)) {
+    return { error: "The photo colours could not be read. Reload the page and try again." };
+  }
+  return { colours: list.map(value => value.trim()) };
+}
+
+// Pairs each final photo address with its colour. Only colours the product really has are kept.
+function colourPhotosFor(plan, newUrls, colours, knownColours) {
+  const fromToken = entry => (/^new:\d$/.test(entry) ? newUrls[Number(entry.slice(4))] : entry);
+  const tokens = plan.order && plan.order.length ? plan.order : [...plan.keep, ...newUrls.map((_, i) => `new:${i}`)];
+  const known = new Set(knownColours.map(colour => colour.toLowerCase()));
+  const pairs = [];
+  tokens.forEach((token, index) => {
+    const colour = colours[index];
+    const image = fromToken(token);
+    if (colour && image && known.has(colour.toLowerCase())) {
+      pairs.push({ image, colour: knownColours.find(name => name.toLowerCase() === colour.toLowerCase()) });
+    }
+  });
+  return pairs;
+}
+
 // Turns a plan plus the saved upload URLs into the final photo list, main photo first.
 function orderImages(plan, newUrls) {
   const fromToken = entry => (/^new:\d$/.test(entry) ? newUrls[Number(entry.slice(4))] : entry);
@@ -189,7 +218,7 @@ function checkUploads(files, errors) {
 
 // Saves the product. New photos are written to disk only after every check has passed,
 // and they are removed again if the database save fails.
-async function persist(product, value, plan, files, category) {
+async function persist(product, value, plan, files, category, photoColours = null) {
   const newUrls = await imageService.saveImages(files);
   try {
     const images = orderImages(plan, newUrls);
@@ -198,6 +227,16 @@ async function persist(product, value, plan, files, category) {
       // A row that was already saved keeps its id, so carts and orders that point at it still find it.
       const existing = new Set((product.variants || []).map(v => String(v._id)));
       fields.variants = value.variants.map(({ id, ...option }) => (id && existing.has(id) ? { _id: id, ...option } : option));
+    }
+    const colours = [...new Set((fields.variants || product.variants || []).map(v => v.colour).filter(Boolean))];
+    if (photoColours) {
+      fields.colourPhotos = colourPhotosFor(plan, newUrls, photoColours, colours);
+    } else {
+      // Not sent: keep the pairs whose photo and colour are both still there.
+      const known = new Set(colours);
+      fields.colourPhotos = (product.colourPhotos || [])
+        .filter(row => images.includes(row.image) && known.has(row.colour))
+        .map(row => ({ image: row.image, colour: row.colour }));
     }
     Object.assign(product, fields, {
       category: category._id,
@@ -227,20 +266,24 @@ async function persist(product, value, plan, files, category) {
 async function createProduct({ value, errors, body, files }) {
   const plan = planImages({ current: [], keepRaw: "[]", mainRaw: body.mainImage, orderRaw: body.imageOrder, newCount: files.length });
   if (plan.error) errors.images = plan.error;
+  const photoColours = plan.error ? { colours: null } : readPhotoColours(body.photoColours, plan.keep.length + files.length);
+  if (photoColours.error) errors.images = photoColours.error;
   checkUploads(files, errors);
   const category = await checkCategory(value, errors);
   if (Object.keys(errors).length) throw new HttpError(400, "Please fix the highlighted fields.", errors);
-  return persist(new Product(), value, plan, files, category);
+  return persist(new Product(), value, plan, files, category, photoColours.colours);
 }
 
 async function updateProduct(productId, { value, errors, body, files }) {
   const product = await findProduct(productId);
   const plan = planImages({ current: imagesOf(product), keepRaw: body.keepImages, mainRaw: body.mainImage, orderRaw: body.imageOrder, newCount: files.length });
   if (plan.error) errors.images = plan.error;
+  const photoColours = plan.error ? { colours: null } : readPhotoColours(body.photoColours, plan.keep.length + files.length);
+  if (photoColours.error) errors.images = photoColours.error;
   checkUploads(files, errors);
   const category = await checkCategory(value, errors);
   if (Object.keys(errors).length) throw new HttpError(400, "Please fix the highlighted fields.", errors);
-  return persist(product, value, plan, files, category);
+  return persist(product, value, plan, files, category, photoColours.colours);
 }
 
 // Unlisting hides a product from shoppers without deleting it, so it can be listed again later.
@@ -257,7 +300,7 @@ const MAX_STOCK = 100000;
 async function restock(productId, add) {
   if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
   // A product with sizes keeps its stock per size; its total is changed on the edit page, size by size.
-  if (await Product.exists({ _id: productId, "variants.0": { $exists: true } })) throw new HttpError(400, "This product has sizes or colours. Change each one's stock on its edit page.", null, "has_options");
+  if (await Product.exists({ _id: productId, "variants.0": { $exists: true } })) throw new HttpError(400, "This product has sizes or colours. Change each one's stock on the Inventory page.", null, "has_options");
   const product = await Product.findOneAndUpdate(
     { _id: productId, stock: { $lte: MAX_STOCK - add }, "variants.0": { $exists: false } },
     { $inc: { stock: add } },
@@ -280,6 +323,8 @@ module.exports = {
   getAdminProduct,
   planImages,
   orderImages,
+  readPhotoColours,
+  colourPhotosFor,
   uniqueSlug,
   createProduct,
   updateProduct,

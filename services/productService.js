@@ -21,6 +21,7 @@ const SORTS = {
 const DISCOUNT_STEPS = [10, 20, 30, 40, 50];
 const RATING_STEPS = [4, 3, 2];
 const MAX_BRANDS = 20;
+const MAX_OPTION_FILTERS = 20;
 const CATEGORY_FIELDS = "name slug offerPercent";
 
 // Stops search text from being read as a regular expression.
@@ -62,7 +63,27 @@ function readFilters(query = {}) {
   const sort = typeof query.sort === "string" && Object.hasOwn(SORTS, query.sort) ? query.sort : "relevance";
   const view = query.view === "list" ? "list" : "grid";
   const page = toPositiveInt(query.page, 1);
-  return { q, category, brands, min, max, discount, rating, inStock, sort, view, page };
+  // Sizes and colours (product options): "available in size 9", "available in Black".
+  const sizes = readList(query.size, MAX_OPTION_FILTERS).map(value => value.slice(0, 20));
+  const colours = readList(query.colour, MAX_OPTION_FILTERS).map(value => value.slice(0, 30));
+  return { q, category, brands, sizes, colours, min, max, discount, rating, inStock, sort, view, page };
+}
+
+// Sizes in the order people expect: numbers by value (6, 7, 8.5, 10), then letter sizes from small to
+// large (XS, S, M, L, XL, XXL), then anything else alphabetically.
+const LETTER_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "3XL", "4XL"];
+function sizeOrder(a, b) {
+  const na = Number(a);
+  const nb = Number(b);
+  const numA = a !== "" && Number.isFinite(na);
+  const numB = b !== "" && Number.isFinite(nb);
+  if (numA && numB) return na - nb;
+  if (numA !== numB) return numA ? -1 : 1;
+  const la = LETTER_SIZES.indexOf(String(a).toUpperCase());
+  const lb = LETTER_SIZES.indexOf(String(b).toUpperCase());
+  if (la !== -1 && lb !== -1) return la - lb;
+  if ((la !== -1) !== (lb !== -1)) return la !== -1 ? -1 : 1;
+  return String(a).localeCompare(String(b), "en", { numeric: true });
 }
 
 // Every word the store uses in product names, brands and category names, for spelling help
@@ -113,6 +134,14 @@ function toProductQuery(filters, scope = {}) {
   if (filters.discount) query.discountPercent = { $gte: filters.discount };
   if (filters.rating) query.ratingAverage = { $gte: filters.rating };
   if (filters.inStock) query.stock = { $gt: 0 };
+  // A size or colour filter means "you can buy it in that one now": one option has to match all of
+  // the chosen kinds and still have stock (size 9 in Black, not size 9 in Red plus Black in size 10).
+  if (filters.sizes.length || filters.colours.length) {
+    const option = { stock: { $gt: 0 } };
+    if (filters.sizes.length) option.size = { $in: filters.sizes };
+    if (filters.colours.length) option.colour = { $in: filters.colours };
+    query.variants = { $elemMatch: option };
+  }
   return query;
 }
 
@@ -156,6 +185,17 @@ async function listProducts(query) {
   };
 }
 
+// One option kind (size or colour) for the facets: its values that have stock, counted once per product.
+function optionFacet(field) {
+  return [
+    { $unwind: "$variants" },
+    { $match: { [`variants.${field}`]: { $nin: ["", null] }, "variants.stock": { $gt: 0 } } },
+    { $group: { _id: `$variants.${field}`, products: { $addToSet: "$_id" } } },
+    { $project: { count: { $size: "$products" } } },
+    { $limit: 40 }
+  ];
+}
+
 // Brands with counts, and the cheapest and dearest price (in whole rupees) for the price slider.
 async function getFacets(scope) {
   const [result] = await Product.aggregate([
@@ -163,13 +203,19 @@ async function getFacets(scope) {
     {
       $facet: {
         brands: [{ $group: { _id: "$brand", count: { $sum: 1 } } }, { $sort: { count: -1, _id: 1 } }, { $limit: 30 }],
-        range: [{ $group: { _id: null, low: { $min: "$price" }, high: { $max: "$price" } } }]
+        range: [{ $group: { _id: null, low: { $min: "$price" }, high: { $max: "$price" } } }],
+        // Sizes and colours that are in stock somewhere in this list, each with how many products have it.
+        sizes: optionFacet("size"),
+        colours: optionFacet("colour")
       }
     }
   ]);
   const range = result && result.range[0];
+  const options = list => (list || []).map(row => ({ name: row._id, count: row.count }));
   return {
     brands: result ? result.brands.filter(b => b._id).map(b => ({ name: b._id, count: b.count })) : [],
+    sizes: options(result && result.sizes).sort((a, b) => sizeOrder(a.name, b.name)),
+    colours: options(result && result.colours).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
     priceLow: range ? Math.floor(range.low / 100) : 0,
     priceHigh: range ? Math.ceil(range.high / 100) : 0
   };
@@ -291,6 +337,8 @@ module.exports = {
   escapeRegex,
   toPositiveInt,
   readFilters,
+  sizeOrder,
+  toProductQuery,
   toProductQuery,
   listProducts,
   getFacets,

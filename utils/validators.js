@@ -644,7 +644,9 @@ function validateStockChange(body = {}) {
   if (!["add", "remove", "count"].includes(action)) errors.action = "Choose add, remove or set.";
   if (!Number.isInteger(units) || units > 100000) errors.units = "Enter a whole number of units up to 100,000.";
   else if (action !== "count" && units < 1) errors.units = "Enter at least 1 unit.";
-  return { errors, value: { action, units, note } };
+  // For a product with sizes or colours: which one (its id). The service checks it belongs to the product.
+  const optionId = OBJECT_ID.test(text(body.optionId)) ? text(body.optionId) : null;
+  return { errors, value: { action, units, note, optionId } };
 }
 
 module.exports = {

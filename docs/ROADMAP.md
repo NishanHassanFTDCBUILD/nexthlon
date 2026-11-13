@@ -152,7 +152,7 @@ tracking), out for delivery, delivered, refunded and return approved. Move cart 
 Plan first, then wait for my go-ahead.
 ```
 
-### [ ] B3. Sizes and colours (product options) · L
+### [x] B3. Sizes and colours (product options) · L
 - **Goal:** each product has options (size, colour) with their own SKU, stock and photos, plus a size guide.
 - **Files:**
   - model: `models/Product.js` (an options list), plus a migration that turns each current product into one option;
@@ -170,7 +170,7 @@ Plan first, then wait for my go-ahead.
 - **Progress (2026-11-13):**
   - [x] Part 1: options in `models/Product.js` (size, colour, SKU, own stock; product stock = their sum; no migration needed, a product without options works as before), atomic per-option stock in `services/stockService.js`, one cart line per size, option kept on Buy now and on each order line (label + SKU), cancels and returns give stock back to that size, size and colour picker with sold-out chips and "Only N left in size X" on the product page, option shown in cart, checkout, orders, admin order, invoice, packing slip and emails, admin options editor (with shoe and clothing size presets), quick restock refused for products with options. Tests: `tests/options.test.js`.
   - [x] Adding to the cart and Buy now need a signed-in account (signed-out visitors go to sign in and come straight back, with their size kept). Older guest carts still move into the account at sign-in.
-  - [ ] Part 2: size and colour filters on listings, size guide sheet, per-colour photos that swap the gallery, per-option rows in the inventory page and reports.
+  - [x] Part 2: size and colour filters on listings (only sizes in stock, sorted 6, 7, 8 … S, M, L, with counts), a size guide (bottom sheet on phones, side panel on desktop, the product's sizes highlighted), photos tagged by colour in the admin photo manager so picking a colour swaps the gallery, and per-size stock on the Inventory page (add, remove, set, atomic, with the total kept as the sum) and in the CSV export.
 
 ```text
 Step B3 from docs/ROADMAP.md: add product options (size and colour, each with its own SKU, stock,

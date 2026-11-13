@@ -71,6 +71,14 @@
                   <img class="product-thumb" src="<%= sizedUrl(p.image, 200) %>" alt="" width="48" height="48" loading="lazy" decoding="async">
                   <div><strong><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a></strong><span><%= p.category || 'No category' %> · <%= p.brand %><%= p.isListed ? '' : ' · unlisted' %></span></div>
                 </div>
+                <% if (p.options.length) { %>
+                  <%# Each size's own stock; the total on the right is their sum. %>
+                  <ul class="inv-options" aria-label="Stock by size or colour of <%= p.name %>" data-inv-options>
+                    <% p.options.forEach(function (o) { %>
+                      <li class="inv-option is-<%= o.state %>" data-inv-option="<%= o.id %>"><span><%= o.label %></span><strong data-inv-option-stock><%= o.stock %></strong></li>
+                    <% }) %>
+                  </ul>
+                <% } %>
               </td>
               <td data-label="Stock" class="cell-num"><strong data-inv-stock><%= p.stock %></strong></td>
               <td data-label="State"><span class="pill <%= statePill[p.state] %>" data-inv-state><%= stateLabel[p.state] %></span></td>
@@ -78,6 +86,13 @@
               <td data-label="Correct the stock">
                 <%# Submitted by public/js/admin-catalog.js as a PATCH; the server validates it again. %>
                 <form class="admin-inline-form" data-inv-form="<%= p.id %>" data-name="<%= p.name %>" novalidate>
+                  <% if (p.options.length) { %>
+                    <label class="sr-only" for="inv-option-<%= p.id %>">Which size or colour of <%= p.name %></label>
+                    <select id="inv-option-<%= p.id %>" name="optionId" required>
+                      <option value="">Size…</option>
+                      <% p.options.forEach(function (o) { %><option value="<%= o.id %>"><%= o.label %> (<%= o.stock %>)</option><% }) %>
+                    </select>
+                  <% } %>
                   <label class="sr-only" for="inv-action-<%= p.id %>">What to do with the stock of <%= p.name %></label>
                   <select id="inv-action-<%= p.id %>" name="action">
                     <option value="add">Add</option>

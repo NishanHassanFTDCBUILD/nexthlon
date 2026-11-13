@@ -92,7 +92,11 @@
     const countLabel = manager.querySelector("[data-image-count]");
     const imageError = form.querySelector('[data-error-for="images"]');
     let nextId = 0;
-    const items = JSON.parse(manager.dataset.existing || "[]").map(url => ({ id: nextId++, kind: "kept", url, src: url }));
+    // Each photo can belong to one colour (B3): the product page shows that colour's photos when it is picked.
+    const savedColours = new Map(JSON.parse(manager.dataset.colourPhotos || "[]").map(row => [row.image, row.colour]));
+    const items = JSON.parse(manager.dataset.existing || "[]").map(url => ({ id: nextId++, kind: "kept", url, src: url, colour: savedColours.get(url) || "" }));
+    // The colours typed in the "Sizes and colours" table, read live so a new colour can be chosen at once.
+    const productColours = () => [...new Set([...form.querySelectorAll('[data-option-field="colour"]')].map(field => field.value.trim()).filter(Boolean))];
     let mainId = items.length ? items[0].id : null;
 
     function showImageError(message) {
@@ -155,6 +159,18 @@
           showImageError("");
           render();
         });
+        const colours = productColours();
+        if (colours.length) {
+          // A photo of a colour that was removed from the table goes back to "every colour".
+          if (item.colour && !colours.includes(item.colour)) item.colour = "";
+          const pick = document.createElement("select");
+          pick.className = "image-colour";
+          pick.setAttribute("aria-label", `Colour shown in photo ${index + 1}`);
+          pick.append(new Option("Every colour", ""), ...colours.map(colour => new Option(colour, colour)));
+          pick.value = item.colour || "";
+          pick.addEventListener("change", () => { item.colour = pick.value; });
+          li.append(pick);
+        }
         const actions = document.createElement("span");
         actions.className = "image-tile-actions";
         actions.append(edit, remove);
@@ -303,6 +319,10 @@
     optionsBox.addEventListener("input", event => {
       if (event.target.dataset.optionField === "stock") syncOptions();
     });
+    // A colour typed or removed in the table updates the colour choice on each photo.
+    optionsBox.addEventListener("change", event => {
+      if (event.target.dataset.optionField === "colour") render();
+    });
     optionsBox.querySelector("[data-option-add]").addEventListener("click", () => addOptionRow({}, true));
     optionsBox.querySelectorAll("[data-option-preset]").forEach(button => {
       button.addEventListener("click", () => {
@@ -329,6 +349,7 @@
       data.append("keepImages", JSON.stringify(kept.map(item => item.url)));
       // The order on screen, so an edited photo keeps its place.
       data.append("imageOrder", JSON.stringify(items.map(item => (item.kind === "kept" ? item.url : `new:${fresh.indexOf(item)}`))));
+      data.append("photoColours", JSON.stringify(items.map(item => item.colour || "")));
       fresh.forEach(item => data.append("images", item.file, item.file.name));
       const main = items.find(item => item.id === mainId);
       if (main) data.append("mainImage", main.kind === "kept" ? main.url : `new:${fresh.indexOf(main)}`);

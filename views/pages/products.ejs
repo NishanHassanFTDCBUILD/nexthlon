@@ -144,6 +144,40 @@
             </details>
           <% } %>
 
+          <%# ---------- Size and colour: only when products in this list come in sizes or colours ---------- %>
+          <% if (facets.sizes && facets.sizes.length) { %>
+            <details class="fx-group" data-filter-group="size" open>
+              <summary class="fx-group-head"><span>Size</span><i class="fx-dot" data-group-count="size" hidden></i><%- icon('chevron-down', 'i-xs fx-caret') %></summary>
+              <fieldset class="fx-group-body">
+                <legend class="sr-only">Size (in stock)</legend>
+                <div class="fx-pills fx-sizes">
+                  <% facets.sizes.forEach(function (s) { %>
+                    <label class="fx-pill fx-pill-size">
+                      <input type="checkbox" name="size" value="<%= s.name %>" <%= filters.sizes.includes(s.name) ? 'checked' : '' %>>
+                      <span><%= s.name %></span><em><%= s.count %></em>
+                    </label>
+                  <% }) %>
+                </div>
+              </fieldset>
+            </details>
+          <% } %>
+          <% if (facets.colours && facets.colours.length) { %>
+            <details class="fx-group" data-filter-group="colour" open>
+              <summary class="fx-group-head"><span>Colour</span><i class="fx-dot" data-group-count="colour" hidden></i><%- icon('chevron-down', 'i-xs fx-caret') %></summary>
+              <fieldset class="fx-group-body">
+                <legend class="sr-only">Colour (in stock)</legend>
+                <div class="fx-pills">
+                  <% facets.colours.forEach(function (c) { %>
+                    <label class="fx-pill fx-pill-colour">
+                      <input type="checkbox" name="colour" value="<%= c.name %>" <%= filters.colours.includes(c.name) ? 'checked' : '' %>>
+                      <span><i class="fx-swatch" style="--swatch: <%= c.name.toLowerCase().replace(/[^a-z]/g, '') %>" aria-hidden="true"></i><%= c.name %></span><em><%= c.count %></em>
+                    </label>
+                  <% }) %>
+                </div>
+              </fieldset>
+            </details>
+          <% } %>
+
           <%# ---------- Customer rating: star pills ---------- %>
           <details class="fx-group" data-filter-group="rating" open>
             <summary class="fx-group-head"><span>Customer rating</span><i class="fx-dot" data-group-count="rating" hidden></i><%- icon('chevron-down', 'i-xs fx-caret') %></summary>

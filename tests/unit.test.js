@@ -141,8 +141,8 @@ test("redirects only go to pages on this site", () => {
 });
 
 test("product filters ignore bad values", () => {
-  const filters = readFilters({ category: ["x"], brand: { $ne: "" }, min: "-5", max: "abc", discount: "15", rating: "9", sort: "$where", view: "huge", page: "0", q: ["a", "b"] });
-  assert.deepEqual(filters, { q: "", category: "", brands: [], min: null, max: null, discount: 0, rating: 0, inStock: false, sort: "relevance", view: "grid", page: 1 });
+  const filters = readFilters({ category: ["x"], brand: { $ne: "" }, size: { $gt: "" }, colour: [{ $ne: 1 }], min: "-5", max: "abc", discount: "15", rating: "9", sort: "$where", view: "huge", page: "0", q: ["a", "b"] });
+  assert.deepEqual(filters, { q: "", category: "", brands: [], sizes: [], colours: [], min: null, max: null, discount: 0, rating: 0, inStock: false, sort: "relevance", view: "grid", page: 1 });
   assert.deepEqual(readFilters({ min: "5000", max: "100" }).min, 100);
 });
 

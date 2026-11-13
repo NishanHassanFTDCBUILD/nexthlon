@@ -59,7 +59,7 @@ const rupeeText = value => `₹${Number(value).toLocaleString("en-IN")}`;
 const products = asyncHandler(async (req, res) => {
   const result = await productService.listProducts(req.query);
   const categories = await productService.getCategorySummaries();
-  const { q, brands, min, max, discount, rating, inStock, sort, view } = result.filters;
+  const { q, brands, sizes, colours, min, max, discount, rating, inStock, sort, view } = result.filters;
   const category = result.category;
   // A misspelt search that found nothing as typed shows the corrected words ("Results for \"shoes\"")
   // with a note about what was typed.
@@ -72,6 +72,8 @@ const products = asyncHandler(async (req, res) => {
     q,
     category: category ? category.slug : "",
     brand: brands,
+    size: sizes,
+    colour: colours,
     min,
     max,
     discount: discount || "",
@@ -86,6 +88,8 @@ const products = asyncHandler(async (req, res) => {
   if (q) chips.push({ label: `"${q}"`, href: link({ q: "", page: "" }) });
   if (category) chips.push({ label: category.name, href: link({ category: "", page: "" }) });
   brands.forEach(name => chips.push({ label: name, href: link({ brand: brands.filter(b => b !== name), page: "" }) }));
+  sizes.forEach(name => chips.push({ label: `Size ${name}`, href: link({ size: sizes.filter(s => s !== name), page: "" }) }));
+  colours.forEach(name => chips.push({ label: name, href: link({ colour: colours.filter(c => c !== name), page: "" }) }));
   if (min !== null) chips.push({ label: `From ${rupeeText(min)}`, href: link({ min: "", page: "" }) });
   if (max !== null) chips.push({ label: `Up to ${rupeeText(max)}`, href: link({ max: "", page: "" }) });
   if (discount) chips.push({ label: `${discount}% off or more`, href: link({ discount: "", page: "" }) });

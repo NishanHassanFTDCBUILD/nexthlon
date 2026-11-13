@@ -21,6 +21,8 @@
   const colourLeft = colour => options.filter(o => o.colour === colour).reduce((sum, o) => sum + o.stock, 0);
   // A single option (for example only colours, one of them) is chosen for the shopper.
   const onlyOption = options.length === 1 && options[0].stock > 0 ? options[0] : null;
+  // Which photo shows which colour (admin photo manager). Picking a colour shows its photos (cart.js / catalog.js).
+  const photoColour = new Map((product.colourPhotos || []).map(row => [row.image, row.colour]));
 %>
 <main id="main" class="pdx" data-recent-id="<%= product._id %>">
   <%# ===================== Hero: photo stage + story + buy panel ===================== %>
@@ -63,7 +65,7 @@
         <% if (photos.length > 1) { %>
           <div class="pdx-thumbs" role="group" aria-label="Product photos">
             <% photos.forEach(function (src, index) { %>
-              <% const source = gallerySource(src); %><button type="button" class="thumb pdx-thumb" data-src="<%= source.src %>"<% if (source.srcset) { %> data-srcset="<%= source.srcset %>"<% } %> aria-label="Show photo <%= index + 1 %> of <%= photos.length %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
+              <% const source = gallerySource(src); %><button type="button" class="thumb pdx-thumb"<% if (photoColour.get(src)) { %> data-colour="<%= photoColour.get(src) %>"<% } %> data-src="<%= source.src %>"<% if (source.srcset) { %> data-srcset="<%= source.srcset %>"<% } %> aria-label="Show photo <%= index + 1 %> of <%= photos.length %>" <%- index === 0 ? 'aria-current="true"' : '' %>>
                 <img src="<%= sizedUrl(src, 200) %>" alt="" width="96" height="96" loading="lazy">
               </button>
             <% }) %>
@@ -175,7 +177,7 @@
                   <input type="hidden" name="variantId" value="<%= onlyOption ? onlyOption.id : '' %>" data-variant-input>
                   <% if (sizeList.length) { %>
                     <fieldset class="pdx-opt-group" data-opt-group="size">
-                      <legend>Size <span class="pdx-opt-picked" data-opt-picked="size"><%= onlyOption && onlyOption.size ? onlyOption.size : '' %></span></legend>
+                      <legend>Size <span class="pdx-opt-picked" data-opt-picked="size"><%= onlyOption && onlyOption.size ? onlyOption.size : '' %></span><button type="button" class="pdx-guide-btn" data-dialog-open="size-guide"><%- icon('ruler', 'i-xs') %> Size guide</button></legend>
                       <div class="pdx-opts">
                         <% sizeList.forEach(size => { const left = sizeLeft(size); %>
                           <label class="pdx-opt <%= left <= 0 ? 'is-sold' : '' %>">
@@ -417,6 +419,7 @@
   <% } %>
 </main>
 
+<% if (sizeList.length) { %><%- include('../partials/size-guide', { sizes: sizeList }) %><% } %>
 <dialog class="lightbox" id="lightbox" aria-label="Photos of <%= product.name %>" data-lightbox data-photos="<%= JSON.stringify(photos) %>">
   <div class="lightbox-bar">
     <span class="lightbox-count" aria-live="polite"><span data-lightbox-index>1</span> / <%= photos.length %></span>

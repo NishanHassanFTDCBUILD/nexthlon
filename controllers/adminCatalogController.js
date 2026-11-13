@@ -5,6 +5,7 @@ const systemService = require("../services/systemService");
 const auditService = require("../services/auditService");
 const { validateStockChange, hasErrors } = require("../utils/validators");
 const { row } = require("../utils/csv");
+const { optionLabel } = require("../utils/options");
 const { HttpError, asyncHandler } = require("../utils/http");
 
 const rupees = paise => (Number(paise || 0) / 100).toFixed(2);
@@ -30,12 +31,13 @@ const adjustStock = asyncHandler(async (req, res) => {
     ...auditService.fromRequest(req),
     action: "inventory.stock_changed",
     target: `product:${result.product.id}`,
-    before: { stock: result.before },
-    after: { stock: result.after, action: value.action, units: value.units, note: value.note }
+    before: { stock: result.before, ...(result.option ? { option: result.option.label } : {}) },
+    after: { stock: result.after, action: value.action, units: value.units, note: value.note, ...(result.option ? { option: result.option.label, optionId: result.option.id } : {}) }
   });
   const moved = result.after - result.before;
   const how = moved === 0 ? "unchanged" : moved > 0 ? `up ${moved}` : `down ${Math.abs(moved)}`;
-  res.json({ message: `${result.product.name}: stock ${how}, now ${result.after}.`, product: result.product });
+  const name = result.option ? `${result.product.name} (${result.option.label})` : result.product.name;
+  res.json({ message: `${name}: stock ${how}, now ${result.after}.`, product: result.product, option: result.option || null });
 });
 
 // GET /api/admin/inventory/export.csv?...   One line per product that matches the filters.
@@ -44,19 +46,25 @@ const exportInventory = asyncHandler(async (req, res) => {
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="nexthlon-inventory-${new Date().toISOString().slice(0, 10)}.csv"`);
   res.write("﻿");
-  res.write(row(["Product", "Brand", "Category", "Listed", "Stock", "State", "Selling price (Rs)", "Stock value (Rs)", "Last changed"]));
+  res.write(row(["Product", "Size / colour", "SKU", "Brand", "Category", "Listed", "Stock", "State", "Selling price (Rs)", "Stock value (Rs)", "Last changed"]));
   for await (const product of cursor) {
-    res.write(row([
+    // A product with sizes or colours: its total line, then one line per size.
+    const line = (option, item) => row([
       product.name,
+      option,
+      item.sku || "",
       product.brand || "",
       product.category ? product.category.name : "",
       product.isListed === false ? "No" : "Yes",
-      product.stock,
-      inventoryService.stateOf(product),
+      item.stock,
+      inventoryService.stateOf(item),
       rupees(product.price),
-      rupees(product.stock * product.price),
+      rupees(item.stock * product.price),
       product.updatedAt ? new Date(product.updatedAt).toISOString() : ""
-    ]));
+    ]);
+    const options = product.variants || [];
+    res.write(line(options.length ? "All" : "", product));
+    options.forEach(option => res.write(line(optionLabel(option), option)));
   }
   res.end();
 });

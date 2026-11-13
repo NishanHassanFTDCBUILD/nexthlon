@@ -1,0 +1,86 @@
+<%#
+  The size guide (B3 part 2). Opened by the "Size guide" link beside the size picker on the product page
+  ([data-dialog-open="size-guide"], public/js/app.js). It slides up from the bottom on phones and opens as a
+  side panel on desktops (public/css/product.css .size-guide).
+  Needs: sizes (this product's sizes). Number sizes get the shoe table, letter sizes the clothing table;
+  the rows this product comes in are marked.
+%>
+<%
+  const SHOES = [
+    { uk: '5', us: '6', eu: '39', cm: '23.8' },
+    { uk: '6', us: '7', eu: '40', cm: '24.6' },
+    { uk: '7', us: '8', eu: '41', cm: '25.4' },
+    { uk: '8', us: '9', eu: '42', cm: '26.2' },
+    { uk: '9', us: '10', eu: '43', cm: '27.1' },
+    { uk: '10', us: '11', eu: '44.5', cm: '27.9' },
+    { uk: '11', us: '12', eu: '46', cm: '28.8' },
+    { uk: '12', us: '13', eu: '47', cm: '29.6' }
+  ];
+  const CLOTHES = [
+    { size: 'XS', chest: '86–91', waist: '71–76' },
+    { size: 'S', chest: '91–96', waist: '76–81' },
+    { size: 'M', chest: '96–101', waist: '81–86' },
+    { size: 'L', chest: '101–106', waist: '86–91' },
+    { size: 'XL', chest: '106–111', waist: '91–96' },
+    { size: 'XXL', chest: '111–116', waist: '96–101' }
+  ];
+  const ours = (sizes || []).map(s => String(s).toUpperCase());
+  const showShoes = ours.some(s => /^\d+(\.\d+)?$/.test(s));
+  const showClothes = ours.some(s => CLOTHES.some(row => row.size === s));
+%>
+<dialog class="size-guide" id="size-guide" aria-labelledby="size-guide-title">
+  <div class="size-guide-head">
+    <span class="size-guide-grip" aria-hidden="true"></span>
+    <div>
+      <h2 id="size-guide-title">Size guide</h2>
+      <p class="muted">Highlighted rows are the sizes this product comes in.</p>
+    </div>
+    <button type="button" class="icon-btn" data-dialog-close aria-label="Close the size guide"><%- icon('x') %></button>
+  </div>
+  <div class="size-guide-body">
+    <% if (showShoes || !showClothes) { %>
+      <section aria-labelledby="sg-shoes">
+        <h3 id="sg-shoes">Shoes</h3>
+        <p class="muted">Our shoe sizes are UK sizes, the same as Indian sizes.</p>
+        <div class="size-guide-table-wrap">
+          <table class="size-guide-table">
+            <thead><tr><th scope="col">UK / India</th><th scope="col">US</th><th scope="col">EU</th><th scope="col">Foot length (cm)</th></tr></thead>
+            <tbody>
+              <% SHOES.forEach(row => { const mine = ours.includes(row.uk); %>
+                <tr class="<%= mine ? 'is-ours' : '' %>"><th scope="row"><%= row.uk %><% if (mine) { %><span class="sr-only"> (available)</span><% } %></th><td><%= row.us %></td><td><%= row.eu %></td><td><%= row.cm %></td></tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <h4>How to measure</h4>
+        <ol class="size-guide-steps">
+          <li>Stand on a sheet of paper with your heel against a wall, in the socks you run in.</li>
+          <li>Mark the tip of your longest toe, and measure from the wall to the mark.</li>
+          <li>Pick the size whose foot length is the same or just above. Between two sizes? Take the larger one for running.</li>
+        </ol>
+      </section>
+    <% } %>
+    <% if (showClothes) { %>
+      <section aria-labelledby="sg-clothes">
+        <h3 id="sg-clothes">Clothing</h3>
+        <p class="muted">Body measurements in centimetres.</p>
+        <div class="size-guide-table-wrap">
+          <table class="size-guide-table">
+            <thead><tr><th scope="col">Size</th><th scope="col">Chest</th><th scope="col">Waist</th></tr></thead>
+            <tbody>
+              <% CLOTHES.forEach(row => { const mine = ours.includes(row.size); %>
+                <tr class="<%= mine ? 'is-ours' : '' %>"><th scope="row"><%= row.size %><% if (mine) { %><span class="sr-only"> (available)</span><% } %></th><td><%= row.chest %></td><td><%= row.waist %></td></tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <h4>How to measure</h4>
+        <ol class="size-guide-steps">
+          <li><strong>Chest:</strong> around the fullest part, under your arms, tape level.</li>
+          <li><strong>Waist:</strong> around your natural waistline, where you bend.</li>
+        </ol>
+      </section>
+    <% } %>
+    <p class="size-guide-note"><%- icon('rotate-ccw', 'i-xs') %> Wrong size? Exchange or return it within <%= store.returnDays %> days.</p>
+  </div>
+</dialog>

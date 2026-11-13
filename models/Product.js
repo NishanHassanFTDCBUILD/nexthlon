@@ -37,6 +37,15 @@ const productSchema = new mongoose.Schema({
   // The main photo. gallery holds every photo in order, with the main one first.
   image: { type: String, required: true, trim: true },
   gallery: { type: [String], default: [] },
+  // Which photos show which colour: picking "Black" on the product page shows the Black photos (and any
+  // photo with no colour). Each image is one of the gallery's addresses.
+  colourPhotos: {
+    type: [new mongoose.Schema({
+      image: { type: String, required: true, trim: true },
+      colour: { type: String, required: true, trim: true, maxlength: 30 }
+    }, { _id: false })],
+    default: []
+  },
   description: { type: String, default: "", maxlength: 4000 },
   highlights: { type: [String], default: [] },
   specs: { type: Map, of: String, default: {} },
@@ -52,6 +61,8 @@ productSchema.index({ isListed: 1, categoryListed: 1, category: 1, price: 1 });
 productSchema.index({ isListed: 1, categoryListed: 1, discountPercent: -1 });
 productSchema.index({ isListed: 1, categoryListed: 1, ratingAverage: -1 });
 productSchema.index({ isListed: 1, categoryListed: 1, createdAt: -1 });
+// The size filter on listings ("available in size 9").
+productSchema.index({ isListed: 1, categoryListed: 1, "variants.size": 1 });
 productSchema.index({ brand: 1 });
 // Server-side text search. A match in the name counts most, then the brand, then the description.
 productSchema.index(

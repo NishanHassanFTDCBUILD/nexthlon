@@ -96,7 +96,14 @@
         message.textContent = "";
         box.classList.remove("is-asking");
       }
+      // The gallery (catalog.js) shows the photos of the colour picked.
+      const colour = picked("colour");
+      if (colour !== shownColour) {
+        shownColour = colour;
+        document.dispatchEvent(new CustomEvent("nx:colour", { detail: { colour } }));
+      }
     }
+    let shownColour = "";
 
     box.addEventListener("change", refresh);
     // ?option=<id> (a link from the cart, or back from sign-in) chooses that option.

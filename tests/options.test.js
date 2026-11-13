@@ -41,6 +41,29 @@ test("options: the admin's rows are checked", () => {
   assert.equal(validateProduct({ ...body, options: undefined, stock: "5" }).value.variants, undefined);
 });
 
+test("options: sizes sort the way people expect", () => {
+  const { sizeOrder } = require("../services/productService");
+  assert.deepEqual(["10", "XL", "8.5", "S", "6", "M", "One size", "XXL", "9"].sort(sizeOrder), ["6", "8.5", "9", "10", "S", "M", "XL", "XXL", "One size"]);
+});
+
+test("options: size and colour filters ask for one option that has both, in stock", () => {
+  const { readFilters, toProductQuery } = require("../services/productService");
+  const query = toProductQuery(readFilters({ size: ["9", "10"], colour: "Black" }));
+  assert.deepEqual(query.variants, { $elemMatch: { stock: { $gt: 0 }, size: { $in: ["9", "10"] }, colour: { $in: ["Black"] } } });
+  assert.equal(toProductQuery(readFilters({})).variants, undefined, "no filter, no condition");
+});
+
+test("options: each photo's colour is read in screen order and kept only for real colours", () => {
+  const { readPhotoColours, colourPhotosFor } = require("../services/adminProductService");
+  assert.deepEqual(readPhotoColours(undefined, 2), { colours: null });
+  assert.ok(readPhotoColours('["Black"]', 2).error, "one colour per photo");
+  assert.ok(readPhotoColours("[1, 2]", 2).error);
+  const { colours } = readPhotoColours('["Black", "", "volt", "Pink"]', 4);
+  const plan = { keep: ["/a.webp", "/b.webp"], order: ["/a.webp", "new:0", "/b.webp", "new:1"] };
+  const pairs = colourPhotosFor(plan, ["/n0.webp", "/n1.webp"], colours, ["Black", "Volt"]);
+  assert.deepEqual(pairs, [{ image: "/a.webp", colour: "Black" }, { image: "/b.webp", colour: "Volt" }], "the colour's own spelling is used; Pink is not a colour of this product");
+});
+
 if (!process.env.TEST_MONGODB_URI) {
   test("option database tests (set TEST_MONGODB_URI to run them)", { skip: true }, () => {});
   return;
@@ -207,6 +230,64 @@ test("options: Buy now needs a size and keeps it", async () => {
   assert.equal(order.items[0].option, "Size 8");
   assert.equal(String(order.items[0].variant), s8);
   assert.equal(size(await fresh(), "8").stock, 2, "taken from size 8");
+});
+
+test("options: listings filter by size and colour, and offer only sizes in stock", async () => {
+  const productService = require("../services/productService");
+  await Product.updateOne({ _id: shoe._id, "variants.size": "10" }, { $set: { "variants.$.stock": 0 } });
+  await Product.updateOne({ _id: shoe._id }, [{ $set: { stock: { $sum: "$variants.stock" } } }]);
+  const all = await productService.listProducts({});
+  const sizes = all.facets.sizes.map(s => s.name);
+  assert.ok(!sizes.includes("10"), "a sold-out size is not offered");
+  assert.deepEqual(sizes, [...sizes].sort(productService.sizeOrder));
+
+  const nine = size(await fresh(), "9");
+  const eight = size(await fresh(), "8");
+  const wanted = nine.stock > 0 ? "9" : eight.stock > 0 ? "8" : null;
+  if (wanted) {
+    const found = await productService.listProducts({ size: wanted });
+    assert.deepEqual(found.products.map(p => p.slug), [shoe.slug], "only the shoe comes in a size");
+  }
+  const none = await productService.listProducts({ size: "10" });
+  assert.equal(none.products.length, 0, "nothing is offered in a sold-out size");
+
+  const page = await call(jar(), "GET", "/products?size=10");
+  assert.equal(page.status, 200);
+  assert.match(page.data, /aria-label="Remove filter: Size 10"/);
+});
+
+test("options: the product page offers the size guide and tags photos by colour", async () => {
+  await Product.updateOne({ _id: shoe._id }, { $set: {
+    gallery: ["/img/favicon.svg", "/img/logo.svg"],
+    colourPhotos: [{ image: "/img/logo.svg", colour: "Black" }]
+  } });
+  const page = await call(jar(), "GET", `/products/${shoe.slug}`);
+  assert.match(page.data, /data-dialog-open="size-guide"/);
+  assert.match(page.data, /<dialog class="size-guide" id="size-guide"/);
+  assert.match(page.data, /<tr class="is-ours"><th scope="row">8<span class="sr-only"> \(available\)/, "the shoe's own sizes are marked");
+  assert.match(page.data, /class="thumb pdx-thumb" data-colour="Black"/);
+});
+
+test("options: inventory changes one size at a time and the total follows", async () => {
+  const inventoryService = require("../services/inventoryService");
+  const s8 = String(size(shoe, "8")._id);
+  await assert.rejects(inventoryService.adjustStock(shoe._id, { action: "add", units: 2 }), /Choose which size/);
+
+  let start = await fresh();
+  const added = await inventoryService.adjustStock(String(shoe._id), { action: "add", units: 4, optionId: s8 });
+  assert.equal(added.after - added.before, 4);
+  let now = await fresh();
+  assert.equal(size(now, "8").stock, size(start, "8").stock + 4);
+  assert.equal(now.stock, now.variants.reduce((sum, v) => sum + v.stock, 0));
+
+  await assert.rejects(inventoryService.adjustStock(String(shoe._id), { action: "remove", units: 999, optionId: s8 }), /only has/);
+
+  const counted = await inventoryService.adjustStock(String(shoe._id), { action: "count", units: 7, optionId: s8 });
+  assert.equal(counted.after, 7);
+  now = await fresh();
+  assert.equal(size(now, "8").stock, 7);
+  assert.equal(now.stock, now.variants.reduce((sum, v) => sum + v.stock, 0), "the total is still the sum");
+  assert.ok(counted.product.options.some(o => o.id === s8 && o.stock === 7), "the row shows each size");
 });
 
 test("options: two buyers for the last pair of a size: exactly one gets it", async () => {

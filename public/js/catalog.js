@@ -22,7 +22,7 @@
   // ---------- The filter state ----------
 
   const DEFAULTS = {
-    q: "", category: "", brands: [], min: null, max: null,
+    q: "", category: "", brands: [], sizes: [], colours: [], min: null, max: null,
     discount: 0, rating: 0, inStock: false, sort: "relevance", view: "grid", page: 1
   };
   const SORTS = ["relevance", "price_asc", "price_desc", "newest", "rating", "discount", "name_asc"];
@@ -48,6 +48,8 @@
       q: (params.get("q") || "").trim().slice(0, 80),
       category: (params.get("category") || "").trim().toLowerCase().slice(0, 80),
       brands: [...new Set(params.getAll("brand").map(name => name.trim()).filter(Boolean))].slice(0, 20),
+      sizes: [...new Set(params.getAll("size").map(name => name.trim()).filter(Boolean))].slice(0, 20),
+      colours: [...new Set(params.getAll("colour").map(name => name.trim()).filter(Boolean))].slice(0, 20),
       min: whole(params.get("min"), 10000000),
       max: whole(params.get("max"), 10000000),
       discount: oneOf(params.get("discount"), [10, 20, 30, 40, 50], 0),
@@ -68,6 +70,8 @@
     if (from.q) query.set("q", from.q);
     if (from.category) query.set("category", from.category);
     from.brands.forEach(brand => query.append("brand", brand));
+    from.sizes.forEach(size => query.append("size", size));
+    from.colours.forEach(colour => query.append("colour", colour));
     if (from.min !== null) query.set("min", String(from.min));
     if (from.max !== null) query.set("max", String(from.max));
     if (from.discount) query.set("discount", String(from.discount));
@@ -88,7 +92,7 @@
 
   // How many filters are on, for the badges. Sort, view, page and the search box are not filters.
   const activeCount = () =>
-    (state.category ? 1 : 0) + state.brands.length + (state.min !== null ? 1 : 0) + (state.max !== null ? 1 : 0) +
+    (state.category ? 1 : 0) + state.brands.length + state.sizes.length + state.colours.length + (state.min !== null ? 1 : 0) + (state.max !== null ? 1 : 0) +
     (state.discount ? 1 : 0) + (state.rating ? 1 : 0) + (state.inStock ? 1 : 0) + (state.q ? 1 : 0);
 
   // ---------- Reading the controls ----------
@@ -106,6 +110,12 @@
           ? [...new Set([...state.brands, field.value])]
           : state.brands.filter(name => name !== field.value);
         return { brands };
+      }
+      case "size":
+      case "colour": {
+        const key = field.name === "size" ? "sizes" : "colours";
+        const list = field.checked ? [...new Set([...state[key], field.value])] : state[key].filter(name => name !== field.value);
+        return { [key]: list };
       }
       default: return null;
     }
@@ -128,6 +138,8 @@
     filterForm.querySelectorAll("input[type=radio], input[type=checkbox]").forEach(field => {
       if (field.name === "category") field.checked = field.value === state.category;
       else if (field.name === "brand") field.checked = state.brands.includes(field.value);
+      else if (field.name === "size") field.checked = state.sizes.includes(field.value);
+      else if (field.name === "colour") field.checked = state.colours.includes(field.value);
       else if (field.name === "discount") field.checked = field.value === (state.discount ? String(state.discount) : "");
       else if (field.name === "rating") field.checked = field.value === (state.rating ? String(state.rating) : "");
       else if (field.name === "inStock") field.checked = state.inStock;
@@ -165,6 +177,8 @@
       category: state.category ? 1 : 0,
       price: state.min !== null || state.max !== null ? 1 : 0,
       brand: state.brands.length,
+      size: state.sizes.length,
+      colour: state.colours.length,
       rating: state.rating ? 1 : 0,
       discount: state.discount ? 1 : 0
     };
@@ -210,6 +224,8 @@
     if (state.q) add(`“${state.q}”`, { q: "" });
     if (state.category) add(categoryLabel(), { category: "" });
     state.brands.forEach(brand => add(brand, { brands: state.brands.filter(name => name !== brand) }));
+    state.sizes.forEach(size => add(`Size ${size}`, { sizes: state.sizes.filter(name => name !== size) }));
+    state.colours.forEach(colour => add(colour, { colours: state.colours.filter(name => name !== colour) }));
     if (state.min !== null) add(`From ₹${state.min.toLocaleString("en-IN")}`, { min: null });
     if (state.max !== null) add(`Up to ₹${state.max.toLocaleString("en-IN")}`, { max: null });
     if (state.rating) add(`${state.rating}★ and up`, { rating: 0 });
@@ -628,12 +644,13 @@
       ], { duration: ms * 1.1, easing: ease }).finished.catch(() => {}).then(() => light.remove());
     };
 
-    const show = index => {
+    // dir: 1 for "next", -1 for "back"; worked out from the positions when not given.
+    const show = (index, dir) => {
       const next = (index + thumbs.length) % thumbs.length;
       if (next === current) return;
       // The shorter way round decides the direction (the last photo going on to the first is "next").
       const step = index - current;
-      turn(step > 0 ? 1 : -1);
+      turn(dir || (step > 0 ? 1 : -1));
       current = next;
       const thumb = thumbs[current];
       // The big photo comes in several sizes: switch its srcset together with its src, or the browser
@@ -643,20 +660,49 @@
       main.src = thumb.dataset.src;
       thumbs.forEach(other => other.removeAttribute("aria-current"));
       thumb.setAttribute("aria-current", "true");
-      if (counter) counter.textContent = String(current + 1);
+      paintCount();
     };
+
+    // Photos of other colours can be hidden (below); arrows, swipes and the counter only use the shown ones.
+    const shown = () => thumbs.filter(thumb => !thumb.hidden);
+    const countOf = gallery.querySelector(".pdx-count-of");
+    function paintCount() {
+      const list = shown();
+      if (counter) counter.textContent = String(Math.max(1, list.indexOf(thumbs[current]) + 1));
+      if (countOf) countOf.textContent = `/ ${list.length}`;
+    }
+    const stepBy = dir => {
+      const list = shown();
+      if (list.length < 2) return;
+      const at = Math.max(0, list.indexOf(thumbs[current]));
+      show(thumbs.indexOf(list[(at + dir + list.length) % list.length]), dir);
+    };
+
+    // Picking a colour (cart.js, the size and colour picker) shows that colour's photos plus the photos
+    // that are for every colour, and turns to its first one. No colour picked: every photo.
+    if (thumbs.some(thumb => thumb.dataset.colour)) {
+      document.addEventListener("nx:colour", event => {
+        const colour = (event.detail && event.detail.colour) || "";
+        thumbs.forEach(thumb => {
+          thumb.hidden = Boolean(colour && thumb.dataset.colour && thumb.dataset.colour !== colour);
+        });
+        const first = thumbs.find(thumb => colour && thumb.dataset.colour === colour) || shown()[0];
+        if (first) show(thumbs.indexOf(first), 1);
+        paintCount();
+      });
+    }
 
     thumbs.forEach((thumb, index) => {
       thumb.addEventListener("click", () => show(index));
       thumb.addEventListener("keydown", event => {
         if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
         event.preventDefault();
-        show(current + (event.key === "ArrowRight" ? 1 : -1));
+        stepBy(event.key === "ArrowRight" ? 1 : -1);
         thumbs[current].focus();
       });
     });
     gallery.querySelectorAll("[data-gallery-step]").forEach(button => {
-      button.addEventListener("click", () => show(current + Number(button.dataset.galleryStep)));
+      button.addEventListener("click", () => stepBy(Number(button.dataset.galleryStep)));
     });
 
     // Touch: swipe the big photo sideways for the next or previous one. The photo follows the finger
@@ -694,7 +740,7 @@
         settle();
         if (event.type === "pointerup" && Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
           swiped = true;
-          show(current + (dx < 0 ? 1 : -1));
+          stepBy(dx < 0 ? 1 : -1);
         }
       };
       stage.addEventListener("pointerup", end);

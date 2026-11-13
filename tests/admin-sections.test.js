@@ -254,6 +254,44 @@ test("inventory: add, remove and set the exact count, and stock can never go neg
   await change(socks._id, { action: "add", units: 0 }).catch(() => {});
 });
 
+test("inventory: a product with sizes is changed one size at a time, on the page, the API and the CSV", async () => {
+  const sized = await Product.create({
+    name: "Section Sized Spike", slug: "section-sized-spike", category: socks.category, brand: "Nexthlon", basePrice: 199900, mrp: 249900, stock: 0, image: "/img/favicon.svg", isListed: false,
+    variants: [{ size: "8", sku: "SPK-8", stock: 2 }, { size: "9", sku: "SPK-9", stock: 0 }]
+  });
+  const s9 = String(sized.variants[1]._id);
+  const change = body => call("PATCH", `/api/admin/inventory/${sized._id}`, { body, cookie: adminCookie });
+
+  const page = await call("GET", `${ADMIN}/inventory?q=Sized`, { cookie: adminCookie });
+  assert.equal(page.status, 200);
+  assert.match(page.data, /data-inv-options/);
+  assert.match(page.data, /<select id="inv-option-[a-f0-9]+" name="optionId" required>/);
+  assert.match(page.data, /Size 9 \(0\)/);
+
+  const edit = await call("GET", `${ADMIN}/products/${sized._id}/edit`, { cookie: adminCookie });
+  assert.equal(edit.status, 200);
+  assert.match(edit.data, /data-options-editor/);
+  assert.match(edit.data, /data-colour-photos="\[\]"/);
+
+  const noSize = await change({ action: "add", units: 3 });
+  assert.equal(noSize.status, 400);
+  assert.equal(noSize.data.code, "option_required");
+
+  const added = await change({ action: "add", units: 3, optionId: s9 });
+  assert.equal(added.status, 200, JSON.stringify(added.data));
+  assert.match(added.data.message, /Section Sized Spike \(Size 9\): stock up 3, now 3/);
+  assert.equal(added.data.product.stock, 5, "the total is the sum of the sizes");
+  assert.deepEqual(added.data.product.options.map(o => o.stock), [2, 3]);
+
+  const logged = await AuditLog.findOne({ action: "inventory.stock_changed", target: `product:${sized._id}` }).sort({ at: -1 }).lean();
+  assert.equal(logged.after.option, "Size 9");
+
+  const csv = await call("GET", "/api/admin/inventory/export.csv?q=Sized", { cookie: adminCookie });
+  assert.ok(csv.data.includes("Size 9"), "one CSV line per size");
+  assert.ok(csv.data.includes("SPK-9"));
+  await Product.deleteOne({ _id: sized._id });
+});
+
 // ======================= Removed: admin Reviews, and Q&A everywhere =======================
 
 test("Q&A is gone from the store and the console, and the admin has no Reviews section", async () => {
