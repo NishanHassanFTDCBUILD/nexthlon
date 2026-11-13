@@ -56,6 +56,8 @@ function errorHandler(err, req, res, next) {
   }
   return res.status(status).render(status === 404 ? "pages/404" : "pages/error", {
     title: status === 404 ? "Page not found" : "Something went wrong",
+    // Error pages never belong in search results.
+    noindex: true,
     status,
     message
   });

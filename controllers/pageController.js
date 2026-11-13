@@ -27,12 +27,20 @@ const { CONTACT_TOPICS, STORE } = require("../config/store");
 const { INDIAN_STATES, LOW_STOCK_LIMIT, MAX_ADDRESSES } = require("../config/catalog");
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
+const seo = require("../utils/seo");
+const { sizedUrl } = require("../utils/images");
 
 // ---------- Store pages ----------
 
 const home = asyncHandler(async (req, res) => {
   const data = await homeService.getHomePage();
-  res.render("pages/home", { title: "Nexthlon | Your Next Move Starts Here", ...data });
+  res.render("pages/home", {
+    title: "Nexthlon | Your Next Move Starts Here",
+    metaDescription: `Shop running shoes, football, cricket, fitness and outdoor gear at Nexthlon. Free delivery over ₹${STORE.freeDeliveryMin / 100}, ${STORE.returnDays}-day returns, Cash on Delivery.`,
+    // The store and its search box, for Google (utils/seo.js).
+    jsonLd: seo.storeData(res.locals.siteOrigin),
+    ...data
+  });
 });
 
 // ---------- Store information and policy pages ----------
@@ -96,8 +104,29 @@ const products = asyncHandler(async (req, res) => {
   if (rating) chips.push({ label: `${rating}★ and up`, href: link({ rating: "", page: "" }) });
   if (inStock) chips.push({ label: "In stock", href: link({ inStock: "", page: "" }) });
 
+  // Search engines: one address per category (filters, sorting and layout are the same products again),
+  // searches stay out of results, and each category gets its own title and description.
+  const { page } = result.pagination;
+  const refined = brands.length || sizes.length || colours.length || min !== null || max !== null || discount || rating || inStock || sort !== "relevance" || view === "list";
+  const canonicalQuery = new URLSearchParams();
+  if (category) canonicalQuery.set("category", category.slug);
+  if (page > 1 && !refined) canonicalQuery.set("page", String(page));
+  const canonical = `${res.locals.siteOrigin}/products${canonicalQuery.toString() ? `?${canonicalQuery}` : ""}`;
+  const summary = category ? categories.find(c => c.slug === category.slug) : null;
+  const from = summary ? ` from ₹${(summary.fromPrice / 100).toLocaleString("en-IN")}` : "";
+  const shopping = `Free delivery over ₹${STORE.freeDeliveryMin / 100}, ${STORE.returnDays}-day returns and Cash on Delivery.`;
+  const metaDescription = category
+    ? (category.description || `Shop ${summary ? `${summary.count} ` : ""}${category.name.toLowerCase()} products at Nexthlon${from}: shoes, gear and accessories. ${shopping}`)
+    : `Shop all sports gear at Nexthlon: running, football, cricket, fitness, cycling and outdoor. ${shopping}`;
+  const pageTitle = q ? `${heading} | Nexthlon`
+    : category ? `${category.name} gear: shoes, equipment and accessories${page > 1 ? ` (page ${page})` : ""} | Nexthlon`
+    : `All sports gear${page > 1 ? ` (page ${page})` : ""} | Nexthlon`;
   res.render("pages/products", {
-    title: `${heading} | Nexthlon`,
+    title: pageTitle,
+    metaDescription,
+    canonical,
+    noindex: Boolean(q),
+    jsonLd: category ? [seo.breadcrumbData(res.locals.siteOrigin, [{ name: "Home", url: "/" }, { name: "All gear", url: "/products" }, { name: category.name, url: `/products?category=${encodeURIComponent(category.slug)}` }])] : [],
     heading,
     correctedQuery: corrected,
     categories,
@@ -135,9 +164,30 @@ const productDetail = asyncHandler(async (req, res) => {
   // Bought together first; the related row then skips those, so no product shows twice.
   const togetherProducts = together.map(entry => entry.product);
   const togetherIds = new Set(togetherProducts.map(p => String(p._id)));
+  // Search and link previews: the product's own address, photo and price, and Google's product data.
+  const origin = res.locals.siteOrigin;
+  const url = `${origin}/products/${product.slug}`;
+  const photo = seo.absoluteUrl(origin, sizedUrl(product.image, 1200));
+  const gallery = (product.gallery || []).map(src => seo.absoluteUrl(origin, sizedUrl(src, 1200)));
+  const category = product.category && product.category.name ? product.category : null;
+  const priceText = `₹${(product.price / 100).toLocaleString("en-IN")}`;
   res.render("pages/product", {
     title: `${product.name} | Nexthlon`,
-    metaDescription: (product.description || product.name).slice(0, 155),
+    metaDescription: `${priceText}${product.discountPercent > 0 ? ` (${product.discountPercent}% off)` : ""} · ${(product.description || product.name).replace(/\s+/g, " ")}`.slice(0, 158),
+    canonical: url,
+    ogType: "product",
+    ogTitle: `${product.name} · ${priceText}`,
+    ogImage: photo,
+    ogImageSize: null,
+    ogPrice: { amount: (product.price / 100).toFixed(2), inStock: product.stock > 0 },
+    jsonLd: [
+      seo.productData(product, { origin, url, image: photo, images: gallery }),
+      seo.breadcrumbData(origin, [
+        { name: "Home", url: "/" },
+        ...(category ? [{ name: category.name, url: `/products?category=${encodeURIComponent(category.slug)}` }] : []),
+        { name: product.name, url: `/products/${product.slug}` }
+      ])
+    ],
     product,
     offer: productService.offerLabel(product),
     related: related.filter(p => !togetherIds.has(String(p._id))),

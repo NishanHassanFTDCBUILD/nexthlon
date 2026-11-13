@@ -289,13 +289,16 @@ wait for my go-ahead.
 
 ## Stage D: Launch
 
-### [ ] D1. SEO and social sharing · S
+### [x] D1. SEO and social sharing · S
 - **Goal:** products show up well on Google and look good when shared.
 - **Files:**
   - `/sitemap.xml` and `robots.txt`;
   - Google structured data (JSON-LD) for products (price, stock, rating), breadcrumbs and the organisation;
   - Open Graph and Twitter cards, canonical URLs, and unique titles and descriptions for categories.
 - **Done when:** Google's Rich Results Test passes on a product page, and a WhatsApp link preview shows the photo and price.
+- **Progress (2026-11-13):**
+  - [x] Code: `/sitemap.xml` (home, catalogue, categories, every listed product with its photo, policy pages; cached) and a generated `/robots.txt` that names it. Canonical addresses (filtered and sorted lists point to their category), noindex on private pages, searches and error pages. Open Graph and Twitter cards with a default 1200×630 image (`public/img/og-default.png`) and the product's own photo and price. JSON-LD: Product (price, stock, rating, sizes, colours, delivery and return policy), BreadcrumbList, OnlineStore and WebSite search. Category titles and descriptions. Tests: `tests/seo.test.js`.
+  - [ ] Yours, once the site is live on its domain (with `SITE_URL` set): run a product page through Google's Rich Results Test, paste a product link in WhatsApp to see the preview, and submit `/sitemap.xml` in Google Search Console.
 
 ```text
 Step D1 from docs/ROADMAP.md: add sitemap.xml, Product/Breadcrumb/Organization JSON-LD, Open Graph

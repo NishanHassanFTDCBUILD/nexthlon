@@ -84,7 +84,8 @@ test("guests and customers get a 404 on admin pages; only the login URL shows a 
   const elsewhere = await call("GET", "/no-such-page-here");
   assert.equal(hidden.status, 404);
   assert.equal(hidden.headers.get("x-robots-tag"), elsewhere.headers.get("x-robots-tag"));
-  assert.doesNotMatch(hidden.data, /noindex|data-admin-path|nx-console/);
+  // (Every 404 carries noindex since D1, so it is no clue; the admin markers must never show.)
+  assert.doesNotMatch(hidden.data, /data-admin-path|nx-console/);
   assert.equal(hidden.data.replace(/\/nx-console-test1\/dashboard/g, ""), elsewhere.data.replace(/\/no-such-page-here/g, ""));
 
   const customer = await call("POST", "/api/login", { body: { email: "lina@path.test", password: "pathway2024" } });

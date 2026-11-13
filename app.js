@@ -112,6 +112,8 @@ app.use(viewLocals);
 app.use(attachUser);
 app.use(cartCount);
 app.use(navCategories);
+// Canonical address, link-preview defaults and noindex on private pages (middleware/seo.js).
+app.use(require("./middleware/seo").seoDefaults);
 
 // JSON API
 app.get("/api/health", (req, res) => res.json({ status: "ok", app: "Nexthlon API" }));
@@ -134,6 +136,8 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 // EJS pages. The admin console lives at its private path (ADMIN_PATH); /admin is just a 404
 // when another path is set.
 app.use(config.adminPath, require("./routes/adminPageRoutes"));
+// robots.txt and sitemap.xml for search engines (D1).
+app.use("/", require("./routes/seoRoutes"));
 app.use("/", require("./routes/pageRoutes"));
 
 app.use(notFound);
