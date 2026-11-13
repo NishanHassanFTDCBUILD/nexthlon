@@ -33,6 +33,8 @@
   <% if (typeof storageOrigin !== 'undefined' && storageOrigin) { %><link rel="preconnect" href="<%= storageOrigin %>"><% } %>
   <%# Sets the dark theme before the first paint (the store has no light mode). %>
   <script src="<%= asset('/js/theme.js') %>"></script>
+  <%# Page transitions, the arriving side: must run before the first frame, so it is not deferred (tiny, cached a year). %>
+  <script src="<%= asset('/js/page-reveal.js') %>"></script>
   <%# The fonts come from this site (tokens.css). The two the first screen needs (body text and the 800 headline weight) load straight away. %>
   <link rel="preload" href="/fonts/inter-400-800-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/barlow-condensed-800-latin.woff2" as="font" type="font/woff2" crossorigin>

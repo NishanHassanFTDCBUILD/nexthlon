@@ -255,6 +255,12 @@
   ::view-transition-group(product-photo) { animation-duration: var(--duration-long); animation-timing-function: var(--ease-out); }
   ::view-transition-old(product-photo), ::view-transition-new(product-photo) { height: 100%; object-fit: cover; overflow: clip; }
   ::view-transition-group(site-header) { animation-duration: var(--duration-medium); }
+  /* Back through history (page-reveal.js adds the type "back"): the same motion the other way round. The
+     page being left drops away and the earlier page settles down into place from above. */
+  html:active-view-transition-type(back)::view-transition-old(root) { animation: nx-page-out-back var(--duration-medium) var(--ease-in-out) both; }
+  html:active-view-transition-type(back)::view-transition-new(root) { animation: nx-page-in-back var(--duration-long) var(--ease-out) both; }
+  @keyframes nx-page-out-back { to { opacity: 0; transform: translateY(14px) scale(0.985); } }
+  @keyframes nx-page-in-back { from { opacity: 0; transform: translateY(-14px); } }
 }
 
 /* ---------- Micro-interactions ---------- */

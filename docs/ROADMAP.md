@@ -217,7 +217,7 @@ then wait for my go-ahead.
 
 ## Stage C: Award-level experience
 
-### [ ] C1. Motion system v2: page transitions and scroll-driven CSS · M
+### [x] C1. Motion system v2: page transitions and scroll-driven CSS · M
 - **Goal:** the site feels like one smooth app.
 - **Pieces:**
   - **Page transitions:** cross-page View Transitions (`@view-transition`), so a product card's photo flows into the product page photo, and headers stay in place between pages.
@@ -227,6 +227,11 @@ then wait for my go-ahead.
   - navigation feels seamless in Chrome, Edge and Safari 18+, and other browsers still work exactly as now;
   - reduced motion turns everything off;
   - CLS stays 0.
+- **Progress (2026-11-13):**
+  - [x] Already built in the earlier UI phases: cross-document View Transitions (`@view-transition`), the header staying in place, a card's photo flowing into the product page (app.js on `pageswap`), CSS scroll-driven reveals (`animation-timeline: view()`) with the JavaScript fallback, one set of duration and easing tokens, everything off with reduced motion.
+  - [x] Added: going Back plays the transition the other way round (`:active-view-transition-type(back)`), and the product photo flows back into its card in the list (`public/js/page-reveal.js` on `pagereveal`, loaded in `<head>`).
+  - [x] Measured: layout shift (CLS) 0 on home, product list, product page and checkout, at desktop and phone size.
+  - [x] Browsers without View Transitions (Firefox today) change page exactly as before. Tests: `tests/page-transitions.test.js`.
 
 ```text
 Step C1 from docs/ROADMAP.md: build motion system v2. Add cross-document View Transitions (product
