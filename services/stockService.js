@@ -34,7 +34,7 @@ async function takeStock(lines, session = null) {
       const stock = line.variant ? (option ? option.stock : 0) : (left ? left.stock : 0);
       throw new HttpError(409, stock > 0
         ? `Only ${stock} of ${line.name} left now. Please update your cart.`
-        : `${line.name} just sold out. Please remove it from your cart.`);
+        : `${line.name} just sold out. Please remove it from your cart.`, null, "items_unavailable");
     }
     taken.push(line);
   }

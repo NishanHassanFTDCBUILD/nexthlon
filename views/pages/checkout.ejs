@@ -43,14 +43,15 @@
           <% if (addresses.length) { %>
             <fieldset class="address-choices">
               <legend class="sr-only">Choose where to deliver</legend>
-              <% addresses.forEach(function (a) { %>
+              <% addresses.forEach(function (a) { const eta = (typeof estimates !== 'undefined' && estimates[String(a._id)]) || null; %>
                 <label class="address-choice">
-                  <input type="radio" name="addressId" value="<%= a._id %>" data-pincode="<%= a.pincode %>" data-label="<%= a.fullName %>, <%= a.city %> <%= a.pincode %>" <%= chosen && String(chosen._id) === String(a._id) ? 'checked' : '' %>>
+                  <input type="radio" name="addressId" value="<%= a._id %>" data-pincode="<%= a.pincode %>" data-label="<%= a.fullName %>, <%= a.city %> <%= a.pincode %>" data-eta="<%= eta && eta.deliverable ? eta.label : '' %>" data-eta-off="<%= eta && !eta.deliverable ? eta.reason : '' %>" <%= chosen && String(chosen._id) === String(a._id) ? 'checked' : '' %>>
                   <span class="address-choice-body">
                     <strong><%= a.fullName %></strong><% if (a.isDefault) { %> <span class="pill pill-blue">Default</span><% } %>
                     <span><%= a.line1 %><%= a.line2 ? ', ' + a.line2 : '' %><%= a.landmark ? ', near ' + a.landmark : '' %></span>
                     <span><%= a.city %>, <%= a.state %> <%= a.pincode %></span>
                     <span class="muted"><%- icon('phone', 'i-xs') %> +91 <%= a.phone %></span>
+                    <% if (eta && eta.deliverable) { %><span class="address-eta"><%- icon('truck', 'i-xs') %><span>Arrives <strong><%= eta.label %></strong></span></span><% } else if (eta) { %><span class="address-eta is-off"><%- icon('alert', 'i-xs') %><span><%= eta.reason %></span></span><% } %>
                   </span>
                 </label>
               <% }) %>
@@ -195,6 +196,8 @@
             </fieldset>
             <p class="field-error" data-error-for="paymentMethod"></p>
 
+            <% const firstEta = chosen && typeof estimates !== 'undefined' ? estimates[String(chosen._id)] : null; %>
+            <p class="pay-eta" data-pay-eta <%= firstEta && firstEta.deliverable ? '' : 'hidden' %>><%- icon('truck', 'i-xs') %> Arrives <strong data-pay-eta-text><%= firstEta && firstEta.deliverable ? firstEta.label : '' %></strong><% if (firstEta && firstEta.orderBy) { %> <span class="muted">if you order by <%= firstEta.orderBy %></span><% } %></p>
             <div class="pay-submit" data-pay-submit>
               <button class="btn btn-primary btn-lg btn-block pay-btn" type="submit" <%= firstChoice && !quote.problems.length ? '' : 'disabled' %>>
                 <%- icon('lock', 'i-sm') %> <span data-place-text>Pay <%= formatPrice(t.total) %> securely</span>
@@ -210,7 +213,13 @@
       </section>
     </div>
 
-    <div class="checkout-side">
+    <%# On phones this column is a sheet that slides up from the pay bar below ("Details"). %>
+    <div class="checkout-side" id="checkout-side" data-summary-sheet aria-label="Price details and coupons">
+      <div class="sheet-head" data-sheet-head>
+        <span class="sheet-grip" aria-hidden="true"></span>
+        <h2 class="sheet-title">Price details</h2>
+        <button type="button" class="icon-btn" data-summary-close aria-label="Close price details"><%- icon('x') %></button>
+      </div>
       <%# Order updates go to this email, so it's asked for here, beside the steps instead of above them. %>
       <%- include('../partials/verify-banner') %>
       <aside class="cart-summary panel checkout-summary" aria-labelledby="price-title" data-summary>
@@ -246,6 +255,18 @@
         <p class="coupon-notice" data-coupon-notice role="status" <%= quote.couponNotice ? '' : 'hidden' %>><%- icon('alert', 'i-xs') %> <span><%= quote.couponNotice %></span></p>
       </section>
     </div>
+  </div>
+
+  <%# Phones: one bar at the bottom for every step. The total opens the price details; the button does
+       this step's main action (Deliver here, Continue, Pay). Desktop keeps the sidebar. %>
+  <div class="sheet-scrim" data-summary-scrim hidden></div>
+  <div class="pay-bar" data-pay-bar>
+    <button type="button" class="pay-bar-total" data-summary-open aria-controls="checkout-side" aria-expanded="false">
+      <span class="pay-bar-label">Total</span>
+      <strong data-sum="total" data-value="<%= t.total %>"><%= formatPrice(t.total) %></strong>
+      <span class="pay-bar-more">Details <%- icon('chevron-up', 'i-xs') %></span>
+    </button>
+    <button type="button" class="btn btn-primary pay-bar-go" data-pay-bar-go>Deliver here</button>
   </div>
 </main>
 

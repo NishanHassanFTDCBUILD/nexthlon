@@ -29,6 +29,7 @@ const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
 const seo = require("../utils/seo");
 const { sizedUrl } = require("../utils/images");
+const { estimateDelivery } = require("../services/deliveryService");
 
 // ---------- Store pages ----------
 
@@ -262,6 +263,8 @@ const checkout = asyncHandler(async (req, res) => {
     quote,
     buyNow: source === "buynow",
     addresses,
+    // "Arrives by ..." for each saved address (C3), from the same rules as the product page.
+    estimates: Object.fromEntries(addresses.map(a => [String(a._id), estimateDelivery(a.pincode)])),
     states: INDIAN_STATES,
     razorpayEnabled: razorpayService.isEnabled()
   });

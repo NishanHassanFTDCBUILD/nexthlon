@@ -36,9 +36,9 @@ async function attachRazorpayOrder(order) {
   } catch (error) {
     if (error instanceof HttpError) throw error;
     razorpay.logEvent("order.gateway_error", { order: order.orderId, status: error && error.statusCode });
-    throw new HttpError(502, "The payment gateway is not responding right now. Please try again, or choose Cash on Delivery.");
+    throw new HttpError(502, "The payment gateway is not responding right now. Please try again, or choose Cash on Delivery.", null, "gateway");
   }
-  if (razorpayOrder.amount !== order.total) throw new HttpError(502, "The payment gateway returned a different amount. Please try again.");
+  if (razorpayOrder.amount !== order.total) throw new HttpError(502, "The payment gateway returned a different amount. Please try again.", null, "gateway");
   order.razorpay.orderId = razorpayOrder.id;
   await order.save();
   razorpay.logEvent("order.created", { order: order.orderId, razorpayOrder: razorpayOrder.id, amount: order.total });
@@ -60,7 +60,7 @@ async function discardUnpaidOrder(order) {
 // and any wallet part are taken now (inside one transaction), and the rest is paid online.
 // Stock is taken only when the payment succeeds; the cart stays until then.
 async function createPaymentOrder(userId, { addressId, useWallet = false, source = "cart" }) {
-  if (!razorpay.isEnabled()) throw new HttpError(503, "Online payment is not available right now. Please choose Cash on Delivery.");
+  if (!razorpay.isEnabled()) throw new HttpError(503, "Online payment is not available right now. Please choose Cash on Delivery.", null, "gateway");
   const address = await checkoutService.findAddress(userId, addressId);
   const quote = await checkoutService.buildQuote(userId, { useWallet, source });
   checkoutService.assertOrderable(quote);

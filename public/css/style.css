@@ -177,6 +177,11 @@
 .form-alert-success { background: var(--green-50); color: var(--green); border-color: var(--success-line); }
 .form-alert:empty { display: none; }
 .form-alert:not(:empty) { animation: rise var(--duration) var(--ease); }
+/* Checkout: the message and the button that fixes it (C3). */
+.checkout-fix { flex-direction: column; gap: var(--space-1); }
+.checkout-fix p { margin: 0; }
+.checkout-fix-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.checkout-fix-actions .btn { min-height: var(--tap); }
 
 /* ---------- Auth pages ---------- */
 
@@ -1580,9 +1585,42 @@ html.is-pay-locked, html.is-pay-locked body { overflow: hidden; }
 .pay-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
 .order-head-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
 
+/* ---------- Checkout: arrival dates (C3) ---------- */
+.address-eta { display: flex; align-items: flex-start; gap: var(--space-xs); margin-top: var(--space-xxs); color: var(--success); font-weight: var(--weight-semibold); }
+.address-eta .i { flex: none; margin-top: 2px; }
+.address-choice-body .pill { align-self: flex-start; }
+.address-eta strong { color: var(--ink); }
+.address-eta.is-off { color: var(--danger); }
+.pay-eta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); margin: var(--space-2) 0 var(--space-1); font-size: var(--text-sm); color: var(--success); }
+.pay-eta strong { color: var(--ink); }
+
+/* ---------- Checkout on phones: one pay bar for every step, and the price details as a sheet (C3) ---------- */
+.pay-bar, .sheet-head, .sheet-scrim { display: none; }
 @media (max-width: 720px) {
-  .checkout.is-paying { padding-bottom: 104px; }
-  .checkout.is-paying .pay-submit { position: fixed; z-index: var(--z-sticky); left: 0; right: 0; bottom: 0; padding: var(--space-1h) var(--space-2) calc(var(--space-1h) + env(safe-area-inset-bottom, 0px)); background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(var(--navy-rgb), 0.12); }
+  .checkout { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .pay-bar { position: fixed; z-index: var(--z-sticky); left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: var(--space-1h); padding: var(--space-1h) var(--space-2) calc(var(--space-1h) + env(safe-area-inset-bottom, 0px)); background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(var(--navy-rgb), 0.12); }
+  .pay-bar-total { display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: var(--space-xs); min-height: var(--tap); padding: 0 var(--space-xs); border: 0; background: none; color: var(--ink); text-align: left; cursor: pointer; flex: none; }
+  .pay-bar-label { grid-column: 1 / -1; font-size: var(--text-xs); color: var(--muted); }
+  .pay-bar-total strong { font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
+  .pay-bar-more { display: inline-flex; align-items: center; gap: var(--space-xxs); font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--link); }
+  .pay-bar-more .i { transition: transform var(--duration-fast) var(--ease-out); }
+  .pay-bar-total[aria-expanded="true"] .pay-bar-more .i { transform: rotate(180deg); }
+  .pay-bar-go { flex: 1; min-height: 52px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* On phones the bar's button IS the step's main button (it does the same thing), so the in-page copies go. */
+  .checkout .step-actions [data-step-next], .checkout .pay-submit { display: none; }
+
+  .checkout-side { position: fixed; z-index: var(--z-drawer); left: 0; right: 0; bottom: 0; max-height: 82dvh; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px)); background: var(--bg); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-lg); transform: translateY(105%); visibility: hidden; transition: transform var(--duration-slow) var(--ease-out), visibility 0s var(--duration-slow); }
+  .checkout-side.is-open { transform: none; visibility: visible; transition: transform var(--duration-slow) var(--ease-out), visibility 0s; }
+  .sheet-head { position: sticky; top: 0; z-index: var(--z-raised); display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); margin: 0 calc(var(--space-2) * -1) var(--space-1); padding: var(--space-2h) var(--space-2) var(--space-1); background: var(--bg); }
+  .sheet-grip { position: absolute; top: var(--space-sm); left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: var(--radius-pill); background: var(--line-strong); }
+  .sheet-title { font-size: var(--text-lg); }
+  .checkout-side .checkout-summary .panel-title { display: none; }
+  /* Inside the sheet the price details come right under its header (tablets show them first instead). */
+  .checkout-side .checkout-summary { order: 0; }
+  .checkout-side .verify-banner { order: 2; }
+  .sheet-scrim { position: fixed; z-index: var(--z-drawer-scrim); inset: 0; display: block; background: rgba(var(--navy-rgb), 0.55); }
+  .sheet-scrim[hidden] { display: none; }
+  html.has-sheet { overflow: hidden; }
   .pay-card-details { padding-left: var(--space-2); }
   .pay-card-tag { display: none; }
   .trust-row { justify-content: center; }

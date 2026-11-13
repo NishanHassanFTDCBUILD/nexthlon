@@ -133,13 +133,13 @@ function itemSnapshots(lines) {
 // Checks that the cart can be ordered, or throws a message for the shopper.
 function assertOrderable(quote) {
   const buyNow = quote.source === "buynow";
-  if (!quote.lines.length && !quote.problems.length) throw new HttpError(400, buyNow ? buyNowService.EXPIRED_MESSAGE : "Your cart is empty.");
+  if (!quote.lines.length && !quote.problems.length) throw new HttpError(400, buyNow ? buyNowService.EXPIRED_MESSAGE : "Your cart is empty.", null, "items_unavailable");
   if (quote.problems.length) {
     throw new HttpError(409, buyNow
       ? `This product is no longer available (${quote.problems.join("; ")}).`
-      : `Some items are no longer available (${quote.problems.join("; ")}). Remove them from your cart to continue.`);
+      : `Some items are no longer available (${quote.problems.join("; ")}). Remove them from your cart to continue.`, null, "items_unavailable");
   }
-  if (quote.couponNotice) throw new HttpError(409, `${quote.couponNotice} Remove the coupon to continue.`);
+  if (quote.couponNotice) throw new HttpError(409, `${quote.couponNotice} Remove the coupon to continue.`, null, "coupon_invalid");
 }
 
 // The money fields an order keeps (all from the quote).
@@ -155,7 +155,7 @@ async function saveOrder({ userId, orderId, quote, address, paymentMethod, payme
   const { totals } = quote;
   if (quote.coupon && totals.couponDiscount > 0) {
     const coupon = (await couponService.check(quote.coupon.code, userId, totals.subtotal)).coupon;
-    if (!coupon) throw new HttpError(409, "Your coupon is no longer valid. Remove it to continue.");
+    if (!coupon) throw new HttpError(409, "Your coupon is no longer valid. Remove it to continue.", null, "coupon_invalid");
     await couponService.redeem(coupon, userId, _id, totals.couponDiscount, { session, undo });
   }
   if (totals.walletUsed > 0) {
@@ -202,7 +202,7 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
   // When the wallet covers everything, there is nothing to collect: it is a wallet order.
   const method = quote.coveredByWallet ? "wallet" : paymentMethod;
   if (method === "wallet" && !quote.coveredByWallet) {
-    throw new HttpError(400, "Your wallet balance does not cover this order. Choose another way to pay the rest.");
+    throw new HttpError(400, "Your wallet balance does not cover this order. Choose another way to pay the rest.", null, "wallet_short");
   }
   // Fake Cash on Delivery orders tie up stock and courier money (D3): at most a few unpaid ones on the way.
   if (method === "cod") {
@@ -214,7 +214,7 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
   if (method === "cod" && !quote.codAllowed) {
     throw new HttpError(400, quote.codLimit > 0
       ? `Cash on Delivery is available for orders up to ${formatPaise(quote.codLimit)}. Please choose another payment method.`
-      : "Cash on Delivery is not available right now. Please choose another payment method.");
+      : "Cash on Delivery is not available right now. Please choose another payment method.", null, "cod_limit");
   }
 
   const stockLines = quote.lines.map(line => ({

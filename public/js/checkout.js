@@ -14,7 +14,9 @@
   const steps = [...page.querySelectorAll("[data-step]")];
   const stepper = [...page.querySelectorAll("[data-stepper]")];
 
+  let currentStep = 1;
   function open(number) {
+    currentStep = number;
     steps.forEach(step => {
       const n = Number(step.dataset.step);
       const body = step.querySelector(".step-body");
@@ -43,24 +45,120 @@
     const heading = current.querySelector("h2");
     heading.setAttribute("tabindex", "-1");
     heading.focus();
+    syncBar();
   }
+
+  // ---------- Phones: the pay bar and the price details sheet (C3) ----------
+  // The bar's button does this step's main action, so it is always under the thumb. On step 3 it
+  // shows the Pay button's own words and is disabled exactly when that button is.
+  const bar = page.querySelector("[data-pay-bar]");
+  const barGo = bar && bar.querySelector("[data-pay-bar-go]");
+  const sheet = page.querySelector("[data-summary-sheet]");
+  const scrim = page.querySelector("[data-summary-scrim]");
+  const openSheetButton = page.querySelector("[data-summary-open]");
+  const phone = window.matchMedia("(max-width: 720px)");
+
+  function stepAction(number) {
+    if (number < steps.length) return page.querySelector(`[data-step-next="${number}"]`);
+    return page.querySelector("[data-place-order] [type=\"submit\"]");
+  }
+  function syncBar() {
+    if (!barGo) return;
+    const action = stepAction(currentStep);
+    if (!action) return;
+    barGo.disabled = action.disabled;
+    const words = currentStep === steps.length ? (page.querySelector("[data-place-text]") || action).textContent : action.textContent;
+    barGo.textContent = words.trim();
+  }
+  if (barGo) {
+    barGo.addEventListener("click", () => {
+      const action = stepAction(currentStep);
+      if (!action || action.disabled) return;
+      if (currentStep === steps.length) action.form.requestSubmit(action);
+      else action.click();
+    });
+  }
+
+  let sheetOpener = null;
+  function setSheet(on) {
+    if (!sheet) return;
+    const isPhone = phone.matches;
+    sheet.classList.toggle("is-open", on && isPhone);
+    if (scrim) scrim.hidden = !(on && isPhone);
+    openSheetButton.setAttribute("aria-expanded", String(on && isPhone));
+    if (on && isPhone) {
+      sheet.setAttribute("role", "dialog");
+      sheet.setAttribute("aria-modal", "true");
+      // Focus goes back to the Details button when the sheet closes (it is the only way to open it).
+      sheetOpener = openSheetButton;
+      document.documentElement.classList.add("has-sheet");
+      const close = sheet.querySelector("[data-summary-close]");
+      if (close) close.focus();
+    } else {
+      sheet.removeAttribute("role");
+      sheet.removeAttribute("aria-modal");
+      document.documentElement.classList.remove("has-sheet");
+      if (sheetOpener && document.contains(sheetOpener)) sheetOpener.focus();
+      sheetOpener = null;
+    }
+  }
+  if (openSheetButton) openSheetButton.addEventListener("click", () => setSheet(!sheet.classList.contains("is-open")));
+  page.querySelectorAll("[data-summary-close]").forEach(button => button.addEventListener("click", () => setSheet(false)));
+  if (scrim) scrim.addEventListener("click", () => setSheet(false));
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || !sheet || !sheet.classList.contains("is-open")) return;
+    setSheet(false);
+  });
+  // Keep Tab inside the open sheet, as a dialog does.
+  if (sheet) {
+    sheet.addEventListener("keydown", event => {
+      if (event.key !== "Tab" || !sheet.classList.contains("is-open")) return;
+      const items = [...sheet.querySelectorAll("button, a[href], input, select, textarea")].filter(el => !el.disabled && el.offsetParent !== null);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+  }
+  // Turning the phone sideways (or a wider window) closes the sheet: the sidebar is back.
+  phone.addEventListener("change", () => setSheet(false));
 
   const chosenAddress = () => page.querySelector('input[name="addressId"]:checked');
   const deliveryNote = page.querySelector("[data-checkout-delivery]");
 
-  async function showDelivery(pincode) {
-    if (!deliveryNote || !pincode) return;
-    deliveryNote.className = "delivery-result is-loading";
-    deliveryNote.textContent = "Working out the delivery date…";
+  // The arrival date for the chosen address (C3). The server puts it on each address card (data-eta);
+  // an address added just now has none yet, so it is asked for.
+  const payEta = page.querySelector("[data-pay-eta]");
+  async function etaFor(address) {
+    if (!address) return { label: "", off: "" };
+    if (address.dataset.eta || address.dataset.etaOff) return { label: address.dataset.eta, off: address.dataset.etaOff };
     try {
-      const { estimate } = await Nx.api(`/api/delivery/estimate?pincode=${encodeURIComponent(pincode)}`);
-      deliveryNote.className = "delivery-result is-ok";
-      deliveryNote.textContent = `Estimated delivery: ${estimate.label}`;
+      const { estimate } = await Nx.api(`/api/delivery/estimate?pincode=${encodeURIComponent(address.dataset.pincode)}`);
+      return estimate.deliverable ? { label: estimate.label, off: "" } : { label: "", off: estimate.reason };
     } catch {
-      deliveryNote.className = "delivery-result";
-      deliveryNote.textContent = "";
+      return { label: "", off: "" };
     }
   }
+  async function showDelivery(address) {
+    const { label, off } = await etaFor(address);
+    if (deliveryNote) {
+      deliveryNote.className = off ? "delivery-result is-error" : label ? "delivery-result is-ok" : "delivery-result";
+      deliveryNote.textContent = off || (label ? `Arrives ${label}` : "");
+    }
+    if (payEta) {
+      payEta.hidden = !label;
+      payEta.querySelector("[data-pay-eta-text]").textContent = label;
+    }
+  }
+  page.addEventListener("change", event => {
+    if (event.target.name === "addressId") showDelivery(event.target);
+  });
 
   page.querySelectorAll("[data-step-next]").forEach(button => {
     button.addEventListener("click", () => {
@@ -74,7 +172,7 @@
         }
         error.textContent = "";
         steps[0].querySelector("[data-step-summary]").textContent = address.dataset.label;
-        showDelivery(address.dataset.pincode);
+        showDelivery(address);
       }
       if (from === 2) {
         const count = page.querySelectorAll(".checkout-items li").length;
@@ -169,6 +267,7 @@
     const p = plan();
     placeButton.disabled = processing || !current || current.problems.length > 0 || !p.kind;
     updatePlaceText();
+    syncBar();
   }
 
   function render(quote) {
@@ -304,6 +403,83 @@
     }
   });
 
+  // ---------- When placing the order fails: say why, and offer the fix (C3) ----------
+  // The server tags each failure with a code (error.code). The message box above the Pay button shows
+  // the message and one or two buttons that do the fix, instead of a toast that disappears.
+  const alertBox = form.querySelector("[data-form-alert]");
+  const backLink = page.querySelector(".breadcrumb a:last-of-type");
+  function switchTo(method) {
+    const input = methodInput(method);
+    if (!input || input.disabled) return false;
+    input.checked = true;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    input.focus();
+    return true;
+  }
+  const FIXES = {
+    items_unavailable: () => [isBuyNow
+      ? { label: "Back to the product", href: backLink ? backLink.getAttribute("href") : "/products" }
+      : { label: "Review your cart", href: "/cart" }],
+    coupon_invalid: () => [{ label: "Remove the coupon", run: () => couponBox.querySelector("[data-coupon-remove]").click() }],
+    cod_limit: () => (methodInput("upi") && !methodInput("upi").disabled ? [{ label: "Pay by UPI instead", run: () => switchTo("upi") }] : []),
+    cod_open_limit: () => (methodInput("upi") && !methodInput("upi").disabled ? [{ label: "Pay by UPI instead", run: () => switchTo("upi") }] : []),
+    wallet_short: () => [{ label: "Choose how to pay the rest", run: () => { const rest = form.querySelector('input[name="restMethod"]:not(:disabled)'); if (rest) rest.focus(); } }],
+    gateway: () => [
+      { label: "Try again", run: () => form.requestSubmit(placeButton) },
+      ...(current && current.codAllowed && methodInput("cod") ? [{ label: "Pay on delivery instead", run: () => switchTo("cod") }] : [])
+    ]
+  };
+  function showFailure(error) {
+    Nx.showErrors(form, error.fieldErrors);
+    const fixes = (FIXES[error.code] || (() => []))();
+    if (!alertBox) {
+      Nx.toast(error.message, "error");
+      return;
+    }
+    alertBox.replaceChildren();
+    alertBox.className = "form-alert form-alert-error checkout-fix";
+    const text = document.createElement("p");
+    text.textContent = error.message;
+    alertBox.append(text);
+    if (fixes.length) {
+      const row = document.createElement("div");
+      row.className = "checkout-fix-actions";
+      fixes.forEach((fix, index) => {
+        const el = document.createElement(fix.href ? "a" : "button");
+        el.className = `btn btn-sm ${index === 0 ? "btn-primary" : "btn-ghost"}`;
+        el.textContent = fix.label;
+        if (fix.href) el.href = fix.href;
+        else {
+          el.type = "button";
+          el.addEventListener("click", () => {
+            alertBox.replaceChildren();
+            alertBox.className = "form-alert";
+            fix.run();
+          });
+        }
+        row.append(el);
+      });
+      alertBox.append(row);
+    }
+    alertBox.scrollIntoView({ block: "center", behavior: reducedMotion.matches ? "auto" : "smooth" });
+  }
+  async function send(url, body, busyLabel) {
+    Nx.clearErrors(form);
+    if (alertBox) {
+      alertBox.replaceChildren();
+      alertBox.className = "form-alert";
+    }
+    Nx.busy(placeButton, true, busyLabel);
+    try {
+      return await Nx.api(url, { method: "POST", body });
+    } catch (error) {
+      showFailure(error);
+      return null;
+    } finally {
+      Nx.busy(placeButton, false);
+    }
+  }
+
   // ---------- Place the order ----------
   // After a failed or cancelled online payment: cancel that unpaid order (any wallet amount and
   // coupon use come straight back), then let the shopper pick again. The cart was never touched.
@@ -337,11 +513,7 @@
     // Online payment: the server saves the order unpaid and creates a Razorpay order for the
     // amount it worked out; then Razorpay's secure window takes the payment.
     if (p.kind === "razorpay") {
-      const checkout = await Nx.submitForm(form, {
-        url: "/api/payments/razorpay/order",
-        body: { addressId: address.value, useWallet: p.useWallet, source },
-        busyLabel: "Preparing secure payment…"
-      });
+      const checkout = await send("/api/payments/razorpay/order", { addressId: address.value, useWallet: p.useWallet, source }, "Preparing secure payment…");
       if (checkout && Nx.payOnline) {
         placeButton.disabled = true;
         Nx.payOnline(checkout, Nx.prefillFrom(page), { onChooseOther: chooseOther, keepCart: isBuyNow, upi: Boolean(p.upi) });
@@ -351,11 +523,7 @@
       }
       return;
     }
-    const reply = await Nx.submitForm(form, {
-      url: "/api/orders",
-      body: { addressId: address.value, paymentMethod: p.kind, useWallet: p.useWallet, source },
-      busyLabel: "Placing your order…"
-    });
+    const reply = await send("/api/orders", { addressId: address.value, paymentMethod: p.kind, useWallet: p.useWallet, source }, "Placing your order…");
     if (!reply) {
       // Prices, stock or the wallet may have changed: show the latest totals.
       processing = false;

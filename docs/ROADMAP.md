@@ -253,7 +253,7 @@ rolling quantity numbers, skeleton loading, coupon savings counter and a better 
 moment. Touch, mouse and keyboard; reduced-motion versions. Plan first, then wait for my go-ahead.
 ```
 
-### [ ] C3. Checkout that converts · M
+### [x] C3. Checkout that converts · M
 - **Goal:** the fastest checkout in Indian sports retail.
 - **Pieces:**
   - UPI shown first;
@@ -266,6 +266,13 @@ moment. Touch, mouse and keyboard; reduced-motion versions. Plan first, then wai
   - checkout can be finished with one thumb on a 320px phone;
   - every field has the right phone keyboard (`inputmode`, `autocomplete`);
   - Lighthouse accessibility scores 100.
+- **Progress (2026-11-13):**
+  - [x] Already in place before C3: UPI first, PIN code fills town and state, saved addresses as cards, step progress bar, COD rules on the card, trust badges, the right phone keyboards on every field.
+  - [x] Arrival date ("Arrives Thu, 19 Nov – Sat, 21 Nov") on each saved address and next to Pay, following the chosen address; APO/FPO addresses say they can't be delivered.
+  - [x] Phones: one pay bar at the bottom for every step (total + Details + the step's main button: Deliver here, Continue, Pay), and the price details and coupons as a sheet that slides up (focus kept inside, Escape and the backdrop close it, focus returns to Details). Desktop keeps the sticky sidebar.
+  - [x] Failures say how to fix them: the server tags each one (items_unavailable, coupon_invalid, cod_limit, cod_open_limit, wallet_short, gateway) and the page shows the message with a button that does the fix (Review your cart, Remove the coupon, Pay by UPI instead, Try again, Pay on delivery instead).
+  - [x] Checked at 320px and 375px: no sideways scroll, every control labelled, tap targets 44px or more. Tests: `tests/checkout-ux.test.js`.
+  - [ ] Not measured here: an actual Lighthouse accessibility score (run it on the live site).
 
 ```text
 Step C3 from docs/ROADMAP.md: polish checkout for conversion: UPI first, PIN code fills city and
