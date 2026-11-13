@@ -168,7 +168,7 @@
 .showroom.is-float .showroom-world { display: flex; gap: var(--space-2); overflow-x: auto; scroll-snap-type: x mandatory; padding: var(--space-3) max(var(--space-2), env(safe-area-inset-left)) var(--space-5); scrollbar-width: none; perspective: 900px; }
 .showroom.is-float .showroom-world::-webkit-scrollbar { display: none; }
 .showroom.is-float .zg-card { flex: 0 0 min(64vw, 260px); scroll-snap-align: center; }
-.showroom.is-float .zg-card:nth-child(even) { margin-top: 28px; }
+.showroom.is-float .zg-card:nth-child(even) { margin-top: calc(var(--space-3) + var(--space-half)); }
 .showroom.is-float .zg-glass { transform: rotateY(calc(var(--tilt-y, 0) * 1deg)) rotateX(calc(var(--tilt-x, 0) * 1deg)); }
 .showroom.is-float .zg-actions, .showroom.is-grid .zg-actions { position: relative; inset: auto; opacity: 1; transform: none; pointer-events: auto; padding: 0 var(--space-half); }
 .showroom.is-float .zg-actions [data-zg-quick] { display: none; }
@@ -216,7 +216,7 @@
 .sport-card-num { font-family: var(--display); font-size: var(--text-2xl); font-weight: var(--weight-bold); line-height: 1; color: var(--sport); text-shadow: 0 2px 12px rgba(var(--black-rgb), 0.5); }
 .sport-card-name { font-family: var(--display); font-size: var(--text-3xl); font-weight: var(--weight-black); line-height: 0.95; text-transform: uppercase; letter-spacing: 0.01em; }
 .sport-card-meta { font-size: var(--text-sm); color: var(--on-dark); font-variant-numeric: tabular-nums; }
-.sport-card-cta { display: inline-flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-1); padding: 9px var(--space-2); border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font-size: var(--text-sm); font-weight: var(--weight-bold); box-shadow: 0 8px 24px rgba(var(--brand-rgb), 0.3); }
+.sport-card-cta { display: inline-flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-1); padding: var(--space-sm) var(--space-2); border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font-size: var(--text-sm); font-weight: var(--weight-bold); box-shadow: 0 8px 24px rgba(var(--brand-rgb), 0.3); }
 .sport-card-back { display: none; }
 .sport-card:focus-visible { outline: 3px solid var(--focus, var(--brand)); outline-offset: 4px; }
 
@@ -322,7 +322,7 @@
 .showcase-copy h2 { font-size: var(--text-3xl); }
 .showcase-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); color: var(--ink-2); }
 .showcase-points li { display: flex; gap: var(--space-1); align-items: flex-start; }
-.showcase-points .i { color: var(--success); margin-top: 3px; }
+.showcase-points .i { color: var(--success); margin-top: var(--space-half); }
 .showcase-stage { --lx: 50%; --ly: 30%; position: relative; aspect-ratio: 1 / 0.92; border-radius: var(--radius-xl); background: var(--gradient-navy); overflow: hidden; perspective: 1000px; box-shadow: var(--shadow-lg); }
 .showcase-light { position: absolute; inset: 0; background: radial-gradient(38% 38% at var(--lx) var(--ly), rgba(var(--volt-rgb), 0.42), transparent 70%); pointer-events: none; }
 .showcase-scene { position: absolute; z-index: var(--layer-1); inset: 0; transform-style: preserve-3d; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform var(--duration-long) var(--ease-out); }

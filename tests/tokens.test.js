@@ -49,6 +49,25 @@ test("easing outside tokens.css is a token", () => {
   assert.equal(bad.length, 0, `One-off easings:\n${report(bad)}`);
 });
 
+test("small spacing outside tokens.css is a token (C4)", () => {
+  // Padding, margin and gap from 2px to 32px come from the spacing scale (--space-*), alone or added up in
+  // calc(). Left alone on purpose: 1px hairline nudges, and geometry over 32px or below zero (centring a
+  // decorative circle, room kept for an icon or button inside a field), which is layout, not rhythm.
+  const outside = value => {
+    let depth = 0;
+    let top = "";
+    for (const ch of value) {
+      if (ch === "(") depth += 1;
+      else if (ch === ")") depth -= 1;
+      else if (depth === 0) top += ch;
+    }
+    return top;
+  };
+  const bad = decls.filter(d => /^(padding|margin|gap|row-gap|column-gap)(-[a-z]+)?$/.test(d.prop))
+    .filter(d => [...outside(d.value).matchAll(/(^|[\s,])(\d+(\.\d+)?)px\b/g)].some(m => Number(m[2]) >= 2 && Number(m[2]) <= 32));
+  assert.equal(bad.length, 0, `One-off spacing:\n${report(bad)}`);
+});
+
 test("z-index outside tokens.css is a token", () => {
   const bad = decls.filter(d => d.prop === "z-index" && /\d/.test(d.value.replace(/var\([^)]*\)/g, "")));
   assert.equal(bad.length, 0, `One-off z-index values:\n${report(bad)}`);

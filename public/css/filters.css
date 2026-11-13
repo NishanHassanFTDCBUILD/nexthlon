@@ -20,7 +20,7 @@
 .fx-title h2 { display: flex; align-items: center; gap: var(--space-1); margin: 0; font: var(--weight-black, 800) var(--text-lg)/1 var(--display); letter-spacing: 0.02em; text-transform: uppercase; }
 .fx-title h2 .i { color: var(--brand-ink); }
 .fx-total { margin: var(--space-xs) 0 0; font-size: var(--text-xs); color: var(--muted); font-variant-numeric: tabular-nums; }
-.fx-badge { flex: none; min-width: 22px; height: 22px; padding: 0 7px; border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font: var(--weight-bold) var(--text-xs)/22px var(--font); text-align: center; }
+.fx-badge { flex: none; min-width: 22px; height: 22px; padding: 0 var(--space-xs); border-radius: var(--radius-pill); background: var(--brand); color: var(--on-brand); font: var(--weight-bold) var(--text-xs)/22px var(--font); text-align: center; }
 .fx-clear { flex: none; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--line-hover); text-underline-offset: 3px; }
 @media (hover: hover) { .fx-clear:hover { color: var(--brand-ink); text-decoration-color: currentColor; } }
 .fx-close { display: none; place-items: center; width: 40px; height: 40px; flex: none; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: var(--ink); cursor: pointer; }
@@ -38,7 +38,7 @@
 .fx-group:not([open]) .fx-caret { transform: rotate(-90deg); }
 /* The dot (or count) on a group that holds a choice, so it shows even when the group is closed. */
 .fx-dot { flex: none; min-width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--brand); box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.18); font: normal var(--weight-bold) var(--text-2xs)/16px var(--font); color: var(--on-brand); text-align: center; }
-.fx-dot.has-num { height: 16px; padding: 0 5px; }
+.fx-dot.has-num { height: 16px; padding: 0 var(--space-xs); }
 .fx-group-body { margin: 0; padding: 0 0 var(--space-lg); border: 0; min-width: 0; }
 .fx-group[open] .fx-group-body { animation: fx-open var(--duration) var(--ease-out); }
 @keyframes fx-open { from { opacity: 0; transform: translateY(-4px); } }
@@ -47,7 +47,7 @@
 .fx-pills { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 /* The whole label is the pill: name, then the product count as a quiet number. */
 .fx-pill {
-  position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 var(--space-md); border-radius: var(--radius-pill);
+  position: relative; display: inline-flex; align-items: center; gap: var(--space-xs); min-height: 36px; padding: 0 var(--space-md); border-radius: var(--radius-pill);
   background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); font-size: var(--text-sm); font-weight: var(--weight-semibold); white-space: nowrap; cursor: pointer;
   transition: background var(--duration-quick) var(--ease), border-color var(--duration-quick) var(--ease), color var(--duration-quick) var(--ease), transform var(--duration) var(--ease-spring), box-shadow var(--duration-quick) var(--ease);
 }
@@ -88,7 +88,7 @@
 .fx-price-boxes { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-1); }
 .fx-money { position: relative; display: block; min-width: 0; }
 .fx-money i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: var(--text-sm); color: var(--muted); pointer-events: none; }
-.fx-money input { width: 100%; height: 42px; padding: 0 var(--space-sm) 0 26px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font: var(--weight-semibold) var(--text-sm)/1 var(--font); font-variant-numeric: tabular-nums; -moz-appearance: textfield; transition: border-color var(--duration-quick) var(--ease), box-shadow var(--duration-quick) var(--ease); }
+.fx-money input { width: 100%; height: 42px; padding: 0 var(--space-sm) 0 calc(var(--space-3) + var(--space-xxs)); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font: var(--weight-semibold) var(--text-sm)/1 var(--font); font-variant-numeric: tabular-nums; -moz-appearance: textfield; transition: border-color var(--duration-quick) var(--ease), box-shadow var(--duration-quick) var(--ease); }
 .fx-money input::-webkit-inner-spin-button, .fx-money input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .fx-money input::placeholder { color: var(--muted-2); font-weight: var(--weight-regular, 400); }
 .fx-money input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.18); }
@@ -164,7 +164,7 @@
   html.js .catalog .fx-clear { display: none; }
   html.js .catalog .fx-close { display: inline-grid; }
   html.js .catalog .fx-foot {
-    display: flex; align-items: center; gap: var(--space-1h); padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    display: flex; align-items: center; gap: var(--space-1h); padding: var(--space-1h) var(--space-2) max(12px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--line); background: var(--surface);
   }
   .fx-foot-clear { flex: none; padding: 0 var(--space-xs); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }

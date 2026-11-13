@@ -318,47 +318,6 @@
   --loop-drift-slow: 34s;
 
   --header-h: 112px;
-
-  /* ---------- Older names, kept so existing page styles follow the tokens ---------- */
-  --blue: var(--brand);
-  --blue-600: var(--link);
-  --blue-700: var(--brand-ink);
-  --blue-100: var(--brand-soft-2);
-  --blue-50: var(--brand-soft);
-  --cyan: var(--accent);
-  --floor: var(--bg);
-  --floor-2: var(--surface-3);
-  --green: var(--success);
-  --green-50: var(--success-soft);
-  --amber: var(--warning);
-  --amber-50: var(--warning-soft);
-  --red: var(--danger);
-  --red-50: var(--danger-soft);
-  --fs-xs: var(--text-xs);
-  --fs-sm: var(--text-sm);
-  --fs-base: var(--text-base);
-  --fs-md: var(--text-md);
-  --fs-lg: var(--text-lg);
-  --fs-xl: var(--text-xl);
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 24px;
-  --sp-8: 32px;
-  --sp-10: 40px;
-  --sp-12: 48px;
-  --sp-16: 64px;
-  --r-xs: var(--radius-xs);
-  --r-sm: var(--radius-sm);
-  --r: var(--radius);
-  --r-lg: var(--radius-lg);
-  --r-pill: var(--radius-pill);
-  --sh-xs: var(--shadow-xs);
-  --sh-sm: var(--shadow-sm);
-  --sh-md: var(--shadow-md);
-  --sh-lg: var(--shadow-lg);
 }
 
 /* ---------- Breakpoints ----------

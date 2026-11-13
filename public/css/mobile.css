@@ -49,7 +49,7 @@
 
   /* ---------- Account: bigger address buttons, tappable order item names, readable small labels ---------- */
   .address-actions .btn { min-height: var(--tap); }
-  .order-item a { display: inline-block; padding: 9px 0; }
+  .order-item a { display: inline-block; padding: var(--space-sm) 0; }
   .count-dot, .address-type-pill, .label-caps { font-size: var(--text-xs); }
 
   /* ---------- Sign in / Create account: a short scene strip, so the form fits on the first screen ---------- */
@@ -103,7 +103,7 @@
   .news-row input { flex: none; height: 48px; }
   .news-row .btn { min-height: 48px; }
   .footer-news-copy p { display: none; }
-  .footer-grid { gap: 22px var(--space-2); padding-top: var(--space-3); padding-bottom: var(--space-3); }
+  .footer-grid { gap: calc(var(--space-2h) + var(--space-xxs)) var(--space-2); padding-top: var(--space-3); padding-bottom: var(--space-3); }
   .footer-brand p:not(.footer-tagline) { display: none; }
   /* Link groups: one per row, each a tap-to-open section (closed at first; app.js). */
   .footer-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
@@ -117,7 +117,7 @@
   .site-footer h2 { margin: 0; }
   .site-footer nav ul { display: block; columns: 2; column-gap: var(--space-2); padding-bottom: var(--space-sm); }
   .site-footer nav li { break-inside: avoid; }
-  .site-footer nav a, .footer-legal a { display: inline-block; padding: 9px 0; }
+  .site-footer nav a, .footer-legal a { display: inline-block; padding: var(--space-sm) 0; }
   .footer-trust { gap: var(--space-1h); padding-top: var(--space-2); padding-bottom: var(--space-2); }
   /* These three repeat the trust cards on the home page and the product page. */
   .footer-badges { display: none; }

@@ -58,7 +58,7 @@
     transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-4px);
     transition: transform var(--duration-fast) var(--ease-linear);
   }
-  .js-motion .product-card[data-tilt].is-tilting { box-shadow: var(--sh-md); }
+  .js-motion .product-card[data-tilt].is-tilting { box-shadow: var(--shadow-md); }
   /* Depth inside a tilting product card: the photo slides against the tilt like a window onto it, and
      the quick-add button floats the other way, nearer the eye (motion.js sets --tilt-nx/-ny, -1 to 1). */
   .js-motion .product-card[data-tilt] .product-media img { transition: transform var(--duration-long) var(--ease), translate var(--duration-long) var(--ease); }
