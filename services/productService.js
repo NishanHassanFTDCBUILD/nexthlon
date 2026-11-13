@@ -292,6 +292,7 @@ module.exports = {
   listProducts,
   getFacets,
   getCategorySummaries,
+  searchVocabulary,
   getProduct,
   getRelatedProducts,
   getHomeSections,

@@ -15,6 +15,25 @@
 
   /* ---------- Search: more room to type (the category list hides; search covers everything) ---------- */
   .search .search-cat, .search label[for="search-category"] { display: none; }
+  /* Tapping the search box opens it as a full-screen sheet (header.js): a back button, the box, and the
+     ideas or suggestions filling the screen below, sliding up into place. The page behind does not scroll. */
+  html.search-sheet-open { overflow: hidden; }
+  .search.is-sheet {
+    position: fixed; inset: 0; z-index: var(--z-modal); height: auto; max-width: none; margin: 0;
+    flex-wrap: wrap; align-content: flex-start; gap: var(--space-xs);
+    padding: max(var(--space-sm), env(safe-area-inset-top)) max(var(--space-sm), env(safe-area-inset-right)) var(--space-sm) max(var(--space-sm), env(safe-area-inset-left));
+    border-radius: 0; background: var(--bg); box-shadow: none; animation: sheet-up var(--duration-medium) var(--ease-out);
+  }
+  .search.is-sheet .search-back { display: grid; place-items: center; width: var(--tap); height: var(--tap); flex: none; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; }
+  .search.is-sheet .search-field { height: var(--tap); border-radius: var(--radius-sm) 0 0 var(--radius-sm); background: var(--surface); box-shadow: 0 0 0 2px var(--brand); }
+  .search.is-sheet .search-go { height: var(--tap); }
+  .search.is-sheet .suggest {
+    position: fixed; left: 0; right: 0; top: calc(var(--tap) + var(--space-sm) * 2 + env(safe-area-inset-top)); bottom: 0;
+    min-width: 0; margin: 0; padding: var(--space-xs) var(--space-sm) max(var(--space-sm), env(safe-area-inset-bottom));
+    border-radius: 0; background: var(--bg); box-shadow: none; overflow-y: auto; animation: none;
+  }
+  .search.is-sheet .suggest-list, .search.is-sheet .suggest.is-start .suggest-list { max-height: none; overflow: visible; }
+  .search.is-sheet .suggest-option > a, .search.is-sheet .suggest-list li a { min-height: var(--tap); }
 
   /* ---------- No iPhone zoom: Safari zooms into any field whose text is under 16px ---------- */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),

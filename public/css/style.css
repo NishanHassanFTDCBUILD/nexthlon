@@ -752,6 +752,47 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 .suggest-meta { font-size: var(--text-xs); color: var(--muted); }
 .suggest-list li a.suggest-all { justify-content: center; margin-top: var(--space-half); border-top: 1px solid var(--line); border-radius: 0 0 var(--radius-sm) var(--radius-sm); color: var(--link); font-weight: var(--weight-semibold); font-size: var(--text-sm); }
 
+/* ---------- Searching: the bar glows, the page behind dims (header.js) ---------- */
+.search { transition: box-shadow var(--duration-medium) var(--ease); }
+.search.is-active { box-shadow: 0 0 0 2px var(--brand), 0 0 32px rgba(var(--brand-rgb), 0.28); }
+.search.is-active .search-go .i { animation: nx-search-nudge var(--duration-slow) var(--ease-spring); }
+@keyframes nx-search-nudge { 0% { transform: none; } 40% { transform: scale(1.18) rotate(-8deg); } 100% { transform: none; } }
+.search-scrim { position: fixed; inset: 0; z-index: var(--z-scrim); background: rgba(var(--navy-rgb), 0.55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); opacity: 0; transition: opacity var(--duration-medium) var(--ease); }
+.search-scrim.is-on { opacity: 1; }
+.search-back { display: none; }
+
+/* ---------- The start panel: ideas before anything is typed ---------- */
+.suggest.is-start { padding: var(--space-sm); }
+.suggest.is-start .suggest-list { max-height: min(560px, 72vh); max-height: min(560px, 72dvh); }
+.suggest-group { padding: var(--space-xs) 0; }
+.suggest-group + .suggest-group { border-top: 1px solid var(--line); }
+.suggest-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); padding: var(--space-xs) var(--space-sm); color: var(--muted); font-size: var(--text-xs); font-weight: var(--weight-bold); letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.suggest-clear { border: 0; background: none; padding: var(--space-xxs) var(--space-xs); border-radius: var(--radius-xs); color: var(--link); font: inherit; letter-spacing: normal; text-transform: none; cursor: pointer; }
+@media (hover: hover) { .suggest-clear:hover { text-decoration: underline; } }
+.suggest-group-body { display: flex; flex-direction: column; }
+.suggest-group.is-chips .suggest-group-body { flex-direction: row; flex-wrap: wrap; gap: var(--space-xs); padding: var(--space-xxs) var(--space-sm) var(--space-xs); }
+.suggest-option { position: relative; }
+.suggest-option > a { display: flex; align-items: center; gap: var(--space-1h); padding: var(--space-1) var(--space-sm); border-radius: var(--radius-sm); color: var(--ink); text-decoration: none; font-size: var(--text-sm); }
+.suggest-option > a .i { color: var(--muted); flex: none; }
+.suggest-option[aria-selected="true"] > a { background: var(--brand-soft); }
+@media (hover: hover) { .suggest-option > a:hover { background: var(--brand-soft); } }
+/* Recent searches: a row with a remove button that shows on hover or when the row is chosen. */
+.suggest-recent > a { padding-right: var(--space-5); }
+.suggest-remove { position: absolute; right: var(--space-xs); top: 50%; display: grid; place-items: center; width: 32px; height: 32px; margin-top: -16px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; opacity: 0; transition: opacity var(--duration-fast) var(--ease); }
+.suggest-recent:hover .suggest-remove, .suggest-recent[aria-selected="true"] .suggest-remove, .suggest-remove:focus-visible { opacity: 1; }
+@media (hover: none) { .suggest-remove { opacity: 1; } }
+@media (hover: hover) { .suggest-remove:hover { background: var(--surface-3); color: var(--ink); } }
+/* Popular searches and sports as chips. */
+.suggest-chip > a, .suggest-sport > a { gap: var(--space-xs); padding: var(--space-xs) var(--space-1h); border: 1px solid var(--line-strong); border-radius: var(--radius-pill); font-weight: var(--weight-medium); transition: transform var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease); }
+.suggest-chip > a .i { color: var(--brand); }
+.suggest-sport > a { padding-left: var(--space-xxs); }
+.suggest-sport img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--surface-3); }
+.suggest-chip[aria-selected="true"] > a, .suggest-sport[aria-selected="true"] > a { border-color: var(--brand); }
+@media (hover: hover) { .suggest-chip > a:hover, .suggest-sport > a:hover { border-color: var(--brand); transform: translateY(-1px); } }
+/* Items arrive one after another, a touch apart. */
+.suggest.is-start .suggest-option { animation: nx-suggest-in var(--duration-medium) var(--ease-out) both; animation-delay: calc(var(--i, 0) * var(--stagger)); }
+@keyframes nx-suggest-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
 /* Account, wishlist and cart */
 .header-actions { display: flex; align-items: center; gap: var(--space-half); flex: none; }
 .account { position: relative; display: flex; align-items: center; flex: none; }

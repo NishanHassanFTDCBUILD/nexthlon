@@ -4,6 +4,7 @@ const { estimateDelivery } = require("../services/deliveryService");
 const { lookupPincode } = require("../services/pincodeService");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { readIdList, validateReview, hasErrors } = require("../utils/validators");
+const searchInsightService = require("../services/searchInsightService");
 
 // GET /api/products?q=&category=&brand=&min=&max=&discount=&rating=&inStock=1&sort=&page=
 // Prices are in paise; min and max in the query are whole rupees.
@@ -18,6 +19,12 @@ const searchProducts = asyncHandler(async (req, res) => {
     throw new HttpError(400, "Enter something to search for.");
   }
   return listProducts(req, res);
+});
+
+// GET /api/search/start   what the search panel shows before anything is typed: popular searches,
+// sports and products popular right now. The same for everyone (a CDN may keep it for signed-out visitors).
+const searchStart = asyncHandler(async (req, res) => {
+  res.json(await searchInsightService.startPanel());
 });
 
 // GET /api/products/lookup?ids=id1,id2   (wishlist and "recently viewed", saved in the browser)
@@ -72,4 +79,4 @@ const pincodeLookup = asyncHandler(async (req, res) => {
   res.json({ place });
 });
 
-module.exports = { listProducts, searchProducts, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };
+module.exports = { listProducts, searchProducts, searchStart, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };

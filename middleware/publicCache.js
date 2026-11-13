@@ -21,6 +21,9 @@ function isSignedOut(req) {
 function publicCache(req, res, next) {
   const seconds = config.publicCacheSeconds;
   if (!seconds || req.method !== "GET" || req.user || !isSignedOut(req)) return next();
+  // Search results are counted for "Trending searches" (searchInsightService), so they must reach the
+  // server; they are rarely asked for twice in the same words anyway.
+  if (typeof req.query.q === "string" && req.query.q.trim()) return next();
   res.set("Cache-Control", `public, max-age=0, s-maxage=${seconds}, stale-while-revalidate=${seconds * 5}`);
   res.removeHeader("Pragma");
   res.removeHeader("Expires");

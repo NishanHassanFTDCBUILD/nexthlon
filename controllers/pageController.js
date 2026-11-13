@@ -18,6 +18,7 @@ const twoFactorService = require("../services/twoFactorService");
 const accountService = require("../services/accountService");
 const reviewService = require("../services/reviewService");
 const recommendationService = require("../services/recommendationService");
+const searchInsightService = require("../services/searchInsightService");
 const orderRules = require("../utils/orderRules");
 const Category = require("../models/Category");
 const Address = require("../models/Address");
@@ -63,6 +64,8 @@ const products = asyncHandler(async (req, res) => {
   // A misspelt search that found nothing as typed shows the corrected words ("Results for \"shoes\"")
   // with a note about what was typed.
   const corrected = result.correctedQuery;
+  // Counted for "Trending searches" (words and result count only, never who searched); first page only.
+  if (q && result.pagination.page === 1) searchInsightService.record(q, result.pagination.total);
   const heading = q ? `Results for "${corrected || q}"` : category ? category.name : "All sports gear";
   // Every filter lives in the URL, so a filtered page can be bookmarked, shared or reloaded.
   const link = linkBuilder("/products", {

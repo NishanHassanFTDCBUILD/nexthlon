@@ -127,3 +127,54 @@ test("home page cache: built once, shared, and rebuilt straight after a product 
   assert.equal(third.newest[0].slug, "brand-new-racket", "a new product shows on the next request");
   assert.ok(third.dealEndsAt > Date.now(), "the deal countdown is worked out fresh on every request");
 });
+
+// ---------- The search panel before typing (searchInsightService) ----------
+const searchInsights = require("../services/searchInsightService");
+const SearchLog = require("../models/SearchLog");
+
+test("search log: words are cleaned up, and only the words, a day and a count are kept", async () => {
+  assert.equal(searchInsights.normalizeTerm("  Running   SHOES!! "), "running shoes");
+  assert.equal(searchInsights.normalizeTerm("a"), "", "too short");
+  assert.equal(searchInsights.normalizeTerm("<script>alert(1)</script>"), "script alert 1 script");
+  await SearchLog.deleteMany({});
+  await searchInsights.record("Running Shoes", 2);
+  await searchInsights.record("running shoes", 2);
+  const [row] = await SearchLog.find({}).lean();
+  assert.equal(row.term, "running shoes");
+  assert.equal(row.count, 2);
+  assert.deepEqual(Object.keys(row).sort(), ["_id", "count", "day", "results", "term"], "nothing about who searched");
+});
+
+test("trending searches: only store words that found products, searched more than once, last 7 days", async () => {
+  memo.forget();
+  await SearchLog.deleteMany({});
+  const today = searchInsights.startOfDay();
+  const daysAgo = n => new Date(today.getTime() - n * 24 * 60 * 60 * 1000);
+  await SearchLog.insertMany([
+    { term: "running socks", day: today, count: 9, results: 1 },
+    { term: "running shoes", day: daysAgo(2), count: 5, results: 1 },
+    { term: "buy cheap stuff now", day: today, count: 50, results: 3 },  // not the store's words
+    { term: "tent", day: today, count: 40, results: 0 },                 // found nothing
+    { term: "velocity", day: today, count: 1, results: 1 },              // only once
+    { term: "expedition tent", day: daysAgo(20), count: 30, results: 1 } // too old
+  ]);
+  const terms = (await searchInsights.trending(8)).map(entry => entry.term);
+  assert.deepEqual(terms, ["running socks", "running shoes"]);
+});
+
+test("search panel: trending searches, sports to jump to, and popular products", async () => {
+  memo.forget();
+  const panel = await searchInsights.startPanel();
+  assert.deepEqual(panel.searches, [{ term: "running socks", trending: true }, { term: "running shoes", trending: true }]);
+  assert.deepEqual(panel.sports.map(sport => sport.slug).sort(), ["outdoor", "running"]);
+  assert.ok(panel.products.length > 0 && panel.products.length <= 4);
+  assert.ok(panel.products.every(p => p.slug && p.name && typeof p.price === "number"), "public product fields only");
+});
+
+test("search panel: with no searches yet, no trending group (the sports would only be repeated)", async () => {
+  memo.forget();
+  await SearchLog.deleteMany({});
+  const panel = await searchInsights.startPanel();
+  assert.deepEqual(panel.searches, []);
+  assert.ok(panel.sports.length > 0 && panel.products.length > 0);
+});
