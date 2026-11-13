@@ -130,7 +130,11 @@ async function order(state, items) {
   }
   const placed = await call(shopper, "POST", "/api/orders", { addressId: addresses[state], paymentMethod: "cod" });
   assert.equal(placed.status, 201, JSON.stringify(placed.data));
-  return Order.findOne({ orderId: placed.data.order.orderId }).lean();
+  // These tests place many orders for one shopper: count earlier ones as paid, so the cap on unpaid
+  // Cash on Delivery orders on the way (checkoutService.MAX_OPEN_COD) stays out of the way.
+  const saved = await Order.findOne({ orderId: placed.data.order.orderId }).lean();
+  await Order.updateMany({ user: saved.user, _id: { $ne: saved._id }, paymentMethod: "cod" }, { $set: { paymentStatus: "paid" } });
+  return saved;
 }
 
 test.before(async () => {

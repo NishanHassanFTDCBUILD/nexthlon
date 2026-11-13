@@ -8,8 +8,8 @@ const BCRYPT_ROUNDS = 12;
 // Compared against when the email does not exist, so a wrong email takes as long as a wrong password.
 const DUMMY_HASH = bcrypt.hashSync("nexthlon-timing-guard", BCRYPT_ROUNDS);
 
-// Creates a customer with their own referral code. With a friend's code, both get the
-// referral reward in their wallets (once only).
+// Creates a customer with their own referral code. With a friend's code, the invite is recorded; both
+// get the referral reward once the new customer's first order is delivered (referralService).
 async function registerCustomer({ name, email, password, referralCode = "" }) {
   if (await User.exists({ email })) {
     throw new HttpError(409, "An account with this email already exists.", {

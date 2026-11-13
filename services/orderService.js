@@ -9,6 +9,8 @@ const { escapeRegex, toPositiveInt } = require("./productService");
 const { STORE } = require("../config/store");
 const rules = require("../utils/orderRules");
 const gstService = require("./gstService");
+const referralService = require("./referralService");
+const logger = require("../utils/logger");
 
 const PAGE_SIZE = 10;
 const LIST_FILTERS = {
@@ -159,6 +161,10 @@ async function advanceStatus(order, nextStatus, by = "admin", now = new Date()) 
   order.orderStatus = nextStatus;
   order.statusHistory.push({ status: nextStatus, by, at: now });
   await order.save();
+  // A first delivered order pays out a referral (only once per customer; never fails the delivery).
+  if (nextStatus === "delivered") {
+    await referralService.rewardOnDelivery(order.user).catch(error => logger.error("referral.reward_failed", { order: order.orderId, error }));
+  }
   await events.emit("order.status_changed", { orderId: order.orderId, status: nextStatus, previous: current }, { key: `${order.orderId}:${nextStatus}` });
   return order;
 }

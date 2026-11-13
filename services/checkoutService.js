@@ -18,6 +18,8 @@ const gstService = require("./gstService");
 // Placed here at once. Online payment (razorpay) goes through paymentService.
 // "wallet" is used when the wallet covers the whole amount.
 const PAYMENT_METHODS = ["cod", "wallet"];
+// The most unpaid Cash on Delivery orders one customer may have on the way at once (D3).
+const MAX_OPEN_COD = 3;
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 // NX-2026-000123: the year (in India) and a running number for that year.
@@ -202,6 +204,13 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
   if (method === "wallet" && !quote.coveredByWallet) {
     throw new HttpError(400, "Your wallet balance does not cover this order. Choose another way to pay the rest.");
   }
+  // Fake Cash on Delivery orders tie up stock and courier money (D3): at most a few unpaid ones on the way.
+  if (method === "cod") {
+    const open = await Order.countDocuments({ user: userId, paymentMethod: "cod", paymentStatus: "pending", orderStatus: { $in: ["placed", "confirmed", "shipped", "out_for_delivery"] } });
+    if (open >= MAX_OPEN_COD) {
+      throw new HttpError(400, `You already have ${open} Cash on Delivery orders on the way. Please pay online for this one, or wait until one arrives.`, null, "cod_open_limit");
+    }
+  }
   if (method === "cod" && !quote.codAllowed) {
     throw new HttpError(400, quote.codLimit > 0
       ? `Cash on Delivery is available for orders up to ${formatPaise(quote.codLimit)}. Please choose another payment method.`
@@ -239,6 +248,7 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
 
 module.exports = {
   PAYMENT_METHODS,
+  MAX_OPEN_COD,
   nextOrderId,
   findAddress,
   addressSnapshot,

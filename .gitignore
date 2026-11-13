@@ -14,3 +14,6 @@ public/uploads/
 
 # generated previews
 tmp/
+
+# Database backups (scripts/backup.js): never in git
+backups/

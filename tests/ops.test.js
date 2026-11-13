@@ -110,9 +110,13 @@ test("Razorpay keys come as a pair, and test keys in production are called out",
 test("production warns about what is missing: email, payments, alerts", () => {
   const { errors, warnings } = checkEnv({ ...good, NODE_ENV: "production", SITE_URL: "https://x.in" });
   assert.equal(errors.length, 0);
-  for (const name of ["ADMIN_PATH", "RAZORPAY_KEY_ID", "SMTP_HOST", "SENTRY_DSN", "STORAGE_DRIVER", "ADMIN_REQUIRE_2FA"]) {
+  for (const name of ["ADMIN_PATH", "RAZORPAY_KEY_ID", "SMTP_HOST", "SENTRY_DSN", "STORAGE_DRIVER"]) {
     assert.ok(warnings.some(line => line.startsWith(name)), `${name} should warn`);
   }
+  // Admin two-step login is on by default in production (D3): only turning it off warns.
+  assert.ok(!warnings.some(line => line.startsWith("ADMIN_REQUIRE_2FA")));
+  const off = checkEnv({ ...good, NODE_ENV: "production", SITE_URL: "https://x.in", ADMIN_REQUIRE_2FA: "false" });
+  assert.ok(off.warnings.some(line => line.startsWith("ADMIN_REQUIRE_2FA")), "turning it off warns");
   // Development stays quiet about the same things.
   assert.deepEqual(checkEnv(good).warnings, []);
 });

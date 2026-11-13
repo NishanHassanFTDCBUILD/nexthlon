@@ -1417,14 +1417,20 @@ test("referrals: a code for everyone, both wallets credited once, bad codes refu
 
   const joined = await call("POST", "/api/signup", { body: { name: "Kabir Rao", email: "kabir.ref@nexthlon.test", password: "order2024", referralCode: code.toLowerCase() } });
   assert.equal(joined.status, 201);
-  assert.match(joined.data.message, /₹100 has been added to your wallet/);
+  assert.match(joined.data.message, /each get ₹100 in your wallets when your first order is delivered/);
   const kabir = await User.findOne({ email: "kabir.ref@nexthlon.test" });
   assert.equal(String(kabir.referredBy), String(inviter.user._id));
+  // Signing up only records the invite (D3): made-up accounts cannot collect wallet money.
+  assert.equal(await balanceOf(kabir), 0);
+  assert.equal(await balanceOf(inviter.user), 0);
+
+  // The new customer's first delivered order pays both.
+  await referralService.rewardOnDelivery(kabir._id);
   assert.equal(await balanceOf(kabir), 10000);
   assert.equal(await balanceOf(inviter.user), 10000);
 
-  // Running the reward again (a retry, a double click) never pays twice.
-  await referralService.rewardSignup(kabir, inviter.user);
+  // A second delivery (or a retry) never pays twice.
+  await referralService.rewardOnDelivery(kabir._id);
   assert.equal(await balanceOf(kabir), 10000);
   assert.equal(await balanceOf(inviter.user), 10000);
   const history = await call("GET", "/api/wallet", { cookie: inviter.cookie });
@@ -1442,11 +1448,14 @@ test("referrals: a code for everyone, both wallets credited once, bad codes refu
   assert.equal(saved.data.settings.referralReward, 5000);
   const meera = await call("POST", "/api/signup", { body: { name: "Meera Iyer", email: "meera.ref@nexthlon.test", password: "order2024", referralCode: code } });
   assert.equal(meera.status, 201, JSON.stringify(meera.data));
-  assert.equal(await balanceOf(inviter.user), 15000);
-  assert.equal(await balanceOf(await User.findOne({ email: "meera.ref@nexthlon.test" })), 5000);
+  const meeraUser = await User.findOne({ email: "meera.ref@nexthlon.test" });
+  await referralService.rewardOnDelivery(meeraUser._id);
+  assert.equal(await balanceOf(inviter.user), 15000, "the reward set when the first order is delivered");
+  assert.equal(await balanceOf(meeraUser), 5000);
   // 0 turns rewards off.
   await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 0 }, cookie: admin });
   await call("POST", "/api/signup", { body: { name: "Dev Shah", email: "dev.ref@nexthlon.test", password: "order2024", referralCode: code } });
+  await referralService.rewardOnDelivery((await User.findOne({ email: "dev.ref@nexthlon.test" }))._id);
   assert.equal(await balanceOf(inviter.user), 15000);
   await call("PATCH", "/api/admin/settings/referral", { body: { referralReward: 100 }, cookie: admin });
 

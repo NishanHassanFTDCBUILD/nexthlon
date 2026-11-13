@@ -61,7 +61,7 @@ const signup = asyncHandler(async (req, res) => {
   await noteLogin(req, user);
   // Ask them to confirm the address. In the background: they are signing up, not waiting for an email server.
   emailVerificationService.sendInBackground(user, { baseUrl: siteUrlFor(req), ip: req.ip });
-  const bonus = user.referralReward ? ` ${formatPaise(user.referralReward)} has been added to your wallet.` : "";
+  const bonus = user.referralReward ? ` You and your friend each get ${formatPaise(user.referralReward)} in your wallets when your first order is delivered.` : "";
   const carried = await bringGuestCart(req, res, user);
   await sendSignedIn(req, res, user, 201, `Welcome to Nexthlon! Your account is ready.${bonus}${carried}`);
 });

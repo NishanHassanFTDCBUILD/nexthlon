@@ -29,6 +29,34 @@ const adminLoginLimiter = limiter("adminLogin", {
   message: { message: "Too many attempts. Please wait 15 minutes and try again." }
 });
 
+// One account under attack from many addresses (D3): 10 failed sign-ins per 15 minutes per email
+// address, wherever they come from. Counted next to the per-IP limits above; a correct password is not
+// counted, so the owner signing in normally is never slowed.
+const accountKey = req => {
+  const email = req.body && typeof req.body.email === "string" ? req.body.email.trim().toLowerCase().slice(0, 254) : "";
+  return email ? `email:${email}` : `ip:${req.ip}`;
+};
+const accountLoginLimiter = limiter("accountLogin", {
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  keyGenerator: accountKey,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many sign-in attempts for this account. Please wait 15 minutes, or reset your password." }
+});
+
+// Search and product lookups (D3): 600 per 15 minutes per address. Far above real typing (suggestions
+// are debounced), but it stops a script from running thousands of database searches. Generous on purpose:
+// many Indian mobile users share one address through their carrier.
+const searchLimiter = limiter("search", {
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many searches in a short time. Please wait a minute and try again." }
+});
+
 // Renewing a session: 60 per 15 minutes per IP. A normal browser renews every 15 minutes, so this
 // is far above honest use, but it stops a script from hammering the endpoint with stolen tokens.
 const refreshLimiter = limiter("refresh", {
@@ -150,4 +178,4 @@ const orderLimiter = limiter("order", {
   message: { message: "Too many orders in a short time. Please wait a few minutes and try again." }
 });
 
-module.exports = { orderLimiter, cartLimiter, pincodeLimiter, forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
+module.exports = { accountLoginLimiter, searchLimiter, orderLimiter, cartLimiter, pincodeLimiter, forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };

@@ -1,5 +1,5 @@
 // Referrals. Every customer has a code. A NEW customer who signs up with someone's code gets
-// wallet credit, and so does the friend who invited them. The amount is a store setting the
+// wallet credit, and so does the friend who invited them, once the new customer's first order is delivered. The amount is a store setting the
 // admin can change. It happens once per new customer: both credits carry a unique key.
 const crypto = require("crypto");
 const User = require("../models/User");
@@ -61,15 +61,30 @@ async function findReferrer(rawCode) {
   return referrer;
 }
 
-// Credits both people for a new sign-up. Safe to call twice: the keys stop a second credit.
+// A sign-up with a code only RECORDS the invite (User.referredBy). The reward waits for the new customer's
+// first delivered order (rewardOnDelivery), so made-up accounts cannot collect wallet money (D3).
+// Returns the reward the two will get, for the welcome message.
 async function rewardSignup(newUser, referrer) {
-  if (!referrer) return { reward: 0 };
+  if (!referrer) return { reward: 0, pending: false };
+  const reward = await settingsService.get("referralReward");
+  return { reward: reward > 0 ? reward : 0, pending: reward > 0 };
+}
+
+// Called when an order is delivered. If its customer joined with a code and this is their first
+// delivered order, both get the reward. Safe to call for every delivery: the wallet keys allow one
+// credit per new customer, ever. A blocked or deleted inviter gets nothing; the new customer still does.
+async function rewardOnDelivery(userId) {
+  const user = await User.findById(userId).select("name referredBy").lean();
+  if (!user || !user.referredBy) return { reward: 0 };
   const reward = await settingsService.get("referralReward");
   if (!(reward > 0)) return { reward: 0 };
-  const firstName = String(newUser.name).split(" ")[0];
-  await walletService.credit(newUser._id, reward, { kind: "referral", reason: "Welcome bonus for joining with a referral code", key: `referral:joined:${newUser._id}` });
-  await walletService.credit(referrer._id, reward, { kind: "referral", reason: `Referral bonus: ${firstName} joined with your code`, key: `referral:invited:${newUser._id}` });
-  logger.info("referral.rewarded", { user: String(newUser._id), referrer: String(referrer._id), reward });
+  const firstName = String(user.name).split(" ")[0];
+  await walletService.credit(user._id, reward, { kind: "referral", reason: "Welcome bonus: your first order with a referral code was delivered", key: `referral:joined:${user._id}` });
+  const referrer = await User.findOne({ _id: user.referredBy, role: "customer" }).select("_id isBlocked").lean();
+  if (referrer && !referrer.isBlocked) {
+    await walletService.credit(referrer._id, reward, { kind: "referral", reason: `Referral bonus: ${firstName}'s first order was delivered`, key: `referral:invited:${user._id}` });
+  }
+  logger.info("referral.rewarded", { user: String(user._id), referrer: String(user.referredBy), reward });
   return { reward };
 }
 
@@ -90,4 +105,4 @@ async function migrateCodes() {
   return users.length;
 }
 
-module.exports = { CODE, makeCode, normaliseCode, ensureCode, findReferrer, rewardSignup, getReferral, migrateCodes };
+module.exports = { CODE, makeCode, normaliseCode, ensureCode, findReferrer, rewardSignup, rewardOnDelivery, getReferral, migrateCodes };

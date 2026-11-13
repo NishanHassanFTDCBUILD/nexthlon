@@ -67,7 +67,7 @@
         <div class="au-card au-face au-face-signup" data-face="signup" data-tilt-card <%- isSignup ? '' : 'inert aria-hidden="true"' %>>
           <div class="au-card-head">
             <h1 class="au-title">Join Nexthlon</h1>
-            <p class="muted">It takes less than a minute.<%= referralReward > 0 ? ' Got an invite? You both get ' + formatPrice(referralReward) + '.' : '' %></p>
+            <p class="muted">It takes less than a minute.<%= referralReward > 0 ? ' Got an invite? You both get ' + formatPrice(referralReward) + ' after your first delivery.' : '' %></p>
           </div>
           <form class="au-form" data-auth-form data-endpoint="/api/signup" data-kind="signup" novalidate>
             <div class="form-alert" data-form-alert aria-live="assertive"></div>

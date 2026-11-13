@@ -111,7 +111,7 @@ function checkEnv(env = process.env) {
 
   const require2fa = text(env, "ADMIN_REQUIRE_2FA").toLowerCase();
   if (require2fa && !["true", "false"].includes(require2fa)) fail("ADMIN_REQUIRE_2FA", `"${require2fa}" must be true or false.`);
-  else if (production && require2fa !== "true") warn("ADMIN_REQUIRE_2FA", "is not true, so an admin can sign in with the password alone. Turn on two-step login for each admin (Security page), then set ADMIN_REQUIRE_2FA=true.");
+  else if (production && require2fa === "false") warn("ADMIN_REQUIRE_2FA", "is false, so an admin can sign in with the password alone. Leave it unset (on by default in production) or set it to true.");
 
   // ---------- Logins ----------
   for (const [name, [fallback, limit]] of Object.entries(DURATIONS)) {

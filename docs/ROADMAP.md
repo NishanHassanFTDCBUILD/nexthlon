@@ -322,10 +322,21 @@ loaded only after consent, e-commerce events, the CSP changes, and "delete my ac
 data" in My Account. Plan first, then wait for my go-ahead.
 ```
 
-### [ ] D3. Security review before going live · S
+### [x] D3. Security review before going live · S
 - **Goal:** no known weak spots on launch day.
 - **Pieces:** `npm audit` fixes, a CSP review, cookie flags, an admin path and two-step login check, abuse limits on coupons, referrals and COD, and a backup restore drill.
 - **Done when:** there are no high-risk findings, and a backup has been restored into a test database successfully.
+- **Review (2026-11-13):**
+  - [x] Dependencies: `npm audit` 0 vulnerabilities (was 4 moderate). `uuid` inside exceljs and `minimatch` inside nodemon forced to patched versions with npm `overrides` (npm's own fix would have downgraded both).
+  - [x] Headers and cookies checked, no change needed: strict CSP (own scripts, Razorpay only), no framing, HSTS and HTTPS-only cookies in production, httpOnly login cookies, SameSite lax (store) and strict (admin), production refuses to start without an https `SITE_URL` (so canonical and sitemap addresses can't be faked).
+  - [x] Fixed: admin two-step login is now required by default in production (`ADMIN_REQUIRE_2FA=false` turns it off, with a warning).
+  - [x] Fixed: sign-in is also limited per account (10 wrong passwords in 15 minutes, from any address), not only per address.
+  - [x] Fixed: search and product lookups are rate limited (600 per 15 minutes per address).
+  - [x] Fixed: referral rewards were paid at sign-up, so fake accounts could farm wallet money; now both people are paid when the new customer's first order is delivered.
+  - [x] Fixed: at most 3 unpaid Cash on Delivery orders on the way per customer (more can still be paid online).
+  - [x] Checked, already safe: coupon total and per-customer limits are claimed atomically in the order transaction; COD has an order value limit; the admin console hides behind `ADMIN_PATH` and its 404 is identical to any other.
+  - [x] Backups: `npm run db:backup` / `npm run db:restore` (scripts/backup.js, no MongoDB tools needed). Drill: the local database (194 documents, 27 collections) backed up and restored into a new database, every document and index identical; a restore over existing data is refused. Steps in docs/HOSTING-SETUP.md.
+  - [ ] Yours: run `npm run db:backup` against Atlas weekly until M10, and a restore check monthly.
 
 ```text
 Step D3 from docs/ROADMAP.md: run a pre-launch security review: dependency audit, CSP, cookies,

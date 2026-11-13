@@ -21,7 +21,9 @@
     "emails:preview": "node scripts/previewEmails.js",
     "images:migrate": "node scripts/migrateImages.js",
     "load:test": "node scripts/loadTest.js",
-    "test": "node --test"
+    "test": "node --test",
+    "db:backup": "node scripts/backup.js backup",
+    "db:restore": "node scripts/backup.js restore"
   },
   "engines": {
     "node": ">=20.19.0"
@@ -50,5 +52,13 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    },
+    "nodemon": {
+      "minimatch": "^11.0.8"
+    }
   }
 }

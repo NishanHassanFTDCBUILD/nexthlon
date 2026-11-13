@@ -25,7 +25,7 @@
     <div class="field">
       <label for="referralReward">Reward for each person (₹)</label>
       <input id="referralReward" name="referralReward" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.referralReward / 100 %>" aria-describedby="referralReward-hint referralReward-error">
-      <p class="hint" id="referralReward-hint">0 turns referral rewards off. Each new customer can be rewarded only once.</p>
+      <p class="hint" id="referralReward-hint">0 turns referral rewards off. Paid to both people when the new customer's first order is delivered, once per new customer.</p>
       <p class="field-error" id="referralReward-error" data-error-for="referralReward"></p>
     </div>
     <button class="btn btn-primary" type="submit">Save reward</button>

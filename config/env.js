@@ -64,7 +64,8 @@ function readConfig() {
     // true: abandoned carts get their reminder automatically (once a day each); false: only the admin's button.
     cartRecoveryAuto: text("CART_RECOVERY_AUTO").toLowerCase() === "true",
     // true: admins must turn on two-step login before they can use the console (middleware/twoFactorGuard.js).
-    adminRequire2fa: text("ADMIN_REQUIRE_2FA").toLowerCase() === "true",
+    // On by default in production (D3); ADMIN_REQUIRE_2FA=false turns it off, =true turns it on anywhere.
+    adminRequire2fa: text("ADMIN_REQUIRE_2FA").toLowerCase() === "true" || (isProduction && text("ADMIN_REQUIRE_2FA").toLowerCase() !== "false"),
     // Online payments (Razorpay). Optional: without the keys the store still runs, and the
     // online payment option shows as unavailable. The secrets never leave the server.
     razorpay: readRazorpay(),

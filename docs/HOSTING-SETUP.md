@@ -95,9 +95,18 @@ mongorestore --uri="<your Atlas string>" --nsFrom="nexthlon_week7.*" --nsTo="nex
 better to start clean and not carry test customers and orders over.
 
 ### 7. Backups and safety
-- **M0 has no automatic backups.** Until you move to M10, run `mongodump` against Atlas yourself every week and
-  keep the folder somewhere safe. Step D3 of the roadmap includes a restore drill: a backup you have never
-  restored is not a backup.
+- **M0 has no automatic backups.** Until you move to M10, back up Atlas yourself every week and keep the folder
+  somewhere safe (a cloud drive, not only this computer). No extra tools are needed:
+  ```bash
+  npm run db:backup                     # uses MONGODB_URI from .env, writes backups/<date-time>/
+  ```
+  A backup you have never restored is not a backup. Once a month, restore the newest one into a **new** database
+  on the same cluster and check the counts it prints, then delete that copy in Atlas:
+  ```bash
+  npm run db:restore -- --from backups/<folder> --to-db nexthlon_restore_check
+  ```
+  The restore refuses to write into a database that already has data (add `--force` only when you really mean to
+  replace one), so it can never overwrite the live store by mistake. The `backups/` folder is kept out of git.
 - Turn on **Atlas alerts** (Project → Alerts) for connection and storage limits, and add your email.
 - M0 clusters are **paused after a long period without use**. A live store will not hit that, but a test one might.
 
