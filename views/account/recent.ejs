@@ -3,7 +3,7 @@
   <div>
     <span class="label-caps">Shopping</span>
     <h1>Recently viewed</h1>
-    <p class="muted">The last <%= products.length %> products you looked at, on every device you sign in on.</p>
+    <p class="muted"><%= products.length === 1 ? 'The last product you looked at' : 'The last ' + products.length + ' products you looked at' %>, on every device you sign in on.</p>
   </div>
   <% if (products.length) { %><button type="button" class="btn btn-ghost btn-sm" data-clear-recent><%- icon('trash', 'i-xs') %> Clear history</button><% } %>
 </div>

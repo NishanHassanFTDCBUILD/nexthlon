@@ -17,3 +17,6 @@ tmp/
 
 # Database backups (scripts/backup.js): never in git
 backups/
+
+# Screenshot set (scripts/screenshots.js): generated, never in git
+docs/screenshots/

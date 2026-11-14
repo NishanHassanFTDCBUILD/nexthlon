@@ -112,7 +112,7 @@
 .acct-mini-track .is-done { color: var(--ink); }
 
 /* Product rows (recently viewed, picks, shared lists) */
-.acct-products { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: var(--space-1h); overflow-x: auto; padding: var(--space-xxs) var(--space-xxs) var(--space-1); scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.acct-products { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 220px); gap: var(--space-1h); overflow-x: auto; padding: var(--space-xxs) var(--space-xxs) var(--space-1); scroll-snap-type: x mandatory; scrollbar-width: thin; }
 .acct-products-wrap { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); overflow: visible; }
 .acct-product { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-1); border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; scroll-snap-align: start; }
 @media (hover: hover) { .acct-product:hover { color: var(--ink); text-decoration: none; border-color: var(--line-strong); } }

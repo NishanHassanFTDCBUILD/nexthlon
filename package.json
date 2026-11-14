@@ -23,7 +23,8 @@
     "load:test": "node scripts/loadTest.js",
     "test": "node --test",
     "db:backup": "node scripts/backup.js backup",
-    "db:restore": "node scripts/backup.js restore"
+    "db:restore": "node scripts/backup.js restore",
+    "screenshots": "node scripts/screenshots.js"
   },
   "engines": {
     "node": ">=20.19.0"

@@ -290,9 +290,13 @@ helpful errors, correct mobile keyboards. One-thumb usable at 320px. Plan first,
 go-ahead.
 ```
 
-### [ ] C4. Design quality pass across every page · M
+### [x] C4. Design quality pass across every page · M
 - **Goal:** one consistent, premium system everywhere, including the account, order and admin pages, which were not part of the UI/UX phases.
 - **Done when:** every page passes `docs/mobile-audit-checklist.md` at all sizes, there are no one-off colours or spacing values, and there's a screenshot set of every page at 390 and 1440 wide.
+- **Progress (2026-11-14):**
+  - [x] One design system: the older second set of token names replaced by the main tokens (404 uses) and removed; 79 one-off spacing values moved onto the spacing scale; the design-token test now also rejects one-off padding, margin and gap from 2px to 32px.
+  - [x] Every page (51: store, sign-in, My Account, admin) audited at 390px and 1440px: sideways scroll, tap targets (44px on touch, 24px with WCAG 2.5.8 spacing on desktop), text under 12px, images without size, one h1 and no skipped heading levels, duplicate ids, unlabelled fields. All pass after the fixes (analytics top sellers, inventory size list on phones, small links, quantity box, Size guide button, a single product stretching full width on My Account, a cancelled page transition throwing an error).
+  - [x] Screenshot set: `npm run screenshots` (scripts/screenshots.js, headless Chrome, no extra packages) takes every page at both widths into `docs/screenshots/` with a gallery page (`docs/screenshots/index.html`). The images are not kept in git; run the command to make them again. Signed-in pages need test accounts given as SHOT_CUSTOMER_* and SHOT_ADMIN_* settings.
 
 ```text
 Step C4 from docs/ROADMAP.md: do a design quality pass on every page (store, account, orders,
