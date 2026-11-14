@@ -122,6 +122,14 @@
   <% } %>
 </section>
 
+<section class="panel acct-section" id="your-data" aria-labelledby="data-title">
+  <div class="acct-section-head">
+    <div><h2 id="data-title">Your data</h2><small class="muted">One file with your profile, addresses, orders, reviews, lists, wallet and recent sign-ins. Passwords and security keys are never included.</small></div>
+    <a class="btn btn-ghost btn-sm" href="/api/account/export" download data-export-data><%- icon('download', 'i-xs') %> Download my data</a>
+  </div>
+  <% if (analytics && analytics.enabled) { %><p class="muted acct-note">Cookie choices: <button type="button" class="link-btn" data-consent-open>change what this browser allows</button>.</p><% } %>
+</section>
+
 <section class="panel acct-section acct-danger" id="delete" aria-labelledby="delete-title">
   <div class="acct-section-head">
     <div><h2 id="delete-title">Delete your account</h2><small class="muted">You will be signed out and won't be able to sign in again. Your order records are kept for invoices and returns.</small></div>

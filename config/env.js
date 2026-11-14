@@ -74,6 +74,8 @@ function readConfig() {
     // Email (order emails, cart reminders, campaigns). Optional: without SMTP the emails are
     // written to the console in development. The values are never logged.
     mail: readMail(),
+    // Visitor analytics (utils/analytics.js). Off unless set, and only loads after the visitor agrees.
+    analytics: require("../utils/analytics").readAnalytics(),
     // Error alerts. Optional: without a DSN nothing is sent anywhere.
     sentry: {
       dsn: text("SENTRY_DSN"),

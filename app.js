@@ -36,6 +36,8 @@ app.set("views", path.join(__dirname, "views"));
 
 // Security headers. The Content Security Policy only allows our own scripts and styles,
 // Google Fonts, product photos from Unsplash, and exactly what Razorpay Checkout needs.
+// Analytics hosts are only in the policy when a provider is set up (utils/analytics.js).
+const analyticsHosts = require("./utils/analytics").cspHosts(config.analytics);
 app.use(helmet({
   //enables CSP configuration
   contentSecurityPolicy: {
@@ -44,16 +46,16 @@ app.use(helmet({
       "default-src": ["'self'"],
       // checkout.razorpay.com serves checkout.js; it then loads its fraud-check script
       // (razorpay-risk-detection) from cdn.razorpay.com. Blocking that script breaks payments.
-      "script-src": ["'self'", "https://checkout.razorpay.com", "https://cdn.razorpay.com"],
+      "script-src": ["'self'", "https://checkout.razorpay.com", "https://cdn.razorpay.com", ...analyticsHosts.script],
       // Razorpay Checkout opens in its own frame.
       "frame-src": ["https://api.razorpay.com", "https://checkout.razorpay.com"],
       "style-src": ["'self'", "'unsafe-inline'"],
       // Fonts are served from this site (public/fonts), so nothing comes from Google.
       "font-src": ["'self'"],
       // Photos: this site, Unsplash (the sample products), Razorpay's logo, and the photo bucket's address.
-      "img-src": ["'self'", "data:", "https://images.unsplash.com", "https://cdn.razorpay.com", ...(config.storage.origin ? [config.storage.origin] : [])],
+      "img-src": ["'self'", "data:", "https://images.unsplash.com", "https://cdn.razorpay.com", ...(config.storage.origin ? [config.storage.origin] : []), ...analyticsHosts.img],
       //Controls where JavaScript can connect to fetch data.
-      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://lumberjack-cx.razorpay.com", "https://cdn.razorpay.com"],
+      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://lumberjack-cx.razorpay.com", "https://cdn.razorpay.com", ...analyticsHosts.connect],
       //Controls where HTML forms are allowed to submit data. Razorpay posts to its own API when a
       // bank page has to open in a new window and the browser blocks the pop-up.
       "form-action": ["'self'", "https://api.razorpay.com"],

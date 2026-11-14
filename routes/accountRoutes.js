@@ -14,6 +14,7 @@ router.get("/sessions", account.listSessions);
 router.delete("/sessions/:sessionId", sensitiveLimiter, account.endDeviceSession);
 router.patch("/preferences", account.updatePreferences);
 router.delete("/recent", account.clearRecent);
+router.get("/export", sensitiveLimiter, account.exportData);
 router.post("/delete", sensitiveLimiter, account.deleteAccount);
 router.patch("/reviews/:reviewId", account.updateReview);
 router.delete("/reviews/:reviewId", account.deleteReview);

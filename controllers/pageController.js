@@ -28,6 +28,7 @@ const { INDIAN_STATES, LOW_STOCK_LIMIT, MAX_ADDRESSES } = require("../config/cat
 const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
 const seo = require("../utils/seo");
+const analytics = require("../utils/analyticsEvents");
 const { sizedUrl } = require("../utils/images");
 const { estimateDelivery } = require("../services/deliveryService");
 
@@ -174,6 +175,8 @@ const productDetail = asyncHandler(async (req, res) => {
   const priceText = `₹${(product.price / 100).toLocaleString("en-IN")}`;
   res.render("pages/product", {
     title: `${product.name} | Nexthlon`,
+    // Analytics (D2): sent only if the shopper allowed analytics (public/js/consent.js).
+    trackEvents: [analytics.viewItem(product)],
     metaDescription: `${priceText}${product.discountPercent > 0 ? ` (${product.discountPercent}% off)` : ""} · ${(product.description || product.name).replace(/\s+/g, " ")}`.slice(0, 158),
     canonical: url,
     ogType: "product",
@@ -266,7 +269,8 @@ const checkout = asyncHandler(async (req, res) => {
     // "Arrives by ..." for each saved address (C3), from the same rules as the product page.
     estimates: Object.fromEntries(addresses.map(a => [String(a._id), estimateDelivery(a.pincode)])),
     states: INDIAN_STATES,
-    razorpayEnabled: razorpayService.isEnabled()
+    razorpayEnabled: razorpayService.isEnabled(),
+    trackEvents: [analytics.beginCheckout(quote)]
   });
 });
 
@@ -294,7 +298,7 @@ const orderDetail = asyncHandler(async (req, res) => {
 
 const orderSuccess = asyncHandler(async (req, res) => {
   const order = await orderService.getOwnedOrder(req.user._id, req.params.orderId);
-  res.render("pages/order-success", { title: "Order placed | Nexthlon", order });
+  res.render("pages/order-success", { title: "Order placed | Nexthlon", order, trackEvents: [analytics.purchase(order)] });
 });
 
 const orderInvoice = asyncHandler(async (req, res) => {

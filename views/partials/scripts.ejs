@@ -12,12 +12,29 @@
   </form>
 </dialog>
 
+<%# Cookie consent (D2): only when the owner set up analytics, and never on admin pages. public/js/consent.js %>
+<% const consentOn = typeof analytics !== 'undefined' && analytics && analytics.enabled && !(typeof consent !== 'undefined' && consent === false); %>
+<% if (consentOn) { %>
+<section class="consent" id="consent" role="region" aria-labelledby="consent-title" hidden>
+  <span class="consent-icon"><%- icon('shield', 'i-sm') %></span>
+  <div class="consent-copy">
+    <h2 id="consent-title">Cookies, your call</h2>
+    <p>Essential cookies keep you signed in and hold your cart. With your OK we also count visits to make the store better. No ads, no selling data. <a href="/privacy#cookies">Details</a></p>
+  </div>
+  <div class="consent-actions">
+    <button type="button" class="btn btn-ghost btn-sm" data-consent="essential">Only essential</button>
+    <button type="button" class="btn btn-primary btn-sm" data-consent="analytics">Allow analytics</button>
+  </div>
+</section>
+<% } %>
+<% if (consentOn && typeof trackEvents !== 'undefined' && trackEvents && trackEvents.length) { %><script type="application/json" id="nx-events"><%- JSON.stringify(trackEvents).replace(/</g, '\\u003c') %></script><% } %>
 <% if (typeof razorpay !== 'undefined' && razorpay) { %><script src="https://checkout.razorpay.com/v1/checkout.js" defer></script><% } %>
 <%# The shared animation loop first: every animation on the page subscribes to it. %>
 <script src="<%= asset('/js/motion/ticker.js') %>" defer></script>
 <script src="<%= asset('/js/app.js') %>" defer></script>
 <script src="<%= asset('/js/header.js') %>" defer></script>
 <script src="<%= asset('/js/store.js') %>" defer></script>
+<% if (consentOn) { %><script src="<%= asset('/js/consent.js') %>" defer data-provider="<%= analytics.provider %>" data-id="<%= analytics.id %>" data-host="<%= analytics.host %>"></script><% } %>
 <% if (typeof motion === 'undefined' || motion !== false) { %>
 <script src="<%= asset('/js/motion.js') %>" defer></script><% } %>
 <% (typeof scripts !== 'undefined' ? scripts : []).forEach(function (name) { %>

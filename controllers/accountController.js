@@ -2,6 +2,7 @@
 // the account, the customer's reviews, shopping lists and help requests. Thin handlers: the rules
 // live in the services. Every route is for a signed-in customer (see routes/accountRoutes.js).
 const accountService = require("../services/accountService");
+const privacyService = require("../services/privacyService");
 const reviewService = require("../services/reviewService");
 const listService = require("../services/listService");
 const supportService = require("../services/supportService");
@@ -70,6 +71,15 @@ const updatePreferences = asyncHandler(async (req, res) => {
 const clearRecent = asyncHandler(async (req, res) => {
   await accountService.clearRecent(req.user._id);
   res.json({ message: "Your recently viewed list has been cleared." });
+});
+
+// GET /api/account/export   Everything we keep about you, as a JSON file (D2).
+const exportData = asyncHandler(async (req, res) => {
+  const data = await privacyService.exportData(req.user._id, auditService.fromRequest(req));
+  const day = new Date().toISOString().slice(0, 10);
+  res.set("Cache-Control", "no-store");
+  res.attachment(`nexthlon-my-data-${day}.json`);
+  res.type("application/json").send(JSON.stringify(data, null, 2));
 });
 
 // POST /api/account/delete   { password, confirm: "DELETE" }
@@ -164,7 +174,7 @@ const replyTicket = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  changeEmail, logoutAll, listSessions, endDeviceSession, updatePreferences, clearRecent, deleteAccount,
+  changeEmail, logoutAll, listSessions, endDeviceSession, updatePreferences, clearRecent, deleteAccount, exportData,
   updateReview, deleteReview,
   getLists, createList, renameList, deleteList, addListItem, removeListItem, moveListItem, listItemToCart, shareList,
   createTicket, listTickets, replyTicket

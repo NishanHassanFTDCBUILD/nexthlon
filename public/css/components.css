@@ -707,3 +707,29 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; 
 .site-footer nav a::after, .footer-legal a::after, .pdx-brand::after, .pdx-text-btn::after, .pdx-facts a::after, .au-foot > a:only-child::after, .au-referral summary::after, .admin-total a::after, .admin-top .muted a::after {
   content: ""; position: absolute; inset: calc(var(--space-half) * -1) calc(var(--space-xxs) * -1);
 }
+
+/* ---------- Cookie consent (D2) ----------
+   A card at the bottom left: never covers the cart bar on phones for long, and only shows when
+   the store owner turned analytics on (views/partials/scripts.ejs). */
+.consent {
+  position: fixed; z-index: var(--z-toast); left: max(var(--space-2), env(safe-area-inset-left)); bottom: max(var(--space-2), env(safe-area-inset-bottom));
+  width: min(440px, calc(100vw - 32px)); display: grid; grid-template-columns: auto 1fr; gap: var(--space-sm) var(--space-1h);
+  padding: var(--space-2); border-radius: var(--radius-lg); background: var(--surface-raised); color: var(--ink);
+  border: 1px solid var(--line); box-shadow: var(--shadow-xl);
+  opacity: 0; transform: translateY(12px);
+}
+.consent.is-in { opacity: 1; transform: none; }
+.consent[hidden] { display: none; }
+.consent-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: rgba(var(--brand-rgb), 0.22); color: var(--brand-ink); }
+.consent-copy h2 { margin: 0 0 var(--space-xxs); font-size: var(--text-md); }
+.consent-copy p { margin: 0; font-size: var(--text-sm); color: var(--ink-2); line-height: 1.5; }
+.consent-copy a { color: var(--link); font-weight: var(--weight-semibold); }
+.consent-actions { grid-column: 1 / -1; display: flex; gap: var(--space-sm); justify-content: flex-end; }
+@media (prefers-reduced-motion: no-preference) {
+  .consent { transition: opacity var(--duration) var(--ease-out), transform var(--duration-medium) var(--ease-spring); }
+}
+@media (max-width: 520px) {
+  .consent { left: var(--space-1h); right: var(--space-1h); width: auto; bottom: max(var(--space-1h), env(safe-area-inset-bottom)); }
+  .consent-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .consent-actions .btn { min-height: var(--tap); }
+}

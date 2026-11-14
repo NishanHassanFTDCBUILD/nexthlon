@@ -222,6 +222,9 @@ function checkEnv(env = process.env) {
   const scheme = text(env, "STORE_GST_SCHEME");
   if (scheme && !["regular", "composition"].includes(scheme)) fail("STORE_GST_SCHEME", `"${scheme}" must be regular or composition.`);
 
+  // ---------- Analytics (D2) ----------
+  require("../utils/analytics").analyticsProblems(env).forEach(([name, message]) => fail(name, message));
+
   // ---------- Monitoring and logs ----------
   const dsn = text(env, "SENTRY_DSN");
   if (dsn) {

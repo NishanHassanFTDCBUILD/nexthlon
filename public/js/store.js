@@ -329,6 +329,10 @@
       Nx.setCartCount(result.cart.summary.count);
       Nx.toast(result.message, "success", { action: { label: "View cart", href: "/cart" } });
       markButton(button, "added");
+      if (Nx.track) {
+        const line = (result.cart.items || []).find(entry => entry.productId === String(productId) && (entry.variantId || null) === (variantId || null));
+        if (line) Nx.track("add_to_cart", { currency: "INR", value: (line.price * quantity) / 100, items: [{ item_id: line.productId, item_name: line.name, item_brand: line.brand, item_variant: line.option || undefined, price: line.price / 100, quantity }] });
+      }
       return { ok: true, cart: result.cart };
     } catch (error) {
       flight.abort();
