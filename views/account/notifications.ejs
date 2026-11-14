@@ -27,4 +27,17 @@
   </ul>
   <p class="muted acct-note">Account and security emails (like password changes) are always sent.</p>
 </section>
+<%# Push notifications on this device (E5): public/js/account.js asks the browser, then saves it. %>
+<section class="panel acct-section" aria-labelledby="push-title" data-push-box hidden>
+  <ul class="pref-list">
+    <li class="pref">
+      <span class="pref-icon"><%- icon('bell') %></span>
+      <label class="pref-text" for="pref-push"><strong id="push-title">Notifications on this device</strong><small class="muted" data-push-note>Order updates and back-in-stock alerts, even when the store is closed.</small></label>
+      <span class="switch-row">
+        <input type="checkbox" class="switch-input" id="pref-push" data-push-toggle>
+        <span class="switch" aria-hidden="true"></span>
+      </span>
+    </li>
+  </ul>
+</section>
 <%- include('../partials/account-end') %>

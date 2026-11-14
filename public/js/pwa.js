@@ -51,3 +51,55 @@
     }
   });
 })();
+
+// ---------- Push notifications (E5) ----------
+// The switch on My Account > Notifications. Shown only where the browser can do push and the store has
+// keys; turning it on asks the browser first (its own permission prompt), then saves the device.
+(function () {
+  "use strict";
+  const box = document.querySelector("[data-push-box]");
+  const toggle = box && box.querySelector("[data-push-toggle]");
+  if (!toggle || !("serviceWorker" in navigator) || !("PushManager" in window) || !window.isSecureContext) return;
+  const Nx = window.Nx || {};
+  const note = box.querySelector("[data-push-note]");
+  const toKey = base64 => {
+    const padded = (base64 + "=".repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+    return Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+  };
+
+  (async () => {
+    let key;
+    try { key = (await Nx.api("/api/push/key")).publicKey; } catch { return; }
+    box.hidden = false;
+    const registration = await navigator.serviceWorker.ready;
+    let current = await registration.pushManager.getSubscription();
+    toggle.checked = Boolean(current) && Notification.permission === "granted";
+    if (Notification.permission === "denied") {
+      toggle.disabled = true;
+      note.textContent = "Notifications are blocked for this site in your browser settings. Allow them there to turn this on.";
+    }
+
+    toggle.addEventListener("change", async () => {
+      toggle.disabled = true;
+      try {
+        if (toggle.checked) {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") throw new Error("Notifications were not allowed.");
+          current = current || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(key) });
+          const reply = await Nx.api("/api/push/subscribe", { method: "POST", body: current.toJSON() });
+          Nx.toast(reply.message);
+        } else if (current) {
+          await Nx.api("/api/push/subscribe", { method: "DELETE", body: { endpoint: current.endpoint } });
+          await current.unsubscribe();
+          current = null;
+          Nx.toast("Notifications are off for this device.");
+        }
+      } catch (error) {
+        toggle.checked = !toggle.checked;
+        Nx.toast(error.message, "error");
+      } finally {
+        toggle.disabled = Notification.permission === "denied";
+      }
+    });
+  })();
+})();

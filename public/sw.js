@@ -8,7 +8,7 @@
 //   - Photos are kept too (the newest 120), refreshed in the background.
 //   - Never: anything under /api/, anything from another site (payments, analytics), and anything
 //     that is not a GET. Signed-in pages are never stored, so a shared phone shows nobody else's data.
-const VERSION = "nx-2026-11-14";
+const VERSION = "nx-2026-11-14b";
 const STATIC = `${VERSION}-static`;
 const PHOTOS = `${VERSION}-photos`;
 const OFFLINE = `${VERSION}-offline`;
@@ -96,4 +96,30 @@ self.addEventListener("fetch", event => {
   if (/^\/(img|fonts|uploads)\//.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(event, PHOTOS, MAX_PHOTOS));
   }
+});
+
+// ---------- Push notifications (E5) ----------
+// The server sends { title, body, url, tag }. Only addresses on this site are opened.
+self.addEventListener("push", event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { title: "Nexthlon", body: event.data ? event.data.text() : "" }; }
+  const url = typeof data.url === "string" && data.url.startsWith("/") && !data.url.startsWith("//") ? data.url : "/";
+  event.waitUntil(self.registration.showNotification(data.title || "Nexthlon", {
+    body: data.body || "",
+    icon: "/img/app/icon-192.png",
+    badge: "/img/app/icon-192.png",
+    tag: data.tag || undefined,
+    data: { url }
+  }));
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin).href;
+  event.waitUntil((async () => {
+    const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const same = open.find(client => client.url === target);
+    if (same) return same.focus();
+    return self.clients.openWindow(target);
+  })());
 });

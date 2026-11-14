@@ -116,6 +116,8 @@ async function notify(alertId) {
     await StockAlert.updateOne({ _id: alert._id }, { $set: { notifiedAt: null } });
     throw error;
   }
+  // Signed-in shoppers also get a push notification on devices they allowed (E5).
+  if (alert.user) await require("./pushService").sendToUser(alert.user, { title: "Back in stock", body: `${product.name}${option ? ` (${option})` : ""} is back. Grab it before it goes.`, url: link.replace(base, ""), tag: `stock-${product._id}` }).catch(() => 0);
   return "sent";
 }
 

@@ -228,6 +228,10 @@ function checkEnv(env = process.env) {
   const support = text(env, "WHATSAPP_SUPPORT_NUMBER").replace(/[^0-9]/g, "");
   if (support && !/^91[6-9][0-9]{9}$/.test(support)) fail("WHATSAPP_SUPPORT_NUMBER", "should be an Indian mobile with the country code, e.g. 919876543210.");
 
+  if (Boolean(text(env, "VAPID_PUBLIC_KEY")) !== Boolean(text(env, "VAPID_PRIVATE_KEY"))) fail("VAPID_PRIVATE_KEY", "VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY go together (npm run push:keys makes a pair).");
+  const vapidSubject = text(env, "VAPID_SUBJECT");
+  if (vapidSubject && !/^(mailto:|https:\/\/)/.test(vapidSubject)) fail("VAPID_SUBJECT", "should be mailto:you@your-domain.in or an https:// address.");
+
   // ---------- Shipping (B5) ----------
   const shipping = text(env, "SHIPPING_PROVIDER").toLowerCase();
   if (shipping && !["manual", "shiprocket"].includes(shipping)) fail("SHIPPING_PROVIDER", `"${shipping}" must be manual or shiprocket.`);

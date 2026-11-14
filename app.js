@@ -126,6 +126,7 @@ app.use("/api", originCheck);
 app.use("/api", require("./routes/authRoutes"));
 app.use("/api", require("./routes/productRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
+app.use("/api/push", require("./routes/pushRoutes"));
 app.use("/api/addresses", require("./routes/addressRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/wishlist", require("./routes/wishlistRoutes"));

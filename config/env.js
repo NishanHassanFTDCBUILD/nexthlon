@@ -76,6 +76,12 @@ function readConfig() {
     mail: readMail(),
     // WhatsApp and SMS (E1, E2). Optional: without them messages are written to the console in development.
     messaging: readMessaging(),
+    // Push notifications (E5): VAPID keys from npm run push:keys. Off without them.
+    push: (() => {
+      const publicKey = text("VAPID_PUBLIC_KEY");
+      const privateKey = text("VAPID_PRIVATE_KEY");
+      return { publicKey, privateKey, subject: text("VAPID_SUBJECT") || "mailto:support@example.com", enabled: Boolean(publicKey && privateKey) };
+    })(),
     // Shipping (B5): "manual" (the admin types the courier and tracking number) or "shiprocket"
     // (one-click shipments, live PIN code checks and tracking updates). services/shipping/.
     shipping: readShipping(),
