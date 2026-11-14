@@ -131,6 +131,18 @@
         event.preventDefault();
         const values = Nx.formValues(form);
         send(form, { url: api("/shipments"), body: values, busy: "Saving…" });
+      } else if (form.matches("[data-ship-now-form]")) {
+        event.preventDefault();
+        send(form, { url: api("/ship"), body: {}, busy: "Booking…",
+          confirm: { title: "Ship this order with Shiprocket?", message: "The parcel is booked with a courier and the order is marked as shipped. The customer is emailed the tracking number.", confirmLabel: "Book and ship", tone: "primary" } });
+      } else if (form.matches("[data-rto-form]")) {
+        event.preventDefault();
+        const stage = event.submitter && event.submitter.value === "received" ? "received" : "initiated";
+        const values = Nx.formValues(form);
+        send(form, { url: api("/rto"), body: { stage, reason: values.reason }, busy: "Saving…",
+          confirm: stage === "received"
+            ? { title: "Parcel back with you?", message: "Every item still on its way is cancelled, stock goes back on the shelf, and anything paid online is refunded to the card or UPI. This can't be undone.", confirmLabel: "Mark as back", tone: "danger" }
+            : { title: "Parcel coming back?", message: "The customer is emailed that the parcel could not be delivered.", confirmLabel: "Mark as coming back", tone: "primary" } });
       } else if (form.matches("[data-note-form]")) {
         event.preventDefault();
         send(form, { url: api("/notes"), busy: "Saving…" });

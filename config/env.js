@@ -74,6 +74,9 @@ function readConfig() {
     // Email (order emails, cart reminders, campaigns). Optional: without SMTP the emails are
     // written to the console in development. The values are never logged.
     mail: readMail(),
+    // Shipping (B5): "manual" (the admin types the courier and tracking number) or "shiprocket"
+    // (one-click shipments, live PIN code checks and tracking updates). services/shipping/.
+    shipping: readShipping(),
     // Visitor analytics (utils/analytics.js). Off unless set, and only loads after the visitor agrees.
     analytics: require("../utils/analytics").readAnalytics(),
     // Error alerts. Optional: without a DSN nothing is sent anywhere.
@@ -129,6 +132,28 @@ function readMail() {
 function readAdminPath() {
   const raw = (process.env.ADMIN_PATH || "/admin").trim().replace(/\/+$/, "");
   return (raw.startsWith("/") ? raw : `/${raw}`).toLowerCase();
+}
+
+// Shipping settings. Shiprocket is only used when its login and pickup location are all set.
+function readShipping() {
+  const text = name => String(process.env[name] ?? "").trim();
+  const shiprocket = {
+    email: text("SHIPROCKET_EMAIL"),
+    password: text("SHIPROCKET_PASSWORD"),
+    pickupLocation: text("SHIPROCKET_PICKUP_LOCATION"),
+    webhookToken: text("SHIPROCKET_WEBHOOK_TOKEN"),
+    baseUrl: (text("SHIPROCKET_API_URL") || "https://apiv2.shiprocket.in/v1/external").replace(/\/+$/, "")
+  };
+  shiprocket.enabled = Boolean(shiprocket.email && shiprocket.password && shiprocket.pickupLocation);
+  const wanted = text("SHIPPING_PROVIDER").toLowerCase();
+  return {
+    provider: wanted === "shiprocket" && shiprocket.enabled ? "shiprocket" : "manual",
+    // The warehouse PIN code: where parcels leave from (used for PIN code checks).
+    pickupPincode: text("SHIPPING_PICKUP_PINCODE"),
+    // Parcel weight in kg when a product has none (couriers price by weight).
+    defaultWeightKg: Number(text("SHIPPING_DEFAULT_WEIGHT_KG")) || 0.5,
+    shiprocket
+  };
 }
 
 function readRazorpay() {

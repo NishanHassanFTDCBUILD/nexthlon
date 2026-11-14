@@ -449,6 +449,11 @@ body.admin-menu-open { overflow: hidden; }
 .admin-decision-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .admin-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
 .admin-list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-half) var(--space-1); font-size: var(--text-sm); }
+/* Shipping (B5): one-click booking, the courier's word, and refused parcels. */
+.ship-row small { flex-basis: 100%; }
+.ship-now { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm) var(--space-2); padding: var(--space-1h) var(--space-2); margin-block: var(--space-sm); border-radius: var(--radius); background: rgba(var(--brand-rgb), 0.08); border: 1px solid rgba(var(--brand-rgb), 0.3); }
+.ship-now p { margin: 0; flex: 1 1 280px; font-size: var(--text-sm); }
+.rto-form p { flex-basis: 100%; margin: 0; font-size: var(--text-sm); }
 .admin-list small { flex-basis: 100%; }
 .admin-timeline { list-style: none; margin: 0; padding: 0 0 0 var(--space-lg); display: flex; flex-direction: column; gap: var(--space-1h); border-left: 2px solid var(--line); }
 .admin-timeline li { position: relative; display: flex; flex-direction: column; gap: var(--space-xxs); font-size: var(--text-sm); }

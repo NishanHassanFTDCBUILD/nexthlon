@@ -147,6 +147,11 @@
               <input id="p-netqty" name="netQuantity" maxlength="60" value="<%= p.netQuantity || '' %>" placeholder="e.g. 1 pair, 1 N, 750 ml" aria-describedby="p-netqty-error">
               <p class="field-error" id="p-netqty-error" data-error-for="netQuantity"></p>
             </div>
+            <div class="field">
+              <label for="p-weight">Packed weight <span class="optional">(grams, for the courier)</span></label>
+              <input id="p-weight" name="shipWeight" type="number" inputmode="numeric" min="0" max="50000" step="1" value="<%= p.shipWeight || '' %>" placeholder="e.g. 450" aria-describedby="p-weight-error">
+              <p class="field-error" id="p-weight-error" data-error-for="shipWeight"></p>
+            </div>
             <div class="field field-wide">
               <label for="p-maker">Manufacturer or importer <span class="optional">(name and address)</span></label>
               <textarea id="p-maker" name="manufacturer" rows="2" maxlength="300" placeholder="e.g. Nexthlon Sports Pvt Ltd, 12 MG Road, Kochi, Kerala 682001" aria-describedby="p-maker-error"><%= p.manufacturer || '' %></textarea>

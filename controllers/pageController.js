@@ -29,6 +29,7 @@ const { HttpError, asyncHandler, safeNextPath } = require("../utils/http");
 const { linkBuilder } = require("../utils/queryString");
 const seo = require("../utils/seo");
 const analytics = require("../utils/analyticsEvents");
+const shippingService = require("../services/shippingService");
 const { sizedUrl } = require("../utils/images");
 const { estimateDelivery } = require("../services/deliveryService");
 
@@ -287,6 +288,8 @@ const orderDetail = asyncHandler(async (req, res) => {
     title: `Order ${order.orderId} | Nexthlon`,
     order,
     timeline: orderService.timelineFor(order),
+    // B5: the courier's scans for the latest parcel (empty until it ships).
+    tracking: shippingService.trackingFor(order),
     labels: orderRules.STATUS_LABELS,
     canCancel: order.items.some(orderRules.canCancelItem),
     canReturn: orderRules.canRequestReturn(order, STORE.returnDays),

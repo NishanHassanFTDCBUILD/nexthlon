@@ -165,6 +165,13 @@
   .js-motion .timeline.is-drawn .timeline-step::before { transform-origin: left center; animation: nx-line-draw var(--duration-slow) var(--ease) calc(var(--step, 0) * var(--duration-fast)) both; }
   @keyframes nx-step-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
   @keyframes nx-line-draw { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
+
+  /* B5: a parcel on its way. The latest courier scan pulses, the scans rise in one after another,
+     and the truck rolls gently while the order is out there. */
+  .track-scan { animation: nx-step-rise var(--duration-slow) var(--ease) calc(var(--i, 0) * var(--duration-fast) / 2) both; }
+  .track-scan.is-latest .track-scan-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: nx-dot-pulse var(--loop-short) var(--ease-out) infinite; }
+  .track-card.is-live .track-truck .i { animation: nx-truck-roll var(--loop-short) var(--ease-in-out) infinite; }
+  @keyframes nx-truck-roll { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
 }
 
 /* ---------- Empty-state illustrations float, and tooltips ---------- */

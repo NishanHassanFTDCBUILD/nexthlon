@@ -222,6 +222,21 @@ function checkEnv(env = process.env) {
   const scheme = text(env, "STORE_GST_SCHEME");
   if (scheme && !["regular", "composition"].includes(scheme)) fail("STORE_GST_SCHEME", `"${scheme}" must be regular or composition.`);
 
+  // ---------- Shipping (B5) ----------
+  const shipping = text(env, "SHIPPING_PROVIDER").toLowerCase();
+  if (shipping && !["manual", "shiprocket"].includes(shipping)) fail("SHIPPING_PROVIDER", `"${shipping}" must be manual or shiprocket.`);
+  if (shipping === "shiprocket") {
+    for (const name of ["SHIPROCKET_EMAIL", "SHIPROCKET_PASSWORD", "SHIPROCKET_PICKUP_LOCATION"]) {
+      if (!text(env, name)) fail(name, "is needed when SHIPPING_PROVIDER is shiprocket (use a Shiprocket API user, not your own login).");
+    }
+    if (!/^[1-9][0-9]{5}$/.test(text(env, "SHIPPING_PICKUP_PINCODE"))) fail("SHIPPING_PICKUP_PINCODE", "should be the 6-digit PIN code parcels are picked up from.");
+    const hook = text(env, "SHIPROCKET_WEBHOOK_TOKEN");
+    if (!hook) warn("SHIPROCKET_WEBHOOK_TOKEN", "is not set, so tracking updates from Shiprocket are refused and orders only move when you update them.");
+    else if (hook.length < 16) fail("SHIPROCKET_WEBHOOK_TOKEN", "should be at least 16 random characters.");
+  }
+  const weight = text(env, "SHIPPING_DEFAULT_WEIGHT_KG");
+  if (weight && !(Number(weight) > 0 && Number(weight) <= 50)) fail("SHIPPING_DEFAULT_WEIGHT_KG", "should be a weight in kg between 0 and 50, e.g. 0.5.");
+
   // ---------- Analytics (D2) ----------
   require("../utils/analytics").analyticsProblems(env).forEach(([name, message]) => fail(name, message));
 

@@ -5,6 +5,7 @@ const ledgerService = require("../services/ledgerService");
 const cartRecoveryService = require("../services/cartRecoveryService");
 const auditService = require("../services/auditService");
 const invoiceService = require("../services/invoiceService");
+const shippingService = require("../services/shippingService");
 const { sendWorkbook } = require("../utils/excel");
 const { row } = require("../utils/csv");
 const rules = require("../utils/orderRules");
@@ -110,6 +111,22 @@ const addShipment = asyncHandler(async (req, res) => {
   const { order, shipment } = await adminOrderService.addShipment(req.params.orderId, value, req.user);
   await audit(req, "order.shipment", `order:${order.orderId}`, null, { courier: shipment.courier, trackingNumber: shipment.trackingNumber, status: order.orderStatus });
   res.status(201).json({ message: `Shipment added: ${shipment.courier} ${shipment.trackingNumber}.`, shipment, status: order.orderStatus });
+});
+
+// POST /api/admin/orders/:orderId/ship   One click: booked with Shiprocket, AWB taken, marked as shipped (B5).
+const shipNow = asyncHandler(async (req, res) => {
+  const { order, shipment } = await shippingService.shipOrder(req.params.orderId, req.user);
+  await audit(req, "order.shipment", `order:${order.orderId}`, null, { courier: shipment.courier, trackingNumber: shipment.trackingNumber, provider: "shiprocket", status: order.orderStatus });
+  res.status(201).json({ message: `Booked with ${shipment.courier}: AWB ${shipment.trackingNumber}.`, shipment, status: order.orderStatus });
+});
+
+// POST /api/admin/orders/:orderId/rto   { stage: "initiated" | "received", reason }   A refused or undeliverable parcel.
+const markRto = asyncHandler(async (req, res) => {
+  const stage = String((req.body && req.body.stage) || "");
+  const reason = String((req.body && req.body.reason) || "").trim().slice(0, 200);
+  const order = await shippingService.markRto(req.params.orderId, stage, { reason, by: "admin" });
+  await audit(req, "order.rto", `order:${order.orderId}`, null, { stage, reason, status: order.orderStatus });
+  res.json({ message: stage === "received" ? "Marked as back with us. The items are cancelled, stock is back, and any payment is refunded." : "Marked as coming back to us.", status: order.orderStatus });
 });
 
 const addNote = asyncHandler(async (req, res) => {
@@ -223,6 +240,6 @@ const remindCart = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  listOrders, exportOrders, getOrder, setStatus, bulkStatus, cancelItems, addShipment, addNote, refund, invoicePdf, creditNotePdf, packingSlipPdf,
+  listOrders, exportOrders, getOrder, setStatus, bulkStatus, cancelItems, addShipment, shipNow, markRto, addNote, refund, invoicePdf, creditNotePdf, packingSlipPdf,
   listReturns, decideReturn, listTransactions, exportTransactions, getTransaction, reconciliation, listRefunds, listAbandoned, remindCart
 };

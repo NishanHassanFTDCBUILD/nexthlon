@@ -107,6 +107,9 @@ app.use(noCache);
 // the JSON parser. It is also before the origin check: Razorpay's servers send no Origin header,
 // and the signature is the proof it really came from Razorpay.
 app.post("/api/payments/razorpay/webhook", express.raw({ type: "application/json", limit: "1mb" }), require("./controllers/paymentController").webhook);
+// Courier tracking updates (B5): no Origin header either; the x-api-key token proves where they come from.
+// Its own size limit, because a parcel's full scan list can be bigger than a normal API request.
+app.post("/api/webhooks/courier", express.json({ limit: "256kb" }), require("./controllers/shippingController").courierWebhook);
 app.use(express.json({ limit: "20kb" }));
 app.use(express.urlencoded({ extended: false, limit: "20kb" }));
 app.use(cookieParser());

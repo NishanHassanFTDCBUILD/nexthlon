@@ -1,6 +1,6 @@
 const productService = require("../services/productService");
 const reviewService = require("../services/reviewService");
-const { estimateDelivery } = require("../services/deliveryService");
+const shippingService = require("../services/shippingService");
 const { lookupPincode } = require("../services/pincodeService");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { readIdList, validateReview, hasErrors } = require("../utils/validators");
@@ -65,7 +65,8 @@ const addReview = asyncHandler(async (req, res) => {
 
 // GET /api/delivery/estimate?pincode=560001
 const deliveryEstimate = asyncHandler(async (req, res) => {
-  const estimate = estimateDelivery(req.query.pincode);
+  // The rules, confirmed by the courier platform when Shiprocket is set up (services/shippingService.js).
+  const estimate = await shippingService.checkPincode(req.query.pincode);
   if (!estimate) throw new HttpError(400, "Enter a valid 6-digit PIN code.", { pincode: "Enter a valid 6-digit PIN code." });
   res.json({ estimate });
 });

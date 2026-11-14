@@ -219,6 +219,12 @@ function validateProduct(body = {}) {
     value[field] = longText(body[field]).replace(/\s*,?\s*\n\s*/g, ", ");
     if (value[field].length > max) errors[field] = `Keep the ${label} under ${max} characters.`;
   }
+  // Packed weight for the courier, in grams (B5). Empty means the store default.
+  if (body.shipWeight !== undefined) {
+    const grams = String(body.shipWeight).trim() === "" ? 0 : Number(body.shipWeight);
+    if (!Number.isInteger(grams) || grams < 0 || grams > 50000) errors.shipWeight = "Enter the packed weight in whole grams, up to 50000 (50 kg).";
+    else value.shipWeight = grams;
+  }
   if (value.countryOfOrigin === "") errors.countryOfOrigin = "Enter the country of origin (for example India).";
   // Sizes and colours. Left out (an older form or an API call without them) means "keep what is there".
   if (body.options !== undefined) {

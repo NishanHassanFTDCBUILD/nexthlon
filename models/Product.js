@@ -61,6 +61,8 @@ const productSchema = new mongoose.Schema({
   countryOfOrigin: { type: String, trim: true, default: "India", maxlength: 60 },
   manufacturer: { type: String, trim: true, default: "", maxlength: 300 },
   netQuantity: { type: String, trim: true, default: "", maxlength: 60 },
+  // Packed weight in grams, for the courier (B5). 0 means the store default (SHIPPING_DEFAULT_WEIGHT_KG).
+  shipWeight: { type: Number, default: 0, min: 0, max: 50000, validate: Number.isInteger },
   description: { type: String, default: "", maxlength: 4000 },
   highlights: { type: [String], default: [] },
   specs: { type: Map, of: String, default: {} },

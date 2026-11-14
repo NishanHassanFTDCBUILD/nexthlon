@@ -1369,6 +1369,25 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 .timeline-step.is-alert.is-done::before { background: var(--danger); }
 .timeline-step[aria-current="step"] .timeline-dot { box-shadow: 0 0 0 5px var(--success-soft); }
 .timeline-text { display: flex; flex-direction: column; gap: var(--space-xxs); font-size: var(--text-sm); }
+/* B5: the courier's side of the journey: who carries it, the AWB, and every scan, newest first. */
+.track-card { display: grid; gap: var(--space-1h); margin-top: var(--space-2); padding: var(--space-2); border-radius: var(--radius-lg); background: var(--surface-2); border: 1px solid var(--line); }
+.track-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1h); }
+.track-truck { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(var(--brand-rgb), 0.16); color: var(--brand-ink); flex: none; }
+.track-who { display: flex; flex-direction: column; gap: var(--space-xxs); font-size: var(--text-sm); flex: 1 1 160px; }
+.track-eta { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-xxs); font-size: var(--text-sm); }
+.track-scans { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1h); }
+.track-scan { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: var(--space-1); font-size: var(--text-sm); }
+.track-scan:not(:last-child)::before { content: ""; position: absolute; left: 4px; top: 16px; bottom: calc(var(--space-1h) * -1); width: 2px; background: var(--line); }
+.track-scan-dot { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--muted-2); color: var(--success); align-self: center; }
+.track-scan.is-latest .track-scan-dot { background: var(--success); }
+.track-scan time { white-space: nowrap; }
+.track-empty { margin: 0; font-size: var(--text-sm); }
+.track-rto { margin-top: var(--space-2); }
+@media (max-width: 520px) {
+  .track-scan { grid-template-columns: auto 1fr; }
+  .track-scan time { grid-column: 2; }
+  .track-eta { align-items: flex-start; }
+}
 .order-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .order-item { display: grid; grid-template-columns: 80px minmax(0, 1fr) auto; gap: var(--space-1h); align-items: center; padding: var(--space-1h) 0; border-bottom: 1px solid var(--line); }
 .order-item:last-child { border-bottom: 0; }

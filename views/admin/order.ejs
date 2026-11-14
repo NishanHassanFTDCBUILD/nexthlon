@@ -4,7 +4,7 @@
   const paymentLabels = { pending: 'Pending', paid: 'Paid', failed: 'Failed', refunded: 'Refunded', partially_refunded: 'Part refunded' };
   const paymentPill = { pending: 'pill-amber', paid: 'pill-green', failed: 'pill-red', refunded: 'pill-grey', partially_refunded: 'pill-blue' };
   const when = function (d) { return d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : ''; };
-  const historyLabel = function (s) { return statusLabels[s] || { item_cancelled: 'Item cancelled', shipment_added: 'Shipment added', return_rejected: 'Return rejected' }[s] || s; };
+  const historyLabel = function (s) { return statusLabels[s] || { item_cancelled: 'Item cancelled', shipment_added: 'Shipment added', return_rejected: 'Return rejected', rto_initiated: 'Coming back (not delivered)', rto_received: 'Back with us' }[s] || s; };
   const paidOnline = o.paymentMethod === 'razorpay' && ['paid', 'partially_refunded'].includes(o.paymentStatus);
   const charged = o.total + (o.walletUsed || 0);
 %>
@@ -110,10 +110,29 @@
         <% if (o.shipments.length) { %>
           <ul class="admin-list">
             <% o.shipments.forEach(function (s) { %>
-              <li><strong><%= s.courier %></strong> <code><%= s.trackingNumber %></code><small class="muted">Added <%= when(s.at) %><%= s.expectedAt ? ' · expected ' + formatDate(s.expectedAt) : '' %></small></li>
+              <li class="ship-row">
+                <span><strong><%= s.courier %></strong> <code><%= s.trackingNumber %></code><% if (s.provider === 'shiprocket') { %> <span class="pill pill-blue">Shiprocket</span><% } %></span>
+                <small class="muted">Added <%= when(s.at) %><%= s.expectedAt ? ' · expected ' + formatDate(s.expectedAt) : '' %><%= s.status ? ' · courier says: ' + s.status : '' %></small>
+                <% if (s.labelUrl) { %><a class="btn btn-ghost btn-xs" href="<%= s.labelUrl %>" target="_blank" rel="noopener noreferrer"><%- icon('download', 'i-xs') %> Shipping label</a><% } %>
+              </li>
             <% }) %>
           </ul>
         <% } else { %><p class="muted">No shipment yet.</p><% } %>
+        <% const canShipNow = shippingProvider === 'shiprocket' && next.includes('shipped') && !o.shipments.some(function (s) { return s.provider === 'shiprocket'; }) && !(o.paymentMethod === 'razorpay' && !['paid', 'partially_refunded'].includes(o.paymentStatus)); %>
+        <% if (canShipNow) { %>
+          <form class="ship-now" data-ship-now-form>
+            <p><strong>Ship with one click.</strong> <span class="muted">Books the parcel on Shiprocket, takes the AWB, asks for a pickup, prints the label and marks the order as shipped. The customer gets the shipped email with tracking.</span></p>
+            <button class="btn btn-primary btn-sm" type="submit"><%- icon('truck', 'i-sm') %> Ship with Shiprocket</button>
+          </form>
+        <% } %>
+        <% if (['shipped', 'out_for_delivery'].includes(o.orderStatus) && !(o.rto && o.rto.stage === 'received')) { %>
+          <form class="admin-inline-form rto-form" data-rto-form novalidate>
+            <p class="field-wide"><strong>Refused or not delivered?</strong> <span class="muted"><%= o.rto && o.rto.stage === 'initiated' ? 'Coming back to us since ' + when(o.rto.at) + '. When it arrives, mark it as back: the items are cancelled, stock returns and a paid order is refunded.' : 'Mark it when the courier starts bringing it back (the customer is told), and again when it reaches you.' %></span></p>
+            <label class="admin-field"><span>Reason <span class="optional">(optional)</span></span><input name="reason" maxlength="200" placeholder="e.g. Customer refused the parcel"></label>
+            <% if (!(o.rto && o.rto.stage === 'initiated')) { %><button class="btn btn-ghost btn-sm" type="submit" value="initiated"><%- icon('rotate-ccw', 'i-sm') %> Coming back</button><% } %>
+            <button class="btn btn-danger-soft btn-sm" type="submit" value="received"><%- icon('package-check', 'i-sm') %> Back with us</button>
+          </form>
+        <% } %>
         <% if (!['cancelled', 'returned'].includes(o.orderStatus)) { %>
           <form class="admin-inline-form" data-shipment-form novalidate>
             <label class="admin-field"><span>Courier</span><input name="courier" maxlength="60" required placeholder="e.g. Delhivery" list="couriers"></label>

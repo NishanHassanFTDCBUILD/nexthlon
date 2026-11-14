@@ -135,6 +135,25 @@ const BUILDERS = {
     };
   },
 
+  // B5: the courier could not deliver and is bringing the parcel back to us.
+  rto(order, user, base) {
+    const paid = order.paymentMethod !== "cod" || order.paymentStatus === "paid";
+    return {
+      subject: `We couldn't deliver order ${order.orderId}`,
+      content: {
+        preheader: "Your parcel is on its way back to us.",
+        heading: "We couldn't deliver your parcel",
+        paragraphs: [
+          `${firstName(user)}, the courier could not deliver order ${order.orderId} and is bringing it back to us.`,
+          paid ? "Once it reaches us, we cancel the order and refund what you paid. You will get an email when the refund is done." : "Once it reaches us, the order is cancelled. Nothing was charged.",
+          "Still want it? Reply to this email or contact us, and we will help you order it again."
+        ],
+        sections: [addressSection(order)],
+        button: { label: "View your order", url: orderUrl(order, base) }
+      }
+    };
+  },
+
   // A tracking number added after the order had already shipped.
   tracking(order, user, base) {
     const tracking = trackingLines(order) || [];

@@ -12,6 +12,8 @@
 
   window.addEventListener("pagereveal", event => {
     const transition = event.viewTransition;
+    // Cancelled transitions (the pages disagree, or the page was already shown) reject: expected, not errors.
+    if (transition) ["ready", "updateCallbackDone", "finished"].forEach(name => transition[name] && transition[name].catch(() => {}));
     const activation = window.navigation.activation;
     if (!transition || !activation || activation.navigationType !== "traverse" || !activation.from) return;
 

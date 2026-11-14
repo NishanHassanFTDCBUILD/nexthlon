@@ -37,7 +37,9 @@ const order = asyncHandler(async (req, res) => {
     title: `${data.order.orderId} | Nexthlon Admin`,
     ...data,
     ...labels,
-    cancelReasons: rules.CANCEL_REASONS
+    cancelReasons: rules.CANCEL_REASONS,
+    // B5: "shiprocket" shows the one-click button; "manual" only the courier and AWB form.
+    shippingProvider: config.shipping.provider
   });
 });
 

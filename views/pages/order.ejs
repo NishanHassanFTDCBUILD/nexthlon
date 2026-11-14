@@ -52,6 +52,26 @@
             </li>
           <% }) %>
         </ol>
+        <% if (order.rto && order.rto.stage === 'initiated') { %>
+          <div class="alert alert-info track-rto" role="status"><%- icon('rotate-ccw') %><span>The courier couldn't deliver this parcel and is bringing it back to us. Once it arrives we cancel the order<%= order.paymentMethod === 'cod' && order.paymentStatus === 'pending' ? '' : ' and refund what you paid' %>.</span></div>
+        <% } %>
+        <% if (tracking) { %>
+          <div class="track-card<%= ['shipped', 'out_for_delivery'].includes(order.orderStatus) ? ' is-live' : '' %>">
+            <div class="track-head">
+              <span class="track-truck" aria-hidden="true"><%- icon('truck', 'i-sm') %></span>
+              <span class="track-who"><strong><%= tracking.courier %></strong><span class="muted">AWB <span class="num"><%= tracking.trackingNumber %></span></span></span>
+              <% if (tracking.expectedAt && !['delivered', 'cancelled', 'returned'].includes(order.orderStatus)) { %><span class="track-eta"><span class="label-caps">Expected</span><strong><%= formatDate(tracking.expectedAt) %></strong></span><% } %>
+            </div>
+            <% if (tracking.events.length) { %>
+              <ol class="track-scans" aria-label="Courier updates, newest first">
+                <% tracking.events.forEach(function (scan, i) { %>
+                  <li class="track-scan<%= i === 0 ? ' is-latest' : '' %>" style="--i: <%= i %>"><span class="track-scan-dot" aria-hidden="true"></span><span><strong><%= scan.status %></strong><% if (scan.location) { %><span class="muted"> · <%= scan.location %></span><% } %></span><time class="muted" datetime="<%= new Date(scan.at).toISOString() %>"><%= timeText(scan.at) %></time></li>
+                <% }) %>
+              </ol>
+            <% } else { %><p class="muted track-empty">The courier's updates appear here as soon as the parcel is scanned.</p><% } %>
+            <% if (tracking.url) { %><a class="link-btn" href="<%= tracking.url %>" target="_blank" rel="noopener noreferrer">Track on the courier's site <%- icon('external-link', 'i-xs') %></a><% } %>
+          </div>
+        <% } %>
         <% if (order.cancelReason) { %><p class="muted">Cancelled: <%= order.cancelReason %></p><% } %>
         <% if (order.returnReason) { %><p class="muted">Return reason: <%= order.returnReason %><%= order.returnNote ? ' · ' + order.returnNote : '' %></p><% } %>
       </section>

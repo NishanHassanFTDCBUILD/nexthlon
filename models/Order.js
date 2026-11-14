@@ -87,12 +87,27 @@ const refundSchema = new mongoose.Schema({
 }, { _id: false });
 
 // Admin: a parcel handed to a courier.
+// One scan from the courier: "In transit", at "Bengaluru Hub", at this time.
+const trackingEventSchema = new mongoose.Schema({
+  status: { type: String, required: true, maxlength: 60 },
+  location: { type: String, default: "", maxlength: 120 },
+  at: { type: Date, default: Date.now }
+}, { _id: false });
+
 const shipmentSchema = new mongoose.Schema({
   courier: { type: String, required: true, trim: true, maxlength: 60 },
   trackingNumber: { type: String, required: true, trim: true, maxlength: 60 },
   expectedAt: { type: Date, default: null },
   addedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-  at: { type: Date, default: Date.now }
+  at: { type: Date, default: Date.now },
+  // B5: who booked it ("manual" when typed in by the admin) and the courier platform's own ids.
+  provider: { type: String, enum: ["manual", "shiprocket"], default: "manual" },
+  providerOrderId: { type: String, default: "", maxlength: 40 },
+  providerShipmentId: { type: String, default: "", maxlength: 40 },
+  labelUrl: { type: String, default: "", maxlength: 500 },
+  // The courier's latest word, and every scan the tracking webhook reported (newest last).
+  status: { type: String, default: "", maxlength: 60 },
+  events: { type: [trackingEventSchema], default: [] }
 });
 
 // Admin: an internal note (never shown to the customer).
@@ -147,6 +162,13 @@ const orderSchema = new mongoose.Schema({
     paymentId: { type: String, default: "" }
   },
   shipments: { type: [shipmentSchema], default: [] },
+  // B5: the courier could not deliver and is bringing the parcel back ("initiated"), or it is back with us
+  // ("received": the items are cancelled, stock returns and a paid order is refunded).
+  rto: {
+    stage: { type: String, enum: ["", "initiated", "received"], default: "" },
+    reason: { type: String, default: "", maxlength: 200 },
+    at: { type: Date, default: null }
+  },
   notes: { type: [noteSchema], default: [] },
   returnDecision: { type: returnDecisionSchema, default: null },
   gst: { type: gstSchema, default: undefined },
@@ -162,6 +184,8 @@ orderSchema.index({ paymentMethod: 1, createdAt: -1 });
 orderSchema.index({ "address.city": 1, createdAt: -1 });
 orderSchema.index({ "refunds.at": -1 }, { sparse: true });
 orderSchema.index({ "razorpay.orderId": 1 }, { sparse: true });
+// The courier tracking webhook finds the order by its AWB (tracking number).
+orderSchema.index({ "shipments.trackingNumber": 1 }, { sparse: true });
 // "Frequently bought together" (recommendationService): orders that contain a product, newest first.
 orderSchema.index({ "items.product": 1, createdAt: -1 });
 // GST: an invoice number is never used twice.

@@ -57,6 +57,8 @@ router.get("/orders/:orderId", orders.getOrder);
 router.patch("/orders/:orderId/status", adminWriteLimiter, orders.setStatus);
 router.post("/orders/:orderId/cancel", adminMoneyLimiter, orders.cancelItems);
 router.post("/orders/:orderId/shipments", adminWriteLimiter, orders.addShipment);
+router.post("/orders/:orderId/ship", adminWriteLimiter, orders.shipNow);
+router.post("/orders/:orderId/rto", adminMoneyLimiter, orders.markRto);
 router.post("/orders/:orderId/notes", adminWriteLimiter, orders.addNote);
 router.post("/orders/:orderId/refunds", adminMoneyLimiter, orders.refund);
 router.get("/orders/:orderId/invoice.pdf", orders.invoicePdf);

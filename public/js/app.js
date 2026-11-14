@@ -687,6 +687,8 @@
       clicked = link || null;
     }, true);
     window.addEventListener("pageswap", event => {
+      // A transition the other page turns down rejects its promises: expected, not errors.
+      if (event.viewTransition) ["ready", "updateCallbackDone", "finished"].forEach(name => event.viewTransition[name] && event.viewTransition[name].catch(() => {}));
       if (!event.viewTransition || !clicked) return;
       const card = clicked.closest(".product-card, .zg-card, .rail-card, .wish-card, [data-product-card]") || clicked;
       const photo = card.querySelector("img");

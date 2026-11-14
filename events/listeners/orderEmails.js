@@ -23,3 +23,7 @@ events.on("order.refunded", "email", ({ orderId, seq, amount, parts = [], reason
 events.on("order.return_requested", "email", ({ orderId, seq }) => orderMail.sendOrderEmail("return_requested", orderId, {}, String(seq)));
 
 events.on("order.return_decided", "email", ({ orderId, decision, note = "", seq }) => orderMail.sendOrderEmail("return_decided", orderId, { decision, note }, String(seq)));
+
+// B5: a parcel the courier is bringing back (refused or undeliverable). Once it is back, the cancelled
+// and refunded emails follow from the usual events.
+events.on("order.rto", "email", ({ orderId, stage }) => (stage === "initiated" ? orderMail.sendOrderEmail("rto", orderId) : undefined));

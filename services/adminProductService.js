@@ -69,6 +69,7 @@ function toAdminProduct(product) {
     countryOfOrigin: product.countryOfOrigin || "India",
     manufacturer: product.manufacturer || "",
     netQuantity: product.netQuantity || "",
+    shipWeight: product.shipWeight || "",
     createdAt: product.createdAt,
     updatedAt: product.updatedAt
   };
