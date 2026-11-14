@@ -396,10 +396,14 @@
       </div>
     </section>
 
-    <%- include('../partials/questions', { product: product, questions: questions, canAnswer: canAnswer, signedIn: Boolean(currentUser && currentUser.role === 'customer') }) %>
+    <div class="pdx-extra">
+      <%- include('../partials/questions', { product: product, questions: questions, canAnswer: canAnswer, signedIn: Boolean(currentUser && currentUser.role === 'customer') }) %>
+    </div>
   </div>
 
-  <%- include('../partials/bundles', { bundles: bundles, product: product, shopper: shopper, currentUser: currentUser }) %>
+  <div class="container pdx-extra">
+    <%- include('../partials/bundles', { bundles: bundles, product: product, shopper: shopper, currentUser: currentUser }) %>
+  </div>
 
   <% if (together.length) { %>
     <%# Products that real customers ordered together with this one (recommendationService). %>

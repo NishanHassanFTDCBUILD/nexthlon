@@ -505,3 +505,19 @@
 .pdx-bundle-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); font-size: var(--text-sm); }
 .pdx-bundle-list li { display: flex; justify-content: space-between; gap: var(--space-sm); padding-bottom: var(--space-xs); border-bottom: 1px dashed var(--line); }
 .pdx-bundle-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm); font-size: var(--text-sm); }
+
+/* Q&A and complete-the-kit: inside the page gutter on every screen (they were touching the edges). */
+.pdx-extra { width: 100%; }
+.container.pdx-extra { max-width: var(--container); margin-inline: auto; padding-inline: max(var(--gutter), env(safe-area-inset-left)); }
+.pdx-qa-ask { align-items: stretch; }
+.pdx-qa-ask .btn { min-height: var(--tap); }
+@media (max-width: 720px) {
+  .pdx-qa-ask input, .pdx-qa-ask textarea { flex-basis: 100%; }
+  .pdx-qa-ask .btn { flex: 1 1 100%; }
+  .pdx-qa-q, .pdx-qa-a { grid-template-columns: 26px minmax(0, 1fr); }
+  .pdx-qa-q > span:last-child, .pdx-qa-a > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+  .pdx-qa-wait, .pdx-qa-item .pdx-text-btn, .pdx-qa-reply { margin-left: 0; }
+  .pdx-bundle-foot { flex-direction: column; align-items: stretch; }
+  .pdx-bundle-foot .pdx-btn { width: 100%; justify-content: center; }
+  .pdx-bundle-list li { flex-wrap: wrap; }
+}
