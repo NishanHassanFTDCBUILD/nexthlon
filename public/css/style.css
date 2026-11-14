@@ -949,6 +949,10 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 .footer-bottom { border-top: 1px solid rgba(var(--white-rgb), 0.08); font-size: var(--text-xs); color: var(--on-dark-muted); }
 .footer-bottom-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); padding-top: var(--space-2); padding-bottom: var(--space-2); }
 .footer-legal { display: flex; flex-wrap: wrap; gap: var(--space-half) var(--space-2); }
+/* "Get the app" (E5): only when the browser can install it (public/js/pwa.js). */
+.footer-install { display: inline-flex; align-items: center; gap: var(--space-xs); min-height: 36px; padding: 0 var(--space-1h); border: 1px solid rgba(var(--brand-rgb), 0.4); border-radius: var(--radius-pill); background: rgba(var(--brand-rgb), 0.08); color: var(--brand-ink); font: inherit; font-weight: var(--weight-semibold); cursor: pointer; }
+.footer-install[hidden] { display: none; }
+@media (hover: hover) { .footer-install:hover { background: rgba(var(--brand-rgb), 0.16); } }
 .footer-legal a { display: inline-block; padding-block: var(--space-half); color: var(--on-dark-muted); }
 @media (hover: hover) { .footer-legal a:hover { color: var(--white); } }
 

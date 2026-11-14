@@ -106,6 +106,8 @@
   <div class="footer-bottom">
     <div class="container footer-bottom-inner">
       <span>&copy; <%= new Date().getFullYear() %> <%= store.brandName %>. All rights reserved.</span>
+      <%# Shown by public/js/pwa.js only when this browser can install the app (E5). %>
+      <button type="button" class="footer-install" data-install-app hidden><%- icon('download', 'i-xs') %> Get the app</button>
       <nav class="footer-legal" aria-label="Policies">
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>

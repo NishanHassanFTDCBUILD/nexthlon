@@ -18,6 +18,8 @@ router.get("/products/:slug", publicCache, pages.productDetail);
 router.get("/stock-alerts/stop", pages.stopStockAlert);
 
 // Store information and the policies Razorpay asks for
+// The page the app shows with no connection (E5, public/sw.js). Kept by the service worker, signed out.
+router.get("/offline", publicCache, (req, res) => res.render("pages/offline"));
 router.get("/about", publicCache, pages.infoPage("about"));
 router.get("/contact", publicCache, pages.infoPage("contact"));
 router.get("/privacy", publicCache, pages.infoPage("privacy"));
