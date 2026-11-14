@@ -172,7 +172,7 @@
         <div class="dash-card-head"><h2 id="pay-title">Payment</h2></div>
         <dl class="summary-list">
           <div><dt>Items</dt><dd><%= formatPrice(o.subtotal) %></dd></div>
-          <% if (o.couponDiscount) { %><div class="summary-savings"><dt>Coupon <%= o.couponCode %></dt><dd>−<%= formatPrice(o.couponDiscount) %></dd></div><% } %>
+          <% if (o.couponDiscount) { %><div class="summary-savings"><dt>Coupon <%= o.couponCode %></dt><dd>−<%= formatPrice(o.couponDiscount) %></dd></div><% } %><% if (o.prepaidDiscount) { %><div class="summary-savings"><dt>Online payment discount</dt><dd>−<%= formatPrice(o.prepaidDiscount) %></dd></div><% } %>
           <div><dt>Delivery</dt><dd><%= o.deliveryFee ? formatPrice(o.deliveryFee) : 'Free' %></dd></div>
           <% if (o.walletUsed) { %><div><dt>From wallet</dt><dd><%= formatPrice(o.walletUsed) %></dd></div><% } %>
           <div class="summary-total"><dt><%= o.paymentMethod === 'cod' ? 'To collect' : 'Charged' %></dt><dd><%= formatPrice(o.total) %></dd></div>

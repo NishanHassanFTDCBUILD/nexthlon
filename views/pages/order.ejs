@@ -114,7 +114,7 @@
         <dl class="summary-list">
           <div><dt>M.R.P. total</dt><dd><%= formatPrice(order.mrpTotal) %></dd></div>
           <div class="summary-savings"><dt>Discount</dt><dd>−<%= formatPrice(order.discount) %></dd></div>
-          <% if (order.couponDiscount) { %><div class="summary-savings"><dt>Coupon <%= order.couponCode %></dt><dd>−<%= formatPrice(order.couponDiscount) %></dd></div><% } %>
+          <% if (order.couponDiscount) { %><div class="summary-savings"><dt>Coupon <%= order.couponCode %></dt><dd>−<%= formatPrice(order.couponDiscount) %></dd></div><% }%><% if (order.prepaidDiscount) { %><div class="summary-savings"><dt>Paid online</dt><dd>−<%= formatPrice(order.prepaidDiscount) %></dd></div><% } %>
           <div><dt>Delivery fee</dt><dd><%- order.deliveryFee ? formatPrice(order.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
           <% if (order.walletUsed) { %><div><dt>Paid from wallet</dt><dd>−<%= formatPrice(order.walletUsed) %></dd></div><% } %>
           <div class="summary-total"><dt><%= order.paymentMethod === 'cod' ? 'To pay on delivery' : 'Total' %></dt><dd><%= formatPrice(order.total) %></dd></div>

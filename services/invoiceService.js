@@ -134,6 +134,7 @@ function writeSimpleInvoice(order, stream) {
     ["M.R.P. total", money(order.mrpTotal)],
     ["Discount on M.R.P.", `- ${money(order.discount)}`],
     ...(order.couponDiscount ? [[`Coupon ${order.couponCode}`, `- ${money(order.couponDiscount)}`]] : []),
+    ...(order.prepaidDiscount ? [["Online payment discount", `- ${money(order.prepaidDiscount)}`]] : []),
     ["Delivery fee", order.deliveryFee ? money(order.deliveryFee) : "Free"],
     ...(order.walletUsed ? [["Paid from wallet", `- ${money(order.walletUsed)}`]] : []),
     ...(order.refundedAmount ? [["Refunded", `- ${money(order.refundedAmount)}`]] : [])

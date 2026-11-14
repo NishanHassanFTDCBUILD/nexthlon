@@ -273,12 +273,21 @@
   function render(quote) {
     current = quote;
     const t = quote.totals;
-    ["mrpTotal", "discount", "couponDiscount", "deliveryFee", "walletUsed", "total"].forEach(name => setMoney(name, t[name]));
-    setMoney("savings", t.discount + t.couponDiscount);
+    ["mrpTotal", "discount", "couponDiscount", "prepaidDiscount", "deliveryFee", "walletUsed", "total"].forEach(name => setMoney(name, t[name] || 0));
+    setMoney("savings", t.discount + t.couponDiscount + (t.prepaidDiscount || 0));
     page.querySelectorAll('[data-sum-text="couponCode"]').forEach(el => { el.textContent = t.couponCode; });
     page.querySelector('[data-sum-row="couponDiscount"]').hidden = !t.couponDiscount;
     page.querySelector('[data-sum-row="walletUsed"]').hidden = !t.walletUsed;
-    page.querySelector("[data-saving]").hidden = !(t.discount + t.couponDiscount > 0);
+    const prepaidRow = page.querySelector('[data-sum-row="prepaidDiscount"]');
+    if (prepaidRow) prepaidRow.hidden = !t.prepaidDiscount;
+    page.querySelector("[data-saving]").hidden = !(t.discount + t.couponDiscount + (t.prepaidDiscount || 0) > 0);
+    // E2: what paying online saves, on the online cards (changes with the coupon and the cart).
+    const offer = quote.onlineOffer;
+    form.querySelectorAll("[data-online-offer]").forEach(note => {
+      note.hidden = !(offer && offer.saving > 0);
+      const amount = note.querySelector("[data-online-saving]");
+      if (amount && offer) amount.textContent = `${Nx.formatPrice(offer.saving)} off`;
+    });
 
     // Cash on Delivery depends on the amount left to pay.
     if (!usingWallet()) {
@@ -315,7 +324,8 @@
     summary.classList.add("is-updating");
     placeButton.disabled = true;
     try {
-      const { quote } = await Nx.api("/api/checkout/quote", { method: "POST", body: { useWallet: usingWallet(), source } });
+      // payOnline: the rest is paid online, which may take the online-payment discount off (E2).
+      const { quote } = await Nx.api("/api/checkout/quote", { method: "POST", body: { useWallet: usingWallet(), source, payOnline: plan().kind === "razorpay" } });
       if (ticket === refreshing) render(quote);
     } catch (error) {
       Nx.toast(error.message, "error");
@@ -331,7 +341,7 @@
       syncCards();
       refresh();
     }
-    if (event.target.name === "restMethod") updateButton();
+    if (event.target.name === "restMethod") refresh();
   });
   syncCards(false);
   refresh();

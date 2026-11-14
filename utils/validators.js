@@ -434,6 +434,18 @@ function validateCodSetting(body = {}) {
   return { errors, value: { codLimit } };
 }
 
+// E2: percent off for paying online (whole 0 to 10; 0 = off) and the most it takes off, in rupees (0 = no cap).
+function validatePrepaidSetting(body = {}) {
+  const errors = {};
+  const pct = typeof body.prepaidPercent === "number" ? String(body.prepaidPercent) : text(body.prepaidPercent);
+  const prepaidPercent = /^\d{1,2}$/.test(pct) ? Number(pct) : NaN;
+  if (!Number.isInteger(prepaidPercent) || prepaidPercent > 10) errors.prepaidPercent = "Enter a whole percent from 0 to 10.";
+  const cap = typeof body.prepaidMax === "number" ? String(body.prepaidMax) : text(body.prepaidMax);
+  const prepaidMax = /^\d{1,4}$/.test(cap) ? rupeesToPaise(cap) : NaN;
+  if (!Number.isInteger(prepaidMax) || prepaidMax > 100000) errors.prepaidMax = "Enter a whole amount from ₹0 to ₹1,000.";
+  return { errors, value: { prepaidPercent, prepaidMax } };
+}
+
 // ---------- My Account ----------
 
 // Changing the sign-in email needs the current password.
@@ -691,6 +703,7 @@ function validateStockChange(body = {}) {
 
 module.exports = {
   validateCoupon,
+  validatePrepaidSetting,
   validateStockChange,
   validateStatusChange,
   validateBulkStatus,

@@ -62,7 +62,7 @@ async function discardUnpaidOrder(order) {
 async function createPaymentOrder(userId, { addressId, useWallet = false, source = "cart" }) {
   if (!razorpay.isEnabled()) throw new HttpError(503, "Online payment is not available right now. Please choose Cash on Delivery.", null, "gateway");
   const address = await checkoutService.findAddress(userId, addressId);
-  const quote = await checkoutService.buildQuote(userId, { useWallet, source });
+  const quote = await checkoutService.buildQuote(userId, { useWallet, source, payOnline: true });
   checkoutService.assertOrderable(quote);
   if (quote.totals.total <= 0) throw new HttpError(400, "Your wallet covers this order, so there is nothing to pay online. Choose \"Pay with wallet\".");
   const orderId = await checkoutService.nextOrderId();

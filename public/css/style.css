@@ -1549,6 +1549,10 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
 .pay-card-title strong { font-size: var(--text-base); }
 .pay-card-tag { flex: none; }
 .pay-card-details { display: flex; flex-direction: column; gap: var(--space-1); padding: 0 var(--space-2) var(--space-2) calc(var(--space-2) + 22px + var(--space-1h)); font-size: var(--text-sm); color: var(--ink-2); }
+/* E2: what paying online saves, inside the online payment cards. */
+.pay-offer { display: flex; align-items: center; gap: var(--space-sm); margin: 0; padding: var(--space-sm) var(--space-1h); border-radius: var(--radius-sm); background: rgba(var(--success-rgb), 0.12); color: var(--success); font-weight: var(--weight-semibold); }
+.pay-offer[hidden] { display: none; }
+.pay-offer strong { color: inherit; }
 .pay-card-details p { margin: 0; }
 .pay-rest { border: 0; margin: 0; padding: var(--space-1h); border-radius: var(--radius); background: var(--surface-2); }
 .pay-rest legend { padding: 0; margin-bottom: var(--space-half); font-size: var(--text-sm); }

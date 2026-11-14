@@ -4,7 +4,7 @@ const adminService = require("../services/adminService");
 const dashboardService = require("../services/dashboardService");
 const analyticsService = require("../services/analyticsService");
 const settingsService = require("../services/settingsService");
-const { validateReferralSetting, validateCodSetting, validateTicketReply, validateAdminSearch, hasErrors } = require("../utils/validators");
+const { validateReferralSetting, validateCodSetting, validatePrepaidSetting, validateTicketReply, validateAdminSearch, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { formatPaise } = require("../utils/money");
 const { TICKET_STATUSES } = require("../config/support");
@@ -72,6 +72,20 @@ const updateCod = asyncHandler(async (req, res) => {
   });
 });
 
+// PATCH /api/admin/settings/prepaid   body: { prepaidPercent, prepaidMax (rupees) }   E2: a discount for paying online.
+const updatePrepaid = asyncHandler(async (req, res) => {
+  const { errors, value } = validatePrepaidSetting(req.body);
+  if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);
+  const before = await settingsService.getAll();
+  await settingsService.set("prepaidPercent", value.prepaidPercent);
+  const settings = await settingsService.set("prepaidMax", value.prepaidMax);
+  await auditService.record({ ...auditService.fromRequest(req), action: "settings.updated", target: "setting:prepaid", before: { prepaidPercent: before.prepaidPercent, prepaidMax: before.prepaidMax }, after: value });
+  res.json({
+    message: value.prepaidPercent ? `Paying online now takes ${value.prepaidPercent}% off${value.prepaidMax ? `, up to ${formatPaise(value.prepaidMax)}` : ""}.` : "The online payment discount is turned off.",
+    settings
+  });
+});
+
 // ---------- Support tickets ----------
 
 // GET /api/admin/tickets?status=open|pending|resolved
@@ -99,4 +113,4 @@ const notifications = asyncHandler(async (req, res) => {
   res.json(await adminService.notifications());
 });
 
-module.exports = { dashboard, analytics, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, updateCod, listTickets, replyTicket };
+module.exports = { dashboard, analytics, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, updateCod, updatePrepaid, listTickets, replyTicket };

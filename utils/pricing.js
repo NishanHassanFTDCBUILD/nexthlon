@@ -63,10 +63,20 @@ function couponProblem(coupon, { subtotal = 0, usedByUser = 0, now = new Date() 
 
 // The totals of an order, from the cart's subtotal and M.R.P. total.
 // coupon: an already checked coupon (or null). walletBalance is only used when useWallet is true.
-function orderTotals({ itemCount = 0, mrpTotal = 0, subtotal = 0, coupon = null, walletBalance = 0, useWallet = false }) {
+// E2: paying online can take a little off (prepaid = { percent, max } from the store settings). It counts
+// on the items after the coupon, never on delivery, and only when the payment really is online.
+function prepaidDiscountFor(prepaid, base) {
+  if (!prepaid || !(prepaid.percent > 0) || base <= 0) return 0;
+  // Whole rupees, rounded down (like percent coupons): "₹24 off", never "₹24.95 off".
+  const amount = Math.floor((base * prepaid.percent) / 10000) * 100;
+  return prepaid.max > 0 ? Math.min(amount, prepaid.max) : amount;
+}
+
+function orderTotals({ itemCount = 0, mrpTotal = 0, subtotal = 0, coupon = null, walletBalance = 0, useWallet = false, prepaid = null, payOnline = false }) {
   const couponDiscount = couponDiscountFor(coupon, subtotal);
   const deliveryFee = deliveryFeeFor(subtotal);
-  const payable = subtotal - couponDiscount + deliveryFee;
+  const prepaidDiscount = payOnline ? prepaidDiscountFor(prepaid, subtotal - couponDiscount) : 0;
+  const payable = subtotal - couponDiscount - prepaidDiscount + deliveryFee;
   const walletUsed = useWallet ? Math.max(0, Math.min(walletBalance, payable)) : 0;
   return {
     itemCount,
@@ -75,6 +85,7 @@ function orderTotals({ itemCount = 0, mrpTotal = 0, subtotal = 0, coupon = null,
     discount: Math.max(0, mrpTotal - subtotal),
     couponCode: couponDiscount > 0 ? coupon.code : "",
     couponDiscount,
+    prepaidDiscount,
     deliveryFee,
     payable,
     walletUsed,
@@ -97,4 +108,4 @@ const PRICE_PIPELINE = Object.freeze([
   }
 ]);
 
-module.exports = { PRICE_PIPELINE, halfUp, bestOfferFor, priceFor, roundHalfUp, deliveryFeeFor, couponDiscountFor, couponProblem, orderTotals };
+module.exports = { PRICE_PIPELINE, halfUp, bestOfferFor, priceFor, roundHalfUp, deliveryFeeFor, couponDiscountFor, couponProblem, orderTotals, prepaidDiscountFor };

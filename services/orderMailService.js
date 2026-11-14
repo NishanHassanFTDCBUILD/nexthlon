@@ -41,6 +41,7 @@ function itemsSection(order, base, items = order.items) {
 function moneySection(order) {
   const rows = [["Items", formatPaise(order.subtotal)]];
   if (order.couponDiscount > 0) rows.push([`Coupon ${order.couponCode || ""}`.trim(), `-${formatPaise(order.couponDiscount)}`]);
+  if (order.prepaidDiscount > 0) rows.push(["Paid online", `-${formatPaise(order.prepaidDiscount)}`]);
   rows.push(["Delivery", order.deliveryFee > 0 ? formatPaise(order.deliveryFee) : "Free"]);
   if (order.walletUsed > 0) rows.push(["Paid from wallet", `-${formatPaise(order.walletUsed)}`]);
   if (order.paymentMethod === "cod" && order.total > 0) rows.push(["To pay on delivery", formatPaise(order.total), { strong: true }]);

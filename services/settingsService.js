@@ -7,11 +7,16 @@ const DEFAULTS = {
   // Wallet credit (paise) for both people when a new customer signs up with a referral code. 0 turns it off.
   referralReward: 10000,
   // Cash on Delivery is offered for order totals up to this amount (paise). 0 turns it off.
-  codLimit: COD_LIMIT
+  codLimit: COD_LIMIT,
+  // E2: percent off for paying online (UPI, cards, netbanking), 0 = off, and the most it can take off (paise, 0 = no cap).
+  prepaidPercent: 0,
+  prepaidMax: 10000
 };
 const LIMITS = {
   referralReward: { min: 0, max: 100000 },
-  codLimit: { min: 0, max: 5000000 }
+  codLimit: { min: 0, max: 5000000 },
+  prepaidPercent: { min: 0, max: 10 },
+  prepaidMax: { min: 0, max: 100000 }
 };
 
 async function get(key) {

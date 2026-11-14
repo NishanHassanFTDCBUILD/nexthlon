@@ -138,6 +138,8 @@ const orderSchema = new mongoose.Schema({
   discount: { type: Number, default: 0, min: 0 },
   couponCode: { type: String, default: "" },
   couponDiscount: { type: Number, default: 0, min: 0 },
+  // E2: taken off for paying online (store setting at the time). Shared across items like the coupon.
+  prepaidDiscount: { type: Number, default: 0, min: 0 },
   deliveryFee: { type: Number, default: 0, min: 0 },
   walletUsed: { type: Number, default: 0, min: 0 },
   // What is left to pay after the wallet: cash on delivery, or the online payment.

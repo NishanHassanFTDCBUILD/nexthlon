@@ -39,6 +39,7 @@ function toPublicOrder(order) {
     discount: order.discount,
     couponCode: order.couponCode,
     couponDiscount: order.couponDiscount,
+    prepaidDiscount: order.prepaidDiscount || 0,
     deliveryFee: order.deliveryFee,
     walletUsed: order.walletUsed,
     total: order.total,
@@ -51,7 +52,7 @@ function toPublicOrder(order) {
 // The order as it would be placed now: live prices, the coupon and the wallet balance.
 const quote = asyncHandler(async (req, res) => {
   const body = req.body || {};
-  const result = await checkoutService.buildQuote(req.user._id, { useWallet: readFlag(body.useWallet), source: buyNowService.readSource(body.source) });
+  const result = await checkoutService.buildQuote(req.user._id, { useWallet: readFlag(body.useWallet), source: buyNowService.readSource(body.source), payOnline: readFlag(body.payOnline) });
   res.json({ quote: checkoutService.publicQuote(result) });
 });
 

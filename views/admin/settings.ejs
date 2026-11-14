@@ -49,6 +49,29 @@
   </form>
 </section>
 
+<section class="panel settings-panel" aria-labelledby="prepaid-title">
+  <div class="panel-head panel-head-row">
+    <h2 id="prepaid-title"><%- icon('tag', 'i-sm') %> Discount for paying online</h2>
+    <span class="muted">Fewer cash orders means fewer refused parcels and faster money</span>
+  </div>
+  <form class="form settings-form" data-settings-form="prepaid" novalidate>
+    <div class="form-alert" data-form-alert aria-live="assertive"></div>
+    <div class="field">
+      <label for="prepaidPercent">Percent off (%)</label>
+      <input id="prepaidPercent" name="prepaidPercent" type="number" inputmode="numeric" min="0" max="10" step="1" required value="<%= settings.prepaidPercent %>" aria-describedby="prepaidPercent-hint prepaidPercent-error">
+      <p class="hint" id="prepaidPercent-hint">0 turns it off. Taken off the items (after any coupon) when the shopper pays by UPI, card or netbanking; never on delivery.</p>
+      <p class="field-error" id="prepaidPercent-error" data-error-for="prepaidPercent"></p>
+    </div>
+    <div class="field">
+      <label for="prepaidMax">At most (₹)</label>
+      <input id="prepaidMax" name="prepaidMax" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.prepaidMax / 100 %>" aria-describedby="prepaidMax-hint prepaidMax-error">
+      <p class="hint" id="prepaidMax-hint">The most one order can save. 0 means no cap.</p>
+      <p class="field-error" id="prepaidMax-error" data-error-for="prepaidMax"></p>
+    </div>
+    <button class="btn btn-primary" type="submit">Save discount</button>
+  </form>
+</section>
+
 <section class="panel" aria-labelledby="rules-title">
   <div class="panel-head panel-head-row">
     <h2 id="rules-title"><%- icon('truck', 'i-sm') %> Delivery and returns</h2>

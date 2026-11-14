@@ -54,7 +54,8 @@ async function itemsFor(userId, source) {
 // the coupon chosen for them (checked again) and the live wallet balance.
 // Nothing the browser sends about prices is ever used; it only says whether to use the wallet
 // and whether this is the cart or a Buy now checkout.
-async function buildQuote(userId, { useWallet = false, source = "cart" } = {}) {
+// payOnline: the shopper is paying the rest online (UPI, card, netbanking), which may earn the E2 discount.
+async function buildQuote(userId, { useWallet = false, source = "cart", payOnline = false } = {}) {
   const [cart, walletBalance] = await Promise.all([itemsFor(userId, source), walletService.getBalance(userId)]);
   const lines = cart.items.filter(item => item.available);
   const problems = cart.items.filter(item => !item.available).map(item => `${item.name}${item.option ? ` (${item.option})` : ""}: ${item.reason.toLowerCase()}`);
@@ -67,15 +68,24 @@ async function buildQuote(userId, { useWallet = false, source = "cart" } = {}) {
     if (checked.problem) couponNotice = `${cart.couponCode}: ${checked.problem}`;
     else coupon = checked.coupon;
   }
-  const codLimit = await settingsService.get("codLimit");
-  const totals = orderTotals({
+  const settings = await settingsService.getAll();
+  const codLimit = settings.codLimit;
+  const prepaid = { percent: settings.prepaidPercent, max: settings.prepaidMax };
+  const sums = online => orderTotals({
     itemCount: summary.itemCount,
     mrpTotal: summary.mrpTotal,
     subtotal: summary.subtotal,
     coupon,
     walletBalance,
-    useWallet: Boolean(useWallet)
+    useWallet: Boolean(useWallet),
+    prepaid,
+    payOnline: online
   });
+  let totals = sums(Boolean(payOnline));
+  // The wallet covers it all: nothing is paid online, so there is no online discount.
+  if (totals.prepaidDiscount > 0 && totals.total === 0) totals = sums(false);
+  // What paying online would save, for the payment cards (shown whichever is chosen).
+  const onlineSaving = sums(true).prepaidDiscount;
   return {
     source: source === "buynow" ? "buynow" : "cart",
     items: cart.items,
@@ -89,7 +99,8 @@ async function buildQuote(userId, { useWallet = false, source = "cart" } = {}) {
     useWallet: totals.walletUsed > 0,
     coveredByWallet: totals.payable > 0 && totals.total === 0,
     codAllowed: settingsService.codAllowedFor(totals.total, codLimit),
-    codLimit
+    codLimit,
+    onlineOffer: prepaid.percent > 0 ? { percent: prepaid.percent, max: prepaid.max, saving: onlineSaving } : null
   };
 }
 
@@ -107,6 +118,7 @@ function publicQuote(quote) {
     coveredByWallet: quote.coveredByWallet,
     codAllowed: quote.codAllowed,
     codLimit: quote.codLimit,
+    onlineOffer: quote.onlineOffer,
     itemCount: quote.lines.length
   };
 }
@@ -144,8 +156,8 @@ function assertOrderable(quote) {
 
 // The money fields an order keeps (all from the quote).
 function orderMoney(totals) {
-  const { mrpTotal, subtotal, discount, couponCode, couponDiscount, deliveryFee, walletUsed, total } = totals;
-  return { mrpTotal, subtotal, discount, couponCode, couponDiscount, deliveryFee, walletUsed, total };
+  const { mrpTotal, subtotal, discount, couponCode, couponDiscount, prepaidDiscount = 0, deliveryFee, walletUsed, total } = totals;
+  return { mrpTotal, subtotal, discount, couponCode, couponDiscount, prepaidDiscount, deliveryFee, walletUsed, total };
 }
 
 // Saves an order together with what goes with it: one use of the coupon and the wallet debit.
@@ -164,7 +176,8 @@ async function saveOrder({ userId, orderId, quote, address, paymentMethod, payme
   // GST, worked out now from the server's own prices and fixed on the order (services/gstService.js).
   const { perLine, gst } = await gstService.taxForOrder({
     lines: quote.lines,
-    couponDiscount: totals.couponDiscount,
+    // The online-payment discount (E2) lowers the price like a coupon, so it lowers the taxable value too.
+    couponDiscount: totals.couponDiscount + (totals.prepaidDiscount || 0),
     deliveryFee: totals.deliveryFee,
     buyerState: address.state
   });

@@ -133,6 +133,7 @@
                   <span class="pill pill-green pay-card-tag">Fastest</span>
                 </label>
                 <div class="pay-card-details" data-pay-details>
+                  <% if (razorpayEnabled && quote.onlineOffer) { %><p class="pay-offer" data-online-offer<%= quote.onlineOffer.saving > 0 ? '' : ' hidden' %>><%- icon('tag', 'i-xs') %> <span><strong data-online-saving><%= formatPrice(quote.onlineOffer.saving) %> off</strong> for paying online (<%= quote.onlineOffer.percent %>%<%= quote.onlineOffer.max ? ', up to ' + formatPrice(quote.onlineOffer.max) : '' %>)</span></p><% } %>
                   <p>Razorpay's secure window opens on UPI: pick your app on a phone, or scan the QR code on a computer.</p>
                   <% if (razorpayEnabled) { %><p class="muted">Test mode: no real money moves.</p><% } %>
                 </div>
@@ -149,6 +150,7 @@
                   </span>
                 </label>
                 <div class="pay-card-details" data-pay-details>
+                  <% if (razorpayEnabled && quote.onlineOffer) { %><p class="pay-offer" data-online-offer<%= quote.onlineOffer.saving > 0 ? '' : ' hidden' %>><%- icon('tag', 'i-xs') %> <span><strong data-online-saving><%= formatPrice(quote.onlineOffer.saving) %> off</strong> for paying online (<%= quote.onlineOffer.percent %>%<%= quote.onlineOffer.max ? ', up to ' + formatPrice(quote.onlineOffer.max) : '' %>)</span></p><% } %>
                   <p>You pay in Razorpay's secure window: debit and credit cards, netbanking, EMI and wallets. Nexthlon never sees or stores your card details.</p>
                   <% if (razorpayEnabled) { %><p class="muted">Test mode: no real money moves.</p><% } %>
                 </div>
@@ -228,6 +230,7 @@
           <div><dt>M.R.P. total (<%= t.itemCount %> <%= t.itemCount === 1 ? 'item' : 'items' %>)</dt><dd data-sum="mrpTotal" data-value="<%= t.mrpTotal %>"><%= formatPrice(t.mrpTotal) %></dd></div>
           <div class="summary-savings"><dt>Discount on M.R.P.</dt><dd data-sum="discount" data-value="<%= t.discount %>" data-minus>−<%= formatPrice(t.discount) %></dd></div>
           <div class="summary-savings" data-sum-row="couponDiscount" <%= t.couponDiscount ? '' : 'hidden' %>><dt>Coupon <span data-sum-text="couponCode"><%= t.couponCode %></span></dt><dd data-sum="couponDiscount" data-value="<%= t.couponDiscount %>" data-minus>−<%= formatPrice(t.couponDiscount) %></dd></div>
+          <div class="summary-savings" data-sum-row="prepaidDiscount" <%= t.prepaidDiscount ? '' : 'hidden' %>><dt>Paying online</dt><dd data-sum="prepaidDiscount" data-value="<%= t.prepaidDiscount || 0 %>" data-minus>−<%= formatPrice(t.prepaidDiscount || 0) %></dd></div>
           <div><dt>Delivery fee</dt><dd data-sum="deliveryFee" data-value="<%= t.deliveryFee %>" data-free><%- t.deliveryFee ? formatPrice(t.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
           <div data-sum-row="walletUsed" <%= t.walletUsed ? '' : 'hidden' %>><dt>Paid from wallet</dt><dd data-sum="walletUsed" data-value="<%= t.walletUsed %>" data-minus>−<%= formatPrice(t.walletUsed) %></dd></div>
           <div class="summary-total"><dt>Amount to pay</dt><dd data-sum="total" data-value="<%= t.total %>"><%= formatPrice(t.total) %></dd></div>

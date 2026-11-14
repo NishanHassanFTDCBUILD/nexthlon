@@ -77,7 +77,9 @@ function itemsValue(order, itemIds) {
   const subtotal = order.subtotal || 1;
   let amount = 0;
   for (const item of chosen) {
-    const couponShare = order.couponDiscount ? percentOf(order.couponDiscount, (item.lineTotal / subtotal) * 100) : 0;
+    // The coupon and the online-payment discount (E2) are shared by value, like the invoice does.
+    const orderDiscount = (order.couponDiscount || 0) + (order.prepaidDiscount || 0);
+    const couponShare = orderDiscount ? percentOf(orderDiscount, (item.lineTotal / subtotal) * 100) : 0;
     amount += item.lineTotal - couponShare;
   }
   const stillActive = order.items.filter(item => !["cancelled", "returned"].includes(item.status) && !ids.includes(String(item._id)));
