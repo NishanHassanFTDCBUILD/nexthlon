@@ -105,7 +105,9 @@ function searchVocabulary() {
 // corrected search is used; the page then says "Showing results for shoes".
 async function searchClause(base, q) {
   if (!q) return { clause: {}, mode: "none" };
-  const text = { $text: { $search: q } };
+  // Synonyms (utils/synonyms.js): "sneakers" also finds shoes.
+  const expanded = require("../utils/synonyms").expandQuery(q);
+  const text = { $text: { $search: expanded } };
   if (await Product.exists({ ...base, ...text })) return { clause: text, mode: "text" };
   const pattern = new RegExp(escapeRegex(q), "i");
   const contains = { $or: [{ name: pattern }, { brand: pattern }, { description: pattern }] };

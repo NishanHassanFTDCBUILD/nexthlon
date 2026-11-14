@@ -109,4 +109,19 @@ const answerQuestion = asyncHandler(async (req, res) => {
   res.status(201).json({ message: "Thanks! Your answer is live.", question });
 });
 
-module.exports = { listQuestions, askQuestion, answerQuestion, addStockAlert, listProducts, searchProducts, searchStart, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };
+// GET /api/products/suggest?q=  up to 6 listed product names and brands that match what is typed so far.
+const suggest = asyncHandler(async (req, res) => {
+  const q = String(req.query.q || "").replace(/[^\p{L}\p{N} ]/gu, " ").trim().slice(0, 60);
+  if (q.length < 2) return res.json({ suggestions: [] });
+  const { LISTED_PRODUCT } = require("../utils/queryFilters");
+  const Product = require("../models/Product");
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(^|\\s)${escaped}`, "i");
+  const rows = await Product.find({ ...LISTED_PRODUCT, $or: [{ name: pattern }, { brand: pattern }] }).sort({ ratingCount: -1, _id: 1 }).limit(6).select("name slug brand").lean();
+  const seen = new Set();
+  const suggestions = rows.map(row => ({ label: row.name, slug: row.slug, brand: row.brand })).filter(item => !seen.has(item.label) && seen.add(item.label));
+  res.set("Cache-Control", "public, max-age=60");
+  res.json({ suggestions });
+});
+
+module.exports = { suggest, listQuestions, askQuestion, answerQuestion, addStockAlert, listProducts, searchProducts, searchStart, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };

@@ -11,6 +11,8 @@ router.get("/products/search", searchLimiter, products.searchProducts);
 // The search panel before typing: the same for every signed-out visitor, so a CDN may keep it.
 router.get("/search/start", publicCache, products.searchStart);
 router.get("/products/lookup", searchLimiter, products.lookupProducts);
+// As-you-type suggestions (E4): product names and brands that start like the query.
+router.get("/products/suggest", searchLimiter, products.suggest);
 router.get("/products", searchLimiter, products.listProducts);
 router.get("/products/:id/reviews", products.listReviews);
 router.post("/products/:id/reviews", requireAuth, requireRole("customer"), reviewLimiter, reviewPhotos, products.addReview);
