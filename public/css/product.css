@@ -114,7 +114,7 @@
 .pdx-order { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
 .pdx-qty-row { display: flex; align-items: center; gap: var(--space-1h); }
 .pdx-qty-row label { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); }
-.pdx-qty input { width: 44px; height: 40px; border: 0; background: none; color: var(--ink); text-align: center; font: var(--weight-bold) var(--text-md)/1 var(--font); -moz-appearance: textfield; }
+.pdx-qty input { width: var(--tap); height: var(--tap); border: 0; background: none; color: var(--ink); text-align: center; font: var(--weight-bold) var(--text-md)/1 var(--font); -moz-appearance: textfield; }
 .pdx-qty input::-webkit-inner-spin-button, .pdx-qty input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .pdx-hint { margin-left: auto; font-size: var(--text-xs); color: var(--muted); }
 
@@ -124,7 +124,7 @@
 .pdx-opt-group legend { display: flex; gap: var(--space-sm); margin-bottom: var(--space-sm); padding: 0; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); }
 .pdx-opt-picked { color: var(--ink); font-weight: var(--weight-bold); }
 .pdx-opt-group legend { width: 100%; align-items: center; }
-.pdx-guide-btn { display: inline-flex; align-items: center; gap: var(--space-xs); margin-left: auto; min-height: 32px; padding: 0 var(--space-xs); border: 0; background: none; color: var(--link); font: inherit; font-weight: var(--weight-semibold); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.pdx-guide-btn { display: inline-flex; align-items: center; gap: var(--space-xs); margin-left: auto; min-height: var(--tap); padding: 0 var(--space-xs); border: 0; background: none; color: var(--link); font: inherit; font-weight: var(--weight-semibold); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 @media (hover: hover) { .pdx-guide-btn:hover { color: var(--link-hover); } }
 
 /* ---------- Size guide: a bottom sheet on phones, a side panel on desktops ---------- */

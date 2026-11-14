@@ -700,3 +700,10 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; 
 .saved-tick { position: absolute; z-index: var(--z-raised); top: -12px; right: -12px; width: 30px; height: 30px; padding: 1px; border-radius: 50%; background: var(--bg); color: var(--success); box-shadow: 0 0 0 2px var(--bg); pointer-events: none; }
 .saved-tick svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .saved-tick.is-leaving { opacity: 0; transition: opacity var(--duration-slow) var(--ease); }
+
+/* Small text links: at least a 24px pointer target on every screen (WCAG 2.5.8), without moving anything.
+   An invisible layer grows the clickable area; phones grow it further to 44px (mobile.css). */
+.site-footer nav a, .footer-legal a, .pdx-brand, .pdx-text-btn, .pdx-facts a, .au-foot > a:only-child, .au-referral summary, .admin-total a, .admin-top .muted a { position: relative; }
+.site-footer nav a::after, .footer-legal a::after, .pdx-brand::after, .pdx-text-btn::after, .pdx-facts a::after, .au-foot > a:only-child::after, .au-referral summary::after, .admin-total a::after, .admin-top .muted a::after {
+  content: ""; position: absolute; inset: calc(var(--space-half) * -1) calc(var(--space-xxs) * -1);
+}

@@ -47,7 +47,7 @@ test("motion: the arriving page decides its half before the first frame", () => 
   assert.match(script, /navigationType !== "traverse"/, "only history moves are turned round");
   assert.match(script, /types\.add\(back \? "back" : "forward"\)/);
   assert.match(script, /viewTransitionName = "product-photo"/, "the card takes the photo back");
-  assert.match(script, /finished\.finally/, "and gives the name up afterwards");
+  assert.match(script, /finished\.then\(clear, clear\)/, "and gives the name up afterwards, even when the browser cancels it");
   // The leaving side names the clicked card's photo.
   assert.match(read("public/js/app.js"), /addEventListener\("pageswap"/);
 });

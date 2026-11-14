@@ -123,10 +123,10 @@
   .footer-badges { display: none; }
 
   /* ---------- Bigger tap areas: the touch target grows, the look stays the same ---------- */
-  .breadcrumb a, .pdx-crumbs a, .pdx-text-btn, .pdx-brand, .section-link, .join-signin, .link-btn, .pdx-facts a { position: relative; }
+  .breadcrumb a, .pdx-crumbs a, .pdx-text-btn, .pdx-brand, .section-link, .join-signin, .link-btn, .pdx-facts a, .au-foot > a:only-child, .au-referral summary, .admin-total a, .admin-top .muted a { position: relative; }
   .breadcrumb a::after, .pdx-crumbs a::after, .pdx-text-btn::after, .pdx-brand::after, .section-link::after, .join-signin::after,
-  .link-btn::after, .pdx-facts a::after {
-    content: ""; position: absolute; inset: -13px -6px;
+  .link-btn::after, .pdx-facts a::after, .au-foot > a:only-child::after, .au-referral summary::after, .admin-total a::after, .admin-top .muted a::after {
+    content: ""; position: absolute; inset: -15px -6px;
   }
   .sport-dot { width: 34px; height: 34px; }
   .pdx-meta .pdx-chip { min-height: var(--tap); }

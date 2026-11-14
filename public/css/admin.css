@@ -568,10 +568,12 @@ body.admin-menu-open { overflow: hidden; }
 }
 
 /* ---------- Inventory: stock by size or colour (B3) ---------- */
-.inv-options { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin: var(--space-sm) 0 0; padding: 0; list-style: none; }
+.inv-options { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: var(--space-xs); margin: var(--space-sm) 0 0; padding: 0; list-style: none; }
 .inv-option { display: inline-flex; align-items: center; gap: var(--space-xs); padding: var(--space-xxs) var(--space-sm); border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface-2); font-size: var(--text-xs); color: var(--ink-2); }
 .inv-option strong { color: var(--ink); font-variant-numeric: tabular-nums; }
 .inv-option.is-low { border-color: rgba(var(--warning-rgb), 0.5); }
 .inv-option.is-low strong { color: var(--warning); }
 .inv-option.is-out { border-style: dashed; color: var(--muted); }
 .inv-option.is-out strong { color: var(--danger); }
+/* Stacked tables (phones): a product's size list wraps onto its own line under the name (C4). */
+.table-stack td:has(> .inv-options) { flex-wrap: wrap; }

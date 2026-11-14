@@ -39,7 +39,7 @@
 /* ---------- The form panel (right) ---------- */
 .au-top { position: absolute; z-index: var(--layer-3); top: 0; left: 0; padding: var(--space-3) clamp(24px, 4vw, 56px); --focus: var(--accent); }
 .au-panel { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); padding: 96px clamp(24px, 4vw, 56px) 48px; background: radial-gradient(60% 45% at 75% 8%, rgba(var(--brand-rgb), 0.14), transparent 70%), radial-gradient(50% 40% at 10% 100%, rgba(var(--volt-rgb), 0.1), transparent 70%), var(--bg); transition: transform var(--duration-long) var(--ease-in-out), opacity var(--duration-long) var(--ease-in-out); }
-.au-back { position: absolute; top: var(--space-3); right: clamp(24px, 4vw, 56px); display: inline-flex; align-items: center; gap: var(--space-half); color: var(--ink-2); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.au-back { position: absolute; top: var(--space-3); right: clamp(24px, 4vw, 56px); display: inline-flex; align-items: center; gap: var(--space-half); min-height: var(--tap); color: var(--ink-2); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
 @media (hover: hover) { .au-back:hover { color: var(--brand-ink); text-decoration: none; } }
 
 .au-switch { position: relative; display: grid; grid-template-columns: 1fr 1fr; width: min(440px, 100%); padding: var(--space-half); border-radius: var(--radius-pill); background: var(--surface-3); box-shadow: var(--shadow-inset); }

@@ -35,6 +35,8 @@
     // Only one element may carry the name: this page's own big photo (a related product) gives it up.
     document.querySelectorAll(".pdx-photo").forEach(img => { img.style.viewTransitionName = "none"; });
     photo.style.viewTransitionName = "product-photo";
-    transition.finished.finally(() => { photo.style.viewTransitionName = ""; });
+    // A transition the browser cancels (the other page has none) rejects: give the name up either way.
+    const clear = () => { photo.style.viewTransitionName = ""; };
+    transition.finished.then(clear, clear);
   });
 })();

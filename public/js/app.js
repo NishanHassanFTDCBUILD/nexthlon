@@ -694,7 +694,9 @@
       document.querySelectorAll(".pdx-photo").forEach(img => { img.style.viewTransitionName = "none"; });
       photo.style.viewTransitionName = "product-photo";
       // If the page comes back from the back/forward cache, it must not keep the name.
-      event.viewTransition.finished.finally(() => { photo.style.viewTransitionName = ""; });
+      // A transition the browser cancels (the next page has none) rejects: give the name up either way.
+      const clear = () => { photo.style.viewTransitionName = ""; };
+      event.viewTransition.finished.then(clear, clear);
     });
   }
 

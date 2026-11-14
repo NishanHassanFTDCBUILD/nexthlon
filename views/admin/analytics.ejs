@@ -137,8 +137,9 @@
         <div id="an-top-<%= key %>" role="tabpanel" aria-labelledby="an-tab-<%= key %>" <%= key === 'units' ? 'hidden' : '' %>>
           <% if (list.length) { %>
             <ol class="dash-rank">
-              <% list.forEach(function (p) { %>
+              <% list.forEach(function (p, i) { %>
                 <li>
+                  <span class="dash-rank-n"><%= i + 1 %></span>
                   <span class="dash-rank-name"><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a><small class="muted"><%= p.units %> <%= p.units === 1 ? 'unit' : 'units' %> · <%= p.orders %> <%= p.orders === 1 ? 'order' : 'orders' %></small></span>
                   <strong><%= formatPrice(p.revenue) %></strong>
                 </li>
