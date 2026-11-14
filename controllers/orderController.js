@@ -1,4 +1,5 @@
 const checkoutService = require("../services/checkoutService");
+const codConfirmService = require("../services/codConfirmService");
 const orderService = require("../services/orderService");
 const buyNowService = require("../services/buyNowService");
 const { validatePlaceOrder, validateCancel, validateReturn, readFlag, hasErrors } = require("../utils/validators");
@@ -71,6 +72,13 @@ const placeOrder = asyncHandler(async (req, res) => {
   res.status(201).json({ message: "Your order is placed.", order: toPublicOrder(order), redirect: `/orders/${order.orderId}/success` });
 });
 
+// POST /api/checkout/cod-code   { addressId }   E2: sends the code that confirms a Cash on Delivery order.
+const sendCodCode = asyncHandler(async (req, res) => {
+  const address = await checkoutService.findAddress(req.user._id, String((req.body && req.body.addressId) || ""));
+  const { sentTo } = await codConfirmService.send(req.user._id, address.phone);
+  res.json({ message: `We sent a 6-digit code to ${sentTo}.`, sentTo });
+});
+
 // GET /api/orders?status=&period=&q=&page=
 const listOrders = asyncHandler(async (req, res) => {
   const { orders, filters, pagination } = await orderService.listOrders(req.user._id, req.query);
@@ -107,4 +115,4 @@ const requestReturn = asyncHandler(async (req, res) => {
   res.json({ message: "Return requested. We will arrange a pickup and keep you posted.", order: toPublicOrder(order) });
 });
 
-module.exports = { toPublicOrder, quote, buyNow, placeOrder, listOrders, getOrder, cancelOrder, cancelItem, requestReturn };
+module.exports = { sendCodCode, toPublicOrder, quote, buyNow, placeOrder, listOrders, getOrder, cancelOrder, cancelItem, requestReturn };

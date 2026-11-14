@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { dashboard, analytics, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, updateCod, updatePrepaid, listTickets, replyTicket } = require("../controllers/adminController");
+const { dashboard, analytics, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, updateCod, updatePrepaid, updateCodOtp, listTickets, replyTicket } = require("../controllers/adminController");
 const products = require("../controllers/adminProductController");
 const reports = require("../controllers/adminReportController");
 const orders = require("../controllers/adminOrderController");
@@ -37,6 +37,7 @@ router.get("/settings", getSettings);
 router.patch("/settings/referral", updateReferral);
 router.patch("/settings/cod", updateCod);
 router.patch("/settings/prepaid", updatePrepaid);
+router.patch("/settings/cod-otp", updateCodOtp);
 
 // Support tickets from customers
 router.get("/tickets", listTickets);

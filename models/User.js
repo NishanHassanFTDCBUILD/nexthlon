@@ -40,6 +40,8 @@ const userSchema = new mongoose.Schema({
     whatsapp: { type: Boolean, default: false }
   },
   // The last products this customer looked at, newest first (kept to RECENT_LIMIT).
+  // E2: phones confirmed with a code for Cash on Delivery ("919876543210"), so they are not asked again soon.
+  verifiedPhones: { type: [new mongoose.Schema({ phone: String, at: Date }, { _id: false })], default: [], select: false },
   recentlyViewed: {
     type: [{ product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" }, at: { type: Date, default: Date.now }, _id: false }],
     default: []

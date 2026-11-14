@@ -49,6 +49,23 @@
   </form>
 </section>
 
+<section class="panel settings-panel" aria-labelledby="codotp-title">
+  <div class="panel-head panel-head-row">
+    <h2 id="codotp-title"><%- icon('shield', 'i-sm') %> Confirm Cash on Delivery by code</h2>
+    <span class="muted">A code to the delivery phone stops fake COD orders (once per phone, every 90 days)</span>
+  </div>
+  <form class="form settings-form" data-settings-form="cod-otp" novalidate>
+    <div class="form-alert" data-form-alert aria-live="assertive"></div>
+    <div class="field">
+      <label for="codOtp">Ask for a code</label>
+      <span class="select-wrap"><select id="codOtp" name="codOtp"><option value="off"<%= settings.codOtp ? '' : ' selected' %>>Off</option><option value="on"<%= settings.codOtp ? ' selected' : '' %>>On</option></select></span>
+      <p class="hint">Codes go by SMS (MSG91) or WhatsApp, whichever is set up. With neither, no code is asked for.</p>
+      <p class="field-error" data-error-for="codOtp"></p>
+    </div>
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+</section>
+
 <section class="panel settings-panel" aria-labelledby="prepaid-title">
   <div class="panel-head panel-head-row">
     <h2 id="prepaid-title"><%- icon('tag', 'i-sm') %> Discount for paying online</h2>

@@ -10,13 +10,16 @@ const DEFAULTS = {
   codLimit: COD_LIMIT,
   // E2: percent off for paying online (UPI, cards, netbanking), 0 = off, and the most it can take off (paise, 0 = no cap).
   prepaidPercent: 0,
-  prepaidMax: 10000
+  prepaidMax: 10000,
+  // E2: 1 = a Cash on Delivery order needs a code sent to the delivery phone (first time per phone in 90 days).
+  codOtp: 0
 };
 const LIMITS = {
   referralReward: { min: 0, max: 100000 },
   codLimit: { min: 0, max: 5000000 },
   prepaidPercent: { min: 0, max: 10 },
-  prepaidMax: { min: 0, max: 100000 }
+  prepaidMax: { min: 0, max: 100000 },
+  codOtp: { min: 0, max: 1 }
 };
 
 async function get(key) {

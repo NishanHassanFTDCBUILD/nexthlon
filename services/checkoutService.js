@@ -11,6 +11,7 @@ const stockService = require("./stockService");
 const { HttpError } = require("../utils/http");
 const { orderTotals } = require("../utils/pricing");
 const settingsService = require("./settingsService");
+const codConfirmService = require("./codConfirmService");
 const { formatPaise } = require("../utils/money");
 const counterService = require("../services/counterService");
 const gstService = require("./gstService");
@@ -204,7 +205,7 @@ async function saveOrder({ userId, orderId, quote, address, paymentMethod, payme
 // the stock atomically, uses the coupon, takes the wallet amount, saves the order with
 // snapshots, then empties the cart (or, for Buy now, only the Buy now product: the cart stays).
 // All of it happens, or none of it.
-async function placeOrder(userId, { addressId, paymentMethod, useWallet = false, source = "cart" }) {
+async function placeOrder(userId, { addressId, paymentMethod, useWallet = false, source = "cart", codCode = "" }) {
   if (!PAYMENT_METHODS.includes(paymentMethod)) {
     throw new HttpError(400, "Choose a payment method.", { paymentMethod: "Choose a payment method." });
   }
@@ -228,6 +229,12 @@ async function placeOrder(userId, { addressId, paymentMethod, useWallet = false,
     throw new HttpError(400, quote.codLimit > 0
       ? `Cash on Delivery is available for orders up to ${formatPaise(quote.codLimit)}. Please choose another payment method.`
       : "Cash on Delivery is not available right now. Please choose another payment method.", null, "cod_limit");
+  }
+
+  // E2: when the admin turned it on, a code sent to the delivery phone confirms the order (first time per phone).
+  if (method === "cod" && await codConfirmService.isNeeded(userId, address.phone)) {
+    if (!codCode) throw new HttpError(400, "Confirm your phone to place a Cash on Delivery order.", null, "cod_code_needed");
+    await codConfirmService.verify(userId, address.phone, codCode);
   }
 
   const stockLines = quote.lines.map(line => ({

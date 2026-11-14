@@ -273,6 +273,26 @@
   </div>
 </main>
 
+<%# E2: the code that confirms a Cash on Delivery order (public/js/checkout.js opens it when the server asks). %>
+<dialog class="modal cod-code" id="cod-code-dialog" aria-labelledby="cod-code-title">
+  <form method="dialog" data-cod-code-form novalidate>
+    <div class="modal-head"><h2 id="cod-code-title">Confirm your phone</h2><button class="icon-btn" value="cancel" aria-label="Close"><%- icon('x', 'i-sm') %></button></div>
+    <div class="modal-body">
+      <p class="muted" data-cod-code-sent>We sent a 6-digit code to the phone on your delivery address.</p>
+      <p class="muted">This keeps Cash on Delivery for real orders. You only do it once for this phone.</p>
+      <div class="field">
+        <label for="cod-code">Code</label>
+        <input id="cod-code" name="codCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required aria-describedby="cod-code-error">
+        <p class="field-error" id="cod-code-error" data-error-for="codCode"></p>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" data-cod-code-resend>Send a new code</button>
+      <button type="submit" class="btn btn-primary" value="confirm" data-cod-code-confirm>Confirm and place order</button>
+    </div>
+  </form>
+</dialog>
+
 <%- include('../partials/address-dialog') %>
 <%- include('../partials/pay-overlay') %>
 <%- include('../partials/footer', { scripts: ['profile', 'confetti', 'payment', 'checkout'], razorpay: razorpayEnabled }) %>
