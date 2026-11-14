@@ -459,7 +459,7 @@ function validateEmailChange(body = {}) {
 }
 
 // Notification switches: only these three keys are read, and only true/false.
-const PREFERENCE_KEYS = ["orderUpdates", "offers", "newsletter"];
+const PREFERENCE_KEYS = ["orderUpdates", "offers", "newsletter", "whatsapp"];
 function validatePreferences(body = {}) {
   const errors = {};
   const value = {};

@@ -222,6 +222,12 @@ function checkEnv(env = process.env) {
   const scheme = text(env, "STORE_GST_SCHEME");
   if (scheme && !["regular", "composition"].includes(scheme)) fail("STORE_GST_SCHEME", `"${scheme}" must be regular or composition.`);
 
+  // ---------- WhatsApp and SMS (E1, E2) ----------
+  if (Boolean(text(env, "WHATSAPP_TOKEN")) !== Boolean(text(env, "WHATSAPP_PHONE_NUMBER_ID"))) fail("WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID go together: set both, or neither.");
+  if (Boolean(text(env, "MSG91_AUTH_KEY")) !== Boolean(text(env, "MSG91_OTP_TEMPLATE_ID"))) fail("MSG91_OTP_TEMPLATE_ID", "MSG91_AUTH_KEY and MSG91_OTP_TEMPLATE_ID go together: set both, or neither.");
+  const support = text(env, "WHATSAPP_SUPPORT_NUMBER").replace(/[^0-9]/g, "");
+  if (support && !/^91[6-9][0-9]{9}$/.test(support)) fail("WHATSAPP_SUPPORT_NUMBER", "should be an Indian mobile with the country code, e.g. 919876543210.");
+
   // ---------- Shipping (B5) ----------
   const shipping = text(env, "SHIPPING_PROVIDER").toLowerCase();
   if (shipping && !["manual", "shiprocket"].includes(shipping)) fail("SHIPPING_PROVIDER", `"${shipping}" must be manual or shiprocket.`);

@@ -35,7 +35,9 @@ const userSchema = new mongoose.Schema({
   notifyPrefs: {
     orderUpdates: { type: Boolean, default: true },
     offers: { type: Boolean, default: true },
-    newsletter: { type: Boolean, default: false }
+    newsletter: { type: Boolean, default: false },
+    // E1: order updates on WhatsApp too (to the phone on the delivery address). Off until the customer says yes.
+    whatsapp: { type: Boolean, default: false }
   },
   // The last products this customer looked at, newest first (kept to RECENT_LIMIT).
   recentlyViewed: {
