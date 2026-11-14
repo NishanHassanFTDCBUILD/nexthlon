@@ -197,7 +197,8 @@ CGST+SGST or IGST by place of supply, invoice numbering) and add country of orig
 and net quantity to products, shown on the product page. Plan first, then wait for my go-ahead.
 ```
 
-### [ ] B5. Shipping partner · L
+### [x] B5. Shipping partner · L
+- **Done 2026-11-14:** `services/shipping/shiprocket.js` and `services/shippingService.js` (manual stays the default); PIN checks confirmed by the courier with a rules fallback; "Ship with Shiprocket" in the admin; `POST /api/webhooks/courier`; courier card with animated scans on the order page; RTO "coming back" and "back with us". Turn it on with the SHIPPING_* and SHIPROCKET_* settings in `.env.example`.
 - **Goal:** real delivery dates and COD availability by PIN code, automatic shipping labels, and live tracking that updates the order and triggers the B2 emails.
 - **Files:** `providers/shipping/{manual,shiprocket}.js`, `services/deliveryService.js`, a tracking webhook route, the admin "Create shipment" button, and a "Track order" timeline with motion.
 - **Done when:**
@@ -326,7 +327,8 @@ and Twitter cards, canonical URLs and unique category titles and descriptions. P
 Google's Rich Results Test format and a link preview. Plan first, then wait for my go-ahead.
 ```
 
-### [ ] D2. Analytics with consent · S
+### [x] D2. Analytics with consent · S
+- **Done 2026-11-14:** consent banner (only when ANALYTICS_PROVIDER is set), GA4 or Plausible after a yes, shopping events, CSP hosts per provider, "Download my data" on Login & security. Left out on purpose: the Meta Pixel (add it when you start Meta ads, behind the same consent).
 - **Goal:** know what sells and where customers drop off, while respecting privacy (India's DPDP Act).
 - **Files:**
   - a cookie consent banner in the brand style;
@@ -383,10 +385,10 @@ go-ahead.
 | Step | What | Size |
 |---|---|---|
 | [ ] E1 | WhatsApp order updates and support chat (WhatsApp Business API provider) | M |
-| [ ] E2 | COD confirmation by OTP or WhatsApp, and a discount for paying online, to cut refused parcels | S |
-| [ ] E3 | Back-in-stock alerts, reviews with photos, product Q&A | M |
+| [~] E2 | COD confirmation by OTP or WhatsApp, and a discount for paying online, to cut refused parcels. **Discount done 2026-11-14** (admin Settings); COD confirmation needs E1 (WhatsApp) or an SMS provider | S |
+| [~] E3 | Back-in-stock alerts, reviews with photos, product Q&A. **Back-in-stock alerts done 2026-11-14**; review photos and Q&A still to do | M |
 | [ ] E4 | Search upgrade: suggestions as you type, tolerance for typos, synonyms (MongoDB Atlas Search) | M |
-| [ ] E5 | Installable app (PWA) with push notifications | M |
+| [~] E5 | Installable app (PWA) with push notifications. **Installable app and offline page done 2026-11-14**; push notifications still to do (needs VAPID keys) | M |
 | [ ] E6 | "Complete the kit" bundles and recommendations | M |
 | [ ] E7 | Content hub: sport guides and athlete stories, for SEO | M |
 | [ ] E8 | Amazon, Flipkart and Myntra listings with stock sync | L |
