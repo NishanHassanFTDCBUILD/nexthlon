@@ -381,5 +381,5 @@ test("recently viewed is synced to the account, preferences are true/false only"
   assert.equal((await call("PATCH", "/api/account/preferences", { body: {}, cookie })).status, 400);
   const saved = await call("PATCH", "/api/account/preferences", { body: { offers: false, newsletter: true, admin: true }, cookie });
   assert.equal(saved.status, 200);
-  assert.deepEqual(saved.data.preferences, { orderUpdates: true, offers: false, newsletter: true });
+  assert.deepEqual(saved.data.preferences, { orderUpdates: true, offers: false, newsletter: true, whatsapp: false }, "WhatsApp updates stay off until asked for");
 });
