@@ -1,0 +1,36 @@
+<%# Product questions and answers (E3). public/js/product.js asks, answers and loads more.
+    Pass: product, questions ({ questions, pagination }), canAnswer (this customer received it), signedIn, backHere. %>
+<%
+  const qDate = function (d) { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); };
+%>
+<section class="pdx-block pdx-qa" id="questions" data-reveal aria-labelledby="pdx-qa-title"
+  data-qa data-product-id="<%= product._id %>" data-page="1" data-pages="<%= questions.pagination.pages %>" <%= canAnswer ? 'data-can-answer' : '' %>>
+  <header class="pdx-block-head">
+    <h2 id="pdx-qa-title">Questions &amp; answers</h2>
+    <p class="muted" data-qa-count><%= questions.pagination.total %> <%= questions.pagination.total === 1 ? 'question' : 'questions' %></p>
+  </header>
+  <% if (signedIn) { %>
+    <form class="pdx-qa-ask" data-qa-ask novalidate>
+      <label class="sr-only" for="qa-ask">Your question</label>
+      <input id="qa-ask" name="body" minlength="10" maxlength="300" placeholder="Ask about size, fit, materials, delivery…" aria-describedby="qa-ask-error">
+      <button class="btn btn-primary" type="submit">Ask</button>
+      <p class="field-error" id="qa-ask-error" data-error-for="body"></p>
+    </form>
+  <% } else { %>
+    <div class="pdx-review-note"><%- icon('edit', 'i-sm') %><span>Have a question? <a href="/login?next=<%= encodeURIComponent('/products/' + product.slug + '#questions') %>">Sign in to ask</a>. Buyers and our team answer.</span></div>
+  <% } %>
+  <ol class="pdx-qa-list" data-qa-list>
+    <% questions.questions.forEach(function (q) { %>
+      <li class="pdx-qa-item" data-question="<%= q.id %>">
+        <p class="pdx-qa-q"><span class="pdx-qa-tag" aria-hidden="true">Q</span><span><strong><%= q.body %></strong><small class="muted"><%= q.author %> · <%= qDate(q.createdAt) %></small></span></p>
+        <% q.answers.forEach(function (a) { %>
+          <p class="pdx-qa-a"><span class="pdx-qa-tag is-a" aria-hidden="true">A</span><span><%= a.body %><small class="muted"><%= a.author %><% if (a.isStaff) { %> · <span class="pdx-verified"><%- icon('check', 'i-xs') %> Store answer</span><% } else if (a.verifiedBuyer) { %> · <span class="pdx-verified"><%- icon('check', 'i-xs') %> Bought it</span><% } %> · <%= qDate(a.at) %></small></span></p>
+        <% }) %>
+        <% if (!q.answers.length) { %><p class="muted pdx-qa-wait">No answer yet. Buyers and our team usually answer within a day.</p><% } %>
+        <% if (canAnswer && !q.mine) { %><button type="button" class="pdx-text-btn" data-qa-answer>Answer this</button><% } %>
+      </li>
+    <% }) %>
+  </ol>
+  <p class="pdx-review-empty" data-qa-empty <%= questions.pagination.total ? 'hidden' : '' %>>No questions yet. Ask the first one.</p>
+  <button type="button" class="pdx-ghost pdx-more" data-qa-more <%= questions.pagination.pages > 1 ? '' : 'hidden' %>>Show more questions</button>
+</section>

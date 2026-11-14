@@ -1,0 +1,50 @@
+<%# Product questions (E3): answer as the Nexthlon team, or hide one that breaks the rules. %>
+<%
+  const tabs = [['waiting', 'Waiting for an answer'], ['all', 'All'], ['hidden', 'Hidden']];
+  const when = function (d) { return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }); };
+%>
+<%- include('../partials/admin-start', { section: 'questions' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Customers</span>
+    <h1>Questions</h1>
+    <p class="muted">What shoppers ask on product pages. Your answer shows as "Nexthlon team" and the asker gets an email.</p>
+  </div>
+</header>
+
+<nav class="segmented admin-tabs" aria-label="Question state">
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= adminPath %>/questions?status=<%= key %>" class="<%= status === key ? 'is-active' : '' %>"><%= label %></a><% }) %>
+</nav>
+
+<% if (!questions.length) { %>
+  <section class="panel admin-block"><p class="muted"><%= status === 'waiting' ? 'Every question has an answer. Nice.' : 'Nothing here.' %></p></section>
+<% } %>
+<div class="qa-admin-list" data-qa-admin>
+  <% questions.forEach(function (q) { %>
+    <article class="panel admin-block qa-admin" data-question="<%= q.id %>">
+      <div class="qa-admin-head">
+        <% if (q.product) { %><a href="/products/<%= q.product.slug %>#questions" target="_blank" rel="noopener"><strong><%= q.product.name %></strong></a><% } %>
+        <small class="muted"><%= q.author %> · <%= when(q.createdAt) %><%= q.isHidden ? ' · hidden' : '' %></small>
+      </div>
+      <p class="qa-admin-q"><%= q.body %></p>
+      <% if (q.answers.length) { %>
+        <ul class="admin-list">
+          <% q.answers.forEach(function (a) { %><li><strong><%= a.author %></strong><%= a.verifiedBuyer ? ' (bought it)' : '' %>: <%= a.body %></li><% }) %>
+        </ul>
+      <% } %>
+      <form class="admin-inline-form" data-qa-answer-form novalidate>
+        <label class="admin-field qa-admin-answer"><span>Answer as Nexthlon team</span><textarea name="body" rows="2" maxlength="1000" required></textarea></label>
+        <button class="btn btn-primary btn-sm" type="submit">Post answer</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-qa-hide="<%= q.isHidden ? 'false' : 'true' %>"><%= q.isHidden ? 'Show again' : 'Hide' %></button>
+      </form>
+    </article>
+  <% }) %>
+</div>
+<% if (pagination.pages > 1) { %>
+  <nav class="admin-table-foot" aria-label="Pages">
+    <% if (pagination.page > 1) { %><a class="btn btn-ghost btn-sm" href="?status=<%= status %>&page=<%= pagination.page - 1 %>">Newer</a><% } %>
+    <span class="muted">Page <%= pagination.page %> of <%= pagination.pages %></span>
+    <% if (pagination.page < pagination.pages) { %><a class="btn btn-ghost btn-sm" href="?status=<%= status %>&page=<%= pagination.page + 1 %>">Older</a><% } %>
+  </nav>
+<% } %>
+<%- include('../partials/admin-end') %>

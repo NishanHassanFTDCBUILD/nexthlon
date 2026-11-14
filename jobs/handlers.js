@@ -7,6 +7,7 @@ const cartRecoveryService = require("../services/cartRecoveryService");
 // Event listeners (each becomes a job type "event:<event>:<name>").
 require("../events/listeners/orderEmails");
 require("../events/listeners/orderWhatsApp");
+require("../events/listeners/questionEmails");
 
 // One abandoned-cart reminder.
 registry.register("cart.remind", ({ cartId }) => cartRecoveryService.sendReminder(cartId));

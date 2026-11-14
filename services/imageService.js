@@ -9,11 +9,11 @@ const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 // Uploads live in a storage provider (providers/storage): local disk in development, an S3-compatible
 // bucket (Cloudflare R2, Amazon S3) in production. Folders: products (admin photos) and returns (customer photos).
-const FOLDERS = new Set(["products", "returns"]);
+const FOLDERS = new Set(["products", "returns", "reviews"]);
 const MAX_RETURN_PHOTOS = 3;
 // Largest side of the saved photo. Product photos keep up to 2000px so the product page zoom shows real
 // detail; customer return photos only need to be readable.
-const FULL_SIDE = { products: 2000, returns: 1200 };
+const FULL_SIDE = { products: 2000, returns: 1200, reviews: 1200 };
 // A photo that decodes to more pixels than this is refused (a small file can hide a huge image).
 const MAX_PIXELS = 64_000_000;
 const WEBP_FULL = { quality: 82, effort: 4 };
@@ -76,7 +76,7 @@ async function saveImages(files = [], folder = "products") {
       }
       const parts = folder === "products"
         ? [[`products/${id}-full.webp`, rendered.full], ...rendered.variants.map(v => [`products/${id}-${v.width}.webp`, v.buffer])]
-        : [[`returns/${id}.webp`, rendered.full]];
+        : [[`${folder}/${id}.webp`, rendered.full]];
       written.push(...parts.map(([key]) => key));
       await Promise.all(parts.map(([key, body]) => store.put(key, body, { contentType: "image/webp" })));
       urls.push(store.publicUrl(parts[0][0]));

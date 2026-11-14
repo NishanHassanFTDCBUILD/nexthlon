@@ -356,6 +356,11 @@
               <textarea name="body" rows="4" minlength="10" maxlength="1000" placeholder="What did you like or not? How did it hold up?" data-review-body></textarea>
               <small class="pdx-field-count"><span data-review-chars>0</span> / 1000</small>
             </label>
+            <label class="pdx-field pdx-photo-field">
+              <span>Photos <em>(optional, up to 3)</em></span>
+              <input type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple data-review-photos>
+              <span class="pdx-photo-previews" data-review-previews aria-live="polite"></span>
+            </label>
             <p class="pdx-form-error" data-review-error role="alert" hidden></p>
             <div class="pdx-form-foot">
               <% if (reviewStatus.verified) { %><span class="pdx-verified"><%- icon('check', 'i-xs') %> You bought this: your review shows as a verified purchase</span><% } else { %><span class="pdx-form-note">Posting as <%= currentUser.name %></span><% } %>
@@ -379,6 +384,7 @@
               </div>
               <% if (review.title) { %><h3 class="pdx-review-title"><%= review.title %></h3><% } %>
               <p class="pdx-review-body"><%= review.body %></p>
+              <% if (review.photos && review.photos.length) { %><div class="pdx-review-photos"><% review.photos.forEach(function (src, i) { %><a href="<%= src %>" target="_blank" rel="noopener"><img src="<%= src %>" alt="Photo <%= i + 1 %> from <%= review.author %>" width="88" height="88" loading="lazy"></a><% }) %></div><% } %>
               <% if (review.mine) { %>
                 <button type="button" class="pdx-review-delete" data-review-delete="<%= review.id %>"><%- icon('trash', 'i-xs') %> Delete my review</button>
               <% } %>
@@ -389,6 +395,8 @@
         <button type="button" class="pdx-ghost pdx-more" data-review-more <%= reviews.pagination.pages > 1 ? '' : 'hidden' %>>Show more reviews</button>
       </div>
     </section>
+
+    <%- include('../partials/questions', { product: product, questions: questions, canAnswer: canAnswer, signedIn: Boolean(currentUser && currentUser.role === 'customer') }) %>
   </div>
 
   <% if (together.length) { %>

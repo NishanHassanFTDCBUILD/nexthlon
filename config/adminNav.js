@@ -22,7 +22,8 @@ const ADMIN_NAV = [
     { key: "inventory", label: "Inventory", icon: "archive" }
   ] },
   { group: "Customers", items: [
-    { key: "customers", label: "Customers", icon: "users" }
+    { key: "customers", label: "Customers", icon: "users" },
+    { key: "questions", label: "Questions", icon: "headset" }
   ] },
   { group: "System", items: [
     { key: "security", label: "Security", icon: "shield" },

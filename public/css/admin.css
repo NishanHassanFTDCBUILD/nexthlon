@@ -582,3 +582,10 @@ body.admin-menu-open { overflow: hidden; }
 .inv-option.is-out strong { color: var(--danger); }
 /* Stacked tables (phones): a product's size list wraps onto its own line under the name (C4). */
 .table-stack td:has(> .inv-options) { flex-wrap: wrap; }
+
+/* Product questions (E3). */
+.qa-admin-list { display: grid; gap: var(--space-1h); }
+.qa-admin-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-xs) var(--space-1); }
+.qa-admin-q { margin: var(--space-sm) 0; font-size: var(--text-md); }
+.qa-admin-answer { flex: 1 1 320px; }
+.qa-admin-answer textarea { width: 100%; }

@@ -334,6 +334,32 @@
     }, { signal });
   });
 
+  // ---------- Product questions (E3): answer as the team, hide or show ----------
+  Pages.define("admin-questions", (root, signal) => {
+    root.addEventListener("submit", async event => {
+      const form = event.target.closest("[data-qa-answer-form]");
+      if (!form) return;
+      event.preventDefault();
+      const id = form.closest("[data-question]").dataset.question;
+      const reply = await Nx.submitForm(form, { url: `/api/admin/questions/${encodeURIComponent(id)}/answers`, busyLabel: "Posting…" });
+      if (reply) { Nx.toast(reply.message); window.location.reload(); }
+    }, { signal });
+    root.addEventListener("click", async event => {
+      const button = event.target.closest("[data-qa-hide]");
+      if (!button) return;
+      const id = button.closest("[data-question]").dataset.question;
+      Nx.busy(button, true, "Saving…");
+      try {
+        const reply = await Nx.api(`/api/admin/questions/${encodeURIComponent(id)}/hidden`, { method: "PATCH", body: { hidden: button.dataset.qaHide === "true" } });
+        Nx.toast(reply.message);
+        window.location.reload();
+      } catch (error) {
+        Nx.busy(button, false);
+        Nx.toast(error.message, "error");
+      }
+    }, { signal });
+  });
+
   // ---------- Settings: store numbers an admin may change ----------
   Pages.define("admin-settings", (root, signal) => {
     root.addEventListener("submit", async event => {

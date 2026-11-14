@@ -65,6 +65,7 @@ router.get("/inventory", catalog.inventory);
 
 // ---------- Customers ----------
 router.get("/customers", pages.adminUsers);
+router.get("/questions", catalog.questions);
 // The old address of the customer list.
 router.get("/users", (req, res) => {
   const query = req.originalUrl.indexOf("?");

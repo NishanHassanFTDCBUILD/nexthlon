@@ -595,6 +595,23 @@
       item.append(top);
       if (review.title) item.append(el("h3", "pdx-review-title", review.title));
       item.append(el("p", "pdx-review-body", review.body));
+      if (review.photos && review.photos.length) {
+        const strip = el("div", "pdx-review-photos");
+        review.photos.forEach((src, i) => {
+          const link = el("a");
+          link.href = src;
+          link.target = "_blank";
+          link.rel = "noopener";
+          const img = el("img");
+          img.src = src;
+          img.alt = `Photo ${i + 1} from ${review.author}`;
+          img.width = 88;
+          img.height = 88;
+          link.append(img);
+          strip.append(link);
+        });
+        item.append(strip);
+      }
       if (review.mine) {
         const remove = el("button", "pdx-review-delete");
         remove.type = "button";
@@ -689,6 +706,25 @@
           showError("");
         });
       });
+      // Photos: small previews, at most 3, 2 MB each (the server checks again).
+      const photoInput = form.querySelector("[data-review-photos]");
+      const previews = form.querySelector("[data-review-previews]");
+      if (photoInput) {
+        photoInput.addEventListener("change", () => {
+          previews.replaceChildren();
+          const files = [...photoInput.files];
+          if (files.length > 3) showError("You can add up to 3 photos. The first 3 will be used.");
+          else if (files.some(file => file.size > 2 * 1024 * 1024)) showError("Each photo must be 2 MB or smaller.");
+          else showError("");
+          files.slice(0, 3).forEach(file => {
+            const img = el("img");
+            img.alt = "";
+            img.src = URL.createObjectURL(file);
+            img.onload = () => URL.revokeObjectURL(img.src);
+            previews.append(img);
+          });
+        });
+      }
       body.addEventListener("input", () => {
         chars.textContent = String(body.value.length);
         body.removeAttribute("aria-invalid");
@@ -712,10 +748,17 @@
         const button = form.querySelector('[type="submit"]');
         Nx.busy(button, true, "Posting…");
         try {
-          const result = await Nx.api(`/api/products/${encodeURIComponent(productId)}/reviews`, {
-            method: "POST",
-            body: { rating: Number(picked.value), title: form.elements.title.value.trim(), body: text }
-          });
+          // With photos the review goes as a form upload (E3); without, as JSON.
+          const files = photoInput ? [...photoInput.files].slice(0, 3) : [];
+          let payload = { rating: Number(picked.value), title: form.elements.title.value.trim(), body: text };
+          if (files.length) {
+            const data = new FormData();
+            Object.entries(payload).forEach(([key, value]) => data.append(key, String(value)));
+            files.forEach(file => data.append("photos", file));
+            payload = data;
+          }
+          const result = await Nx.api(`/api/products/${encodeURIComponent(productId)}/reviews`, { method: "POST", body: payload });
+          if (photoInput) { photoInput.value = ""; previews.replaceChildren(); }
           const item = renderReview(result.review);
           item.classList.add("is-new");
           list.prepend(item);
@@ -796,4 +839,102 @@
       }
     });
   });
+  // ---------- Questions and answers (E3) ----------
+  const qa = document.querySelector("[data-qa]");
+  if (qa) {
+    const productId = qa.dataset.productId;
+    const qaList = qa.querySelector("[data-qa-list]");
+    const qaMore = qa.querySelector("[data-qa-more]");
+    const canAnswer = qa.hasAttribute("data-can-answer");
+    let qaPage = 1;
+    const make = (tag, cls, text) => { const node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; };
+    const day = value => new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const line = (tag, body, meta) => {
+      const p = make("p", tag === "A" ? "pdx-qa-a" : "pdx-qa-q");
+      const badge = make("span", tag === "A" ? "pdx-qa-tag is-a" : "pdx-qa-tag", tag);
+      badge.setAttribute("aria-hidden", "true");
+      const text = make("span");
+      text.append(tag === "Q" ? make("strong", "", body) : body, make("small", "muted", meta));
+      p.append(badge, text);
+      return p;
+    };
+    // Same markup as views/partials/questions.ejs.
+    const renderQuestion = q => {
+      const item = make("li", "pdx-qa-item");
+      item.dataset.question = q.id;
+      item.append(line("Q", q.body, `${q.author} · ${day(q.createdAt)}`));
+      q.answers.forEach(a => item.append(line("A", a.body, `${a.author}${a.isStaff ? " · Store answer" : a.verifiedBuyer ? " · Bought it" : ""} · ${day(a.at)}`)));
+      if (!q.answers.length) item.append(make("p", "muted pdx-qa-wait", "No answer yet. Buyers and our team usually answer within a day."));
+      if (canAnswer && !q.mine) {
+        const button = make("button", "pdx-text-btn", "Answer this");
+        button.type = "button";
+        button.dataset.qaAnswer = "";
+        item.append(button);
+      }
+      return item;
+    };
+
+    const askForm = qa.querySelector("[data-qa-ask]");
+    if (askForm) {
+      askForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        const body = askForm.elements.body.value.trim();
+        if (body.length < 10) { Nx.showErrors(askForm, { body: "Write a question of at least 10 characters." }); return; }
+        const reply = await Nx.submitForm(askForm, { url: `/api/products/${encodeURIComponent(productId)}/questions`, body: { body }, busyLabel: "Posting…" });
+        if (!reply) return;
+        askForm.reset();
+        const item = renderQuestion(reply.question);
+        item.classList.add("is-new");
+        qaList.prepend(item);
+        qa.querySelector("[data-qa-empty]").hidden = true;
+        Nx.toast(reply.message);
+      });
+    }
+
+    qaList.addEventListener("click", event => {
+      const button = event.target.closest("[data-qa-answer]");
+      if (!button) return;
+      const item = button.closest("[data-question]");
+      const form = make("form", "pdx-qa-ask pdx-qa-reply");
+      form.noValidate = true;
+      const input = make("textarea");
+      input.name = "body";
+      input.rows = 2;
+      input.maxLength = 1000;
+      input.setAttribute("aria-label", "Your answer");
+      input.placeholder = "Share what you know from using it";
+      const send = make("button", "btn btn-primary btn-sm", "Post answer");
+      send.type = "submit";
+      const error = make("p", "field-error");
+      error.dataset.errorFor = "body";
+      form.append(input, send, error);
+      button.replaceWith(form);
+      input.focus();
+      form.addEventListener("submit", async submit => {
+        submit.preventDefault();
+        const reply = await Nx.submitForm(form, { url: `/api/questions/${encodeURIComponent(item.dataset.question)}/answers`, body: { body: input.value.trim() }, busyLabel: "Posting…" });
+        if (!reply) return;
+        const fresh = renderQuestion(reply.question);
+        fresh.classList.add("is-new");
+        item.replaceWith(fresh);
+        Nx.toast(reply.message);
+      });
+    });
+
+    if (qaMore) {
+      qaMore.addEventListener("click", async () => {
+        Nx.busy(qaMore, true, "Loading…");
+        try {
+          const data = await Nx.api(`/api/products/${encodeURIComponent(productId)}/questions?page=${qaPage + 1}`);
+          qaPage = data.pagination.page;
+          data.questions.forEach(q => qaList.append(renderQuestion(q)));
+          qaMore.hidden = qaPage >= data.pagination.pages;
+        } catch (error) {
+          Nx.toast(error.message, "error");
+        } finally {
+          Nx.busy(qaMore, false);
+        }
+      });
+    }
+  }
 })();

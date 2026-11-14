@@ -155,7 +155,7 @@ test("admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
   for (const key of ["dashboard", "analytics", "orders", "returns", "transactions", "refunds", "abandoned-carts", "coupons", "products", "inventory", "customers", "settings", "system"]) {
     assert.match(full.data, new RegExp(`data-nav-link="${key}"`));
   }
-  for (const gone of ["categories", "brands", "segments", "offers", "flash-sales", "campaigns", "gift-cards", "loyalty", "cms", "banners", "sales-report", "exports", "delivery-zones", "admins", "audit-log", "tickets", "analytics-soon", "reviews", "questions"]) {
+  for (const gone of ["categories", "brands", "segments", "offers", "flash-sales", "campaigns", "gift-cards", "loyalty", "cms", "banners", "sales-report", "exports", "delivery-zones", "admins", "audit-log", "tickets", "analytics-soon", "reviews"]) {
     assert.doesNotMatch(full.data, new RegExp(`data-nav-link="${gone}"`));
   }
   assert.doesNotMatch(full.data, /admin-soon|>Soon</);
@@ -195,7 +195,7 @@ test("every section in the sidebar opens; anything else is a plain 404", async (
     assert.doesNotMatch(page.data, /Coming in Part|admin-soon-panel/);
   }
   // Sections that were removed are ordinary 404s, like any unknown URL.
-  for (const gone of ["categories", "brands", "marketing", "offers", "cms", "banners", "admins", "audit-log", "tickets", "profile", "reviews", "questions", "not-a-section"]) {
+  for (const gone of ["categories", "brands", "marketing", "offers", "cms", "banners", "admins", "audit-log", "tickets", "profile", "reviews", "not-a-section"]) {
     assert.equal((await call("GET", `${ADMIN}/${gone}`, { cookie })).status, 404, `${gone} should be gone`);
   }
   // Still invisible to everyone else.

@@ -49,4 +49,17 @@ function returnPhotos(req, res, next) {
   });
 }
 
-module.exports = { productImages, returnPhotos };
+// E3: up to 3 photos in the "photos" field of a review. A JSON review (no photos) passes straight through.
+function reviewPhotos(req, res, next) {
+  upload.array("photos", 3)(req, res, error => {
+    if (!error) return next();
+    if (error instanceof HttpError) return next(new HttpError(400, error.message, { photos: error.message }));
+    if (error instanceof multer.MulterError) {
+      const message = error.code === "LIMIT_FILE_SIZE" ? "Each photo must be 2 MB or smaller." : "You can add up to 3 photos.";
+      return next(new HttpError(400, message, { photos: message }));
+    }
+    return next(error);
+  });
+}
+
+module.exports = { productImages, returnPhotos, reviewPhotos };

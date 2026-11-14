@@ -2,6 +2,7 @@
 // Thin handlers: every number comes from a service, and these only choose what the page shows.
 const config = require("../config/env");
 const inventoryService = require("../services/inventoryService");
+const questionService = require("../services/questionService");
 const systemService = require("../services/systemService");
 const { linkBuilder } = require("../utils/queryString");
 const { asyncHandler } = require("../utils/http");
@@ -25,9 +26,15 @@ const inventory = asyncHandler(async (req, res) => {
   });
 });
 
+// GET <ADMIN_PATH>/questions?status=waiting|all|hidden   Product Q&A (E3).
+const questions = asyncHandler(async (req, res) => {
+  const data = await questionService.adminList({ status: String(req.query.status || "waiting"), page: req.query.page });
+  res.render("admin/questions", { title: "Questions | Nexthlon Admin", ...data });
+});
+
 // GET <ADMIN_PATH>/system
 const system = asyncHandler(async (req, res) => {
   res.render("admin/system", { title: "System status | Nexthlon Admin", ...await systemService.status() });
 });
 
-module.exports = { inventory, system };
+module.exports = { questions, inventory, system };

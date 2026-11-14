@@ -294,22 +294,20 @@ test("inventory: a product with sizes is changed one size at a time, on the page
 
 // ======================= Removed: admin Reviews, and Q&A everywhere =======================
 
-test("Q&A is gone from the store and the console, and the admin has no Reviews section", async () => {
-  // The store: no Q&A API and no Q&A area. (Customer reviews are back on the product page.)
-  assert.equal((await call("GET", `/api/products/${shoe._id}/questions`)).status, 404);
-  assert.equal((await call("POST", `/api/products/${shoe._id}/questions`, { body: { body: "Is this waterproof at all?" }, cookie: ashaCookie })).status, 404);
+test("Q&A is back (E3): on the product page and as the Questions section; there is still no Reviews section", async () => {
+  // The store: questions on the product page, next to the reviews.
+  assert.equal((await call("GET", `/api/products/${shoe._id}/questions`)).status, 200);
   const page = await call("GET", `/products/${shoe.slug}`, { cookie: ashaCookie });
   assert.equal(page.status, 200);
-  assert.doesNotMatch(page.data, /data-qa|Questions &amp; answers|Ask a question/);
+  assert.match(page.data, /data-qa/);
   assert.match(page.data, /id="reviews"/);
 
-  // The console: no Reviews or Q&A pages, APIs or sidebar links.
-  for (const section of ["reviews", "questions"]) {
-    assert.equal((await call("GET", `${ADMIN}/${section}`, { cookie: adminCookie })).status, 404, `${section} page should be gone`);
-    assert.equal((await call("GET", `/api/admin/${section}`, { cookie: adminCookie })).status, 404, `${section} API should be gone`);
-  }
+  // The console: a Questions page in the sidebar; no Reviews page.
+  assert.equal((await call("GET", `${ADMIN}/questions`, { cookie: adminCookie })).status, 200);
+  assert.equal((await call("GET", `${ADMIN}/reviews`, { cookie: adminCookie })).status, 404, "reviews page should be gone");
   const dashboard = await call("GET", `${ADMIN}/dashboard`, { cookie: adminCookie });
-  assert.doesNotMatch(dashboard.data, /data-nav-link="(reviews|questions)"|Latest reviews|Questions to answer/);
+  assert.match(dashboard.data, /data-nav-link="questions"/);
+  assert.doesNotMatch(dashboard.data, /data-nav-link="reviews"/);
 });
 
 // ======================= Coupons =======================

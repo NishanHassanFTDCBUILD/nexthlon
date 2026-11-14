@@ -2,6 +2,8 @@ const productService = require("../services/productService");
 const reviewService = require("../services/reviewService");
 const shippingService = require("../services/shippingService");
 const stockAlertService = require("../services/stockAlertService");
+const imageService = require("../services/imageService");
+const questionService = require("../services/questionService");
 const { lookupPincode } = require("../services/pincodeService");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { readIdList, validateReview, hasErrors } = require("../utils/validators");
@@ -60,7 +62,11 @@ const listReviews = asyncHandler(async (req, res) => {
 const addReview = asyncHandler(async (req, res) => {
   const { errors, value } = validateReview(req.body);
   if (hasErrors(errors)) throw new HttpError(400, Object.values(errors)[0], errors);
-  const result = await reviewService.addReview(req.user, req.params.id, value);
+  const files = req.files || [];
+  const fake = imageService.findFakeImages(files);
+  if (fake.length) throw new HttpError(400, "Only real JPG, PNG or WEBP photos can be added.", { photos: "Only real JPG, PNG or WEBP photos can be added." });
+  // Photos are saved only once the review is allowed (E3).
+  const result = await reviewService.addReview(req.user, req.params.id, value, { savePhotos: files.length ? () => imageService.saveImages(files, "reviews") : null });
   res.status(201).json({ message: "Thanks! Your review is live.", ...result });
 });
 
@@ -89,4 +95,18 @@ const addStockAlert = asyncHandler(async (req, res) => {
   res.status(201).json({ message: `Done. We'll email ${alert.email} when ${alert.option ? `${alert.option} is` : "it's"} back.`, alert });
 });
 
-module.exports = { addStockAlert, listProducts, searchProducts, searchStart, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };
+// Product Q&A (E3). GET /api/products/:id/questions?page=  POST /api/products/:id/questions { body }
+// POST /api/questions/:questionId/answers { body } (buyers who received it, or the admin)
+const listQuestions = asyncHandler(async (req, res) => {
+  res.json(await questionService.list(req.params.id, req.query.page, req.user ? req.user._id : null));
+});
+const askQuestion = asyncHandler(async (req, res) => {
+  const question = await questionService.ask(req.user, req.params.id, req.body && req.body.body);
+  res.status(201).json({ message: "Question posted. You will get an email when someone answers.", question });
+});
+const answerQuestion = asyncHandler(async (req, res) => {
+  const question = await questionService.answer(req.user, req.params.questionId, req.body && req.body.body);
+  res.status(201).json({ message: "Thanks! Your answer is live.", question });
+});
+
+module.exports = { listQuestions, askQuestion, answerQuestion, addStockAlert, listProducts, searchProducts, searchStart, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };

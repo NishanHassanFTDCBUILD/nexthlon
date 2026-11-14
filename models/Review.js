@@ -12,6 +12,8 @@ const reviewSchema = new mongoose.Schema({
   body: { type: String, trim: true, required: true, maxlength: 1000 },
   // True when the author had this product delivered to them when they wrote the review.
   verified: { type: Boolean, default: false },
+  // E3: up to 3 photos from the customer (reviews/<id>.webp), shown under the review.
+  photos: { type: [String], default: [], validate: list => list.length <= 3 },
   // Hidden by an admin: kept in the database (and in the audit log) but never shown in the store,
   // and left out of the product's average rating.
   isHidden: { type: Boolean, default: false },

@@ -1,4 +1,6 @@
 const router = require("express").Router();
+const questionService = require("../services/questionService");
+const auditService = require("../services/auditService");
 const { dashboard, analytics, search, notifications, listCustomers, setCustomerBlocked, getSettings, updateReferral, updateCod, updatePrepaid, updateCodOtp, listTickets, replyTicket } = require("../controllers/adminController");
 const products = require("../controllers/adminProductController");
 const reports = require("../controllers/adminReportController");
@@ -60,6 +62,22 @@ router.patch("/orders/:orderId/status", adminWriteLimiter, orders.setStatus);
 router.post("/orders/:orderId/cancel", adminMoneyLimiter, orders.cancelItems);
 router.post("/orders/:orderId/shipments", adminWriteLimiter, orders.addShipment);
 router.post("/orders/:orderId/ship", adminWriteLimiter, orders.shipNow);
+// Product questions (E3): answer as the team, hide or show.
+router.post("/questions/:questionId/answers", adminWriteLimiter, async (req, res, next) => {
+  try {
+    const question = await questionService.answer(req.user, req.params.questionId, req.body && req.body.body);
+    await auditService.record({ ...auditService.fromRequest(req), action: "question.answered", target: `question:${question.id}` });
+    res.status(201).json({ message: "Answer posted. The customer gets an email.", question });
+  } catch (error) { next(error); }
+});
+router.patch("/questions/:questionId/hidden", adminWriteLimiter, async (req, res, next) => {
+  try {
+    const hidden = req.body && req.body.hidden === true;
+    await questionService.setHidden(req.params.questionId, hidden);
+    await auditService.record({ ...auditService.fromRequest(req), action: hidden ? "question.hidden" : "question.shown", target: `question:${req.params.questionId}` });
+    res.json({ message: hidden ? "Question hidden from the store." : "Question shown again." });
+  } catch (error) { next(error); }
+});
 router.post("/orders/:orderId/rto", adminMoneyLimiter, orders.markRto);
 router.post("/orders/:orderId/notes", adminWriteLimiter, orders.addNote);
 router.post("/orders/:orderId/refunds", adminMoneyLimiter, orders.refund);

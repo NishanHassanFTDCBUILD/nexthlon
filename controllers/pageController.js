@@ -31,6 +31,7 @@ const seo = require("../utils/seo");
 const analytics = require("../utils/analyticsEvents");
 const shippingService = require("../services/shippingService");
 const stockAlertService = require("../services/stockAlertService");
+const questionService = require("../services/questionService");
 const { sizedUrl } = require("../utils/images");
 const { estimateDelivery } = require("../services/deliveryService");
 
@@ -167,6 +168,11 @@ const productDetail = asyncHandler(async (req, res) => {
     // Back-in-stock alerts this customer already asked for (E3): "any" or option ids.
     customer ? stockAlertService.waitingFor(product._id, customer.email) : []
   ]);
+  // Product questions (E3): the first page, and whether this customer may answer (received it).
+  const [questions, canAnswer] = await Promise.all([
+    questionService.list(product._id, 1, customer ? customer._id : null),
+    customer ? reviewService.hasReceived(customer._id, product._id) : false
+  ]);
   // Bought together first; the related row then skips those, so no product shows twice.
   const togetherProducts = together.map(entry => entry.product);
   const togetherIds = new Set(togetherProducts.map(p => String(p._id)));
@@ -206,6 +212,8 @@ const productDetail = asyncHandler(async (req, res) => {
     shipTo,
     inCart,
     alertWaiting,
+    questions,
+    canAnswer,
     codLimit,
     codAvailable: settingsService.codAllowedFor(product.price, codLimit)
   });

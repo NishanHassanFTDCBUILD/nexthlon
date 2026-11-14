@@ -307,9 +307,9 @@ test("with a bucket, the Content Security Policy lets the browser load photos fr
   // STORAGE_DRIVER is set so a photo service in your own .env (dotenv fills only what is missing) can't change the answer.
   const env = { MONGODB_URI: "mongodb://127.0.0.1:1/x", JWT_SECRET: good.JWT_SECRET, NODE_ENV: "development", LOG_LEVEL: "error", STORAGE_DRIVER: "local" };
   const withBucket = run(script, { ...env, STORAGE_DRIVER: "s3", S3_ENDPOINT: "https://abc.r2.cloudflarestorage.com", S3_BUCKET: "b", S3_ACCESS_KEY_ID: "k", S3_SECRET_ACCESS_KEY: "s", STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in/" }).stdout;
-  assert.match(withBucket, /img-src 'self' data: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com https:\/\/cdn\.nexthlon\.in;/);
+  assert.match(withBucket, /img-src 'self' data: blob: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com https:\/\/cdn\.nexthlon\.in;/);
   const without = run(script, env).stdout;
-  assert.match(without, /img-src 'self' data: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com;/);
+  assert.match(without, /img-src 'self' data: blob: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com;/);
   assert.doesNotMatch(without, /cdn\.nexthlon\.in/);
 });
 

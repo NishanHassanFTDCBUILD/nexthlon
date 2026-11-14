@@ -39,6 +39,7 @@ function publicReview(review) {
     body: review.body,
     createdAt: review.createdAt,
     verified: Boolean(review.verified),
+    photos: review.photos || [],
     isHidden: Boolean(review.isHidden)
   };
 }
@@ -97,14 +98,15 @@ async function refreshProductRating(productId) {
   return { average: ratingAverage, count: ratingCount };
 }
 
-async function addReview(user, productId, value) {
+async function addReview(user, productId, value, { savePhotos = null } = {}) {
   if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
   const product = await Product.findOne({ _id: productId, ...LISTED_PRODUCT }).select("_id").lean();
   if (!product) throw new HttpError(404, "Product not found.");
   const status = await reviewStatus(user, product._id);
   if (status.reason === "limit") throw new HttpError(409, LIMIT_MESSAGE);
   if (!status.canReview) throw new HttpError(403, "Only customer accounts can review products.");
-  const review = await Review.create({ ...value, product: product._id, user: user._id, authorName: shortName(user.name), verified: status.verified });
+  const photos = savePhotos ? await savePhotos() : [];
+  const review = await Review.create({ ...value, photos, product: product._id, user: user._id, authorName: shortName(user.name), verified: status.verified });
   // Two posts sent at the same moment could both pass the count above: keep only the first 5.
   if (await Review.countDocuments({ product: product._id, user: user._id }) > MAX_PER_PRODUCT) {
     await Review.deleteOne({ _id: review._id });
