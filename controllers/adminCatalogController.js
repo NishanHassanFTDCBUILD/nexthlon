@@ -3,6 +3,7 @@
 const inventoryService = require("../services/inventoryService");
 const systemService = require("../services/systemService");
 const auditService = require("../services/auditService");
+const stockAlertService = require("../services/stockAlertService");
 const { validateStockChange, hasErrors } = require("../utils/validators");
 const { row } = require("../utils/csv");
 const { optionLabel } = require("../utils/options");
@@ -27,6 +28,8 @@ const listInventory = asyncHandler(async (req, res) => {
 const adjustStock = asyncHandler(async (req, res) => {
   const value = checked(validateStockChange, req.body);
   const result = await inventoryService.adjustStock(req.params.productId, value);
+  // Back on the shelf: shoppers waiting for it are emailed within seconds (E3).
+  if (result.after > result.before) stockAlertService.kick();
   await auditService.record({
     ...auditService.fromRequest(req),
     action: "inventory.stock_changed",

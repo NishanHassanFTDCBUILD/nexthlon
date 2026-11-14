@@ -14,6 +14,8 @@ const accountPage = [customerPage, accountShell];
 router.get("/", publicCache, pages.home);
 router.get("/products", publicCache, pages.products);
 router.get("/products/:slug", publicCache, pages.productDetail);
+// The "stop this alert" link in a back-in-stock email (E3).
+router.get("/stock-alerts/stop", pages.stopStockAlert);
 
 // Store information and the policies Razorpay asks for
 router.get("/about", publicCache, pages.infoPage("about"));

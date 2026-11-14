@@ -1,5 +1,6 @@
 const adminProductService = require("../services/adminProductService");
 const auditService = require("../services/auditService");
+const stockAlertService = require("../services/stockAlertService");
 const { validateProduct, validateRestock, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 
@@ -29,6 +30,8 @@ const createProduct = asyncHandler(async (req, res) => {
 // PATCH /api/admin/products/:productId   multipart: the same fields, plus keepImages (JSON list of photos to keep)
 const updateProduct = asyncHandler(async (req, res) => {
   const product = await adminProductService.updateProduct(req.params.productId, readForm(req));
+  // Stock may have come back with the edit; the sweep checks (E3).
+  stockAlertService.kick();
   res.json({ message: `${product.name} has been saved.`, product });
 });
 
@@ -48,6 +51,7 @@ const restock = asyncHandler(async (req, res) => {
   const { errors, value } = validateRestock(req.body || {});
   if (hasErrors(errors)) throw new HttpError(400, errors.add, errors);
   const { product, before, after } = await adminProductService.restock(req.params.productId, value.add);
+  if (after > before) stockAlertService.kick();
   await auditService.record({ ...auditService.fromRequest(req), action: "product.restock", target: `product:${product.id}`, before: { stock: before }, after: { stock: after } });
   res.json({ message: `${product.name}: ${value.add} added, ${after} in stock now.`, product });
 });

@@ -30,6 +30,7 @@ const { linkBuilder } = require("../utils/queryString");
 const seo = require("../utils/seo");
 const analytics = require("../utils/analyticsEvents");
 const shippingService = require("../services/shippingService");
+const stockAlertService = require("../services/stockAlertService");
 const { sizedUrl } = require("../utils/images");
 const { estimateDelivery } = require("../services/deliveryService");
 
@@ -150,7 +151,7 @@ const productDetail = asyncHandler(async (req, res) => {
     accountService.recordView(req.user._id, product._id).catch(() => {});
   }
   const customer = req.user && req.user.role === "customer" ? req.user : null;
-  const [related, reviews, reviewStatus, featured, shipTo, inCart, codLimit, together] = await Promise.all([
+  const [related, reviews, reviewStatus, featured, shipTo, inCart, codLimit, together, alertWaiting] = await Promise.all([
     productService.getRelatedProducts(product),
     reviewService.listReviews(product._id, 1, req.user && req.user.role === "customer" ? req.user._id : null),
     reviewService.reviewStatus(req.user || null, product._id),
@@ -162,7 +163,9 @@ const productDetail = asyncHandler(async (req, res) => {
     customer ? cartService.quantityInCart(customer._id, product._id) : 0,
     settingsService.get("codLimit"),
     // "Frequently bought together", from real orders (empty until there are some).
-    recommendationService.boughtTogether(product._id, 4)
+    recommendationService.boughtTogether(product._id, 4),
+    // Back-in-stock alerts this customer already asked for (E3): "any" or option ids.
+    customer ? stockAlertService.waitingFor(product._id, customer.email) : []
   ]);
   // Bought together first; the related row then skips those, so no product shows twice.
   const togetherProducts = together.map(entry => entry.product);
@@ -202,6 +205,7 @@ const productDetail = asyncHandler(async (req, res) => {
     featured,
     shipTo,
     inCart,
+    alertWaiting,
     codLimit,
     codAvailable: settingsService.codAllowedFor(product.price, codLimit)
   });
@@ -297,6 +301,14 @@ const orderDetail = asyncHandler(async (req, res) => {
     cancelReasons: orderRules.CANCEL_REASONS,
     returnReasons: orderRules.RETURN_REASONS
   });
+});
+
+// GET /stock-alerts/stop?id=&sig=   From the back-in-stock email. Back to the product with a note.
+const stopStockAlert = asyncHandler(async (req, res) => {
+  const result = await stockAlertService.stop(String(req.query.id || ""), String(req.query.sig || ""));
+  if (!result) throw new HttpError(404, "This link is not valid. It may have been copied wrong.");
+  const slug = result.product ? result.product.slug : "";
+  res.redirect(303, slug ? `/products/${slug}?alert=stopped` : "/products?alert=stopped");
 });
 
 const orderSuccess = asyncHandler(async (req, res) => {
@@ -423,6 +435,7 @@ module.exports = {
   wallet,
   orderDetail,
   orderSuccess,
+  stopStockAlert,
   orderInvoice,
   orderCreditNote,
   adminLogin,

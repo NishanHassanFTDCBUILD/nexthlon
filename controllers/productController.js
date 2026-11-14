@@ -1,6 +1,7 @@
 const productService = require("../services/productService");
 const reviewService = require("../services/reviewService");
 const shippingService = require("../services/shippingService");
+const stockAlertService = require("../services/stockAlertService");
 const { lookupPincode } = require("../services/pincodeService");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { readIdList, validateReview, hasErrors } = require("../utils/validators");
@@ -80,4 +81,12 @@ const pincodeLookup = asyncHandler(async (req, res) => {
   res.json({ place });
 });
 
-module.exports = { listProducts, searchProducts, searchStart, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };
+// POST /api/products/:id/stock-alerts   { email?, variantId? }   Signed-in customers may leave out the email.
+const addStockAlert = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+  const user = req.user && req.user.role === "customer" ? req.user : null;
+  const alert = await stockAlertService.subscribe(req.params.id, { email: body.email, variantId: body.variantId || null, user });
+  res.status(201).json({ message: `Done. We'll email ${alert.email} when ${alert.option ? `${alert.option} is` : "it's"} back.`, alert });
+});
+
+module.exports = { addStockAlert, listProducts, searchProducts, searchStart, lookupProducts, getProduct, listCategories, listReviews, addReview, deliveryEstimate, pincodeLookup };

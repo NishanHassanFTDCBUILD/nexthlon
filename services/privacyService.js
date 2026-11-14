@@ -12,6 +12,7 @@ const Wallet = require("../models/Wallet");
 const WalletTransaction = require("../models/WalletTransaction");
 const LoginActivity = require("../models/LoginActivity");
 const NewsletterSubscriber = require("../models/NewsletterSubscriber");
+const StockAlert = require("../models/StockAlert");
 const auditService = require("./auditService");
 const { HttpError } = require("../utils/http");
 
@@ -35,7 +36,7 @@ function clean(value) {
 async function exportData(userId, context = {}) {
   const user = await User.findById(userId).select("name email phone role referralCode notifyPrefs recentlyViewed emailVerifiedAt lastLoginAt createdAt").lean();
   if (!user) throw new HttpError(404, "Account not found.");
-  const [addresses, orders, reviews, wishlist, lists, tickets, wallet, walletHistory, signIns, newsletter] = await Promise.all([
+  const [addresses, orders, reviews, wishlist, lists, tickets, wallet, walletHistory, signIns, newsletter, alerts] = await Promise.all([
     Address.find({ user: userId }).lean(),
     // Staff notes on an order are internal and stay out.
     Order.find({ user: userId }).sort({ createdAt: -1 }).select("-notes").lean(),
@@ -46,7 +47,8 @@ async function exportData(userId, context = {}) {
     Wallet.findOne({ user: userId }).lean(),
     WalletTransaction.find({ user: userId }).sort({ createdAt: -1 }).lean(),
     LoginActivity.find({ user: userId }).sort({ at: -1 }).limit(50).lean(),
-    NewsletterSubscriber.findOne({ email: user.email }).select("email createdAt").lean()
+    NewsletterSubscriber.findOne({ email: user.email }).select("email createdAt").lean(),
+    StockAlert.find({ email: user.email }).select("product variant notifiedAt createdAt").lean()
   ]);
   await auditService.record({ ...context, action: "account.data_export", target: `user:${userId}` });
   return {
@@ -61,6 +63,7 @@ async function exportData(userId, context = {}) {
     supportTickets: clean(tickets),
     wallet: { balance: wallet ? wallet.balance || 0 : 0, history: clean(walletHistory) },
     recentSignIns: clean(signIns),
+    backInStockAlerts: clean(alerts),
     newsletter: newsletter ? { email: newsletter.email, since: clean(newsletter.createdAt) } : null
   };
 }

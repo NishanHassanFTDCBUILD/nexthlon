@@ -153,6 +153,7 @@
           <p class="pdx-stock <%= product.stock <= 0 ? 'is-out' : product.stock <= 5 ? 'is-low' : 'is-ok' %>" data-stock-line>
             <% if (product.stock <= 0) { %>Out of stock<% } else if (product.stock <= 5) { %>Only <%= product.stock %> left in stock – order soon<% } else { %>In stock<% } %>
           </p>
+          <% if (query.alert === 'stopped') { %><p class="pdx-note" role="status"><%- icon('check', 'i-xs') %> Alert stopped. We won't email you about this one.</p><% } %>
 
           <%# ---------- Already in cart ---------- %>
           <% if (shopper && currentUser) { %>
@@ -166,7 +167,7 @@
           <%# ---------- Quantity + the two actions ---------- %>
           <% if (product.stock <= 0) { %>
             <button class="pdx-btn pdx-btn-buy" type="button" disabled>Out of stock</button>
-            <p class="pdx-note">This item is sold out right now. Check back soon.</p>
+            <% if (shopper) { %><%- include('../partials/stock-alert', { product: product, soldOptions: [], waiting: alertWaiting || [], signedIn: Boolean(currentUser) }) %><% } else { %><p class="pdx-note">This item is sold out right now.</p><% } %>
           <% } else if (shopper) { %>
             <%# The cart and Buy now need a signed-in account: a guest who presses either goes to sign in
                  and comes straight back here (store.js Nx.signInFirst). %>
@@ -222,6 +223,11 @@
               </div>
               <% if (!currentUser) { %><p class="pdx-note"><a href="/login?next=<%= backHere %>">Sign in</a> to add to your cart or buy now. You come straight back here.</p><% } %>
             </form>
+          <% } %>
+          <%# Some sizes or colours sold out: their own "email me" (E3). %>
+          <% const soldOptions = options.filter(function (o) { return o.stock <= 0; }).map(function (o) { return { id: o.id, label: [o.size ? 'Size ' + o.size : '', o.colour].filter(Boolean).join(' · ') }; }); %>
+          <% if (shopper && product.stock > 0 && soldOptions.length) { %>
+            <%- include('../partials/stock-alert', { product: product, soldOptions: soldOptions, waiting: alertWaiting || [], signedIn: Boolean(currentUser) }) %>
           <% } %>
 
           <%# ---------- Seller facts, Amazon-style ---------- %>

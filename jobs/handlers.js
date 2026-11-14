@@ -14,3 +14,9 @@ registry.register("cart.remind", ({ cartId }) => cartRecoveryService.sendReminde
 // reminders go out only when an admin presses the button.
 registry.register("cart.sweep", () => cartRecoveryService.queueDueReminders(), { maxAttempts: 2 });
 registry.schedule("cart-sweep", { everyMs: 60 * 60 * 1000, type: "cart.sweep", enabled: () => config.cartRecoveryAuto });
+
+// Back-in-stock alerts (E3): one email per alert, and the sweep that finds alerts whose product is back.
+const stockAlertService = require("../services/stockAlertService");
+registry.register("stock.alert", ({ alertId }) => stockAlertService.notify(alertId));
+registry.register("stock.sweep", () => stockAlertService.sweep(), { maxAttempts: 2 });
+registry.schedule("stock-sweep", { everyMs: 10 * 60 * 1000, type: "stock.sweep" });

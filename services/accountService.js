@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Order = require("../models/Order");
+const StockAlert = require("../models/StockAlert");
 const Product = require("../models/Product");
 const Review = require("../models/Review");
 const Coupon = require("../models/Coupon");
@@ -140,6 +141,8 @@ async function deleteAccount(userId, password, context = {}) {
   user.recentlyViewed = [];
   await user.save();
   await refreshTokenService.revokeAllForUser(user._id, "account_deleted");
+  // Back-in-stock alerts hold only the email address: nothing left to send them for (E3).
+  await StockAlert.deleteMany({ email: user.email });
   await auditService.record({ ...context, action: "account.deleted", target: `user:${user._id}`, after: { deletedAt: user.deletedAt } });
   return user;
 }

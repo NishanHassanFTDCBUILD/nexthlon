@@ -767,4 +767,33 @@
       }
     });
   });
+  // ---------- Back-in-stock alerts (E3) ----------
+  // "Notify me": one email when the product (or the chosen sold-out size) is back. Guests type their email.
+  document.querySelectorAll("[data-stock-alert]").forEach(form => {
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const email = form.elements.email;
+      if (email && !email.checkValidity()) {
+        Nx.showErrors(form, { email: "Enter a valid email address." });
+        email.focus();
+        return;
+      }
+      const values = Nx.formValues(form);
+      const reply = await Nx.submitForm(form, { url: `/api/products/${encodeURIComponent(form.dataset.stockAlert)}/stock-alerts`, body: values, busyLabel: "Saving…" });
+      if (!reply) return;
+      const done = form.querySelector("[data-notify-done]");
+      const text = form.querySelector("[data-notify-done-text]");
+      if (text) text.textContent = reply.message;
+      if (done) done.hidden = false;
+      const select = form.elements.variantId;
+      if (select) {
+        const picked = select.options[select.selectedIndex];
+        if (picked && !picked.dataset.waiting) { picked.dataset.waiting = ""; picked.textContent += " (alert on)"; }
+      } else {
+        const fields = form.querySelector("[data-notify-fields]");
+        if (fields) fields.hidden = true;
+        form.classList.add("is-done");
+      }
+    });
+  });
 })();

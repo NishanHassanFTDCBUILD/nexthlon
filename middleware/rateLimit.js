@@ -178,4 +178,13 @@ const orderLimiter = limiter("order", {
   message: { message: "Too many orders in a short time. Please wait a few minutes and try again." }
 });
 
-module.exports = { accountLoginLimiter, searchLimiter, orderLimiter, cartLimiter, pincodeLimiter, forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
+// Back-in-stock alerts (E3): a person asks for a handful; a script filling the table is stopped.
+const stockAlertLimiter = limiter("stock-alert", {
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many alerts asked for. Try again in an hour." }
+});
+
+module.exports = { stockAlertLimiter, accountLoginLimiter, searchLimiter, orderLimiter, cartLimiter, pincodeLimiter, forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };

@@ -1,0 +1,28 @@
+<%# "Email me when it's back" (E3). public/js/product.js sends it to POST /api/products/:id/stock-alerts.
+    Pass: product, soldOptions ([{ id, label }] for sold-out sizes/colours, or [] for the whole product),
+    waiting (what this customer already asked for: "any" or option ids), signedIn (customer with an email). %>
+<%
+  const whole = !soldOptions.length;
+  const doneAlready = whole ? waiting.includes('any') : soldOptions.every(function (o) { return waiting.includes(o.id); });
+%>
+<form class="pdx-notify<%= whole ? '' : ' is-options' %><%= doneAlready ? ' is-done' : '' %>" data-stock-alert="<%= product._id %>" novalidate>
+  <div class="pdx-notify-head">
+    <span class="pdx-notify-icon" aria-hidden="true"><%- icon('bell', 'i-sm') %></span>
+    <p><strong><%= whole ? 'Get an email when it\'s back' : 'Your size sold out?' %></strong><span class="muted"><%= whole ? 'One email, the moment it is restocked. Nothing else.' : 'Pick it and we\'ll email you when it\'s back.' %></span></p>
+  </div>
+  <div class="pdx-notify-row" data-notify-fields<%= doneAlready && whole ? ' hidden' : '' %>>
+    <% if (!whole) { %>
+      <label class="sr-only" for="notify-option">Sold-out option</label>
+      <select id="notify-option" name="variantId" required>
+        <% soldOptions.forEach(function (o) { %><option value="<%= o.id %>"<%= waiting.includes(o.id) ? ' data-waiting' : '' %>><%= o.label %><%= waiting.includes(o.id) ? ' (alert on)' : '' %></option><% }) %>
+      </select>
+    <% } %>
+    <% if (!signedIn) { %>
+      <label class="sr-only" for="notify-email">Your email</label>
+      <input id="notify-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required aria-describedby="notify-email-error">
+    <% } %>
+    <button class="btn btn-primary" type="submit"><%- icon('mail', 'i-sm') %> Notify me</button>
+  </div>
+  <p class="field-error" id="notify-email-error" data-error-for="email"></p>
+  <p class="pdx-notify-done" data-notify-done role="status"<%= doneAlready && whole ? '' : ' hidden' %>><%- icon('check', 'i-sm') %> <span data-notify-done-text>You're on the list. We'll email you when it's back.</span></p>
+</form>
