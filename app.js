@@ -37,7 +37,9 @@ app.set("views", path.join(__dirname, "views"));
 // Security headers. The Content Security Policy only allows our own scripts and styles,
 // Google Fonts, product photos from Unsplash, and exactly what Razorpay Checkout needs.
 // Analytics hosts are only in the policy when a provider is set up (utils/analytics.js).
-const analyticsHosts = require("./utils/analytics").cspHosts(config.analytics);
+const analyticsHostsBase = require("./utils/analytics").cspHosts(config.analytics);
+const metaHosts = require("./utils/analytics").metaHosts(config.metaPixel);
+const analyticsHosts = { script: [...analyticsHostsBase.script, ...metaHosts.script], connect: [...analyticsHostsBase.connect, ...metaHosts.connect], img: [...analyticsHostsBase.img, ...metaHosts.img] };
 app.use(helmet({
   //enables CSP configuration
   contentSecurityPolicy: {

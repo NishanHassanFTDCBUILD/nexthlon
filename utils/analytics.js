@@ -45,3 +45,11 @@ function cspHosts(analytics) {
 }
 
 module.exports = { readAnalytics, analyticsProblems, cspHosts, PROVIDERS };
+
+// Meta (Facebook) Pixel (E4-era roadmap item): only a numeric pixel id, and only loaded after consent.
+function readMetaPixel(env = process.env) {
+  const id = String(env.META_PIXEL_ID ?? "").trim();
+  return { enabled: /^[0-9]{8,20}$/.test(id), id: /^[0-9]{8,20}$/.test(id) ? id : "" };
+}
+module.exports.readMetaPixel = readMetaPixel;
+module.exports.metaHosts = pixel => (pixel && pixel.enabled ? { script: ["https://connect.facebook.net"], connect: ["https://www.facebook.com"], img: ["https://www.facebook.com"] } : { script: [], connect: [], img: [] });

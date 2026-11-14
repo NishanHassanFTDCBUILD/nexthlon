@@ -35,6 +35,7 @@ function viewLocals(req, res, next) {
   res.locals.storageOrigin = config.storage.origin;
   // Analytics settings for the consent banner (public/js/consent.js). Nothing secret: the IDs are public.
   res.locals.analytics = config.analytics;
+  res.locals.metaPixel = config.metaPixel;
   // "Chat on WhatsApp" (E1): a wa.me link to the support number, or "" when none is set.
   res.locals.whatsappChat = config.messaging.supportNumber ? `https://wa.me/${config.messaging.supportNumber}` : "";
   // Versioned URL for the site's own CSS and JS (utils/assets.js): asset("/css/style.css").

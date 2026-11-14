@@ -10,6 +10,7 @@
   const script = document.currentScript;
   const Nx = (window.Nx = window.Nx || {});
   const cfg = script ? { provider: script.dataset.provider, id: script.dataset.id, host: script.dataset.host } : {};
+  const metaId = script ? script.dataset.metaPixel || "" : "";
   const COOKIE = "nx_consent";
   const banner = document.getElementById("consent");
   let loaded = false;
@@ -23,7 +24,19 @@
     document.cookie = `${COOKIE}=${value}; Max-Age=${180 * 24 * 3600}; Path=/; SameSite=Lax${secure}`;
   };
 
+  // Meta Pixel (optional): loaded only after "Allow analytics", like the analytics provider.
+  function loadMetaPixel() {
+    const id = metaId;
+    if (!id || !/^[0-9]{8,20}$/.test(id) || window.fbq) return;
+    /* eslint-disable */
+    !function (f, b, e, v, n, t, s) { if (f.fbq) return; n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments); }; if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = "2.0"; n.queue = []; t = b.createElement(e); t.async = !0; t.src = v; s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s); }(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+    /* eslint-enable */
+    window.fbq("init", id);
+    window.fbq("track", "PageView");
+  }
+
   function load() {
+    loadMetaPixel();
     if (loaded || !cfg.provider || !cfg.id) return;
     loaded = true;
     const tag = document.createElement("script");
@@ -57,6 +70,11 @@
     if (read() !== "analytics" || !loaded) return;
     try {
       if (cfg.provider === "ga4" && window.gtag) window.gtag("event", name, params);
+      if (window.fbq) {
+        // Meta's standard event names for the same shopping moments.
+        const META = { view_item: "ViewContent", add_to_cart: "AddToCart", begin_checkout: "InitiateCheckout", purchase: "Purchase" };
+        if (META[name]) window.fbq("track", META[name], { value: params.value, currency: params.currency || "INR", content_type: "product" });
+      }
       if (cfg.provider === "plausible" && window.plausible) {
         const props = flat(params);
         const revenue = typeof params.value === "number" && params.currency ? { amount: params.value, currency: params.currency } : undefined;

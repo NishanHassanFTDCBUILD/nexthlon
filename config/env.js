@@ -87,6 +87,7 @@ function readConfig() {
     shipping: readShipping(),
     // Visitor analytics (utils/analytics.js). Off unless set, and only loads after the visitor agrees.
     analytics: require("../utils/analytics").readAnalytics(),
+    metaPixel: require("../utils/analytics").readMetaPixel(),
     // Error alerts. Optional: without a DSN nothing is sent anywhere.
     sentry: {
       dsn: text("SENTRY_DSN"),
