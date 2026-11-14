@@ -497,3 +497,11 @@
 .pdx-qa-item .pdx-text-btn { justify-self: start; margin-left: calc(26px + var(--space-1)); }
 .pdx-qa-reply { margin: 0 0 0 calc(26px + var(--space-1)); }
 @media (prefers-reduced-motion: no-preference) { .pdx-qa-item.is-new { animation: nx-step-rise var(--duration-slow) var(--ease) both; } }
+
+/* E6: complete the kit (bundles) on the product page. */
+.pdx-bundle { display: grid; gap: var(--space-1h); padding: var(--space-2); border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--line); margin-bottom: var(--space-1h); }
+.pdx-bundle-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-sm); }
+.pdx-bundle-head small { display: block; margin-top: var(--space-xxs); }
+.pdx-bundle-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); font-size: var(--text-sm); }
+.pdx-bundle-list li { display: flex; justify-content: space-between; gap: var(--space-sm); padding-bottom: var(--space-xs); border-bottom: 1px dashed var(--line); }
+.pdx-bundle-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-sm); font-size: var(--text-sm); }

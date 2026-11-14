@@ -1,0 +1,21 @@
+<%# Complete the kit (E6): sets this product belongs to. public/js/product.js adds a whole set at once. %>
+<% if (bundles && bundles.length) { %>
+<section class="pdx-block pdx-bundles" aria-labelledby="pdx-bundles-title" data-reveal>
+  <header class="pdx-block-head"><h2 id="pdx-bundles-title">Complete the kit</h2></header>
+  <% bundles.forEach(function (b) { %>
+    <article class="pdx-bundle" data-bundle="<%= b.slug %>">
+      <div class="pdx-bundle-head">
+        <div><strong><%= b.name %></strong><% if (b.summary) { %><small class="muted"><%= b.summary %></small><% } %></div>
+        <span class="pill pill-green">Save <%= b.percentOff %>%</span>
+      </div>
+      <ul class="pdx-bundle-list">
+        <% b.products.forEach(function (p) { %><li><a href="/products/<%= p.slug %>"><%= p.name %></a><span><%= formatPrice(p.price) %></span></li><% }) %>
+      </ul>
+      <div class="pdx-bundle-foot">
+        <span>Set price <strong><%= formatPrice(b.total) %></strong> <s class="muted"><%= formatPrice(b.price) %></s></span>
+        <% if (shopper && currentUser && b.buyable) { %><button type="button" class="pdx-btn pdx-btn-buy pdx-btn-sm" data-bundle-add="<%= b.slug %>">Add the set</button><% } else if (!currentUser) { %><a class="pdx-btn pdx-btn-sm" href="/login?next=<%= encodeURIComponent('/products/' + product.slug) %>">Sign in to add the set</a><% } %>
+      </div>
+    </article>
+  <% }) %>
+</section>
+<% } %>

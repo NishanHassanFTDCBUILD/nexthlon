@@ -399,6 +399,8 @@
     <%- include('../partials/questions', { product: product, questions: questions, canAnswer: canAnswer, signedIn: Boolean(currentUser && currentUser.role === 'customer') }) %>
   </div>
 
+  <%- include('../partials/bundles', { bundles: bundles, product: product, shopper: shopper, currentUser: currentUser }) %>
+
   <% if (together.length) { %>
     <%# Products that real customers ordered together with this one (recommendationService). %>
     <section class="section container" aria-labelledby="together-title">

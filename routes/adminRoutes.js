@@ -78,6 +78,25 @@ router.patch("/questions/:questionId/hidden", adminWriteLimiter, async (req, res
     res.json({ message: hidden ? "Question hidden from the store." : "Question shown again." });
   } catch (error) { next(error); }
 });
+// Complete-the-kit bundles (E6).
+// Marketplace feed for Amazon, Flipkart and Myntra (E8): CSV or JSON.
+router.get("/marketplace/feed.csv", async (req, res, next) => {
+  try {
+    const marketplaceService = require("../services/marketplaceService");
+    res.set("Cache-Control", "no-store").attachment("nexthlon-marketplace-feed.csv").type("text/csv").send(marketplaceService.toCsv(await marketplaceService.feed()));
+  } catch (error) { next(error); }
+});
+router.get("/marketplace/feed.json", async (req, res, next) => {
+  try {
+    const marketplaceService = require("../services/marketplaceService");
+    res.set("Cache-Control", "no-store").json({ products: await marketplaceService.feed() });
+  } catch (error) { next(error); }
+});
+
+// The content hub (E7): write guides as drafts, then publish.
+router.post("/guides", adminWriteLimiter, require("../controllers/guideController").createGuide);
+router.patch("/guides/:slug/published", adminWriteLimiter, require("../controllers/guideController").publishGuide);
+router.post("/bundles", adminWriteLimiter, require("../controllers/bundleController").createBundle);
 router.post("/orders/:orderId/rto", adminMoneyLimiter, orders.markRto);
 router.post("/orders/:orderId/notes", adminWriteLimiter, orders.addNote);
 router.post("/orders/:orderId/refunds", adminMoneyLimiter, orders.refund);

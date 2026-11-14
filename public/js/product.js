@@ -839,6 +839,22 @@
       }
     });
   });
+  // ---------- Complete the kit (E6): add every item of a set ----------
+  document.addEventListener("click", async event => {
+    const button = event.target.closest("[data-bundle-add]");
+    if (!button) return;
+    Nx.busy(button, true, "Adding…");
+    try {
+      const reply = await Nx.api(`/api/bundles/${encodeURIComponent(button.dataset.bundleAdd)}/add`, { method: "POST" });
+      Nx.toast(reply.message, "success", { action: { label: "View cart", href: "/cart" } });
+      if (reply.cart && Nx.setCartCount) Nx.setCartCount(reply.cart.summary.count);
+    } catch (error) {
+      Nx.toast(error.message, "error");
+    } finally {
+      Nx.busy(button, false);
+    }
+  });
+
   // ---------- Questions and answers (E3) ----------
   const qa = document.querySelector("[data-qa]");
   if (qa) {

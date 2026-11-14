@@ -111,6 +111,7 @@ app.use(noCache);
 app.post("/api/payments/razorpay/webhook", express.raw({ type: "application/json", limit: "1mb" }), require("./controllers/paymentController").webhook);
 // Courier tracking updates (B5): no Origin header either; the x-api-key token proves where they come from.
 // Its own size limit, because a parcel's full scan list can be bigger than a normal API request.
+app.post("/api/webhooks/marketplace-stock", express.json({ limit: "16kb" }), require("./controllers/marketplaceController").stockSync);
 app.post("/api/webhooks/courier", express.json({ limit: "256kb" }), require("./controllers/shippingController").courierWebhook);
 app.use(express.json({ limit: "20kb" }));
 app.use(express.urlencoded({ extended: false, limit: "20kb" }));
@@ -129,6 +130,8 @@ app.use("/api", require("./routes/authRoutes"));
 app.use("/api", require("./routes/productRoutes"));
 app.use("/api/profile", require("./routes/profileRoutes"));
 app.use("/api/push", require("./routes/pushRoutes"));
+app.use("/api", require("./routes/bundleRoutes"));
+app.use(require("./routes/guideRoutes"));
 app.use("/api/addresses", require("./routes/addressRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/wishlist", require("./routes/wishlistRoutes"));

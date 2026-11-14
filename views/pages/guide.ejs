@@ -1,0 +1,9 @@
+<%- include('../partials/info-start', { pageKey: 'guides', heading: guide.title, lead: guide.summary || '' }) %>
+<article class="doc section-box guide-body">
+  <p class="muted"><%= formatDate(guide.publishedAt) %><% if (guide.tag) { %> · <%= guide.tag %><% } %></p>
+  <% blocks.forEach(function (b) { %>
+    <% if (b.heading) { %><h2><%= b.text %></h2><% } else { %><p><%= b.text %></p><% } %>
+  <% }) %>
+  <p><a href="/guides">More guides</a> · <a href="/products">Shop the gear</a></p>
+</article>
+<%- include('../partials/info-end') %>

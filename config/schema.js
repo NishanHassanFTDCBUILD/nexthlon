@@ -232,6 +232,9 @@ function checkEnv(env = process.env) {
   const vapidSubject = text(env, "VAPID_SUBJECT");
   if (vapidSubject && !/^(mailto:|https:\/\/)/.test(vapidSubject)) fail("VAPID_SUBJECT", "should be mailto:you@your-domain.in or an https:// address.");
 
+  const marketplaceToken = text(env, "MARKETPLACE_TOKEN");
+  if (marketplaceToken && marketplaceToken.length < 24) fail("MARKETPLACE_TOKEN", "should be at least 24 random characters.");
+
   // ---------- Shipping (B5) ----------
   const shipping = text(env, "SHIPPING_PROVIDER").toLowerCase();
   if (shipping && !["manual", "shiprocket"].includes(shipping)) fail("SHIPPING_PROVIDER", `"${shipping}" must be manual or shiprocket.`);

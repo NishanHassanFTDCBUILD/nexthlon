@@ -17,16 +17,21 @@ const day = date => (date ? new Date(date).toISOString().slice(0, 10) : "");
 
 async function sitemapEntries() {
   return memo.remember("seo:sitemap", 30 * 60 * 1000, async () => {
-    const [products, categories] = await Promise.all([
+    const Guide = require("../models/Guide");
+    const [products, categories, guides] = await Promise.all([
       Product.find({ ...LISTED_PRODUCT }).select("slug name image updatedAt").sort({ updatedAt: -1 }).limit(45000).lean(),
-      categoryService.listedCategories()
+      categoryService.listedCategories(),
+      Guide.find({ isPublished: true }).select("slug updatedAt").sort({ publishedAt: -1 }).limit(5000).lean()
     ]);
+    const guideEntries = guides.map(guide => ({ loc: `/guides/${encodeURIComponent(guide.slug)}`, lastmod: guide.updatedAt, priority: "0.6" }));
     const newest = products.length ? products[0].updatedAt : null;
     return [
       { loc: "/", lastmod: newest, priority: "1.0" },
       { loc: "/products", lastmod: newest, priority: "0.9" },
       ...categories.map(category => ({ loc: `/products?category=${encodeURIComponent(category.slug)}`, lastmod: category.updatedAt || newest, priority: "0.8" })),
       ...products.map(product => ({ loc: `/products/${encodeURIComponent(product.slug)}`, lastmod: product.updatedAt, priority: "0.7", image: product.image, title: product.name })),
+      ...guideEntries,
+      { loc: "/guides", lastmod: guides.length ? guides[0].updatedAt : null, priority: "0.5" },
       ...STATIC_PAGES.map(loc => ({ loc, priority: "0.3" }))
     ];
   });

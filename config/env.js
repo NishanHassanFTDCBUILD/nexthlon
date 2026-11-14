@@ -76,6 +76,8 @@ function readConfig() {
     mail: readMail(),
     // WhatsApp and SMS (E1, E2). Optional: without them messages are written to the console in development.
     messaging: readMessaging(),
+    // Marketplace feed and stock sync (E8). Set a long random MARKETPLACE_TOKEN to allow stock updates.
+    marketplace: { token: String(process.env.MARKETPLACE_TOKEN ?? "").trim() },
     // Push notifications (E5): VAPID keys from npm run push:keys. Off without them.
     push: (() => {
       const publicKey = text("VAPID_PUBLIC_KEY");

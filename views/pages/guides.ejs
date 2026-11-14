@@ -1,0 +1,25 @@
+<%- include('../partials/info-start', { pageKey: 'guides', heading: 'Sport guides and stories', lead: 'Training tips, gear guides and athlete stories from the Nexthlon team.' }) %>
+<% if (!guides.length) { %>
+  <p class="muted">No guides yet. Check back soon.</p>
+<% } else { %>
+  <ul class="guide-grid">
+    <% guides.forEach(function (g) { %>
+      <li class="guide-card">
+        <a href="/guides/<%= g.slug %>">
+          <% if (g.tag) { %><span class="pill pill-blue"><%= g.tag %></span><% } %>
+          <strong><%= g.title %></strong>
+          <% if (g.summary) { %><span class="muted"><%= g.summary %></span><% } %>
+          <small class="muted"><%= formatDate(g.publishedAt) %></small>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+  <% if (pagination.pages > 1) { %>
+    <nav class="admin-table-foot" aria-label="Guide pages">
+      <% if (pagination.page > 1) { %><a href="/guides?page=<%= pagination.page - 1 %>">Newer</a><% } %>
+      <span class="muted">Page <%= pagination.page %> of <%= pagination.pages %></span>
+      <% if (pagination.page < pagination.pages) { %><a href="/guides?page=<%= pagination.page + 1 %>">Older</a><% } %>
+    </nav>
+  <% } %>
+<% } %>
+<%- include('../partials/info-end') %>
