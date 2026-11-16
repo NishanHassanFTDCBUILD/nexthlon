@@ -236,7 +236,6 @@
 .pdx-deliver-to > .i { color: var(--brand-ink); flex: none; }
 .pdx-deliver-to > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pdx-text-btn { flex: none; padding: var(--space-half) var(--space-xxs); border: 0; background: none; color: var(--brand-ink); font: var(--weight-bold) var(--text-sm)/1 var(--font); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-:root[data-theme="light"] .pdx-text-btn { color: var(--volt-deep); }
 
 .pdx-pin { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
 .pdx-pin label { display: inline-flex; align-items: center; gap: var(--space-xs); font-size: var(--text-xs); font-weight: var(--weight-bold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
@@ -295,7 +294,6 @@
 .pdx-quote .pdx-avatar { width: 34px; height: 34px; font-size: var(--text-base); }
 .pdx-quote-who { flex: 1; min-width: 0; display: grid; gap: var(--space-xxs); font-size: var(--text-sm); }
 .pdx-quote-all { display: inline-flex; align-items: center; gap: var(--space-half); margin-top: var(--space-1h); font-size: var(--text-sm); font-weight: var(--weight-bold); color: var(--brand-ink); text-decoration: none; }
-:root[data-theme="light"] .pdx-quote-all { color: var(--volt-deep); }
 @media (hover: hover) { .pdx-quote-all:hover { text-decoration: underline; } }
 
 /* ---------- Marquee ---------- */
@@ -432,7 +430,6 @@
 .pdx-dock .pdx-btn { min-height: 46px; padding: 0 var(--space-lg); font-size: var(--text-sm); }
 
 /* ---------- Light theme touches ---------- */
-:root[data-theme="light"] .pdx-stage { background: radial-gradient(120% 90% at 50% 0%, var(--white), var(--surface-2)); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1080px) {

@@ -730,10 +730,6 @@
 .header-btn { display: inline-grid; place-items: center; width: 42px; height: 42px; flex: none; border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--white); cursor: pointer; }
 @media (hover: hover) { .header-btn:hover { border-color: rgba(var(--white-rgb), 0.25); background: rgba(var(--white-rgb), 0.06); } }
 .nav-toggle { display: none; }
-/* The theme button shows the current mode: System, Light or Dark (html[data-theme-mode], set by theme.js). */
-.theme-icon { display: none; }
-.theme-icon-system, html[data-theme-mode="light"] .theme-icon-light, html[data-theme-mode="dark"] .theme-icon-dark { display: grid; }
-html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .theme-icon-system { display: none; }
 
 /* Search with live suggestions */
 .search { position: relative; flex: 1; min-width: 0; max-width: 860px; margin: 0 auto; display: flex; height: 46px; border-radius: var(--radius-sm); background: var(--surface); box-shadow: 0 0 0 1px rgba(var(--white-rgb), 0.08); }
@@ -1095,7 +1091,6 @@ html[data-theme-mode="light"] .theme-icon-system, html[data-theme-mode="dark"] .
   .search-cat select { max-width: 78px; padding-left: var(--space-sm); }
   .suggest { left: -78px; right: -54px; min-width: 0; }
   .header-actions { gap: 0; }
-  .header-actions .theme-toggle { display: none; }
   .header-link-icon { width: 30px; height: 30px; }
   .header-link-icon .i { width: 23px; height: 23px; }
   .account-btn, .header-link { min-height: 40px; }

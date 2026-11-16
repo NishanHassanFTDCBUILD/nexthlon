@@ -381,7 +381,6 @@ dialog[open] { animation: pop var(--duration-quick) var(--ease); }
 /* ---------- Skeleton loaders ---------- */
 .skeleton { position: relative; overflow: hidden; background: var(--surface-3); border-radius: var(--radius-sm); }
 .skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgba(var(--white-rgb), 0.06) 50%, transparent 80%); transform: translateX(-100%); animation: shimmer var(--loop-short) var(--ease-in-out) infinite; }
-:root[data-theme="light"] .skeleton::after { background: linear-gradient(100deg, transparent 20%, rgba(var(--white-rgb), 0.6) 50%, transparent 80%); }
 .skeleton-line { height: 12px; margin-top: var(--space-1); }
 .skeleton-line.is-short { width: 55%; }
 .skeleton-card { display: flex; flex-direction: column; padding-bottom: var(--space-2); background: var(--surface); border-radius: var(--radius); border: 1px solid var(--hairline); }

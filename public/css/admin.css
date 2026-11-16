@@ -63,7 +63,6 @@
 .admin-body kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 var(--space-xs); border-radius: 6px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font: var(--weight-semibold) var(--text-2xs)/1 var(--font); }
 .admin-bar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-xs); }
 .admin-bar .icon-btn { color: var(--ink-2); }
-.admin-bar .theme-toggle { width: 40px; height: 40px; }
 
 /* Dropdown panels (search results, notifications) */
 .admin-pop { position: absolute; top: calc(100% + 8px); z-index: var(--z-dropdown); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); }
@@ -142,7 +141,6 @@
   .admin-kbd { display: none; }
   .admin-body .admin-main { padding: var(--space-2) var(--space-1h) var(--space-6); }
   .admin-body .admin-top h1 { font-size: var(--text-2xl); }
-  .admin-bar .theme-toggle { display: none; }
 }
 body.admin-menu-open { overflow: hidden; }
 
@@ -159,7 +157,6 @@ body.admin-menu-open { overflow: hidden; }
   --chart-1: var(--brand); --chart-2: var(--chart-violet); --chart-3: var(--info); --chart-4: var(--chart-cyan);
   --chart-8: var(--muted-2); --chart-ok: var(--success); --chart-bad: var(--danger); --chart-warn: var(--warning);
 }
-:root[data-theme="light"] .admin-body { --chart-2: var(--chart-violet-strong); --chart-4: var(--chart-cyan-strong); }
 
 .dash { display: flex; flex-direction: column; gap: var(--space-2h); }
 .dash-quick .btn { min-height: 38px; }

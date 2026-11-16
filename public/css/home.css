@@ -314,7 +314,6 @@
   .sport-ring-word { -webkit-text-stroke-width: 1.5px; }
 }
 
-:root[data-theme="light"] .sport-ring-word { -webkit-text-stroke-color: rgba(var(--navy-rgb), 0.12); }
 
 /* ---------- Showcase ---------- */
 .showcase { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: var(--space-5); align-items: center; }

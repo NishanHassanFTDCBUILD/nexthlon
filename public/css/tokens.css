@@ -26,10 +26,8 @@
 /* ==========================================================================
    Nexthlon design tokens: "Obsidian & Volt"
    One place for colour, spacing, type, radius, shadow and layering.
-   Dark (obsidian) is the default. Light (ivory) is used when the visitor picks it
-   with the header toggle, or picks "System" on a light system. /js/theme.js sets
-   <html data-theme="light|dark"> before the page paints; without JavaScript the
-   site is dark.
+   Nexthlon has one look: dark (obsidian). /js/theme.js sets <html data-theme="dark">
+   before the page paints.
 
    Colour rules
    - Volt (--brand) is for buttons, highlights, active states and glows. Volt TEXT
@@ -352,83 +350,3 @@
   :root { --container: 2200px; --gutter: 80px; --space-8: 80px; --space-10: 112px; }
 }
 
-/* ---------- Light: ivory ----------
-   The header, footer, hero and other "always dark" areas keep the obsidian scale
-   (--navy-*) and volt accent, so they look the same in both themes. */
-:root[data-theme="light"] {
-  color-scheme: light;
-  --brand: #9bc400;
-  --brand-rgb: 155, 196, 0;
-  --brand-hover: #8ab000;
-  --brand-press: #7a9c00;
-  --brand-ink: #4a6200;        /* volt-olive text on ivory: 7.3:1 */
-  --brand-soft: rgba(155, 196, 0, 0.14);
-  --brand-soft-2: rgba(155, 196, 0, 0.26);
-  --on-brand: #0a0a0b;
-
-  --deal: #c2410c;
-  --deal-rgb: 194, 65, 12;
-  --on-deal: #ffffff;
-
-  --success: #047857;
-  --success-rgb: 4, 120, 87;
-  --success-soft: #e3f4ec;
-  --success-line: #b6e2cd;
-  --on-success: #ffffff;
-  --warning: #92400e;
-  --warning-strong: #d97706;
-  --warning-soft: #fdf3dc;
-  --danger: #dc2626;
-  --danger-rgb: 220, 38, 38;
-  --danger-hover: #b91c1c;
-  --danger-ink: #b91c1c;
-  --danger-soft: #fdecec;
-  --danger-soft-2: #fadada;
-  --danger-line: #f4c4c4;
-  --on-danger: #ffffff;
-  --info: #2563eb;
-  --info-soft: #e8effd;
-
-  --bg: #f7f7f4;
-  --surface: #ffffff;
-  --surface-2: #efefea;
-  --surface-3: #e4e4de;
-  --surface-raised: #ffffff;
-  --glass: rgba(255, 255, 255, 0.76);
-  --glass-border: rgba(10, 10, 11, 0.08);
-  --ink: #0a0a0b;
-  --ink-2: #2e2e33;
-  --muted: #5c5c64;
-  --muted-2: #85858d;
-  --placeholder: #85858d;
-  --disabled: #b4b4ba;
-  --line: rgba(10, 10, 11, 0.1);
-  --line-strong: rgba(10, 10, 11, 0.16);
-  --line-hover: rgba(10, 10, 11, 0.3);
-  --hairline: rgba(10, 10, 11, 0.06);
-  --link: #4a6200;
-  --link-hover: #364800;
-  --focus: #4a6200;
-  --ring: 0 0 0 4px rgba(155, 196, 0, 0.32);
-  --glow: 0 0 0 1px rgba(var(--brand-rgb), 0.6), 0 0 22px rgba(var(--brand-rgb), 0.28);
-
-  --shadow-xs: 0 1px 2px rgba(10, 10, 11, 0.06);
-  --shadow-sm: 0 1px 2px rgba(10, 10, 11, 0.05), 0 4px 12px rgba(10, 10, 11, 0.06);
-  --shadow-md: 0 1px 2px rgba(10, 10, 11, 0.04), 0 8px 24px rgba(10, 10, 11, 0.08), 0 24px 48px rgba(10, 10, 11, 0.06);
-  --shadow-lg: 0 2px 4px rgba(10, 10, 11, 0.05), 0 24px 64px rgba(10, 10, 11, 0.16);
-  --shadow-xl: 0 2px 6px rgba(10, 10, 11, 0.06), 0 40px 100px rgba(10, 10, 11, 0.22);
-  --shadow-brand: 0 8px 26px rgba(var(--brand-rgb), 0.3);
-  --shadow-brand-lg: 0 14px 40px rgba(var(--brand-rgb), 0.36);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 0 0 1px rgba(10, 10, 11, 0.04);
-  --gradient-brand: linear-gradient(135deg, #c8ef2a 0%, #9bc400 50%, #7fa300 100%);
-  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
-  --grain-opacity: 0.035;
-}
-
-/* Switching theme fades the colours over 0.35s (theme.js adds the class for a moment).
-   Only colours change; nothing moves. Off when the visitor prefers reduced motion. */
-@media (prefers-reduced-motion: no-preference) {
-  html.theme-switching, html.theme-switching *, html.theme-switching *::before, html.theme-switching *::after {
-    transition: background-color var(--duration-medium) var(--ease), color var(--duration-medium) var(--ease), border-color var(--duration-medium) var(--ease), fill var(--duration-medium) var(--ease), stroke var(--duration-medium) var(--ease), box-shadow var(--duration-medium) var(--ease) !important;
-  }
-}
