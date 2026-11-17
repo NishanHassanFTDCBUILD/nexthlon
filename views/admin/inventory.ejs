@@ -1,6 +1,6 @@
 <%#
   Inventory: watch and correct stock. Products are edited in Products. Every change goes through one
-  atomic update on the server, is written to the stock history, and can be undone from its message.
+  atomic update on the server, is recorded in the audit log, and can be undone from its message.
   The page script is public/js/admin-catalog.js.
 %>
 <%
@@ -134,7 +134,6 @@
                   <% } else { %>
                     <p class="inv-hint">Change each size on the left. Type a number and press Enter.</p>
                   <% } %>
-                  <button type="button" class="inv-history-btn" data-inv-history="<%= p.id %>" data-name="<%= p.name %>"><%- icon('clock', 'i-xs') %> History</button>
                 </div>
               </td>
             </tr>
@@ -147,10 +146,5 @@
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No products match</h2><p>Try another stock state, category or search.</p></div>
   <% } %>
 </section>
-
-<dialog class="modal inv-dialog" id="inv-history" aria-labelledby="inv-history-title">
-  <div class="modal-head"><h2 id="inv-history-title">Stock history</h2><button type="button" class="icon-btn" data-inv-close aria-label="Close"><%- icon('x', 'i-sm') %></button></div>
-  <div class="modal-body"><p class="muted" data-inv-history-name></p><ol class="inv-history" data-inv-history-list></ol></div>
-</dialog>
 
 <%- include('../partials/admin-end') %>

@@ -24,7 +24,7 @@ const listInventory = asyncHandler(async (req, res) => {
   res.json(await inventoryService.listInventory(req.query));
 });
 
-// One stock change: applied, written to the audit log (the stock history), and back-in-stock
+// One stock change: applied, written to the audit log, and back-in-stock
 // shoppers are emailed when units came back. Shared by the single and bulk routes.
 async function applyChange(req, productId, value) {
   const result = await inventoryService.adjustStock(productId, value);
@@ -52,11 +52,6 @@ const adjustStock = asyncHandler(async (req, res) => {
   const value = checked(validateStockChange, req.body);
   const result = await applyChange(req, req.params.productId, value);
   res.json({ message: describe(result), product: result.product, option: result.option || null, before: result.before, after: result.after });
-});
-
-// GET /api/admin/inventory/:productId/history   The last 20 stock changes.
-const stockHistory = asyncHandler(async (req, res) => {
-  res.json({ history: await inventoryService.history(req.params.productId) });
 });
 
 // POST /api/admin/inventory/bulk   body: { productIds: [...], action, units, note? }
@@ -119,7 +114,6 @@ const systemStatus = asyncHandler(async (req, res) => {
 module.exports = {
   listInventory,
   adjustStock,
-  stockHistory,
   bulkAdjust,
   exportInventory,
   systemStatus

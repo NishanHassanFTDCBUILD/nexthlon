@@ -1,4 +1,4 @@
-// Inventory tools: sales pace, stock history, bulk changes and the Undo data.
+// Inventory tools: sales pace, bulk changes and the Undo data.
 // Own database ("_inventory_tools"); runs only when TEST_MONGODB_URI is set (the pure rules run always).
 require("./helpers");
 const test = require("node:test");
@@ -81,19 +81,12 @@ test("inventory: the list shows units sold in 30 days and the days left at that 
   assert.equal(row.daysLeft, 60, "30 on the shelf at half a ball a day");
 });
 
-test("inventory: a change replies with before and after (for Undo) and is in the history", async () => {
+test("inventory: a change replies with before and after, so the page can offer Undo", async () => {
   const res = await call("PATCH", `/api/admin/inventory/${ball._id}`, { action: "add", units: 10 });
   assert.equal(res.status, 200, JSON.stringify(res.data));
   assert.equal(res.data.before, 30);
   assert.equal(res.data.after, 40);
   await call("PATCH", `/api/admin/inventory/${ball._id}`, { action: "remove", units: 10, note: "Undo" });
-  const history = (await call("GET", `/api/admin/inventory/${ball._id}/history`)).data.history;
-  assert.equal(history.length, 2);
-  assert.equal(history[0].action, "remove", "newest first");
-  assert.equal(history[0].note, "Undo");
-  assert.equal(history[1].before, 30);
-  assert.equal(history[1].after, 40);
-  assert.equal(history[1].by, "Tools Admin");
 });
 
 test("inventory: bulk changes skip products with sizes and change the rest", async () => {

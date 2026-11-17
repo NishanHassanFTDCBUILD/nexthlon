@@ -182,47 +182,5 @@
         Nx.busy(button, false);
       }
     });
-
-    // ---------- History ----------
-    const historyDialog = root.querySelector("#inv-history");
-    const when = value => new Date(value).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-    const VERB = { add: "Added", remove: "Removed", count: "Set to" };
-    on("click", async event => {
-      const button = event.target.closest("[data-inv-history]");
-      if (!button || !historyDialog) return;
-      const list = historyDialog.querySelector("[data-inv-history-list]");
-      historyDialog.querySelector("[data-inv-history-name]").textContent = button.dataset.name;
-      list.replaceChildren();
-      historyDialog.showModal();
-      try {
-        const { history } = await Nx.api(`/api/admin/inventory/${encodeURIComponent(button.dataset.invHistory)}/history`);
-        if (!history.length) {
-          const empty = document.createElement("li");
-          empty.className = "muted";
-          empty.textContent = "No stock changes recorded yet.";
-          list.append(empty);
-          return;
-        }
-        history.forEach(entry => {
-          const item = document.createElement("li");
-          const what = document.createElement("strong");
-          what.textContent = `${VERB[entry.action] || "Changed"} ${entry.units}${entry.option ? ` · ${entry.option}` : ""}`;
-          const detail = document.createElement("span");
-          detail.textContent = `${entry.before} → ${entry.after}${entry.note ? ` · ${entry.note}` : ""}`;
-          const meta = document.createElement("small");
-          meta.className = "muted";
-          meta.textContent = `${entry.by} · ${when(entry.at)}`;
-          item.append(what, detail, meta);
-          list.append(item);
-        });
-      } catch (error) {
-        Nx.toast(error.message, "error");
-      }
-    });
-
-    on("click", event => {
-      const close = event.target.closest("[data-inv-close]");
-      if (close) close.closest("dialog").close();
-    });
   });
 })();

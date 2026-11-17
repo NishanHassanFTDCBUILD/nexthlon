@@ -7,7 +7,6 @@ const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Category = require("../models/Category");
 const Order = require("../models/Order");
-const AuditLog = require("../models/AuditLog");
 const { LOW_STOCK_LIMIT } = require("../config/catalog");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
@@ -253,21 +252,4 @@ function cursorFor(query = {}) {
   };
 }
 
-// The last stock changes of one product, newest first, from the audit log.
-async function history(productId, limit = 20) {
-  if (!mongoose.isValidObjectId(productId)) throw new HttpError(404, "Product not found.");
-  const rows = await AuditLog.find({ action: "inventory.stock_changed", target: `product:${productId}` })
-    .sort({ at: -1 }).limit(limit).populate("actor", "name").lean();
-  return rows.map(row => ({
-    at: row.at,
-    by: row.actor && row.actor.name ? row.actor.name : "System",
-    option: (row.after && row.after.option) || "",
-    action: row.after ? row.after.action : "",
-    units: row.after ? row.after.units : 0,
-    before: row.before ? row.before.stock : null,
-    after: row.after ? row.after.stock : null,
-    note: (row.after && row.after.note) || ""
-  }));
-}
-
-module.exports = { PAGE_SIZE, MAX_STOCK, STATUSES, STATUS_LABELS, SORTS, stateOf, readFilters, totals, listInventory, adjustStock, cursorFor, salesFor, daysLeft, history, SALES_DAYS };
+module.exports = { PAGE_SIZE, MAX_STOCK, STATUSES, STATUS_LABELS, SORTS, stateOf, readFilters, totals, listInventory, adjustStock, cursorFor, salesFor, daysLeft, SALES_DAYS };

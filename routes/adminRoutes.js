@@ -118,7 +118,6 @@ router.post("/abandoned-carts/:cartId/remind", adminMoneyLimiter, orders.remindC
 router.get("/inventory", catalog.listInventory);
 router.get("/inventory/export.csv", catalog.exportInventory);
 router.post("/inventory/bulk", adminWriteLimiter, catalog.bulkAdjust);
-router.get("/inventory/:productId/history", catalog.stockHistory);
 router.patch("/inventory/:productId", adminWriteLimiter, catalog.adjustStock);
 
 // Coupons. Creating and changing one is money, so these use the stricter limiter.

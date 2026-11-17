@@ -579,7 +579,7 @@ body.admin-menu-open { overflow: hidden; }
 .qa-admin-answer { flex: 1 1 320px; }
 .qa-admin-answer textarea { width: 100%; }
 
-/* ---------- Inventory: toolbar, bulk bar, product rows, quick changes, sizes in place, history ---------- */
+/* ---------- Inventory: toolbar, bulk bar, product rows, quick changes, sizes in place ---------- */
 .admin-total-link { text-decoration: none; color: inherit; transition: border-color var(--duration-quick) var(--ease); }
 @media (hover: hover) { .admin-total-link:hover { border-color: var(--line-hover); } }
 .admin-total.is-warn strong { color: var(--warning-strong); }
@@ -613,7 +613,7 @@ body.admin-menu-open { overflow: hidden; }
 .inv-pace.is-soon { color: var(--warning-strong); }
 .inv-pace.is-urgent { color: var(--danger); font-weight: 600; }
 
-/* Change stock: quick buttons, then add/remove/set, then history. */
+/* Change stock: quick buttons, then add/remove/set. */
 .inv-actions { display: grid; gap: var(--space-xs); justify-items: end; }
 .inv-quick { display: inline-flex; gap: var(--space-xxs); }
 .inv-step { min-width: 40px; min-height: 36px; padding: 0 var(--space-sm); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font: inherit; font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
@@ -623,8 +623,6 @@ body.admin-menu-open { overflow: hidden; }
 .inv-adjust { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: var(--space-xs); }
 .inv-adjust .inv-units { width: 76px; }
 .inv-hint { margin: 0; max-width: 220px; font-size: var(--text-xs); color: var(--muted); text-align: right; }
-.inv-history-btn { display: inline-flex; align-items: center; gap: var(--space-xxs); padding: var(--space-xxs) 0; border: 0; background: none; color: var(--link); font: inherit; font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
-.inv-history-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* Sizes and colours, each changed in place. */
 .inv-options { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin: var(--space-sm) 0 0; padding: 0; list-style: none; }
@@ -637,11 +635,6 @@ body.admin-menu-open { overflow: hidden; }
 .inv-option.is-out { border-style: dashed; }
 .inv-option.is-out .inv-option-input { color: var(--danger); }
 
-/* Dialogs */
-.inv-dialog .modal-body { display: grid; gap: var(--space-1h); }
-.inv-history { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-sm); max-height: 60vh; max-height: 60dvh; overflow: auto; }
-.inv-history li { display: grid; gap: var(--space-xxs); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--line); font-size: var(--text-sm); }
-.inv-history li:last-child { border-bottom: 0; }
 
 @media (max-width: 720px) {
   .inv-toolbar { top: 56px; }
