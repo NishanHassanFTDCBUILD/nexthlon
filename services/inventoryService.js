@@ -6,7 +6,6 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Category = require("../models/Category");
-const Order = require("../models/Order");
 const { LOW_STOCK_LIMIT } = require("../config/catalog");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
@@ -98,28 +97,6 @@ async function totals() {
   return { ...base, lowStockLimit: LOW_STOCK_LIMIT };
 }
 
-// Units sold per product over the last 30 days, from real orders. Cancelled or returned items and
-// online orders that were never paid do not count.
-const SALES_DAYS = 30;
-async function salesFor(productIds, now = new Date()) {
-  if (!productIds.length) return new Map();
-  const since = new Date(now.getTime() - SALES_DAYS * 24 * 60 * 60 * 1000);
-  const rows = await Order.aggregate([
-    { $match: { createdAt: { $gte: since }, "items.product": { $in: productIds }, orderStatus: { $ne: "cancelled" },
-      $or: [{ paymentMethod: { $ne: "razorpay" } }, { paymentStatus: { $in: ["paid", "partially_refunded", "refunded"] } }] } },
-    { $unwind: "$items" },
-    { $match: { "items.product": { $in: productIds }, "items.status": { $nin: ["cancelled", "returned"] } } },
-    { $group: { _id: "$items.product", units: { $sum: "$items.quantity" } } }
-  ]);
-  return new Map(rows.map(row => [String(row._id), row.units]));
-}
-
-// How long the shelf lasts at the recent pace: null when nothing sold (no pace to measure).
-function daysLeft(stock, sold) {
-  if (!sold) return null;
-  return Math.floor(stock / (sold / SALES_DAYS));
-}
-
 async function listInventory(query = {}) {
   const filters = readFilters(query);
   const filter = filterFrom(filters);
@@ -139,15 +116,8 @@ async function listInventory(query = {}) {
     totals(),
     Category.find().sort({ sortOrder: 1, name: 1 }).select("name").lean()
   ]);
-  const sales = await salesFor(rows.map(row => row._id));
   return {
-    products: rows.map(row => {
-      const item = toRow(row);
-      item.sold30 = sales.get(item.id) || 0;
-      item.daysLeft = daysLeft(item.stock, item.sold30);
-      return item;
-    }),
-    salesDays: SALES_DAYS,
+    products: rows.map(toRow),
     filters,
     totals: sums,
     categories,
@@ -252,4 +222,4 @@ function cursorFor(query = {}) {
   };
 }
 
-module.exports = { PAGE_SIZE, MAX_STOCK, STATUSES, STATUS_LABELS, SORTS, stateOf, readFilters, totals, listInventory, adjustStock, cursorFor, salesFor, daysLeft, SALES_DAYS };
+module.exports = { PAGE_SIZE, MAX_STOCK, STATUSES, STATUS_LABELS, SORTS, stateOf, readFilters, totals, listInventory, adjustStock, cursorFor };

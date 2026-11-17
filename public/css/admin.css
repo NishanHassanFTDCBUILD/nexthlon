@@ -579,70 +579,35 @@ body.admin-menu-open { overflow: hidden; }
 .qa-admin-answer { flex: 1 1 320px; }
 .qa-admin-answer textarea { width: 100%; }
 
-/* ---------- Inventory: toolbar, bulk bar, product rows, quick changes, sizes in place ---------- */
-.admin-total-link { text-decoration: none; color: inherit; transition: border-color var(--duration-quick) var(--ease); }
+/* ---------- Inventory: totals, tabs, search, and one row per product with a Save ---------- */
+.admin-total-link { text-decoration: none; color: inherit; }
 @media (hover: hover) { .admin-total-link:hover { border-color: var(--line-hover); } }
 .admin-total.is-warn strong { color: var(--warning-strong); }
-
-/* One look for every field on the page. */
-.inv-input { min-height: var(--tap); padding: 0 var(--space-1h); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--text-sm); }
+.inv-input { min-height: 40px; padding: 0 var(--space-1h); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
 .inv-input:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
-.inv-input::placeholder { color: var(--muted); }
-.inv-units { width: 92px; font-variant-numeric: tabular-nums; }
-
-/* The toolbar stays under the admin bar while the table scrolls. */
-.inv-toolbar { position: sticky; top: 64px; z-index: var(--z-raised); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1h); margin: var(--space-2) 0 var(--space-1h); padding: var(--space-sm) 0; background: var(--bg); }
-.inv-filters { display: flex; flex-wrap: wrap; gap: var(--space-sm); flex: 1 1 520px; justify-content: flex-end; }
-.inv-search { flex: 1 1 220px; min-width: 0; }
-
-/* Bulk bar: fixed at the bottom while products are ticked. */
-.inv-bulk { position: sticky; bottom: var(--space-2); z-index: var(--z-raised); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-1h); padding: var(--space-1) var(--space-1h); border: 1px solid rgba(var(--brand-rgb), 0.45); border-radius: var(--radius); background: var(--surface-raised); box-shadow: var(--shadow-lg); }
-.inv-bulk[hidden] { display: none; }
-.inv-bulk strong { margin-right: auto; font-variant-numeric: tabular-nums; }
-
-/* Rows */
-.inv-product { display: flex; align-items: flex-start; gap: var(--space-1h); min-width: 0; }
-.inv-product-text { display: grid; gap: var(--space-xxs); min-width: 0; }
-.inv-name { font-weight: 700; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
-.inv-name:hover { text-decoration: underline; text-underline-offset: 3px; }
-.inv-meta { font-size: var(--text-xs); color: var(--muted); }
-.inv-stock { display: block; font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
-.inv-table td[data-label="Stock"] .pill { margin-top: var(--space-xxs); }
-.inv-sold { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
-.inv-pace { display: block; font-size: var(--text-xs); color: var(--muted); }
-.inv-pace.is-soon { color: var(--warning-strong); }
-.inv-pace.is-urgent { color: var(--danger); font-weight: 600; }
-
-/* Change stock: quick buttons, then add/remove/set. */
-.inv-actions { display: grid; gap: var(--space-xs); justify-items: end; }
-.inv-quick { display: inline-flex; gap: var(--space-xxs); }
-.inv-step { min-width: 40px; min-height: 36px; padding: 0 var(--space-sm); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); font: inherit; font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
-@media (hover: hover) { .inv-step:hover { border-color: var(--brand); } }
-.inv-step:disabled { opacity: 0.5; cursor: progress; }
-.inv-table td[data-label="Change stock"] { min-width: 280px; }
-.inv-adjust { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: var(--space-xs); }
-.inv-adjust .inv-units { width: 76px; }
-.inv-hint { margin: 0; max-width: 220px; font-size: var(--text-xs); color: var(--muted); text-align: right; }
-
-/* Sizes and colours, each changed in place. */
-.inv-options { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin: var(--space-sm) 0 0; padding: 0; list-style: none; }
-.inv-option { display: inline-flex; align-items: center; gap: var(--space-xxs); padding: var(--space-xxs); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); font-size: var(--text-xs); }
-.inv-option-label { padding: 0 var(--space-xs); color: var(--ink-2); font-weight: 600; }
-.inv-option .inv-step { min-width: 30px; min-height: 30px; padding: 0; }
-.inv-option-input { width: 60px; min-height: 30px; padding: 0 var(--space-xs); text-align: center; font-variant-numeric: tabular-nums; }
-.inv-option.is-low { border-color: rgba(var(--warning-rgb), 0.5); }
-.inv-option.is-low .inv-option-input { color: var(--warning-strong); }
-.inv-option.is-out { border-style: dashed; }
-.inv-option.is-out .inv-option-input { color: var(--danger); }
-
-
+.inv-input.is-changed { border-color: var(--brand); }
+.inv-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1h); margin: var(--space-2) 0 var(--space-1h); }
+.inv-search { width: min(320px, 100%); }
+.inv-list { list-style: none; margin: 0; padding: 0; }
+.inv-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 96px auto; align-items: center; gap: var(--space-1h) var(--space-2); padding: var(--space-1h) var(--space-2); border-bottom: 1px solid var(--line); }
+.inv-row:last-child { border-bottom: 0; }
+.inv-row.is-unlisted { opacity: 0.65; }
+.inv-row img { width: 44px; height: 44px; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface-2); }
+.inv-info { display: grid; gap: var(--space-xxs); min-width: 0; font-size: var(--text-sm); }
+.inv-info a { font-weight: 700; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+@media (hover: hover) { .inv-info a:hover { text-decoration: underline; text-underline-offset: 3px; } }
+.inv-level { display: grid; justify-items: end; gap: var(--space-xxs); }
+.inv-level strong { font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
+.inv-set { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-xs); }
+.inv-set > .inv-input { width: 88px; }
+.inv-size { display: inline-flex; align-items: center; gap: var(--space-xs); font-size: var(--text-xs); color: var(--muted); }
+.inv-size .inv-input { width: 64px; }
+/* Products with sizes: the sizes sit on their own line under the product, in an even grid. */
+.inv-row.has-sizes .inv-set { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); justify-content: stretch; }
+.inv-row.has-sizes .inv-size { justify-content: space-between; }
+.inv-row.has-sizes .btn { justify-self: start; }
 @media (max-width: 720px) {
-  .inv-toolbar { top: 56px; }
-  .inv-filters { justify-content: stretch; }
-  .inv-filters .inv-input { flex: 1 1 100%; }
-  .inv-actions { justify-items: stretch; }
-  .inv-adjust { justify-content: stretch; flex-wrap: wrap; }
-  .inv-table td[data-label="Change stock"] { min-width: 0; }
-  .inv-adjust .inv-input, .inv-adjust .btn { flex: 1 1 100px; }
-  .inv-hint { max-width: none; text-align: left; }
+  .inv-row { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .inv-set, .inv-row.has-sizes .inv-set { grid-column: 1 / -1; justify-content: flex-start; }
+  .inv-toolbar > form, .inv-search { width: 100%; }
 }

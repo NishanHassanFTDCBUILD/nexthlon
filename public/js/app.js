@@ -159,14 +159,6 @@
       link.href = action.href;
       link.textContent = action.label;
       text.append(" ", link);
-    } else if (action && action.label && typeof action.run === "function") {
-      // A button instead of a link, for actions such as Undo. It closes the message when pressed.
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "toast-action toast-action-btn";
-      button.textContent = action.label;
-      button.addEventListener("click", () => { item.remove(); action.run(); }, { once: true });
-      text.append(" ", button);
     }
     const close = document.createElement("button");
     close.type = "button";

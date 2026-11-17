@@ -25,7 +25,7 @@ const listInventory = asyncHandler(async (req, res) => {
 });
 
 // One stock change: applied, written to the audit log, and back-in-stock
-// shoppers are emailed when units came back. Shared by the single and bulk routes.
+// shoppers are emailed when units came back.
 async function applyChange(req, productId, value) {
   const result = await inventoryService.adjustStock(productId, value);
   if (result.after > result.before) stockAlertService.kick();
@@ -47,32 +47,10 @@ const describe = result => {
 };
 
 // PATCH /api/admin/inventory/:productId   body: { action: "add"|"remove"|"count", units, note?, optionId? }
-// The reply has the stock before and after, so the page can offer Undo.
 const adjustStock = asyncHandler(async (req, res) => {
   const value = checked(validateStockChange, req.body);
   const result = await applyChange(req, req.params.productId, value);
-  res.json({ message: describe(result), product: result.product, option: result.option || null, before: result.before, after: result.after });
-});
-
-// POST /api/admin/inventory/bulk   body: { productIds: [...], action, units, note? }
-// Products with sizes or colours are skipped: their stock is changed one size at a time.
-const MAX_BULK = 50;
-const bulkAdjust = asyncHandler(async (req, res) => {
-  const value = checked(validateStockChange, req.body);
-  const ids = Array.isArray(req.body && req.body.productIds) ? [...new Set(req.body.productIds.map(String))].slice(0, MAX_BULK) : [];
-  if (!ids.length) throw new HttpError(400, "Choose at least one product.");
-  const done = [];
-  const skipped = [];
-  for (const id of ids) {
-    try {
-      const result = await applyChange(req, id, { ...value, optionId: null });
-      done.push(result.product);
-    } catch (error) {
-      skipped.push({ id, reason: error.reason === "option_required" ? "Has sizes or colours: change them in its row." : error.message });
-    }
-  }
-  const message = `${done.length} ${done.length === 1 ? "product" : "products"} updated${skipped.length ? `, ${skipped.length} skipped` : ""}.`;
-  res.json({ message, products: done, skipped });
+  res.json({ message: describe(result), product: result.product, option: result.option || null });
 });
 
 // GET /api/admin/inventory/export.csv?...   One line per product that matches the filters.
@@ -114,7 +92,6 @@ const systemStatus = asyncHandler(async (req, res) => {
 module.exports = {
   listInventory,
   adjustStock,
-  bulkAdjust,
   exportInventory,
   systemStatus
 };
