@@ -265,8 +265,8 @@ test("inventory: a product with sizes is changed one size at a time, on the page
   const page = await call("GET", `${ADMIN}/inventory?q=Sized`, { cookie: adminCookie });
   assert.equal(page.status, 200);
   assert.match(page.data, /data-inv-options/);
-  assert.match(page.data, /<select id="inv-option-[a-f0-9]+" name="optionId" required>/);
-  assert.match(page.data, /Size 9 \(0\)/);
+  // Each size is changed in place: its own number field, holding its stock.
+  assert.match(page.data, /value="0" data-stock="0" data-inv-option-input aria-label="Stock of [^"]*Size 9"/);
 
   const edit = await call("GET", `${ADMIN}/products/${sized._id}/edit`, { cookie: adminCookie });
   assert.equal(edit.status, 200);

@@ -1,11 +1,13 @@
 <%#
-  Inventory: where stock is watched and corrected. Products are edited in Products. Each row has one
-  small control: choose add, remove or set, enter the units, save. The server applies it atomically.
+  Inventory: watch and correct stock. Products are edited in Products. Every change goes through one
+  atomic update on the server, is written to the stock history, and can be undone from its message.
+  The page script is public/js/admin-catalog.js.
 %>
 <%
   const tabs = [['all', 'All'], ['out', 'Out of stock'], ['low', 'Low stock'], ['healthy', 'In stock'], ['unlisted', 'Unlisted']];
   const statePill = { out: 'pill-red', low: 'pill-amber', healthy: 'pill-green' };
   const stateLabel = { out: 'Out of stock', low: 'Low', healthy: 'In stock' };
+  const paceClass = function (days) { return days === null ? '' : days < 7 ? 'is-urgent' : days < 14 ? 'is-soon' : ''; };
 %>
 <%- include('../partials/admin-start', { section: 'inventory' }) %>
 
@@ -13,7 +15,7 @@
   <div>
     <span class="section-kicker">Catalog</span>
     <h1>Inventory</h1>
-    <p class="muted">Check what is on the shelf and correct it. Names, prices and photos are edited in <a href="<%= adminPath %>/products">Products</a>. Low means <%= totals.lowStockLimit %> units or fewer.</p>
+    <p class="muted">Watch and correct stock. Names, prices and photos are edited in <a href="<%= adminPath %>/products">Products</a>. Low means <%= totals.lowStockLimit %> units or fewer; sales count the last <%= salesDays %> days.</p>
   </div>
   <div class="admin-top-actions">
     <a class="btn btn-secondary btn-sm" href="/api/admin/inventory/export.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Export CSV</a>
@@ -34,73 +36,106 @@
   <form class="inv-filters" action="<%= adminPath %>/inventory" method="get">
     <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
     <label class="sr-only" for="inv-q">Search products</label>
-    <input id="inv-q" type="search" name="q" value="<%= filters.q %>" maxlength="80" placeholder="Search name or brand">
+    <input class="inv-input inv-search" id="inv-q" type="search" name="q" value="<%= filters.q %>" maxlength="80" placeholder="Search name or brand">
     <label class="sr-only" for="inv-category">Category</label>
-    <select id="inv-category" name="category" data-auto-submit>
+    <select class="inv-input" id="inv-category" name="category" data-auto-submit>
       <option value="">All categories</option>
       <% categories.forEach(function (c) { %><option value="<%= c._id %>" <%= filters.category === String(c._id) ? 'selected' : '' %>><%= c.name %></option><% }) %>
     </select>
     <label class="sr-only" for="inv-sort">Sort</label>
-    <select id="inv-sort" name="sort" data-auto-submit>
+    <select class="inv-input" id="inv-sort" name="sort" data-auto-submit>
       <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
     </select>
   </form>
 </div>
 
+<%# Bulk bar: appears when products are ticked. Products with sizes are changed one size at a time. %>
+<form class="inv-bulk" data-inv-bulk hidden novalidate>
+  <strong data-inv-bulk-count>0 selected</strong>
+  <label class="sr-only" for="inv-bulk-action">What to do</label>
+  <select class="inv-input" id="inv-bulk-action" name="action">
+    <option value="add">Add</option>
+    <option value="remove">Remove</option>
+    <option value="count">Set to</option>
+  </select>
+  <label class="sr-only" for="inv-bulk-units">Units</label>
+  <input class="inv-input inv-units" id="inv-bulk-units" name="units" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="Units" required>
+  <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+  <button class="btn btn-ghost btn-sm" type="button" data-inv-bulk-clear>Clear</button>
+</form>
+
 <section class="panel panel-flush admin-table-panel" aria-label="Stock levels">
   <% if (products.length) { %>
     <div class="table-wrap admin-table-scroll">
-      <table class="table table-stack inv-table">
+      <table class="table table-stack admin-table inv-table">
         <thead><tr>
+          <th scope="col" class="cell-check"><label class="sr-only" for="inv-pick-all">Select all on this page</label><input type="checkbox" id="inv-pick-all" data-inv-pick-all></th>
           <th scope="col">Product</th>
           <th scope="col" class="cell-num">Stock</th>
+          <th scope="col">Sales</th>
           <th scope="col" class="cell-num">Value</th>
           <th scope="col">Change stock</th>
         </tr></thead>
         <tbody>
-          <% products.forEach(function (p) { %>
+          <% products.forEach(function (p) { const hasOptions = p.options.length > 0; %>
             <tr data-inv-row="<%= p.id %>" class="<%= p.isListed ? '' : 'is-unlisted' %>">
+              <td class="cell-check" data-label="Select">
+                <input type="checkbox" value="<%= p.id %>" data-inv-pick aria-label="Select <%= p.name %>" <%- hasOptions ? 'disabled title="Has sizes or colours: change them in its row"' : '' %>>
+              </td>
               <td data-label="Product">
                 <div class="inv-product">
                   <img class="product-thumb" src="<%= sizedUrl(p.image, 200) %>" alt="" width="44" height="44" loading="lazy" decoding="async">
                   <div class="inv-product-text">
                     <a class="inv-name" href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a>
                     <span class="inv-meta"><%= p.category || 'No category' %> · <%= p.brand %><%= p.isListed ? '' : ' · unlisted' %></span>
-                    <% if (p.options.length) { %>
-                      <ul class="inv-options" aria-label="Stock by size or colour of <%= p.name %>" data-inv-options>
-                        <% p.options.forEach(function (o) { %>
-                          <li class="inv-option is-<%= o.state %>" data-inv-option="<%= o.id %>"><span><%= o.label %></span><strong data-inv-option-stock><%= o.stock %></strong></li>
-                        <% }) %>
-                      </ul>
-                    <% } %>
                   </div>
                 </div>
+                <% if (hasOptions) { %>
+                  <ul class="inv-options" aria-label="Stock by size or colour of <%= p.name %>" data-inv-options>
+                    <% p.options.forEach(function (o) { %>
+                      <li class="inv-option is-<%= o.state %>" data-inv-option="<%= o.id %>">
+                        <span class="inv-option-label"><%= o.label %></span>
+                        <button type="button" class="inv-step" data-inv-step="-1" aria-label="Remove one <%= o.label %>">−</button>
+                        <input class="inv-input inv-option-input" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= o.stock %>" data-stock="<%= o.stock %>" data-inv-option-input aria-label="Stock of <%= p.name %>, <%= o.label %>">
+                        <button type="button" class="inv-step" data-inv-step="1" aria-label="Add one <%= o.label %>">+</button>
+                      </li>
+                    <% }) %>
+                  </ul>
+                <% } %>
               </td>
               <td data-label="Stock" class="cell-num">
                 <strong class="inv-stock" data-inv-stock><%= p.stock %></strong>
                 <span class="pill <%= statePill[p.state] %>" data-inv-state><%= stateLabel[p.state] %></span>
               </td>
+              <td data-label="Sales">
+                <span class="inv-sold"><%= p.sold30 %> sold</span>
+                <span class="inv-pace <%= paceClass(p.daysLeft) %>"><%= p.daysLeft === null ? 'No recent sales' : (p.daysLeft < 1 ? 'Runs out today' : 'About ' + p.daysLeft + (p.daysLeft === 1 ? ' day' : ' days') + ' left') %></span>
+              </td>
               <td data-label="Value" class="cell-num" data-inv-value><%= formatPrice(p.stockValue) %></td>
               <td data-label="Change stock">
-                <%# public/js/admin-catalog.js sends this as a PATCH; the server checks it again. %>
-                <form class="inv-adjust" data-inv-form="<%= p.id %>" data-name="<%= p.name %>" novalidate>
-                  <% if (p.options.length) { %>
-                    <label class="sr-only" for="inv-option-<%= p.id %>">Size or colour of <%= p.name %></label>
-                    <select id="inv-option-<%= p.id %>" name="optionId" required>
-                      <option value="">Choose…</option>
-                      <% p.options.forEach(function (o) { %><option value="<%= o.id %>"><%= o.label %> (<%= o.stock %>)</option><% }) %>
-                    </select>
+                <div class="inv-actions">
+                  <% if (!hasOptions) { %>
+                    <div class="inv-quick" role="group" aria-label="Quick change for <%= p.name %>">
+                      <button type="button" class="inv-step" data-inv-step="-1" aria-label="Remove one">−1</button>
+                      <button type="button" class="inv-step" data-inv-step="1" aria-label="Add one">+1</button>
+                      <button type="button" class="inv-step" data-inv-step="10" aria-label="Add ten">+10</button>
+                    </div>
+                    <form class="inv-adjust" data-inv-form="<%= p.id %>" data-name="<%= p.name %>" novalidate>
+                      <label class="sr-only" for="inv-action-<%= p.id %>">What to do with the stock of <%= p.name %></label>
+                      <select class="inv-input" id="inv-action-<%= p.id %>" name="action">
+                        <option value="add">Add</option>
+                        <option value="remove">Remove</option>
+                        <option value="count">Set to</option>
+                      </select>
+                      <label class="sr-only" for="inv-units-<%= p.id %>">Units for <%= p.name %></label>
+                      <input class="inv-input inv-units" id="inv-units-<%= p.id %>" name="units" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="Units" required>
+                      <button class="btn btn-secondary btn-sm" type="submit">Save</button>
+                    </form>
+                  <% } else { %>
+                    <p class="inv-hint">Change each size on the left. Type a number and press Enter.</p>
                   <% } %>
-                  <label class="sr-only" for="inv-action-<%= p.id %>">What to do with the stock of <%= p.name %></label>
-                  <select id="inv-action-<%= p.id %>" name="action">
-                    <option value="add">Add</option>
-                    <option value="remove">Remove</option>
-                    <option value="count">Set to</option>
-                  </select>
-                  <label class="sr-only" for="inv-units-<%= p.id %>">Units for <%= p.name %></label>
-                  <input id="inv-units-<%= p.id %>" name="units" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="Units" required>
-                  <button class="btn btn-secondary btn-sm" type="submit">Save</button>
-                </form>
+                  <button type="button" class="inv-history-btn" data-inv-history="<%= p.id %>" data-name="<%= p.name %>"><%- icon('clock', 'i-xs') %> History</button>
+                </div>
               </td>
             </tr>
           <% }) %>
@@ -112,4 +147,10 @@
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No products match</h2><p>Try another stock state, category or search.</p></div>
   <% } %>
 </section>
+
+<dialog class="modal inv-dialog" id="inv-history" aria-labelledby="inv-history-title">
+  <div class="modal-head"><h2 id="inv-history-title">Stock history</h2><button type="button" class="icon-btn" data-inv-close aria-label="Close"><%- icon('x', 'i-sm') %></button></div>
+  <div class="modal-body"><p class="muted" data-inv-history-name></p><ol class="inv-history" data-inv-history-list></ol></div>
+</dialog>
+
 <%- include('../partials/admin-end') %>

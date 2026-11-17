@@ -70,6 +70,7 @@ function toAdminProduct(product) {
     manufacturer: product.manufacturer || "",
     netQuantity: product.netQuantity || "",
     shipWeight: product.shipWeight || "",
+    sku: product.sku || "",
     createdAt: product.createdAt,
     updatedAt: product.updatedAt
   };

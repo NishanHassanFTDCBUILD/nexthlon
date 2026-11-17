@@ -341,7 +341,7 @@
       // Everything is checked on the server, which reports every problem at once (photos included).
       const data = new FormData();
       for (const name of ["name", "description", "category", "brand", "price", "mrp", "offerPercent", "stock",
-        "hsn", "gstRate", "gstRateAbove", "gstAbove", "countryOfOrigin", "manufacturer", "netQuantity", "shipWeight"]) {
+        "hsn", "gstRate", "gstRateAbove", "gstAbove", "countryOfOrigin", "manufacturer", "netQuantity", "shipWeight", "sku"]) {
         data.append(name, form.elements[name].value);
       }
       data.append("options", JSON.stringify(readOptions()));

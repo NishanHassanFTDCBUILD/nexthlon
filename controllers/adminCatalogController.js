@@ -24,11 +24,10 @@ const listInventory = asyncHandler(async (req, res) => {
   res.json(await inventoryService.listInventory(req.query));
 });
 
-// PATCH /api/admin/inventory/:productId   body: { action: "add"|"remove"|"count", units, note? }
-const adjustStock = asyncHandler(async (req, res) => {
-  const value = checked(validateStockChange, req.body);
-  const result = await inventoryService.adjustStock(req.params.productId, value);
-  // Back on the shelf: shoppers waiting for it are emailed within seconds (E3).
+// One stock change: applied, written to the audit log (the stock history), and back-in-stock
+// shoppers are emailed when units came back. Shared by the single and bulk routes.
+async function applyChange(req, productId, value) {
+  const result = await inventoryService.adjustStock(productId, value);
   if (result.after > result.before) stockAlertService.kick();
   await auditService.record({
     ...auditService.fromRequest(req),
@@ -37,10 +36,48 @@ const adjustStock = asyncHandler(async (req, res) => {
     before: { stock: result.before, ...(result.option ? { option: result.option.label } : {}) },
     after: { stock: result.after, action: value.action, units: value.units, note: value.note, ...(result.option ? { option: result.option.label, optionId: result.option.id } : {}) }
   });
+  return result;
+}
+
+const describe = result => {
   const moved = result.after - result.before;
   const how = moved === 0 ? "unchanged" : moved > 0 ? `up ${moved}` : `down ${Math.abs(moved)}`;
   const name = result.option ? `${result.product.name} (${result.option.label})` : result.product.name;
-  res.json({ message: `${name}: stock ${how}, now ${result.after}.`, product: result.product, option: result.option || null });
+  return `${name}: stock ${how}, now ${result.after}.`;
+};
+
+// PATCH /api/admin/inventory/:productId   body: { action: "add"|"remove"|"count", units, note?, optionId? }
+// The reply has the stock before and after, so the page can offer Undo.
+const adjustStock = asyncHandler(async (req, res) => {
+  const value = checked(validateStockChange, req.body);
+  const result = await applyChange(req, req.params.productId, value);
+  res.json({ message: describe(result), product: result.product, option: result.option || null, before: result.before, after: result.after });
+});
+
+// GET /api/admin/inventory/:productId/history   The last 20 stock changes.
+const stockHistory = asyncHandler(async (req, res) => {
+  res.json({ history: await inventoryService.history(req.params.productId) });
+});
+
+// POST /api/admin/inventory/bulk   body: { productIds: [...], action, units, note? }
+// Products with sizes or colours are skipped: their stock is changed one size at a time.
+const MAX_BULK = 50;
+const bulkAdjust = asyncHandler(async (req, res) => {
+  const value = checked(validateStockChange, req.body);
+  const ids = Array.isArray(req.body && req.body.productIds) ? [...new Set(req.body.productIds.map(String))].slice(0, MAX_BULK) : [];
+  if (!ids.length) throw new HttpError(400, "Choose at least one product.");
+  const done = [];
+  const skipped = [];
+  for (const id of ids) {
+    try {
+      const result = await applyChange(req, id, { ...value, optionId: null });
+      done.push(result.product);
+    } catch (error) {
+      skipped.push({ id, reason: error.reason === "option_required" ? "Has sizes or colours: change them in its row." : error.message });
+    }
+  }
+  const message = `${done.length} ${done.length === 1 ? "product" : "products"} updated${skipped.length ? `, ${skipped.length} skipped` : ""}.`;
+  res.json({ message, products: done, skipped });
 });
 
 // GET /api/admin/inventory/export.csv?...   One line per product that matches the filters.
@@ -82,6 +119,8 @@ const systemStatus = asyncHandler(async (req, res) => {
 module.exports = {
   listInventory,
   adjustStock,
+  stockHistory,
+  bulkAdjust,
   exportInventory,
   systemStatus
 };

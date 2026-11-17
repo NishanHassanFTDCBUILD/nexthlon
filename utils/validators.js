@@ -219,6 +219,11 @@ function validateProduct(body = {}) {
     value[field] = longText(body[field]).replace(/\s*,?\s*\n\s*/g, ", ");
     if (value[field].length > max) errors[field] = `Keep the ${label} under ${max} characters.`;
   }
+  // The product's own SKU (products without sizes). Left out means "keep what is there".
+  if (body.sku !== undefined) {
+    value.sku = text(body.sku);
+    if (value.sku.length > 40) errors.sku = "Keep the SKU under 40 characters.";
+  }
   // Packed weight for the courier, in grams (B5). Empty means the store default.
   if (body.shipWeight !== undefined) {
     const grams = String(body.shipWeight).trim() === "" ? 0 : Number(body.shipWeight);
