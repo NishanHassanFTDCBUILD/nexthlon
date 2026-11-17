@@ -152,7 +152,7 @@ const productDetail = asyncHandler(async (req, res) => {
   }
   const customer = req.user && req.user.role === "customer" ? req.user : null;
   const [related, reviews, reviewStatus, featured, shipTo, inCart, codLimit, together, alertWaiting] = await Promise.all([
-    productService.getRelatedProducts(product),
+    productService.getSimilarProducts(product),
     reviewService.listReviews(product._id, 1, req.user && req.user.role === "customer" ? req.user._id : null),
     reviewService.reviewStatus(req.user || null, product._id),
     reviewService.featuredReview(product._id),
@@ -167,8 +167,6 @@ const productDetail = asyncHandler(async (req, res) => {
     // Back-in-stock alerts this customer already asked for (E3): "any" or option ids.
     customer ? stockAlertService.waitingFor(product._id, customer.email) : []
   ]);
-  // Complete-the-kit bundles this product belongs to (E6).
-  const bundles = await require("../services/bundleService").forProduct(product._id);
   // Product questions (E3): the first page, and whether this customer may answer (received it).
   const [questions, canAnswer] = await Promise.all([
     questionService.list(product._id, 1, customer ? customer._id : null),
@@ -215,7 +213,6 @@ const productDetail = asyncHandler(async (req, res) => {
     alertWaiting,
     questions,
     canAnswer,
-    bundles,
     codLimit,
     codAvailable: settingsService.codAllowedFor(product.price, codLimit)
   });

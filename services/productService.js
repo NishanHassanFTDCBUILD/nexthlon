@@ -268,6 +268,32 @@ function getRelatedProducts(product, limit = 8) {
       .sort({ ratingAverage: -1, discountPercent: -1, _id: 1 }).limit(limit).lean());
 }
 
+// "Similar products" at the end of every product page. Never empty while the shop has other
+// products: the same category first, then the same brand, then gear at a similar price
+// (half to double this price), then the best-rated of the rest. No product appears twice.
+function getSimilarProducts(product, limit = 8) {
+  const categoryId = product.category && product.category._id ? product.category._id : product.category;
+  return memo.remember(`catalog:similar:${product._id}:${limit}`, 60 * 1000, async () => {
+    const picked = [];
+    const seen = new Set([String(product._id)]);
+    const add = list => list.forEach(item => {
+      if (picked.length < limit && !seen.has(String(item._id))) { seen.add(String(item._id)); picked.push(item); }
+    });
+    const sort = { ratingAverage: -1, discountPercent: -1, _id: 1 };
+    const tiers = [
+      categoryId ? { category: categoryId } : null,
+      product.brand ? { brand: product.brand } : null,
+      product.price ? { price: { $gte: Math.floor(product.price / 2), $lte: product.price * 2 } } : null,
+      {}
+    ].filter(Boolean);
+    for (const filter of tiers) {
+      if (picked.length >= limit) break;
+      add(await Product.find({ ...LISTED_PRODUCT, ...filter, _id: { $nin: [...seen] } }).sort(sort).limit(limit).lean());
+    }
+    return picked;
+  });
+}
+
 async function getHomeSections() {
   const [deals, newest, categories, brands] = await Promise.all([
     Product.find({ ...LISTED_PRODUCT, discountPercent: { $gt: 0 } }).sort({ discountPercent: -1, _id: 1 }).limit(10).lean(),
@@ -348,6 +374,7 @@ module.exports = {
   searchVocabulary,
   getProduct,
   getRelatedProducts,
+  getSimilarProducts,
   getHomeSections,
   getProductsByIds,
   offerLabel,

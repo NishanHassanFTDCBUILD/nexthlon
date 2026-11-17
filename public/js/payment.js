@@ -11,7 +11,8 @@
   const Nx = window.Nx || (window.Nx = {});
   const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const wait = ms => new Promise(resolve => setTimeout(resolve, reduced() ? Math.min(ms, 150) : ms));
-  const BRAND = "#ff7a1a";
+  // The store's volt green, so Razorpay's window matches the site.
+  const BRAND = "#d4ff3a";
 
   // ---------- The overlay ----------
   const overlay = document.querySelector("[data-pay-overlay]");
@@ -262,7 +263,7 @@
         // Razorpay's window is https, so it can only show a logo from an https address
         // (on http://localhost it would be blocked as mixed content).
         ...(window.location.protocol === "https:" ? { image: `${window.location.origin}/img/favicon.svg` } : {}),
-        prefill,
+        prefill: { ...prefill, contact: indianPhone(prefill.contact) },
         // Paying by UPI: Razorpay's window opens on UPI, with every other method still below it.
         ...(options.upi ? { config: { display: { blocks: { upi: { name: "Pay by UPI", instruments: [{ method: "upi" }] } }, sequence: ["block.upi"], preferences: { show_default_blocks: true } } } } : {}),
         theme: { color: BRAND },
@@ -307,11 +308,17 @@
     start();
   };
 
+  // Razorpay fills its phone box only from a full number: 10 Indian digits become +91XXXXXXXXXX.
+  function indianPhone(value) {
+    const digits = String(value || "").replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
+    return /^[6-9]\d{9}$/.test(digits) ? `+91${digits}` : "";
+  }
+
   function prefillFrom(element) {
     return {
       name: element.dataset.prefillName || "",
       email: element.dataset.prefillEmail || "",
-      contact: element.dataset.prefillPhone || ""
+      contact: indianPhone(element.dataset.prefillPhone)
     };
   }
   Nx.prefillFrom = prefillFrom;

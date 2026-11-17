@@ -9,7 +9,8 @@
   const maxQty = Math.min(product.stock, 5);
   const shopper = !currentUser || currentUser.role === 'customer';
   const backHere = encodeURIComponent('/products/' + product.slug);
-  const specEntries = Object.entries(product.specs || {});
+  const standardSpecs = new Set(['brand', 'category', 'countryoforigin', 'manufacturerimporter', 'soldby', 'price']);
+  const specEntries = Object.entries(product.specs || {}).filter(([label]) => !standardSpecs.has(label.toLowerCase().replace(/[^a-z]/g, '')));
   const highlights = product.highlights || [];
   const freeDelivery = product.price >= store.freeDeliveryMin;
   // Sizes and colours (models/Product.js variants). Each option has its own stock; the shopper picks one.
@@ -187,6 +188,7 @@
                             <% if (left <= 0) { %><span class="sr-only">(sold out)</span><% } %>
                           </label>
                         <% }) %>
+                        <button type="button" class="pdx-guide-btn pdx-opt-clear" data-opt-clear="size" hidden>Clear size</button>
                       </div>
                     </fieldset>
                   <% } %>
@@ -202,6 +204,7 @@
                             <% if (left <= 0) { %><span class="sr-only">(sold out)</span><% } %>
                           </label>
                         <% }) %>
+                        <button type="button" class="pdx-guide-btn pdx-opt-clear" data-opt-clear="colour" hidden>Clear colour</button>
                       </div>
                     </fieldset>
                   <% } %>
@@ -384,7 +387,7 @@
               </div>
               <% if (review.title) { %><h3 class="pdx-review-title"><%= review.title %></h3><% } %>
               <p class="pdx-review-body"><%= review.body %></p>
-              <% if (review.photos && review.photos.length) { %><div class="pdx-review-photos"><% review.photos.forEach(function (src, i) { %><a href="<%= src %>" target="_blank" rel="noopener"><img src="<%= src %>" alt="Photo <%= i + 1 %> from <%= review.author %>" width="88" height="88" loading="lazy"></a><% }) %></div><% } %>
+              <% if (review.photos && review.photos.length) { %><div class="pdx-review-photos"><% review.photos.forEach(function (src, i) { %><button type="button" data-review-photo="<%= src %>" aria-label="View photo <%= i + 1 %> from <%= review.author %>"><img src="<%= src %>" alt="Photo <%= i + 1 %> from <%= review.author %>" width="88" height="88" loading="lazy"></button><% }) %></div><% } %>
               <% if (review.mine) { %>
                 <button type="button" class="pdx-review-delete" data-review-delete="<%= review.id %>"><%- icon('trash', 'i-xs') %> Delete my review</button>
               <% } %>
@@ -401,10 +404,6 @@
     </div>
   </div>
 
-  <div class="container pdx-extra">
-    <%- include('../partials/bundles', { bundles: bundles, product: product, shopper: shopper, currentUser: currentUser }) %>
-  </div>
-
   <% if (together.length) { %>
     <%# Products that real customers ordered together with this one (recommendationService). %>
     <section class="section container" aria-labelledby="together-title">
@@ -419,15 +418,16 @@
   <% } %>
 
   <% if (related.length) { %>
+    <%# Similar products: same category first, then same brand and similar price (productService.getSimilarProducts). %>
     <section class="section container" aria-labelledby="related-title">
       <div class="section-head" data-reveal>
         <div>
           <span class="section-kicker">You may also like</span>
-          <h2 id="related-title">More <%= cat.name %> gear</h2>
+          <h2 id="related-title">Similar products</h2>
         </div>
-        <a class="section-link" href="/products?category=<%= cat.slug %>">See all <%- icon('chevron-right', 'i-sm') %></a>
+        <% if (cat && cat.slug) { %><a class="section-link" href="/products?category=<%= cat.slug %>">More <%= cat.name %> gear <%- icon('chevron-right', 'i-sm') %></a><% } %>
       </div>
-      <%- include('../partials/rail', { products: related, label: 'Related products' }) %>
+      <%- include('../partials/rail', { products: related, label: 'Similar products' }) %>
     </section>
   <% } %>
 
@@ -448,15 +448,13 @@
 <% if (sizeList.length) { %><%- include('../partials/size-guide', { sizes: sizeList }) %><% } %>
 <dialog class="lightbox" id="lightbox" aria-label="Photos of <%= product.name %>" data-lightbox data-photos="<%= JSON.stringify(photos) %>">
   <div class="lightbox-bar">
-    <span class="lightbox-count" aria-live="polite"><span data-lightbox-index>1</span> / <%= photos.length %></span>
+    <span class="lightbox-count" aria-live="polite"><span data-lightbox-index>1</span> / <span data-lightbox-total><%= photos.length %></span></span>
     <button type="button" class="icon-btn lightbox-close" data-lightbox-close><%- icon('x') %><span class="sr-only">Close full screen photos</span></button>
   </div>
   <div class="lightbox-stage">
     <img src="<%= photos[0] %>" alt="<%= product.name %>" loading="lazy" data-lightbox-img>
-    <% if (photos.length > 1) { %>
       <button type="button" class="lightbox-nav lightbox-prev" data-lightbox-step="-1" aria-label="Previous photo"><%- icon('chevron-left') %></button>
       <button type="button" class="lightbox-nav lightbox-next" data-lightbox-step="1" aria-label="Next photo"><%- icon('chevron-right') %></button>
-    <% } %>
   </div>
 </dialog>
 

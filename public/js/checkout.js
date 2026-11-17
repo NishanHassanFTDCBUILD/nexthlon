@@ -242,8 +242,7 @@
   }
 
   // What pressing the button will do, from the chosen card (and how to pay the rest).
-  // UPI is paid through Razorpay too; it only opens Razorpay's window on UPI first.
-  const online = kind => kind === "upi" ? { kind: "razorpay", upi: true } : { kind };
+  const online = kind => ({ kind });
   function plan() {
     const method = chosenMethod();
     if (method !== "wallet") return { ...online(method), useWallet: false };
@@ -297,13 +296,13 @@
       codNote.textContent = quote.codAllowed ? codNote.dataset.ok : codNote.dataset.off;
       if (cod.checked && cod.disabled) {
         cod.checked = false;
-        const online = methodInput("upi");
+        const online = methodInput("razorpay");
         if (!online.disabled) online.checked = true;
       }
     } else if (restBox) {
       restBox.hidden = quote.coveredByWallet;
       const restCod = restBox.querySelector('input[value="cod"]');
-      const restOnline = restBox.querySelector('input[value="upi"]');
+      const restOnline = restBox.querySelector('input[value="razorpay"]');
       restCod.disabled = !quote.codAllowed;
       if (restCod.checked && restCod.disabled) {
         restCod.checked = false;
@@ -431,8 +430,8 @@
       ? { label: "Back to the product", href: backLink ? backLink.getAttribute("href") : "/products" }
       : { label: "Review your cart", href: "/cart" }],
     coupon_invalid: () => [{ label: "Remove the coupon", run: () => couponBox.querySelector("[data-coupon-remove]").click() }],
-    cod_limit: () => (methodInput("upi") && !methodInput("upi").disabled ? [{ label: "Pay by UPI instead", run: () => switchTo("upi") }] : []),
-    cod_open_limit: () => (methodInput("upi") && !methodInput("upi").disabled ? [{ label: "Pay by UPI instead", run: () => switchTo("upi") }] : []),
+    cod_limit: () => (methodInput("razorpay") && !methodInput("razorpay").disabled ? [{ label: "Pay online instead", run: () => switchTo("razorpay") }] : []),
+    cod_open_limit: () => (methodInput("razorpay") && !methodInput("razorpay").disabled ? [{ label: "Pay online instead", run: () => switchTo("razorpay") }] : []),
     wallet_short: () => [{ label: "Choose how to pay the rest", run: () => { const rest = form.querySelector('input[name="restMethod"]:not(:disabled)'); if (rest) rest.focus(); } }],
     gateway: () => [
       { label: "Try again", run: () => form.requestSubmit(placeButton) },
@@ -579,7 +578,10 @@
       const checkout = await send("/api/payments/razorpay/order", { addressId: address.value, useWallet: p.useWallet, source }, "Preparing secure payment…");
       if (checkout && Nx.payOnline) {
         placeButton.disabled = true;
-        Nx.payOnline(checkout, Nx.prefillFrom(page), { onChooseOther: chooseOther, keepCart: isBuyNow, upi: Boolean(p.upi) });
+        // Razorpay asks for a phone unless one is given: use the chosen address's, so the shopper types nothing twice.
+        const prefill = Nx.prefillFrom(page);
+        if (address.dataset.phone) prefill.contact = address.dataset.phone;
+        Nx.payOnline(checkout, prefill, { onChooseOther: chooseOther, keepCart: isBuyNow });
       } else {
         processing = false;
         refresh();

@@ -1,0 +1,162 @@
+/* Checkout and Buy now: the page's own layer on top of style.css.
+   One clear column of steps, a sticky price panel, large tap targets and calm motion.
+   Everything is scoped to .checkout so no other page changes. */
+
+.checkout {
+  --co-gap: clamp(var(--space-2), 2.2vw, var(--space-3));
+  --co-radius: var(--radius-lg);
+  --co-pad: clamp(var(--space-2), 2.4vw, var(--space-3));
+  padding-bottom: var(--space-5);
+}
+
+/* ---------- Top: title, buy-now note, progress ---------- */
+.checkout .checkout-top {
+  align-items: flex-end;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--co-gap);
+  border-bottom: 1px solid var(--hairline);
+}
+.checkout .checkout-top h1 { font-size: var(--text-3xl); letter-spacing: 0.01em; }
+.checkout .buy-now-note {
+  display: inline-flex; align-items: center; gap: var(--space-xs);
+  margin-top: var(--space-1); padding: var(--space-xs) var(--space-1h);
+  border-radius: var(--radius-pill); background: var(--brand-soft); color: var(--ink);
+  font-size: var(--text-sm); border: 1px solid rgba(var(--brand-rgb), 0.25);
+}
+.checkout .stepper li { min-height: 36px; }
+
+/* ---------- Layout ---------- */
+.checkout .checkout-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: var(--co-gap);
+}
+.checkout .checkout-steps { gap: var(--space-1h); }
+
+/* ---------- Step cards ---------- */
+.checkout .step {
+  border-radius: var(--co-radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  transition: border-color var(--duration) var(--ease), box-shadow var(--duration) var(--ease), opacity var(--duration) var(--ease);
+}
+.checkout .step:not(.is-open):not(.is-done) { opacity: 0.62; }
+.checkout .step.is-open {
+  border-color: rgba(var(--brand-rgb), 0.55);
+  box-shadow: 0 0 0 1px rgba(var(--brand-rgb), 0.18), var(--shadow-md);
+}
+.checkout .step-head { padding: var(--co-pad); gap: var(--space-2); }
+.checkout .step.is-open .step-head { padding-bottom: var(--space-2); }
+.checkout .step-head h2 { font-size: var(--text-lg); font-weight: var(--weight-bold); }
+.checkout .step-num { width: 36px; height: 36px; font-size: var(--text-sm); border: 1px solid var(--line); }
+.checkout .step.is-done .step-num { font-size: 0; position: relative; border-color: transparent; }
+.checkout .step.is-done .step-num::after {
+  content: ""; position: absolute; inset: 0; margin: auto; width: 12px; height: 7px;
+  border: solid currentColor; border-width: 0 0 2.5px 2.5px; transform: translateY(-2px) rotate(-45deg);
+}
+.checkout .step-summary { margin-top: var(--space-xxs); color: var(--ink-2, var(--muted)); }
+.checkout .step-body { padding: 0 var(--co-pad) var(--co-pad); }
+.checkout .step-actions {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--hairline);
+  align-items: center;
+}
+.checkout .step-actions .btn-primary { min-width: 200px; min-height: 48px; }
+
+/* ---------- Addresses ---------- */
+.checkout .address-choices { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+.checkout .address-choice {
+  position: relative; border-radius: var(--radius); border: 1.5px solid var(--line);
+  background: var(--surface-2, var(--surface));
+  transition: border-color var(--duration) var(--ease), background var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+.checkout .address-choice:hover { border-color: rgba(var(--brand-rgb), 0.4); }
+.checkout .address-choice:has(input:checked) { box-shadow: 0 0 0 1px rgba(var(--brand-rgb), 0.35); }
+.checkout .address-choice:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+.checkout .address-choice-body strong { font-size: var(--text-base); }
+.checkout .address-eta {
+  display: inline-flex; align-items: center; gap: var(--space-xs); margin-top: var(--space-xs);
+  padding: var(--space-xxs) var(--space-1); border-radius: var(--radius-pill);
+  background: var(--success-soft); color: var(--success); width: fit-content;
+}
+.checkout .address-eta.is-off { background: var(--danger-soft); color: var(--danger); }
+
+/* ---------- Items ---------- */
+.checkout .checkout-items li { grid-template-columns: 80px minmax(0, 1fr) auto; gap: var(--space-2); padding: var(--space-1h) 0; }
+.checkout .checkout-items li:last-child { border-bottom: 0; }
+.checkout .checkout-items img { width: 80px; height: 80px; border-radius: var(--radius); border: 1px solid var(--hairline); }
+.checkout .checkout-items strong { font-variant-numeric: tabular-nums; }
+.checkout .item-option {
+  width: fit-content; padding: 0 var(--space-1); border-radius: var(--radius-pill);
+  background: var(--surface-3); font-size: var(--text-xs);
+}
+.checkout .delivery-result:empty { display: none; }
+
+/* ---------- Payment methods ---------- */
+.checkout .pay-methods { display: flex; flex-direction: column; gap: var(--space-1h); border: 0; padding: 0; margin: 0; }
+.checkout .pay-card { border-radius: var(--radius); background: var(--surface-2, var(--surface)); }
+.checkout .pay-card:not(.is-disabled):hover { border-color: rgba(var(--brand-rgb), 0.4); }
+.checkout .pay-card.is-selected { border-color: var(--brand); box-shadow: 0 0 0 1px rgba(var(--brand-rgb), 0.3), 0 10px 30px rgba(var(--brand-rgb), 0.08); }
+.checkout .pay-card.is-disabled { opacity: 0.5; }
+.checkout .pay-card-head { min-height: 64px; }
+.checkout .pay-card-head:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: -2px; border-radius: var(--radius); }
+.checkout .pay-card-details p + p { margin-top: var(--space-1); }
+.checkout .pay-offer {
+  display: flex; align-items: center; gap: var(--space-xs);
+  padding: var(--space-1) var(--space-1h); border-radius: var(--radius-sm);
+  background: var(--success-soft); color: var(--success);
+}
+.checkout .pay-eta {
+  display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap;
+  padding: var(--space-1h); border-radius: var(--radius); background: var(--surface-3);
+}
+.checkout .pay-btn { min-height: 56px; font-size: var(--text-base); letter-spacing: 0.02em; }
+.checkout .trust-row { justify-content: center; }
+.checkout .pay-form > .hint { text-align: center; }
+
+/* ---------- Side: price panel, coupon, promises ---------- */
+.checkout .checkout-side { gap: var(--space-1h); }
+.checkout .checkout-summary,
+.checkout .coupon-panel,
+.checkout .co-promises { border-radius: var(--co-radius); }
+.checkout .checkout-summary .summary-list dd { font-variant-numeric: tabular-nums; }
+.checkout .summary-total { padding-top: var(--space-1h); margin-top: var(--space-xs); border-top: 1px dashed var(--line); }
+.checkout .summary-total dd { font-size: var(--text-xl); font-weight: var(--weight-black); }
+.checkout .summary-saving-note {
+  margin-top: var(--space-1h); padding: var(--space-1) var(--space-1h);
+  border-radius: var(--radius-sm); background: var(--success-soft); color: var(--success);
+  font-weight: var(--weight-semibold); text-align: center;
+}
+
+.co-promises { list-style: none; margin: 0; padding: var(--space-2); display: grid; gap: var(--space-1h); }
+.co-promises li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: var(--space-1h); align-items: center; font-size: var(--text-sm); }
+.co-promises li > span:first-child {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--brand-soft); color: var(--brand);
+}
+.co-promises strong { display: block; color: var(--ink); }
+.co-promises small { color: var(--muted); font-size: var(--text-xs); }
+
+/* ---------- Motion: steps open softly; nothing moves for reduced motion ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .checkout .step.is-open .step-body:not([hidden]) { animation: co-rise var(--duration-long, 420ms) var(--ease) both; }
+  @keyframes co-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+}
+
+/* ---------- Tablet and phone ---------- */
+@media (max-width: 1024px) {
+  .checkout .checkout-layout { grid-template-columns: minmax(0, 1fr); }
+  /* Steps first, then the price panel: the shopper acts before reading the totals again. */
+  .checkout .checkout-side { order: 0; }
+  .checkout .co-promises { display: none; }
+}
+@media (max-width: 640px) {
+  .checkout .checkout-top { align-items: flex-start; }
+  .checkout .stepper { width: 100%; justify-content: space-between; }
+  .checkout .stepper li { font-size: var(--text-xs); padding-right: var(--space-1); }
+  .checkout .step-head { gap: var(--space-1h); }
+  .checkout .step-actions { flex-direction: column-reverse; align-items: stretch; }
+  .checkout .step-actions .btn { width: 100%; min-width: 0; }
+  .checkout .checkout-items li { grid-template-columns: 64px minmax(0, 1fr); }
+  .checkout .checkout-items img { width: 64px; height: 64px; }
+  .checkout .checkout-items li > strong { grid-column: 2; justify-self: start; }
+}
