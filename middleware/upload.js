@@ -5,7 +5,9 @@ const { MAX_IMAGES, MAX_RETURN_PHOTOS, MAX_IMAGE_BYTES, ALLOWED_TYPES } = requir
 // Files are held in memory first, so their real type can be checked before anything touches the disk.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_IMAGE_BYTES, files: MAX_IMAGES, fields: 20, fieldSize: 16 * 1024, parts: 30 },
+  // The product form sends about 21 text fields with the photos (details, sizes, photo order, colours),
+  // so the field and part limits leave room for it. Files are still limited by MAX_IMAGES and size.
+  limits: { fileSize: MAX_IMAGE_BYTES, files: MAX_IMAGES, fields: 40, fieldSize: 64 * 1024, parts: 60 },
   // A first, quick check on what the browser says. imageService checks the file's bytes as well.
   fileFilter(req, file, done) {
     if (ALLOWED_TYPES.has(file.mimetype) && /\.(jpe?g|png|webp)$/i.test(file.originalname)) return done(null, true);
@@ -18,7 +20,11 @@ const upload = multer({
 const MULTER_MESSAGES = {
   LIMIT_FILE_SIZE: "Each image must be 2 MB or smaller.",
   LIMIT_FILE_COUNT: `You can upload up to ${MAX_IMAGES} images.`,
-  LIMIT_UNEXPECTED_FILE: `You can upload up to ${MAX_IMAGES} images.`
+  LIMIT_UNEXPECTED_FILE: `You can upload up to ${MAX_IMAGES} images.`,
+  LIMIT_FIELD_COUNT: "The form has too many fields. Reload the page and try again.",
+  LIMIT_FIELD_KEY: "The form has a field name that is too long. Reload the page and try again.",
+  LIMIT_FIELD_VALUE: "One of the form values is too long. Shorten it and try again.",
+  LIMIT_PART_COUNT: "The upload has too many parts. Reload the page and try again."
 };
 
 // Reads a multipart form with up to MAX_IMAGES files in the "images" field.
