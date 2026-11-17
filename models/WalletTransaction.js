@@ -12,7 +12,9 @@ const walletTransactionSchema = new mongoose.Schema({
   reason: { type: String, required: true, maxlength: 160 },
   orderId: { type: String, default: "" },
   balanceAfter: { type: Number, default: 0, min: 0 },
-  key: { type: String }
+  key: { type: String },
+  applied: { type: Boolean, default: true },
+  admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }
 }, { timestamps: true });
 
 walletTransactionSchema.index({ user: 1, createdAt: -1 });

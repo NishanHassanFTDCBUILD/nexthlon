@@ -21,12 +21,10 @@ const production = {
   SMTP_HOST: "smtp.example.com", SMTP_USER: "u", SMTP_PASS: "p", MAIL_FROM: "Nexthlon <orders@nexthlon.in>",
   RAZORPAY_KEY_ID: "rzp_live_abc", RAZORPAY_KEY_SECRET: "s", RAZORPAY_WEBHOOK_SECRET: "w",
   SENTRY_DSN: "https://abc123@o1.ingest.sentry.io/42",
-  STORAGE_DRIVER: "s3",
-  S3_ENDPOINT: "https://abc.r2.cloudflarestorage.com",
-  S3_BUCKET: "nexthlon",
-  S3_ACCESS_KEY_ID: "key",
-  S3_SECRET_ACCESS_KEY: "secret",
-  STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in",
+  STORAGE_DRIVER: "cloudinary",
+  CLOUDINARY_CLOUD_NAME: "nexthlon",
+  CLOUDINARY_API_KEY: "key",
+  CLOUDINARY_API_SECRET: "secret",
   STORE_LEGAL_NAME: "Nexthlon Sports Private Limited", STORE_ADDRESS: "12 MG Road, Bengaluru, Karnataka 560001, India",
   STORE_GSTIN: "29ABCDE1234F1Z5", STORE_STATE: "Karnataka", STORE_SUPPORT_EMAIL: "support@nexthlon.in", STORE_SUPPORT_PHONE: "+91 80 4000 0000",
   STORE_GRIEVANCE_OFFICER: "A. Officer"
@@ -274,7 +272,8 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 
 function run(code, env) {
-  return spawnSync(process.execPath, ["-e", code], { cwd: root, env: { PATH: process.env.PATH, ...env }, encoding: "utf8" });
+  // Load the supplied fixture only, even when the developer has a local .env.
+  return spawnSync(process.execPath, ["-e", "require('dotenv').config = () => ({});\n" + code], { cwd: root, env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, ...env }, encoding: "utf8" });
 }
 
 test("a bad .env stops the server and lists every problem", () => {
@@ -296,16 +295,16 @@ test("TRUST_PROXY: off in development, one proxy by default in production, or th
   assert.equal(read({ NODE_ENV: "production", TRUST_PROXY: "0" }), 0);
 });
 
-// ---------- The photo bucket and the browser ----------
-test("with a bucket, the Content Security Policy lets the browser load photos from it; without one it does not", () => {
+// ---------- Cloudinary and the browser ----------
+test("with Cloudinary, the Content Security Policy lets the browser load photos from it; without it it does not", () => {
   const script = "const app = require('./app'); const s = app.listen(0, async () => { const r = await fetch('http://127.0.0.1:' + s.address().port + '/api/health'); process.stdout.write(r.headers.get('content-security-policy')); s.close(); process.exit(0); });";
   // STORAGE_DRIVER is set so a photo service in your own .env (dotenv fills only what is missing) can't change the answer.
   const env = { MONGODB_URI: "mongodb://127.0.0.1:1/x", JWT_SECRET: good.JWT_SECRET, NODE_ENV: "development", LOG_LEVEL: "error", STORAGE_DRIVER: "local" };
-  const withBucket = run(script, { ...env, STORAGE_DRIVER: "s3", S3_ENDPOINT: "https://abc.r2.cloudflarestorage.com", S3_BUCKET: "b", S3_ACCESS_KEY_ID: "k", S3_SECRET_ACCESS_KEY: "s", STORAGE_PUBLIC_URL: "https://cdn.nexthlon.in/" }).stdout;
-  assert.match(withBucket, /img-src 'self' data: blob: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com https:\/\/cdn\.nexthlon\.in;/);
+  const withCloudinary = run(script, { ...env, STORAGE_DRIVER: "cloudinary", CLOUDINARY_CLOUD_NAME: "demo", CLOUDINARY_API_KEY: "k", CLOUDINARY_API_SECRET: "s" }).stdout;
+  assert.match(withCloudinary, /img-src 'self' data: blob: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com https:\/\/res\.cloudinary\.com;/);
   const without = run(script, env).stdout;
   assert.match(without, /img-src 'self' data: blob: https:\/\/images\.unsplash\.com https:\/\/cdn\.razorpay\.com;/);
-  assert.doesNotMatch(without, /cdn\.nexthlon\.in/);
+  assert.doesNotMatch(without, /res\.cloudinary\.com/);
 });
 
 test("the GST state must be a real state and match the GSTIN", () => {

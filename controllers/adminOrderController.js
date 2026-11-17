@@ -138,6 +138,9 @@ const addNote = asyncHandler(async (req, res) => {
 
 const refund = asyncHandler(async (req, res) => {
   const value = checked(v.validateManualRefund, req.body);
+  const requestKey = req.body && req.body.requestKey;
+  if (requestKey !== undefined && (typeof requestKey !== "string" || !/^[a-zA-Z0-9-]{16,80}$/.test(requestKey))) throw new HttpError(400, "Invalid refund request identifier.");
+  if (requestKey) value.key = `manual:${requestKey}`;
   const { order, before, after, refunds } = await adminOrderService.manualRefund(req.params.orderId, value);
   await audit(req, "order.refund", `order:${order.orderId}`, before, { ...after, amount: value.amount, method: value.method, reason: value.reason });
   const toCard = refunds.some(entry => entry.method === "original");

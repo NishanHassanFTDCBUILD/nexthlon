@@ -46,6 +46,7 @@
     const hidden = box.querySelector("[data-variant-input]");
     const message = box.querySelector("[data-opt-msg]");
     const stockLine = document.querySelector("[data-stock-line]");
+    const defaultStock = stockLine && { text: stockLine.textContent, className: stockLine.className };
     const qty = form.querySelector("[data-qty-input]");
     const hint = form.querySelector(".pdx-hint");
     const groups = ["size", "colour"].filter(name => box.querySelector(`[data-opt-group="${name}"]`));
@@ -76,6 +77,8 @@
         });
         const label = box.querySelector(`[data-opt-picked="${name}"]`);
         if (label) label.textContent = picked(name);
+        const clear = box.querySelector(`[data-opt-clear="${name}"]`);
+        if (clear) clear.hidden = !picked(name);
       });
       const complete = groups.every(name => picked(name));
       const match = complete ? options.find(option => fits(option, choice) && groups.every(name => option[name] === choice[name])) : null;
@@ -93,9 +96,19 @@
           qty.dispatchEvent(new Event("change"));
           if (hint) hint.textContent = `Max ${max} per order`;
         }
-        message.textContent = "";
-        box.classList.remove("is-asking");
+      } else {
+        if (stockLine && defaultStock) {
+          stockLine.textContent = defaultStock.text;
+          stockLine.className = defaultStock.className;
+        }
+        if (qty) {
+          qty.max = "1";
+          qty.dispatchEvent(new Event("change"));
+          if (hint) hint.textContent = "Choose your options first";
+        }
       }
+      message.textContent = "";
+      box.classList.remove("is-asking");
       // The gallery (catalog.js) shows the photos of the colour picked.
       const colour = picked("colour");
       if (colour !== shownColour) {
@@ -106,6 +119,15 @@
     let shownColour = "";
 
     box.addEventListener("change", refresh);
+    box.querySelectorAll("[data-opt-clear]").forEach(button => {
+      button.addEventListener("click", () => {
+        const name = button.dataset.optClear;
+        box.querySelectorAll(`input[name="${name}"]`).forEach(input => { input.checked = false; });
+        refresh();
+        const first = box.querySelector(`input[name="${name}"]:not(:disabled)`);
+        if (first) first.focus({ preventScroll: true });
+      });
+    });
     // ?option=<id> (a link from the cart, or back from sign-in) chooses that option.
     const wanted = new URLSearchParams(window.location.search).get("option");
     const start = options.find(option => option.id === wanted);
@@ -144,6 +166,7 @@
       const params = new URLSearchParams(window.location.search);
       const chosen = addForm.querySelector("[data-variant-input]");
       if (chosen && chosen.value) params.set("option", chosen.value);
+      else params.delete("option");
       Object.entries(extra).forEach(([key, value]) => params.set(key, value));
       const query = params.toString();
       return window.location.pathname + (query ? `?${query}` : "");

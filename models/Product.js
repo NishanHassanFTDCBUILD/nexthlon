@@ -21,6 +21,8 @@ const variantSchema = new mongoose.Schema({
 });
 
 const productSchema = new mongoose.Schema({
+  // Idempotency receipts for order stock movements; never included in public queries.
+  stockReceipts: { type: [String], default: [], select: false },
   name: { type: String, required: true, trim: true, maxlength: 160 },
   slug: { type: String, required: true, unique: true, trim: true, lowercase: true },
   category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true, index: true },

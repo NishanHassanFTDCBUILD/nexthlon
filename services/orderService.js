@@ -1,16 +1,13 @@
 const mongoose = require("mongoose");
 const events = require("../events");
 const Order = require("../models/Order");
-const stockService = require("./stockService");
-const couponService = require("./couponService");
-const refundService = require("./refundService");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
 const { STORE } = require("../config/store");
 const rules = require("../utils/orderRules");
-const gstService = require("./gstService");
 const referralService = require("./referralService");
 const logger = require("../utils/logger");
+const settlementService = require("./settlementService");
 
 const PAGE_SIZE = 10;
 const LIST_FILTERS = {
@@ -23,9 +20,8 @@ const LIST_FILTERS = {
 const PERIODS = { all: null, "30d": 30, "3m": 92, "1y": 365 };
 
 // Refunds go through refundService (to the wallet, or back to the card/UPI). Tests can swap it.
-let refundHandler = (order, amount, options) => refundService.issueRefund(order, amount, options);
 function setRefundHandler(handler) {
-  refundHandler = handler;
+  settlementService.setRefundHandler(handler);
 }
 
 function readListFilters(query = {}) {
@@ -72,6 +68,8 @@ function settleStatus(order, by, note) {
 // Cancels these items: stock goes back, what is left to pay goes down, and money already paid
 // (online or from the wallet) is refunded. A fully cancelled order gives its coupon use back.
 async function cancelItems(order, items, { reason = "", by = "customer", refundMethod = "wallet" } = {}) {
+  if (by !== "system") settlementService.assertSettled(order);
+  if ((order.settlements || []).some(entry => !entry.done)) throw new HttpError(409, "The previous order change is still processing. Please try again shortly.");
   const { refund, dueReduction } = rules.settlementFor(order, items.map(item => item._id));
   // Cash on delivery collects less. An unpaid online order keeps its amount, so a payment that
   // still arrives later is recognised and refunded in full.
@@ -89,22 +87,23 @@ async function cancelItems(order, items, { reason = "", by = "customer", refundM
   if (order.paymentMethod === "cod" && order.paymentStatus === "pending" && order.total === 0 && order.orderStatus !== "cancelled") {
     order.paymentStatus = "paid";
   }
-  if (order.stockReserved) {
-    await stockService.returnStock(items.map(item => ({ product: item.product, variant: item.variant || null, quantity: item.quantity })));
-  }
+  const itemIds = items.map(item => String(item._id)).sort();
+  const key = `cancel:${order._id}:${itemIds.join(":")}`;
+  order.settlements.push({ key, itemIds, restoreStock: order.stockReserved, refund,
+    method: refundMethod, reason: `Cancelled: ${reason || "by request"}`,
+    event: "order.cancelled", payload: { orderId: order.orderId, itemIds, reason, by } });
+  // Optimistic concurrency makes exactly one snapshot win. No stock or money
+  // changes before this status and its recovery work have been saved together.
   await order.save();
-  if (order.orderStatus === "cancelled" && order.couponCode) await couponService.release(order._id);
-  if (refund > 0 && refundHandler) await refundHandler(order, refund, { method: refundMethod, reason: `Cancelled: ${reason || "by request"}` });
-  // Invoiced items that are cancelled get a GST credit note.
-  await gstService.syncCreditNotes(order._id, reason ? `Cancelled: ${reason}` : "Order cancelled");
-  const itemIds = items.map(item => String(item._id));
-  await events.emit("order.cancelled", { orderId: order.orderId, itemIds, reason, by }, { key: `${order.orderId}:${itemIds.join(",")}` });
-  return order;
+  return settlementService.resume(order._id);
 }
 
 async function cancelOrder(userId, orderId, { reason, refundMethod } = {}) {
-  const order = await getOwnedOrder(userId, orderId);
+  let order = await getOwnedOrder(userId, orderId);
+  const recovering = order.settlements.some(entry => !entry.done && entry.event === "order.cancelled");
+  if (recovering) order = await settlementService.resume(order._id);
   const items = order.items.filter(rules.canCancelItem);
+  if (recovering && !items.length) return order;
   if (!items.length) throw new HttpError(400, "This order can no longer be cancelled.");
   return cancelItems(order, items, { reason, by: "customer", refundMethod });
 }
@@ -113,6 +112,7 @@ async function cancelItem(userId, orderId, itemId, { reason, refundMethod } = {}
   const order = await getOwnedOrder(userId, orderId);
   const item = mongoose.isValidObjectId(itemId) ? order.items.id(itemId) : null;
   if (!item) throw new HttpError(404, "That item is not in this order.");
+  if (order.settlements.some(entry => !entry.done && entry.event === "order.cancelled" && entry.itemIds.includes(String(item._id)))) return settlementService.resume(order._id);
   if (!rules.canCancelItem(item)) throw new HttpError(400, `${item.name} can no longer be cancelled.`);
   const unpaidOnline = order.paymentMethod === "razorpay" && !rules.PAID_STATUSES.includes(order.paymentStatus);
   const others = order.items.filter(line => line !== item && line.status !== "cancelled");
@@ -145,6 +145,7 @@ async function requestReturn(userId, orderId, { reason, note }, now = new Date()
 // Moves an order forward (admin). Never backwards, and cancelled items stay cancelled.
 // Cash on Delivery is marked paid when the order is delivered.
 async function advanceStatus(order, nextStatus, by = "admin", now = new Date()) {
+  settlementService.assertSettled(order);
   const current = rules.deriveOrderStatus(order.items);
   if (!rules.nextStatuses(current).includes(nextStatus)) {
     throw new HttpError(400, `An order that is "${rules.STATUS_LABELS[current] || current}" cannot move to "${rules.STATUS_LABELS[nextStatus] || nextStatus}".`);

@@ -78,6 +78,7 @@ const historySchema = new mongoose.Schema({
 }, { _id: false });
 
 const refundSchema = new mongoose.Schema({
+  operationKey: { type: String, default: "" },
   amount: { type: Number, required: true, min: 0 },
   method: { type: String, enum: ["wallet", "original"], required: true },
   status: { type: String, enum: ["pending", "processed", "failed"], default: "processed" },
@@ -159,6 +160,32 @@ const orderSchema = new mongoose.Schema({
   returnPhotos: { type: [String], default: [] },
   refundedAmount: { type: Number, default: 0, min: 0 },
   refunds: { type: [refundSchema], default: [] },
+  // Durable work journals, saved with the change and resumed after a restart.
+  refundOperations: { type: [new mongoose.Schema({
+    key: { type: String, required: true },
+    amount: { type: Number, required: true },
+    method: { type: String, enum: ["wallet", "original"], required: true },
+    reason: { type: String, default: "" },
+    parts: { type: [refundSchema], default: [] },
+    gatewayStarted: { type: Boolean, default: false },
+    gatewayStartedAt: { type: Date, default: null },
+    recorded: { type: Boolean, default: false },
+    done: { type: Boolean, default: false }
+  }, { _id: false })], default: [] },
+  settlements: { type: [new mongoose.Schema({
+    key: { type: String, required: true },
+    itemIds: { type: [String], default: [] },
+    restoreStock: { type: Boolean, default: false },
+    refund: { type: Number, default: 0 },
+    method: { type: String, default: "wallet" },
+    reason: { type: String, default: "" },
+    event: { type: String, required: true },
+    payload: { type: mongoose.Schema.Types.Mixed, default: {} },
+    done: { type: Boolean, default: false }
+  }, { _id: false })], default: [] },
+  paymentFulfilled: { type: Boolean, default: false },
+  paymentFulfillmentStarted: { type: Boolean, default: false },
+  paymentStockFailed: { type: Boolean, default: false },
   razorpay: {
     orderId: { type: String, default: "" },
     paymentId: { type: String, default: "" }
@@ -175,7 +202,7 @@ const orderSchema = new mongoose.Schema({
   returnDecision: { type: returnDecisionSchema, default: null },
   gst: { type: gstSchema, default: undefined },
   creditNotes: { type: [creditNoteSchema], default: [] }
-}, { timestamps: true });
+}, { timestamps: true, optimisticConcurrency: true });
 
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1, createdAt: -1 });

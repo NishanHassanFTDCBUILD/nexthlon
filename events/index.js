@@ -28,15 +28,18 @@ function on(event, name, handler, { maxAttempts = 6 } = {}) {
 // because a reaction could not be queued (it is logged, and the listener's work is simply not done).
 async function emit(event, payload = {}, { key } = {}) {
   const subscribed = listeners.get(event);
-  if (!subscribed) return;
+  if (!subscribed) return true;
+  let queued = true;
   for (const [name, { maxAttempts }] of subscribed) {
     const type = jobType(event, name);
     try {
       await queue.enqueue(type, payload, { maxAttempts, ...(key ? { dedupeKey: `${type}:${key}` } : {}) });
     } catch (error) {
+      queued = false;
       logger.error("event.enqueue_failed", { event, listener: name, error });
     }
   }
+  return queued;
 }
 
 const hasListeners = event => listeners.has(event);

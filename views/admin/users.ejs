@@ -42,7 +42,7 @@
         <div class="table-wrap">
           <table class="table table-stack">
             <thead>
-              <tr><th scope="col">Customer</th><th scope="col">Phone</th><th scope="col">Joined</th><th scope="col">Last sign-in</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Action</span></th></tr>
+              <tr><th scope="col">Customer</th><th scope="col">Phone</th><th scope="col">Joined</th><th scope="col">Last sign-in</th><th scope="col">Status</th><th scope="col">Wallet</th><th scope="col"><span class="sr-only">Action</span></th></tr>
             </thead>
             <tbody>
               <% customers.forEach(function (c) { %>
@@ -52,7 +52,9 @@
                   <td data-label="Joined"><%= formatDate(c.createdAt) %></td>
                   <td data-label="Last sign-in"><%= formatDate(c.lastLoginAt) %></td>
                   <td data-label="Status"><span class="pill <%= c.isBlocked ? 'pill-red' : 'pill-green' %>" data-status><%= c.isBlocked ? 'Blocked' : 'Active' %></span></td>
+                  <td data-label="Wallet"><%= formatPrice(c.walletBalance) %></td>
                   <td class="cell-action">
+                    <a class="btn btn-secondary btn-sm" href="<%= adminPath %>/customers/<%= c.id %>/wallet">Manage wallet</a>
                     <button type="button" class="btn btn-sm <%= c.isBlocked ? 'btn-secondary' : 'btn-danger-soft' %>"
                             data-block-user="<%= c.id %>" data-blocked="<%= c.isBlocked %>" data-name="<%= c.name %>"
                             aria-label="<%= c.isBlocked ? 'Unblock' : 'Block' %> <%= c.name %>"><%= c.isBlocked ? 'Unblock' : 'Block' %></button>

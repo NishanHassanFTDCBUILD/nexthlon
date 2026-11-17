@@ -33,6 +33,7 @@ function viewLocals(req, res, next) {
   res.locals.gallerySource = gallerySource;
   // Where uploaded photos are served from when they live in a bucket ("" on local disk), for preconnect.
   res.locals.storageOrigin = config.storage.origin;
+  res.locals.razorpayTestMode = config.razorpay.enabled && config.razorpay.keyId.startsWith("rzp_test_");
   // Analytics settings for the consent banner (public/js/consent.js). Nothing secret: the IDs are public.
   res.locals.analytics = config.analytics;
   res.locals.metaPixel = config.metaPixel;

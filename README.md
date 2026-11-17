@@ -158,7 +158,7 @@ Every refresh token is revoked when the password changes, when an admin blocks t
 ## Environment variables
 
 Names only; copy `.env.example` to `.env` and fill them in:
-`NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_DRIVER`, `BREVO_API_KEY`, `JOBS_ENABLED`, `JOBS_CONCURRENCY`, `CART_RECOVERY_AUTO`, `SITE_URL`, `TRUST_PROXY`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `APP_RELEASE`, `MONGODB_MAX_POOL`, `STORAGE_DRIVER`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `STORAGE_PUBLIC_URL`, `LOG_LEVEL`, `LOG_FORMAT`.
+`NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_DRIVER`, `BREVO_API_KEY`, `JOBS_ENABLED`, `JOBS_CONCURRENCY`, `CART_RECOVERY_AUTO`, `SITE_URL`, `TRUST_PROXY`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `APP_RELEASE`, `MONGODB_MAX_POOL`, `STORAGE_DRIVER`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `LOG_LEVEL`, `LOG_FORMAT`.
 
 Every variable is checked when the server starts (`config/schema.js`). A bad or missing value stops
 the server with **all** the problems listed at once; settings that work but look wrong for production
@@ -181,7 +181,7 @@ Set these as environment variables on the host (never commit a `.env`):
 | `SITE_URL` | `https://www.your-domain.in` |
 | `ADMIN_PATH` | a private path such as `/nx-console-7f3k` |
 | `TRUST_PROXY` | number of proxies in front of the app: `1` on a hosting platform, `2` with Cloudflare in front |
-| `STORAGE_DRIVER` + `S3_*` + `STORAGE_PUBLIC_URL` | `s3` and your Cloudflare R2 (or Amazon S3) bucket, so uploaded photos survive deploys |
+| `STORAGE_DRIVER` + `CLOUDINARY_*` | `cloudinary`, so uploaded photos survive deploys |
 | `RAZORPAY_*`, `SMTP_*` | your live payment keys and email service |
 | `SENTRY_DSN` | optional, switches on error alerts |
 
@@ -195,8 +195,8 @@ docker build -t nexthlon .
 docker run --rm -p 3000:3000 --env-file .env nexthlon
 ```
 
-The image runs as a normal user, holds no secrets, and has a health check. With `STORAGE_DRIVER=s3` photos go
-to the bucket and the container needs no volume. With the default `local` they are written to
+The image runs as a normal user, holds no secrets, and has a health check. With `STORAGE_DRIVER=cloudinary` photos go
+to Cloudinary and the container needs no volume. With the default `local` they are written to
 `/app/public/uploads`: mount a volume there, or they disappear on every deploy.
 
 ### Health checks
@@ -230,16 +230,16 @@ the Docker image, and audits the dependencies on every push and pull request.
 
 ### Database and photos
 
-**Step by step, with every setting: [docs/HOSTING-SETUP.md](docs/HOSTING-SETUP.md)** (MongoDB Atlas and Cloudflare R2).
+**Step by step, with every setting: [docs/HOSTING-SETUP.md](docs/HOSTING-SETUP.md)** (MongoDB Atlas and Cloudinary).
 
 - `npm run db:check` connects with `MONGODB_URI`, tests that the user can read **and** write, lists what is in the
   database, and explains what to fix when it fails. It never prints the address or the password.
 - Every product photo is saved as a full WebP (up to 2000px) plus 200, 400, 800 and 1600px copies, under random
-  names, through a storage provider (`providers/storage`): the server's disk, or an S3-compatible bucket. Pages
+  names, through a storage provider (`providers/storage`): the server's disk, or Cloudinary. Pages
   load the smallest sharp copy (`srcset`); the full one is for zoom. The files are uploaded with a one-year
   `immutable` cache header, because a photo's address never changes.
 - `npm run images:migrate` (add `-- --dry-run` to preview) gives photos uploaded before this existed their small
-  copies, and moves photos from the server's disk to the bucket after you switch `STORAGE_DRIVER` to `s3`. It
+  copies, and moves photos from the server's disk to Cloudinary after you switch `STORAGE_DRIVER` to `cloudinary`. It
   rewrites the addresses in products, categories, orders and return photos, and leaves the old files in place.
 
 ## Forgotten passwords and email confirmation

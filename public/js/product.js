@@ -110,6 +110,11 @@
     }
     const img = lightbox.querySelector("[data-lightbox-img]");
     const counter = lightbox.querySelector("[data-lightbox-index]");
+    const total = lightbox.querySelector("[data-lightbox-total]");
+    const productPhotos = photos.slice();
+    const productAlt = img.alt;
+    const productLabel = lightbox.getAttribute("aria-label");
+    let photoAlts = [];
     const stageBox = lightbox.querySelector(".lightbox-stage");
     const MAX = 4;
     let index = 0;
@@ -161,9 +166,15 @@
       index = (next + photos.length) % photos.length;
       reset();
       img.src = hiRes(photos[index]);
+      img.alt = photoAlts[index] || productAlt;
       if (counter) counter.textContent = String(index + 1);
+      if (total) total.textContent = String(photos.length);
+      lightbox.querySelectorAll("[data-lightbox-step]").forEach(button => { button.hidden = photos.length < 2; });
     };
     const open = () => {
+      photos = productPhotos.slice();
+      photoAlts = [];
+      lightbox.setAttribute("aria-label", productLabel);
       const current = mainPhoto ? photos.indexOf(fullOf(mainPhoto.getAttribute("src"))) : 0;
       show(Math.max(0, current));
       lightbox.showModal();
@@ -171,6 +182,18 @@
     };
 
     opener.addEventListener("click", open);
+    // Delegation also covers newly posted reviews and reviews loaded with Show more.
+    document.addEventListener("click", event => {
+      const button = event.target.closest("[data-review-photo]");
+      if (!button) return;
+      const buttons = Array.from(button.closest(".pdx-review-photos").querySelectorAll("[data-review-photo]"));
+      photos = buttons.map(item => item.dataset.reviewPhoto);
+      photoAlts = buttons.map(item => item.querySelector("img").alt);
+      lightbox.setAttribute("aria-label", "Customer review photos");
+      show(buttons.indexOf(button));
+      lightbox.showModal();
+      document.body.classList.add("drawer-open");
+    });
     // Clicking or tapping the photo opens the viewer too.
     if (stage) {
       stage.addEventListener("click", event => {
@@ -598,10 +621,10 @@
       if (review.photos && review.photos.length) {
         const strip = el("div", "pdx-review-photos");
         review.photos.forEach((src, i) => {
-          const link = el("a");
-          link.href = src;
-          link.target = "_blank";
-          link.rel = "noopener";
+          const link = el("button");
+          link.type = "button";
+          link.dataset.reviewPhoto = src;
+          link.setAttribute("aria-label", `View photo ${i + 1} from ${review.author}`);
           const img = el("img");
           img.src = src;
           img.alt = `Photo ${i + 1} from ${review.author}`;

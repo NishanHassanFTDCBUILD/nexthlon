@@ -1,6 +1,10 @@
 require("./helpers");
 const test = require("node:test");
 const assert = require("node:assert/strict");
+if (!process.env.TEST_MONGODB_URI) {
+  test("order email database tests (set TEST_MONGODB_URI to run them)", { skip: true }, () => {});
+  return;
+}
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Order = require("../models/Order");

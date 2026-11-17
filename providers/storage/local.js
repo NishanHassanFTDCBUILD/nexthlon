@@ -1,6 +1,6 @@
 // Photos on this server's own disk: public/uploads/<key>, served by Express as /uploads/<key>.
 // Good for development. In production a container's disk is wiped on every deploy unless a volume is
-// mounted, so use the s3 provider there (providers/storage/s3.js).
+// mounted, so use Cloudinary there.
 const fs = require("fs/promises");
 const path = require("path");
 

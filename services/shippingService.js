@@ -191,13 +191,13 @@ async function markRto(orderId, stage, { reason = "", by = "admin" } = {}) {
   order.rto = { stage: "received", reason: (reason || (order.rto && order.rto.reason) || "").slice(0, 200), at: new Date() };
   order.statusHistory.push({ status: "rto_received", by, note: "Parcel back with us" });
   const items = order.items.filter(item => ["shipped", "out_for_delivery", "confirmed", "placed"].includes(item.status));
-  await orderService.cancelItems(order, items, {
+  const cancelled = await orderService.cancelItems(order, items, {
     reason: "The courier could not deliver it and brought it back to us",
     by: by === "system" ? "system" : "admin",
     refundMethod: order.paymentMethod === "razorpay" ? "original" : "wallet"
   });
   await events.emit("order.rto", { orderId: order.orderId, stage: "received" }, { key: `${order.orderId}:rto:received` });
-  return order;
+  return cancelled;
 }
 
 // Couriers shout ("REACHED AT DESTINATION HUB"): customers read "Reached at destination hub". RTO stays RTO.

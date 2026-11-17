@@ -7,12 +7,10 @@ const Order = require("../models/Order");
 const User = require("../models/User");
 const orderService = require("./orderService");
 const refundService = require("./refundService");
-const stockService = require("./stockService");
 const rules = require("../utils/orderRules");
 const { HttpError } = require("../utils/http");
 const { escapeRegex, toPositiveInt } = require("./productService");
-const { inTransaction } = require("../utils/transaction");
-const gstService = require("./gstService");
+const settlementService = require("./settlementService");
 
 const PAGE_SIZE = 20;
 const EXPORT_LIMIT = 20000;
@@ -194,6 +192,12 @@ async function bulkStatus(orderIds, status) {
 // Cancel some items (or every cancellable one): stock goes back, money is refunded as for customers.
 async function cancelItems(orderId, { itemIds, reason, refundMethod }) {
   const order = await findOrder(orderId);
+  if (order.settlements.some(entry => !entry.done && entry.event === "order.cancelled")) {
+    const resumed = await settlementService.resume(order._id);
+    const stillRequested = resumed.items.some(item => rules.canCancelItem(item) && (!itemIds.length || itemIds.includes(String(item._id))));
+    if (stillRequested) return cancelItems(orderId, { itemIds: itemIds.filter(id => resumed.items.some(item => String(item._id) === id && rules.canCancelItem(item))), reason, refundMethod });
+    return { order: resumed, before: snapshot(order), after: snapshot(resumed), names: [] };
+  }
   const before = snapshot(order);
   const items = itemIds.length
     ? itemIds.map(id => (mongoose.isValidObjectId(id) ? order.items.id(id) : null))
@@ -201,8 +205,8 @@ async function cancelItems(orderId, { itemIds, reason, refundMethod }) {
   if (!items.length || items.some(item => !item)) throw new HttpError(404, "That item is not in this order.");
   const blocked = items.find(item => !rules.canCancelItem(item));
   if (blocked) throw new HttpError(400, `${blocked.name} can no longer be cancelled (it is ${rules.STATUS_LABELS[blocked.status].toLowerCase()}).`);
-  await orderService.cancelItems(order, items, { reason: reason || "Cancelled by Nexthlon", by: "admin", refundMethod });
-  return { order, before, after: snapshot(order), names: items.map(item => item.name) };
+  const updated = await orderService.cancelItems(order, items, { reason: reason || "Cancelled by Nexthlon", by: "admin", refundMethod });
+  return { order: updated, before, after: snapshot(updated), names: items.map(item => item.name) };
 }
 
 async function addShipment(orderId, { courier, trackingNumber, expectedAt, markShipped }, actor) {
@@ -230,12 +234,10 @@ async function addNote(orderId, body, actor) {
 
 // A refund outside a cancellation or return (goodwill, a price adjustment...). Never more than
 // what was actually paid and not yet refunded.
-async function manualRefund(orderId, { amount, method, reason }) {
+async function manualRefund(orderId, { amount, method, reason, key }) {
   const order = await findOrder(orderId);
-  const { refundable } = await getOrder(orderId);
-  if (amount > refundable) throw new HttpError(400, refundable ? `At most ${(refundable / 100).toLocaleString("en-IN", { style: "currency", currency: "INR" })} can still be refunded on this order.` : "Nothing is left to refund on this order.");
   const before = snapshot(order);
-  const refunds = await refundService.issueRefund(order, amount, { method, reason: reason || `Refund for ${order.orderId}` });
+  const refunds = await refundService.issueRefund(order, amount, { method, key, reason: reason || `Refund for ${order.orderId}` });
   return { order, before, after: snapshot(order), refunds };
 }
 
@@ -305,6 +307,12 @@ function settle(order, note) {
 // "delivered" and the customer sees the note.
 async function decideReturn(orderId, { decision, note, refundMethod }, actor) {
   const order = await findOrder(orderId);
+  if (order.settlements.some(entry => !entry.done && entry.event === "order.return_decided")) {
+    if (decision !== "approve") throw new HttpError(409, "This return approval has already been saved and is still processing.");
+    const resumed = await settlementService.resume(order._id);
+    return { order: resumed, before: snapshot(order), after: snapshot(resumed), refund: resumed.returnDecision.refunded, items: [] };
+  }
+  settlementService.assertSettled(order);
   const items = order.items.filter(item => item.status === "return_requested");
   if (!items.length) throw new HttpError(400, "This order has no return waiting for a decision.");
   const before = snapshot(order);
@@ -312,17 +320,17 @@ async function decideReturn(orderId, { decision, note, refundMethod }, actor) {
 
   if (decision === "approve") {
     refund = rules.refundFor(order, items.map(item => item._id));
-    await inTransaction(async (session, undo) => {
-      await stockService.returnStock(items.map(item => ({ product: item.product, variant: item.variant || null, quantity: item.quantity })), session);
-      undo(() => stockService.returnStock(items.map(item => ({ product: item.product, variant: item.variant || null, quantity: -item.quantity }))));
-      items.forEach(item => { item.status = "returned"; });
-      order.returnDecision = { status: "approved", note, refundMethod: refund > 0 ? refundMethod : "", refunded: refund, by: actor._id, at: new Date() };
-      settle(order, note || "Return approved");
-      await order.save({ session });
-    });
-    if (refund > 0) await refundService.issueRefund(order, refund, { method: refundMethod, reason: `Return approved for ${order.orderId}` });
-    // Returned goods get a GST credit note against the invoice.
-    await gstService.syncCreditNotes(order._id, "Goods returned");
+    items.forEach(item => { item.status = "returned"; });
+    const method = refundMethod || "wallet";
+    order.returnDecision = { status: "approved", note, refundMethod: refund > 0 ? method : "", refunded: refund, by: actor._id, at: new Date() };
+    settle(order, note || "Return approved");
+    const itemIds = items.map(item => String(item._id)).sort();
+    order.settlements.push({ key: `return:${order._id}:${itemIds.join(":")}`, itemIds, restoreStock: true, refund, method,
+      reason: `Return approved for ${order.orderId}`, event: "order.return_decided",
+      payload: { orderId: order.orderId, decision, note: note || "", seq: order.statusHistory.length } });
+    await order.save();
+    const updated = await settlementService.resume(order._id);
+    return { order: updated, before, after: snapshot(updated), refund, items: items.map(item => item.name) };
   } else {
     items.forEach(item => { item.status = "delivered"; });
     order.returnDecision = { status: "rejected", note, refundMethod: "", refunded: 0, by: actor._id, at: new Date() };

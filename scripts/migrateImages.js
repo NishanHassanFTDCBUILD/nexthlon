@@ -1,4 +1,4 @@
-// Gives photos uploaded earlier their small copies, and (when STORAGE_DRIVER=s3) moves them to the bucket.
+// Gives photos uploaded earlier their small copies, and (when STORAGE_DRIVER=cloudinary) moves them to Cloudinary.
 // See services/imageMigrationService.js for exactly what it changes.
 //   npm run images:migrate -- --dry-run     shows what would happen, changes nothing
 //   npm run images:migrate                  does it
@@ -11,7 +11,7 @@ async function main() {
   await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10_000 });
   const report = await migrateImages({ dryRun });
 
-  console.log(`Photos go to: ${report.driver === "local" ? "this server's disk (public/uploads)" : `${report.driver === "cloudinary" ? "Cloudinary" : "the bucket"} (${config.storage.publicUrl})`}`);
+  console.log(`Photos go to: ${report.driver === "local" ? "this server's disk (public/uploads)" : `Cloudinary (${config.storage.publicUrl})`}`);
   console.log(`${dryRun ? "[dry run, nothing was changed] " : ""}Photos to move: ${report.found}`);
   for (const { from, to } of report.moves) console.log(`  ${from}\n    -> ${to}`);
   if (report.missing.length) {

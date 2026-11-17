@@ -3,7 +3,7 @@
 Two things must live outside your computer (and outside the server) before Nexthlon can go live:
 
 1. **The database**: MongoDB Atlas.
-2. **The product photos**: Cloudinary (no card needed), or Cloudflare R2 / Amazon S3, a bucket the site uploads to and visitors download from.
+2. **The product photos**: Cloudinary (no card needed); the site uploads to it and visitors download through its CDN.
 
 You do the clicking in each service's website (they need your account, card and passwords, which only you
 should enter). The code side is done: you put the values into settings, then run two check commands.
@@ -129,79 +129,19 @@ Cloudinary stores the photos and serves them from its own fast network. The free
 4. Test it: `npm run setup:check`. It uploads and deletes a tiny test file.
 5. Move the photos you already have: `npm run images:migrate`.
 
-Later, when you have a business card, you can switch to Cloudflare R2 or Amazon S3 (below): change the settings and run
-`npm run images:migrate` again. Nothing else changes.
-
-## Part 2b: Cloudflare R2 (the product photos)
-
-Why not just the server's disk? A hosting platform wipes the disk at every deploy, so uploaded photos would
-vanish. A bucket keeps them, and serves them quickly. **R2 is recommended because Cloudflare does not charge for
-downloads**, which is most of the cost of serving photos. It speaks the same language as Amazon S3, so the code
-works with either.
-
-### 1. Create the bucket
-1. Sign up at <https://dash.cloudflare.com> (free). Open **R2 Object Storage** (it asks for a payment card, but the
-   free allowance, 10 GB of storage, is far more than a small store needs; check Cloudflare's current pricing).
-2. **Create bucket**, name `nexthlon-media`, location hint **Asia-Pacific**.
-
-### 2. Make it reachable from your own address
-Visitors will load photos from an address like `https://cdn.nexthlon.in`, not from Cloudflare's long
-address. That needs your domain to be on Cloudflare (**Add a site**, then change the name servers at your domain
-registrar as Cloudflare tells you).
-
-- Bucket → **Settings → Custom Domains → Connect Domain** → `cdn.yourdomain.in`.
-- Use a **custom domain from day one**: the photo addresses are saved in the database, so changing the address
-  later means rewriting them.
-- The free `r2.dev` address is for trying things out only. It is rate limited and not meant for a live store.
-
-### 3. Make an access key for the app
-**R2 → Manage R2 API Tokens → Create API token**
-- Permission: **Object Read & Write**, limited to the bucket `nexthlon-media`.
-- Copy the **Access Key ID** and **Secret Access Key** (the secret is shown only once) and your **S3 endpoint**:
-  `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
-
-### 4. Put it in `.env`
-
-```
-STORAGE_DRIVER=s3
-S3_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-S3_REGION=auto
-S3_BUCKET=nexthlon-media
-S3_ACCESS_KEY_ID=<access key id>
-S3_SECRET_ACCESS_KEY=<secret access key>
-STORAGE_PUBLIC_URL=https://cdn.yourdomain.in
-```
-
-(Amazon S3 instead: leave `S3_ENDPOINT` empty and set `S3_REGION=ap-south-1`. Make the bucket readable through
-CloudFront or a bucket policy, and set `STORAGE_PUBLIC_URL` to that address.)
-
-Start the app: it checks every value and lists what is missing. Upload a photo to a product in the admin console
-and open it: its address should start with your `STORAGE_PUBLIC_URL`.
-
-### 5. Move the photos you already have
-
-```bash
-npm run images:migrate -- --dry-run     # shows what would change, changes nothing
-npm run images:migrate                  # does it
-```
-
-It uploads every photo still on the server's disk to the bucket, creates the small copies for older photos, and
-rewrites the addresses in products, categories, orders and return photos. Old files are left on disk, so nothing
-breaks while you check the site. It is safe to run again.
-
 ---
 
 ## Part 3: Before you deploy: checklist
 
 - [ ] `npm run db:check` says **All good** with the Atlas string.
 - [ ] `MONGODB_URI` has the database name (`.../nexthlon?...`) and no `<db_password>` left in it.
-- [ ] The photo bucket works: a photo uploaded in the admin console opens from `STORAGE_PUBLIC_URL`.
+- [ ] Cloudinary works: a photo uploaded in the admin console opens from `res.cloudinary.com`.
 - [ ] `npm run images:migrate` reports nothing left to move.
-- [ ] On the host, set the same variables (`MONGODB_URI`, `STORAGE_*`, `S3_*`, `JWT_SECRET`, `SITE_URL`,
+- [ ] On the host, set the same variables (`MONGODB_URI`, `STORAGE_DRIVER`, `CLOUDINARY_*`, `JWT_SECRET`, `SITE_URL`,
       `ADMIN_PATH`, `TRUST_PROXY`, ...) as **environment variables**, never in a file in the repository.
       The full list is in the README, under Deploying.
 - [ ] Atlas **Network Access** allows the host.
 - [ ] You know where the weekly `mongodump` backup goes (until you are on M10).
 
 Anything you paste into a chat, an email or a screenshot (connection strings, API keys) should be treated as
-leaked: change that password or key in Atlas / Cloudflare.
+leaked: change that password or key in Atlas / Cloudinary.

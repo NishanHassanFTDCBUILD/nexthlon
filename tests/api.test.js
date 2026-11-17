@@ -406,65 +406,6 @@ test("admin creates a product: slug and discount come from the server", async ()
   assert.equal((await fetch(base + again.data.product.image.replace("-full.webp", "-400.webp"))).status, 404);
 });
 
-test("with a bucket as storage: uploads are signed and go to the bucket, nothing stays on disk, and removing a photo deletes its files", async () => {
-  const http = require("node:http");
-  const fsp = require("node:fs/promises");
-  const pathLib = require("node:path");
-  const storage = require("../providers/storage");
-  const { createS3Storage } = require("../providers/storage/s3");
-
-  // A fake bucket on this machine that remembers every request.
-  const requests = [];
-  const bucketServer = http.createServer((req, res) => {
-    const chunks = [];
-    req.on("data", chunk => chunks.push(chunk));
-    req.on("end", () => { requests.push({ method: req.method, url: req.url, headers: req.headers, size: Buffer.concat(chunks).length }); res.statusCode = req.method === "DELETE" ? 204 : 200; res.end(); });
-  });
-  await new Promise(resolve => bucketServer.listen(0, "127.0.0.1", resolve));
-  storage.useForTests({ current: createS3Storage({
-    endpoint: `http://127.0.0.1:${bucketServer.address().port}`, region: "auto", bucket: "nexthlon",
-    accessKeyId: "AKIATESTKEY", secretAccessKey: "test-secret", publicUrl: "https://cdn.nexthlon.in"
-  }) });
-  try {
-    const created = await sendForm("POST", "/api/admin/products", { fields: { ...productFields, name: "Bucket Trekking Pole" }, files: [{ name: "a.png", data: PNG }], cookie: adminCookieForProducts });
-    assert.equal(created.status, 201, JSON.stringify(created.data));
-    const url = created.data.product.image;
-    assert.match(url, /^https:\/\/cdn\.nexthlon\.in\/products\/[a-f0-9]{32}-full\.webp$/);
-    const id = url.match(/([a-f0-9]{32})-full/)[1];
-
-    // Five signed uploads, with the one-year cache header, and nothing written to the server's disk.
-    const puts = requests.filter(request => request.method === "PUT");
-    assert.deepEqual(puts.map(request => request.url).sort(), ["full", "1600", "200", "400", "800"].map(size => `/nexthlon/products/${id}-${size}.webp`).sort());
-    for (const put of puts) {
-      assert.equal(put.headers["content-type"], "image/webp");
-      assert.equal(put.headers["cache-control"], "public, max-age=31536000, immutable");
-      assert.match(put.headers.authorization, /^AWS4-HMAC-SHA256 Credential=AKIATESTKEY\//);
-      assert.ok(put.size > 0);
-    }
-    const onDisk = await fsp.readdir(pathLib.join(__dirname, "..", "public", "uploads", "products")).catch(() => []);
-    assert.ok(!onDisk.some(name => name.startsWith(id)), "nothing written to the server's disk");
-
-    // The pages use the bucket's address, in a srcset, and the browser is allowed to load it.
-    const page = await call("GET", `/products/${created.data.product.slug}`);
-    assert.match(page.data, new RegExp(`srcset="https://cdn\\.nexthlon\\.in/products/${id}-800\\.webp 800w, https://cdn\\.nexthlon\\.in/products/${id}-1600\\.webp 1600w"`));
-
-    // Replacing the photo deletes the old one's five files from the bucket.
-    requests.length = 0;
-    const replaced = await sendForm("PATCH", `/api/admin/products/${created.data.product.id}`, {
-      fields: { ...productFields, name: "Bucket Trekking Pole", keepImages: "[]" }, files: [{ name: "b.png", data: PNG }], cookie: adminCookieForProducts
-    });
-    assert.equal(replaced.status, 200, JSON.stringify(replaced.data));
-    assert.notEqual(replaced.data.product.image, url);
-    const deletes = requests.filter(request => request.method === "DELETE").map(request => request.url).sort();
-    assert.deepEqual(deletes, ["full", "1600", "200", "400", "800"].map(size => `/nexthlon/products/${id}-${size}.webp`).sort());
-    await Product.deleteOne({ _id: created.data.product.id });
-    await deleteImages(replaced.data.product.images);
-  } finally {
-    storage.reset();
-    await new Promise(resolve => bucketServer.close(resolve));
-  }
-});
-
 test("admin edits a product: main photo, removing photos and price rules", async () => {
   const [first, second] = createdProduct.images;
   const res = await sendForm("PATCH", `/api/admin/products/${createdProduct.id}`, {

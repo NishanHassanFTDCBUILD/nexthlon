@@ -160,7 +160,7 @@ async function kpiFigures(from, to, bucket = null) {
       { $group: { _id: bucket ? truncate("refunds.at", bucket) : null, amount: { $sum: "$refunds.amount" } } }
     ]),
     WalletTransaction.aggregate([
-      { $match: { type: "credit", kind: { $in: ["referral", "admin"] }, ...inRange("createdAt", from, to) } },
+      { $match: { type: "credit", kind: { $in: ["referral", "admin"] }, applied: { $ne: false }, ...inRange("createdAt", from, to) } },
       { $group: { _id: bucket ? truncate("createdAt", bucket) : null, amount: { $sum: "$amount" } } }
     ]),
     LoginActivity.aggregate([

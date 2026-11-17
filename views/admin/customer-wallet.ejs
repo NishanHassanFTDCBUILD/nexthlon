@@ -1,0 +1,36 @@
+<%- include('../partials/admin-start', { section: 'customers', page: 'customer-wallet' }) %>
+<a href="<%= adminPath %>/customers" class="btn btn-secondary btn-sm">Back to customers</a>
+<header class="admin-top"><div><span class="section-kicker">Customer wallet</span><h1><%= customer.name %></h1><p class="muted"><%= customer.email %><%= customer.isBlocked ? ' · Blocked account' : '' %></p></div></header>
+<section class="panel" aria-label="Wallet balance">
+  <h2>Available credit: <span data-admin-wallet-balance><%= formatPrice(balance) %></span></h2>
+  <p class="muted">Total received <%= formatPrice(totals.credited) %> · Total spent <%= formatPrice(totals.debited) %></p>
+  <p>Store credit can pay for Nexthlon orders. Adding credit here does not collect a payment from the customer.</p>
+</section>
+<section class="panel">
+  <h2>Adjust wallet credit</h2>
+  <form class="form" data-admin-wallet-form data-user-id="<%= customer.id %>">
+    <div class="form-alert" data-form-alert role="alert"></div>
+    <label for="wallet-type">Action</label>
+    <select id="wallet-type" name="type" required><option value="credit">Add credit</option><option value="debit">Remove credit</option></select>
+    <p class="field-error" data-error-for="type"></p>
+    <label for="wallet-amount">Amount (₹)</label>
+    <input id="wallet-amount" name="amount" type="number" inputmode="decimal" min="0.01" max="100000" step="0.01" required>
+    <p class="field-error" data-error-for="amount"></p>
+    <label for="wallet-reason">Reason</label>
+    <input id="wallet-reason" name="reason" minlength="3" maxlength="160" required placeholder="For example: goodwill credit for a delayed order">
+    <p class="field-error" data-error-for="reason"></p>
+    <p class="hint">Every change is recorded in the customer's wallet history and the admin audit log. Credit cannot be removed below zero.</p>
+    <button class="btn btn-primary" type="submit">Review adjustment</button>
+  </form>
+  <p><a href="<%= adminPath %>/settings">Manage referral rewards</a> · <a href="<%= adminPath %>/transactions">View money ledger</a></p>
+</section>
+<section class="panel">
+  <h2>Wallet history</h2>
+  <% if (!transactions.length) { %><p class="muted">No wallet transactions yet.</p><% } else { %>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Reason</th><th>Source</th><th>Amount</th><th>Balance after</th></tr></thead><tbody>
+    <% transactions.forEach(function(t) { %><tr><td><%= formatDate(t.createdAt) %></td><td><%= t.reason %><% if(t.orderId) { %> · <%= t.orderId %><% } %></td><td><%= t.kind %></td><td><%= t.type === 'credit' ? '+' : '-' %><%= formatPrice(t.amount) %></td><td><%= formatPrice(t.balanceAfter) %></td></tr><% }) %>
+  </tbody></table></div>
+  <%- include('../partials/pagination', { pagination, link }) %>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

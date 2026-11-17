@@ -115,14 +115,15 @@
   <%# ---------- What sells ---------- %>
   <div class="dash-row dash-row-2">
     <section class="panel dash-card" aria-labelledby="chart-cat-title">
-      <div class="dash-card-head"><h2 id="chart-cat-title">Sales by category</h2></div>
-      <div class="dash-chart" data-chart="categories" role="img" tabindex="0" aria-label="Sales by category: <%= charts.categories.map(function (c) { return c.name + ' ' + formatPrice(c.revenue); }).join(', ') || 'no sales' %>."></div>
+      <div class="dash-card-head"><h2 id="chart-cat-title">Order value by category</h2></div>
+      <p class="muted">Includes unpaid orders; item values before order discounts and refunds.</p>
+      <div class="dash-chart" data-chart="categories" role="img" tabindex="0" aria-label="Order value by category, including unpaid orders and before order discounts and refunds: <%= charts.categories.map(function (c) { return c.name + ' ' + formatPrice(c.revenue); }).join(', ') || 'no orders' %>."></div>
     </section>
     <section class="panel dash-card" aria-labelledby="top-title" data-dash-top>
       <div class="dash-card-head">
         <h2 id="top-title">Top 10 products</h2>
         <div class="segmented dash-tabs" role="tablist" aria-label="Rank by">
-          <button type="button" role="tab" aria-selected="true" aria-controls="top-revenue" id="tab-top-revenue" class="is-active" data-dash-tab="revenue">Revenue</button>
+          <button type="button" role="tab" aria-selected="true" aria-controls="top-revenue" id="tab-top-revenue" class="is-active" data-dash-tab="revenue">Order value</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="top-units" id="tab-top-units" data-dash-tab="units" tabindex="-1">Units</button>
         </div>
       </div>
@@ -153,7 +154,7 @@
       <div class="dash-chart dash-chart-heat" data-chart="heatmap" role="img" tabindex="0" aria-label="Orders by day of the week and hour of the day. Use the arrow keys to read each cell."></div>
     </section>
     <section class="panel dash-card" aria-labelledby="where-title">
-      <div class="dash-card-head"><h2 id="where-title">Top cities</h2><span class="muted">By sales</span></div>
+      <div class="dash-card-head"><h2 id="where-title">Top cities</h2><span class="muted">By order value, including unpaid orders</span></div>
       <% if (charts.cities.length) { const maxCity = Math.max.apply(null, charts.cities.map(function (c) { return c.revenue; }).concat([1])); %>
         <ol class="dash-rank">
           <% charts.cities.forEach(function (c, i) { %>

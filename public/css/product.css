@@ -159,6 +159,8 @@
   .size-guide[open] { animation: none; }
 }
 .pdx-opts { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.pdx-opt-clear { margin-left: 0; }
+.pdx-opt-clear[hidden] { display: none; }
 .pdx-opt { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs); min-width: 48px; min-height: 44px; padding: 0 var(--space-1h); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font-size: var(--text-sm); font-weight: var(--weight-semibold); cursor: pointer; user-select: none; transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out); }
 .pdx-opt input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: inherit; }
 .pdx-opt:hover { border-color: var(--line-hover); }
@@ -470,9 +472,9 @@
 
 /* E3: customer photos on reviews, and the picker in the review form. */
 .pdx-review-photos { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-1); }
-.pdx-review-photos a { display: block; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); }
+.pdx-review-photos button { display: block; padding: 0; background: transparent; cursor: zoom-in; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--line); }
 .pdx-review-photos img { display: block; width: 88px; height: 88px; object-fit: cover; }
-@media (hover: hover) { .pdx-review-photos a:hover img { transform: scale(1.04); } }
+@media (hover: hover) { .pdx-review-photos button:hover img { transform: scale(1.04); } }
 @media (prefers-reduced-motion: no-preference) { .pdx-review-photos img { transition: transform var(--duration) var(--ease-out); } }
 .pdx-photo-field input[type="file"] { font-size: var(--text-sm); color: var(--ink-2); }
 .pdx-photo-previews { display: flex; gap: var(--space-sm); }

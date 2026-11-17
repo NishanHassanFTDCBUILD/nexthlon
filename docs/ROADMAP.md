@@ -103,11 +103,11 @@ MongoDB service. Follow the Nexthlon bar. Plan first, then wait for my go-ahead.
 ### [x] A3. Photos in cloud storage, with sizes for every screen · M
 - **Goal:** uploads survive redeploys and load fast. Every uploaded photo gets 400, 800 and 1600px WebP copies with `srcset`.
 - **Files:** `providers/storage/{local,r2}.js`, `services/imageService.js`, `utils/images.js`, `public/js/store.js`, a migration for existing uploads, and image deletes.
-- **Done when:** product cards download a card-sized photo, the `/products` mobile LCP is under 2.5s in Lighthouse, and photo storage can switch between local and R2 (or S3) through config.
+- **Done when:** product cards download a card-sized photo, the `/products` mobile LCP is under 2.5s in Lighthouse, and photo storage can switch between local and Cloudinary through config.
 
 ```text
 Step A3 from docs/ROADMAP.md: move photos to a storage provider (local for development,
-Cloudflare R2 or S3 in production) and create 400/800/1600px WebP copies of every upload, with
+Cloudinary in production) and create 400/800/1600px WebP copies of every upload, with
 srcset in cards and the product page. Migrate existing uploads. Re-run Lighthouse mobile on
 /products. Plan first, then wait for my go-ahead.
 ```
@@ -384,14 +384,14 @@ go-ahead.
 
 | Step | What | Size |
 |---|---|---|
-| [ ] E1 | WhatsApp order updates and support chat (WhatsApp Business API provider) | M |
-| [~] E2 | COD confirmation by OTP or WhatsApp, and a discount for paying online, to cut refused parcels. **Discount done 2026-11-14** (admin Settings); COD confirmation needs E1 (WhatsApp) or an SMS provider | S |
-| [~] E3 | Back-in-stock alerts, reviews with photos, product Q&A. **Back-in-stock alerts done 2026-11-14**; review photos and Q&A still to do | M |
-| [ ] E4 | Search upgrade: suggestions as you type, tolerance for typos, synonyms (MongoDB Atlas Search) | M |
-| [~] E5 | Installable app (PWA) with push notifications. **Installable app and offline page done 2026-11-14**; push notifications still to do (needs VAPID keys) | M |
-| [ ] E6 | "Complete the kit" bundles and recommendations | M |
-| [ ] E7 | Content hub: sport guides and athlete stories, for SEO | M |
-| [ ] E8 | Amazon, Flipkart and Myntra listings with stock sync | L |
+| [x] E1 | WhatsApp order updates and support chat. **Code done:** order events and the WhatsApp provider are ready; activate it with a WhatsApp Business account and the required settings. | M |
+| [x] E2 | COD confirmation by OTP or WhatsApp, and a discount for paying online. **Code done:** configure MSG91 or WhatsApp credentials before enabling confirmations. | S |
+| [x] E3 | Back-in-stock alerts, reviews with photos, product Q&A. **Code done:** production use needs real product and review content. | M |
+| [x] E4 | Search upgrade: suggestions as you type, tolerance for typos, synonyms. **Code done:** search works with the built-in fallback; Atlas Search remains an optional production enhancement. | M |
+| [x] E5 | Installable app (PWA) with push notifications. **Code done:** generate and configure VAPID keys to activate pushes. | M |
+| [x] E6 | "Complete the kit" bundles and recommendations. **Done 2026-11-15:** product-page kits, server-priced add-all flow, and an admin Bundles screen for creating and publishing kits. | M |
+| [x] E7 | Content hub: sport guides and athlete stories, for SEO. **Done 2026-11-15:** public guides hub, drafts and publication, plus an admin Guides writing screen. Content still needs to be written by the team. | M |
+| [~] E8 | Amazon, Flipkart and Myntra listings with stock sync. **Feed and stock-sync code done;** direct marketplace connections need seller accounts and API access. | L |
 | [ ] E9 | Hindi language | L |
 
 Prompt for any growth step:

@@ -27,6 +27,12 @@ test("public id drops the extension; urls round-trip with keyFromUrl", () => {
   assert.equal(provider.keyFromUrl("/uploads/products/x.jpg"), null);
 });
 
+test("only application-owned image keys can be sent to Cloudinary", async () => {
+  const { provider } = fake([]);
+  await assert.rejects(() => provider.put("../outside.webp", Buffer.from("x")), /Unsafe Cloudinary storage key/);
+  await assert.rejects(() => provider.put("products/x.webp?x=1", Buffer.from("x")), /Unsafe Cloudinary storage key/);
+});
+
 test("upload is signed with the secret, which is never sent", async () => {
   const { provider, calls } = fake([{ body: { public_id: "x" } }]);
   await provider.put("products/abc-400.webp", Buffer.from("img"), { contentType: "image/webp" });
@@ -66,4 +72,42 @@ test("settings: cloudinary needs its three values", () => {
   const missing = checkEnv(base).errors.map(line => line.split(":")[0]);
   for (const name of ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"]) assert.ok(missing.includes(name));
   assert.deepEqual(checkEnv({ ...base, CLOUDINARY_CLOUD_NAME: "demo", CLOUDINARY_API_KEY: "1", CLOUDINARY_API_SECRET: "s" }).errors, []);
+});
+
+test("a multipart review photo is processed and uploaded to Cloudinary", async () => {
+  const { Readable } = require("node:stream");
+  const sharp = require("sharp");
+  const storage = require("../providers/storage");
+  const imageService = require("../services/imageService");
+  const { reviewPhotos } = require("../middleware/upload");
+  const { provider, calls } = fake([]);
+  storage.useForTests({ current: provider });
+  try {
+    const jpeg = await sharp({ create: { width: 1600, height: 800, channels: 3, background: "#d4ff3a" } }).jpeg().toBuffer();
+    const form = new FormData();
+    form.append("rating", "5");
+    form.append("body", "Great boots, here is my photo.");
+    form.append("photos", new Blob([jpeg], { type: "image/jpeg" }), "photo.jpg");
+    // Encode the browser's actual multipart body, without needing a listening server.
+    const request = new Request("http://localhost/review", { method: "POST", body: form });
+    const body = Buffer.from(await request.arrayBuffer());
+    const req = Readable.from([body]);
+    req.headers = { "content-type": request.headers.get("content-type"), "content-length": String(body.length) };
+    await new Promise((resolve, reject) => reviewPhotos(req, {}, error => error ? reject(error) : resolve()));
+    assert.equal(req.body.rating, "5");
+    assert.deepEqual(imageService.findFakeImages(req.files), []);
+    const data = { photos: await imageService.saveImages(req.files, "reviews") };
+    assert.match(data.photos[0], /^https:\/\/res\.cloudinary\.com\/democloud\/image\/upload\/reviews\/[a-f0-9]{32}\.webp$/);
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].form.public_id, /^reviews\/[a-f0-9]{32}$/);
+    const metadata = await sharp(Buffer.from(await calls[0].form.file.arrayBuffer())).metadata();
+    assert.equal(metadata.format, "webp");
+    assert.equal(metadata.width, 1200);
+    assert.equal(metadata.height, 600);
+    await provider.remove([provider.keyFromUrl(data.photos[0])]);
+    assert.match(calls[1].url, /image\/destroy$/);
+    assert.equal(calls[1].form.public_id, calls[0].form.public_id);
+  } finally {
+    storage.reset();
+  }
 });

@@ -4,7 +4,8 @@ const mongoose = require("mongoose");
 // Read and increment them through services/counterService.js.
 const counterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
-  seq: { type: Number, default: 0 }
+  seq: { type: Number, default: 0 },
+  allocations: { type: Map, of: Number, default: {} }
 }, { versionKey: false });
 
 module.exports = mongoose.model("Counter", counterSchema);

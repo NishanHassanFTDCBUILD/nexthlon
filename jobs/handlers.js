@@ -22,3 +22,7 @@ const stockAlertService = require("../services/stockAlertService");
 registry.register("stock.alert", ({ alertId }) => stockAlertService.notify(alertId));
 registry.register("stock.sweep", () => stockAlertService.sweep(), { maxAttempts: 2 });
 registry.schedule("stock-sweep", { everyMs: 10 * 60 * 1000, type: "stock.sweep" });
+
+// Resume interrupted payment, cancellation, return and refund work after restarts.
+registry.register("commerce.recover", () => require("../services/commerceRecoveryService").sweep());
+registry.schedule("commerce-recovery", { everyMs: 60 * 1000, type: "commerce.recover" });

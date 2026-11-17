@@ -23,6 +23,8 @@ router.get("/reports/sales.csv", reports.salesCsv);
 router.get("/analytics", analytics);
 router.get("/reports/analytics.csv", reports.analyticsCsv);
 router.get("/customers", listCustomers);
+router.get("/customers/:userId/wallet", require("../controllers/adminWalletController").get);
+router.post("/customers/:userId/wallet/adjust", adminMoneyLimiter, require("../controllers/adminWalletController").adjust);
 router.patch("/customers/:userId/block", setCustomerBlocked);
 router.get("/settings", getSettings);
 router.patch("/settings/referral", updateReferral);

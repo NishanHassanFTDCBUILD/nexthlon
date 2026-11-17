@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const Wallet = require("../models/Wallet");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const { LOW_STOCK_LIMIT } = require("../config/catalog");
@@ -65,10 +66,16 @@ async function listCustomers(query = {}) {
   ]);
 
   return {
-    customers: users.map(publicCustomer),
+    customers: await customersWithWallets(users),
     pagination: { page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total, limit: PAGE_SIZE },
     filters: { q, status }
   };
+}
+
+async function customersWithWallets(users) {
+  const wallets = await Wallet.find({ user: { $in: users.map(user => user._id) } }).select("user balance").lean();
+  const balances = new Map(wallets.map(wallet => [String(wallet.user), wallet.balance]));
+  return users.map(user => ({ ...publicCustomer(user), walletBalance: balances.get(String(user._id)) || 0 }));
 }
 
 // Only customers can be blocked, so an admin can never lock out another admin by mistake.

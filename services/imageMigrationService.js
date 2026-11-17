@@ -3,8 +3,8 @@
 // Two situations need it:
 //   1. Photos uploaded before small copies existed ("/uploads/products/<id>.jpg"): they get a full WebP
 //      and 200/400/800/1600 copies, so product cards stop downloading the big file.
-//   2. Switching STORAGE_DRIVER from local to s3: every photo still on this server's disk is uploaded
-//      to the bucket, so the site no longer depends on the server's disk.
+//   2. Switching STORAGE_DRIVER from local to cloudinary: every photo still on this server's disk is
+//      uploaded to Cloudinary, so the site no longer depends on the server's disk.
 //
 // Every place that stores a photo address is updated: products (image, gallery), categories, order lines
 // (the photo at the time of the order) and return photos. Old files on disk are never deleted, so the
@@ -40,11 +40,11 @@ async function savedAddresses() {
 async function planMoves({ dryRun, report }) {
   const target = storage.current();
   const local = storage.local();
-  const toBucket = target.driver !== "local";
+  const toCloudinary = target.driver === "cloudinary";
   const { products, returns } = await savedAddresses();
   const moves = new Map();
 
-  // Photos with small copies already, still on this disk, going to a bucket: copy the five files as
+  // Photos with small copies already, still on this disk, going to Cloudinary: copy the five files as
   // they are (same name, no second round of compression), then only the address changes.
   async function copyAsIs(url, key) {
     const keys = keysFor(key);
@@ -54,7 +54,7 @@ async function planMoves({ dryRun, report }) {
       try {
         await Promise.all(files.map(([k, body]) => target.put(k, body, { contentType: "image/webp" })));
       } catch (error) {
-        // Never leave half a photo in the bucket.
+        // Never leave half a photo in Cloudinary.
         await target.remove(keys).catch(() => {});
         throw error;
       }
@@ -85,7 +85,7 @@ async function planMoves({ dryRun, report }) {
   for (const url of products) {
     const old = OLD_PRODUCT.exec(url);
     const current = NEW_PRODUCT.exec(url);
-    if (!old && !(current && toBucket)) continue;
+    if (!old && !(current && toCloudinary)) continue;
     report.found += 1;
     try {
       const key = url.slice("/uploads/".length);
@@ -95,9 +95,9 @@ async function planMoves({ dryRun, report }) {
       report.missing.push(url);
     }
   }
-  // Customers' return photos only need to move when they are going to a bucket.
+  // Customers' return photos only need to move when they are going to Cloudinary.
   for (const url of returns) {
-    if (!toBucket || !RETURN_PHOTO.test(url)) continue;
+    if (!toCloudinary || !RETURN_PHOTO.test(url)) continue;
     report.found += 1;
     try {
       moves.set(url, await renderAndSave(url, url.slice("/uploads/".length), "returns"));

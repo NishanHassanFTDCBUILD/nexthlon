@@ -68,4 +68,30 @@ async function withStock(lines, work) {
   });
 }
 
-module.exports = { supportsTransactions, takeStock, returnStock, withStock };
+function receiptFor(key, line) {
+  return require("crypto").createHash("sha256").update(`${key}:${line.product}:${line.variant || ""}`).digest("hex");
+}
+
+// The movement and its receipt are one product update. Journals can retry a
+// partially completed order after a crash, even on standalone MongoDB.
+async function moveOnce(lines, key, direction, reservedBy = null) {
+  for (const line of lines) {
+    const receipt = receiptFor(key, line);
+    const filter = { _id: line.product, stockReceipts: { $ne: receipt } };
+    if (reservedBy) filter.$and = [{ stockReceipts: receiptFor(reservedBy, line) }];
+    if (direction < 0) Object.assign(filter, LISTED_PRODUCT);
+    if (line.variant) {
+      filter.variants = { $elemMatch: { _id: line.variant, ...(direction < 0 ? { stock: { $gte: line.quantity } } : {}) } };
+    } else if (direction < 0) filter.stock = { $gte: line.quantity };
+    const change = { stock: direction * line.quantity };
+    if (line.variant) change["variants.$.stock"] = direction * line.quantity;
+    const result = await Product.updateOne(filter, { $inc: change, $addToSet: { stockReceipts: receipt } });
+    if (result.modifiedCount || direction > 0) continue;
+    const applied = await Product.exists({ _id: line.product, stockReceipts: receipt });
+    if (!applied) throw new HttpError(409, `${line.name || "This product"} is no longer available in that quantity.`, null, "items_unavailable");
+  }
+}
+const takeStockOnce = (lines, key) => moveOnce(lines, key, -1);
+const returnStockOnce = (lines, key, reservedBy = null) => moveOnce(lines, key, 1, reservedBy);
+
+module.exports = { supportsTransactions, takeStock, returnStock, withStock, takeStockOnce, returnStockOnce };

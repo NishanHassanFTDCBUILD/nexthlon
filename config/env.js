@@ -42,8 +42,8 @@ function readConfig() {
     trustProxy: text("TRUST_PROXY") ? Number(text("TRUST_PROXY")) : isProduction ? 1 : 0,
     // The store's public address, with no trailing slash (emails, sitemap, share previews).
     siteUrl: text("SITE_URL").replace(/\/+$/, ""),
-    // Where uploaded photos are kept: "local" (public/uploads) or "s3" (R2, S3 and other S3-compatible
-    // buckets, served from publicUrl). The secrets never leave the server.
+    // Where uploaded photos are kept: "local" (public/uploads) or Cloudinary. The secrets never leave
+    // the server, and Cloudinary serves the public URLs directly.
     storage: readStorage(),
     // Connections to MongoDB per copy of the app. Atlas's free tier allows 500 in all, so several copies
     // with the driver's default of 100 each could use them up.
@@ -103,10 +103,10 @@ function readConfig() {
 function readStorage() {
   const text = name => String(process.env[name] ?? "").trim();
   const wanted = text("STORAGE_DRIVER").toLowerCase();
-  const driver = ["s3", "cloudinary"].includes(wanted) ? wanted : "local";
+  const driver = wanted === "cloudinary" ? "cloudinary" : "local";
   const cloudName = text("CLOUDINARY_CLOUD_NAME");
-  // Cloudinary serves from a fixed address built from the cloud name; a bucket from STORAGE_PUBLIC_URL.
-  const publicUrl = driver === "cloudinary" ? (cloudName ? `https://res.cloudinary.com/${cloudName}/image/upload` : "") : text("STORAGE_PUBLIC_URL").replace(/\/+$/, "");
+  // Cloudinary serves from a fixed address built from the cloud name.
+  const publicUrl = driver === "cloudinary" && cloudName ? `https://res.cloudinary.com/${cloudName}/image/upload` : "";
   return {
     driver,
     // The address photos are served from (no trailing slash), and its origin for the Content Security Policy.
@@ -114,12 +114,7 @@ function readStorage() {
     origin: driver !== "local" && publicUrl ? new URL(publicUrl).origin : "",
     cloudName,
     apiKey: text("CLOUDINARY_API_KEY"),
-    apiSecret: String(process.env.CLOUDINARY_API_SECRET ?? ""),
-    endpoint: text("S3_ENDPOINT").replace(/\/+$/, ""),
-    region: text("S3_REGION") || "auto",
-    bucket: text("S3_BUCKET"),
-    accessKeyId: text("S3_ACCESS_KEY_ID"),
-    secretAccessKey: String(process.env.S3_SECRET_ACCESS_KEY ?? "")
+    apiSecret: String(process.env.CLOUDINARY_API_SECRET ?? "")
   };
 }
 

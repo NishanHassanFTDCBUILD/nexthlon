@@ -4,7 +4,7 @@
   <div class="doc-summary">
     <div><strong><%= store.returnDays %> days</strong><span>to ask for a return after delivery</span></div>
     <div><strong><%= store.refundDays %></strong><span>for the refund to reach you</span></div>
-    <div><strong>Original method</strong><span>refunds go back the way you paid</span></div>
+    <div><strong>Wallet or original method</strong><span>available options depend on how you paid</span></div>
   </div>
 
   <h2>1. Cancelling an order</h2>
@@ -14,7 +14,7 @@
   <ul>
     <li>Ask for a return within <%= store.returnDays %> days of delivery.</li>
     <li>Items must be unused, with tags, in their original packaging, with all accessories.</li>
-    <li>For hygiene reasons we cannot accept returns of [swimwear, mouthguards and opened nutrition products] unless they arrive damaged.</li>
+    <li>Hygiene-sensitive items, including swimwear, mouthguards and opened nutrition products, cannot be returned unless damaged or faulty.</li>
     <li>We arrange a pickup where available. Otherwise we tell you where to send the item.</li>
   </ul>
 
@@ -22,7 +22,7 @@
   <p>If an item arrives damaged or is not what you ordered, tell us within 48 hours of delivery and send photos. We will replace it or refund you in full, including any delivery charge.</p>
 
   <h2>4. Refunds</h2>
-  <p>Once we receive and check the returned item, we start the refund within 2 working days. It reaches your original payment method in <%= store.refundDays %>, depending on your bank. [If you offer cash on delivery: those orders are refunded to a bank account or UPI ID you give us.]</p>
+  <p>Once we receive and check the returned item, we start the refund within 2 working days. Refunds go to your Nexthlon wallet by default. For an online payment, you can choose a refund to the original card, UPI or bank payment method; this usually takes <%= store.refundDays %>. Cash on Delivery payments and amounts paid from the Nexthlon wallet are refunded to your Nexthlon wallet. A mixed payment is split between the original payment method and wallet when you choose the original method. If the payment provider is unavailable, the refund stays pending while we confirm its status; we do not automatically switch an original-method refund to a wallet credit.</p>
 
   <h2>5. Need help?</h2>
   <p>Email <%= store.supportEmail %>, call <%= store.supportPhone %> (<%= store.supportHours %>) or use our <a href="/contact">contact form</a>.</p>

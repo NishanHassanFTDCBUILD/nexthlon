@@ -1,7 +1,7 @@
 <%# Template text. Tell your own story here. %>
 <%- include('../partials/info-start', { heading: 'About Nexthlon', lead: 'Performance sports gear, picked by people who train.' }) %>
 <article class="doc section-box">
-  <p><%= store.brandName %> is run by <%= store.legalName %>. We started in [year] with one idea: athletes should be able to buy genuine, well-made gear at a fair price, with the M.R.P. and the discount shown up front.</p>
+  <p><%= store.brandName %> is run by <%= store.legalName %>. Our aim is to help athletes find sports gear with clear prices, product details and delivery information before they buy.</p>
 
   <div class="about-grid">
     <div class="about-card"><span class="trust-icon"><%- icon('award') %></span><h2>Genuine brands</h2><p>Every product comes from its maker or an authorised distributor.</p></div>
@@ -10,7 +10,7 @@
   </div>
 
   <h2>What we sell</h2>
-  <p>Gear for <%= navCategories.slice(0, -1).map(function (c) { return c.name; }).join(', ') %> and <%= (navCategories[navCategories.length - 1] || {}).name %>. [Add a few lines about how you choose your products.]</p>
+  <p>Gear for <%= navCategories.slice(0, -1).map(function (c) { return c.name; }).join(', ') %> and <%= (navCategories[navCategories.length - 1] || {}).name %>. Explore specifications, available sizes and customer reviews to find the right fit for your sport.</p>
 
   <h2>Business details</h2>
   <address class="doc-address">

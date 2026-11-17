@@ -7,8 +7,8 @@ const logger = require("../utils/logger");
 const MAX_IMAGES = 4;
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-// Uploads live in a storage provider (providers/storage): local disk in development, an S3-compatible
-// bucket (Cloudflare R2, Amazon S3) in production. Folders: products (admin photos) and returns (customer photos).
+// Uploads live in a storage provider (providers/storage): local disk in development, Cloudinary in
+// production. Folders: products (admin photos) and returns (customer photos).
 const FOLDERS = new Set(["products", "returns", "reviews"]);
 const MAX_RETURN_PHOTOS = 3;
 // Largest side of the saved photo. Product photos keep up to 2000px so the product page zoom shows real
@@ -89,7 +89,7 @@ async function saveImages(files = [], folder = "products") {
 }
 
 // One of our own product photos: new ("<id>-full.webp") or from before small copies existed ("<id>.jpg").
-// It must be in local storage ("/uploads/...") or in the configured bucket (STORAGE_PUBLIC_URL/...).
+// It must be in local storage ("/uploads/...") or in the configured Cloudinary account.
 const PRODUCT_KEY = /^products\/[a-f0-9]{32}(-full\.webp|\.(jpg|png|webp))$/;
 function isUploadedImage(url) {
   const backend = storage.backendFor(url);

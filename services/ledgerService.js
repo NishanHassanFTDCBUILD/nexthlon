@@ -73,7 +73,7 @@ function branches(sourceId = null) {
       common("coupon", { id: { $concat: ["cpn_", str("$_id")] }, at: "$createdAt", direction: { $literal: "none" }, method: { $literal: "" }, amount: "$couponDiscount", status: { $literal: "applied" }, reference: "$couponCode", note: { $literal: "" } })],
     wallet: [...only,
       // Refund credits and checkout debits are already listed above (as refunds and wallet payments).
-      { $match: { kind: { $in: ["referral", "admin"] } } },
+      { $match: { kind: { $in: ["referral", "admin"] }, applied: { $ne: false } } },
       { $project: {
         _id: 0, id: { $concat: ["wtx_", str("$_id")] }, at: "$createdAt", orderId: "$orderId", user: "$user",
         type: { $cond: [{ $eq: ["$type", "credit"] }, "wallet_credit", "wallet_debit"] },

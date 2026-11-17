@@ -1,4 +1,4 @@
-// "npm run images:migrate": gives older photos their small copies and moves photos to a bucket, rewriting
+// "npm run images:migrate": gives older photos their small copies and moves photos to Cloudinary, rewriting
 // every address saved in the database. Needs the test database, like the API tests.
 require("./helpers");
 const test = require("node:test");
@@ -30,16 +30,16 @@ const GONE = "cccccccccccccccccccccccccccccccc";
 const NEW = "dddddddddddddddddddddddddddddddd";
 const RETURNED = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
-// An in-memory bucket.
-function fakeBucket() {
+// An in-memory Cloudinary-like provider.
+function fakeCloudinary() {
   const files = new Map();
   return {
-    driver: "s3",
+    driver: "cloudinary",
     files,
     put: async (key, body) => { files.set(key, Buffer.from(body)); },
     remove: async keys => { keys.forEach(key => files.delete(key)); },
-    publicUrl: key => `https://cdn.nexthlon.in/${key}`,
-    keyFromUrl: url => (typeof url === "string" && url.startsWith("https://cdn.nexthlon.in/") ? url.slice(24) : null)
+    publicUrl: key => `https://res.cloudinary.com/demo/image/upload/${key}`,
+    keyFromUrl: url => (typeof url === "string" && url.startsWith("https://res.cloudinary.com/demo/image/upload/") ? url.slice(46) : null)
   };
 }
 
@@ -153,49 +153,49 @@ test("a dry run reports everything and writes nothing", async () => {
   assert.deepEqual((await fs.readdir(path.join(root, "products"))).sort(), filesBefore);
 });
 
-test("switching to a bucket: every photo on disk is uploaded, and the addresses become the bucket's", async () => {
-  const bucket = fakeBucket();
-  await setUp(bucket);
+test("switching to Cloudinary: every photo on disk is uploaded, and the addresses become Cloudinary URLs", async () => {
+  const cloud = fakeCloudinary();
+  await setUp(cloud);
   const report = await migrateImages();
-  assert.equal(report.driver, "s3");
+  assert.equal(report.driver, "cloudinary");
   // Two older product photos, one already-new photo, and one return photo.
   assert.equal(report.migrated, 4);
   const moved = Object.fromEntries(report.moves.map(({ from, to }) => [from, to]));
 
   // The photo that already had its copies is copied as it is: same name, same bytes.
-  assert.equal(moved[`/uploads/products/${NEW}-full.webp`], `https://cdn.nexthlon.in/products/${NEW}-full.webp`);
+  assert.equal(moved[`/uploads/products/${NEW}-full.webp`], `https://res.cloudinary.com/demo/image/upload/products/${NEW}-full.webp`);
   for (const size of ["full", "200", "400", "800", "1600"]) {
-    assert.deepEqual(bucket.files.get(`products/${NEW}-${size}.webp`), await local.read(`products/${NEW}-${size}.webp`), size);
+    assert.deepEqual(cloud.files.get(`products/${NEW}-${size}.webp`), await local.read(`products/${NEW}-${size}.webp`), size);
   }
   // Older photos are converted on the way, and return photos go as one WebP.
   const tentNew = moved[`/uploads/products/${OLD_JPG}.jpg`];
-  assert.match(tentNew, /^https:\/\/cdn\.nexthlon\.in\/products\/[a-f0-9]{32}-full\.webp$/);
-  assert.ok(bucket.files.has(tentNew.slice(24).replace("-full", "-400")));
+  assert.match(tentNew, /^https:\/\/res\.cloudinary\.com\/demo\/image\/upload\/products\/[a-f0-9]{32}-full\.webp$/);
+  assert.ok(cloud.files.has(tentNew.slice(46).replace("-full", "-400")));
   const returnedNew = moved[`/uploads/returns/${RETURNED}.jpg`];
-  assert.match(returnedNew, /^https:\/\/cdn\.nexthlon\.in\/returns\/[a-f0-9]{32}\.webp$/);
-  assert.equal((await sharp(bucket.files.get(returnedNew.slice(24))).metadata()).format, "webp");
+  assert.match(returnedNew, /^https:\/\/res\.cloudinary\.com\/demo\/image\/upload\/returns\/[a-f0-9]{32}\.webp$/);
+  assert.equal((await sharp(cloud.files.get(returnedNew.slice(46))).metadata()).format, "webp");
 
-  assert.equal((await one(Product, { slug: "pole" })).image, `https://cdn.nexthlon.in/products/${NEW}-full.webp`);
+  assert.equal((await one(Product, { slug: "pole" })).image, `https://res.cloudinary.com/demo/image/upload/products/${NEW}-full.webp`);
   assert.equal((await one(Product, { slug: "tent" })).image, tentNew);
   assert.deepEqual((await one(Order, { orderId: "NX-1" })).returnPhotos, [returnedNew]);
   assert.equal((await one(Product, { slug: "ball" })).image, "https://images.unsplash.com/photo-2?w=800");
 
-  // Run again: the addresses are the bucket's now, so there is nothing left to move.
+  // Run again: the addresses are Cloudinary URLs now, so there is nothing left to move.
   const again = await migrateImages();
   assert.equal(again.migrated, 0);
 });
 
-test("if the bucket fails, no address is changed and what was uploaded is cleaned up", async () => {
-  const bucket = fakeBucket();
+test("if Cloudinary fails, no address is changed and what was uploaded is cleaned up", async () => {
+  const cloud = fakeCloudinary();
   let puts = 0;
-  const realPut = bucket.put;
-  bucket.put = async (key, body) => { puts += 1; if (puts === 7) throw new Error("bucket down"); return realPut(key, body); };
-  await setUp(bucket);
+  const realPut = cloud.put;
+  cloud.put = async (key, body) => { puts += 1; if (puts === 7) throw new Error("Cloudinary down"); return realPut(key, body); };
+  await setUp(cloud);
   const before = await Product.collection.find({}).sort({ slug: 1 }).toArray();
-  await assert.rejects(() => migrateImages(), /bucket down/);
+  await assert.rejects(() => migrateImages(), /Cloudinary down/);
   assert.deepEqual(await Product.collection.find({}).sort({ slug: 1 }).toArray(), before, "no address changed");
   // Photos that went up in full before the failure stay (they are harmless and the next run reuses the work).
   // The photo that failed part-way left nothing behind.
-  const partial = [...bucket.files.keys()].filter(key => /-(full|200|400|800|1600)\.webp$/.test(key));
+  const partial = [...cloud.files.keys()].filter(key => /-(full|200|400|800|1600)\.webp$/.test(key));
   assert.equal(partial.length % 5, 0, "only whole photos, never half of one");
 });

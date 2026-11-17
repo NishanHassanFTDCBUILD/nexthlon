@@ -149,7 +149,9 @@
       <section class="panel admin-block" aria-labelledby="timeline-title">
         <div class="dash-card-head"><h2 id="timeline-title"><%- icon('history', 'i-sm') %> Timeline</h2></div>
         <ol class="admin-timeline">
+          <% if (!o.statusHistory.some(function (h) { return h.status === 'placed'; })) { %>
           <li><strong>Order placed</strong><small class="muted"><%= when(o.createdAt) %> · customer</small></li>
+          <% } %>
           <% o.statusHistory.forEach(function (h) { %>
             <li><strong><%= historyLabel(h.status) %></strong><small class="muted"><%= when(h.at) %> · <%= h.by %><%= h.note ? ' · ' + h.note : '' %></small></li>
           <% }) %>

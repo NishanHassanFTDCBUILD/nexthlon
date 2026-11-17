@@ -350,9 +350,12 @@
       // Success: the button turns into a tick, then the page zooms into the store.
       setButton("done");
       Nx.formAlert(form, result.message, "success");
-      await wait(650);
+      // Sign-in should feel immediate once the server has accepted the credentials. The longer
+      // handoff is reserved for signup's welcome moment; keeping it here made a successful login
+      // look unresponsive for more than a second on slower phones.
+      await wait(form.dataset.kind === "signup" ? 650 : 140);
       if (form.dataset.kind === "signup") await celebrate(result);
-      await zoomOut();
+      await zoomOut(form.dataset.kind === "signup" ? 520 : 180);
       // replace, not assign: Back must not return to the sign-in form.
       window.location.replace(result.redirect || form.dataset.redirect || next);
     });
@@ -399,12 +402,12 @@
   }
 
   // The whole page zooms and fades into the store.
-  async function zoomOut() {
+  async function zoomOut(duration = 520) {
     const zoom = page.querySelector("[data-auth-zoom]");
     if (!zoom || reduced()) return;
     zoom.classList.add("is-active");
     page.classList.add("is-leaving");
-    await wait(520);
+    await wait(duration);
   }
 
   // ---------- The motto turns over, one line after another ----------

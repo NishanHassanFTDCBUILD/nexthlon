@@ -60,6 +60,7 @@ router.get("/inventory", catalog.inventory);
 
 // ---------- Customers ----------
 router.get("/customers", pages.adminUsers);
+router.get("/customers/:userId/wallet", require("../controllers/adminWalletController").page);
 router.get("/questions", catalog.questions);
 // The old address of the customer list.
 router.get("/users", (req, res) => {

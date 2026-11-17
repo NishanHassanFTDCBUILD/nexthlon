@@ -1,6 +1,10 @@
 require("./helpers");
 const test = require("node:test");
 const assert = require("node:assert/strict");
+if (!process.env.TEST_MONGODB_URI) {
+  test("job database tests (set TEST_MONGODB_URI to run them)", { skip: true }, () => {});
+  return;
+}
 const mongoose = require("mongoose");
 const Job = require("../models/Job");
 const queue = require("../jobs/queue");

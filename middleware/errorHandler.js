@@ -20,6 +20,7 @@ function errorHandler(err, req, res, next) {
   let status = err.status || err.statusCode || 500;
   if (err.name === "ValidationError" || err.name === "CastError") status = 400;
   if (err.code === 11000) status = 409;
+  if (err.name === "VersionError") status = 409;
 
   let message;
   if (status >= 500 && err instanceof HttpError) {
@@ -31,7 +32,7 @@ function errorHandler(err, req, res, next) {
   } else if (err instanceof HttpError || err.expose) {
     message = err.message;
   } else if (status === 409) {
-    message = "That record already exists.";
+    message = err.name === "VersionError" ? "This order changed while you were working. Refresh and try again." : "That record already exists.";
   } else {
     message = "Some of the details are not valid.";
   }

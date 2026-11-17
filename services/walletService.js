@@ -29,24 +29,31 @@ async function credit(userId, amount, { reason, kind = "refund", orderId = "", k
   assertAmount(amount);
   let entry;
   try {
-    [entry] = await WalletTransaction.create([{ user: userId, type: "credit", amount, kind, reason, orderId, key }], { session });
+    [entry] = await WalletTransaction.create([{ user: userId, type: "credit", amount, kind, reason, orderId, key, applied: false }], { session });
   } catch (error) {
-    if (error.code === 11000 && key) return null;
-    throw error;
-  }
-  let wallet;
-  try {
-    wallet = await Wallet.findOneAndUpdate({ user: userId }, { $inc: { balance: amount } }, { upsert: true, new: true, session });
-  } catch (error) {
-    // Two first credits at the same moment: the other one created the wallet, so try once more.
-    if (error.code !== 11000) {
-      if (!session) await WalletTransaction.deleteOne({ _id: entry._id });
-      throw error;
+    if (error.code !== 11000 || !key) throw error;
+    entry = await WalletTransaction.findOne({ key }).session(session);
+    if (!entry || String(entry.user) !== String(userId) || entry.amount !== amount || entry.type !== "credit") {
+      throw new HttpError(409, "This wallet operation conflicts with an earlier credit.");
     }
-    wallet = await Wallet.findOneAndUpdate({ user: userId }, { $inc: { balance: amount } }, { new: true, session });
+    if (entry.applied !== false) return null;
   }
+  // The receipt and balance move together. A crash before the history update is
+  // recoverable: retrying the same key repairs history without another credit.
+  try {
+    await Wallet.updateOne({ user: userId }, { $setOnInsert: { balance: 0 } }, { upsert: true, session });
+  } catch (error) {
+    if (error.code !== 11000) throw error;
+  }
+  const receipt = String(entry._id);
+  let wallet = await Wallet.findOneAndUpdate(
+    { user: userId, creditReceipts: { $ne: receipt } },
+    { $inc: { balance: amount }, $addToSet: { creditReceipts: receipt } },
+    { new: true, session }
+  );
+  if (!wallet) wallet = await Wallet.findOne({ user: userId }).session(session);
   entry.balanceAfter = wallet.balance;
-  await WalletTransaction.updateOne({ _id: entry._id }, { $set: { balanceAfter: wallet.balance } }, { session });
+  await WalletTransaction.updateOne({ _id: entry._id }, { $set: { balanceAfter: wallet.balance, applied: true } }, { session });
   logger.info("wallet.credit", { user: String(userId), amount, kind, order: orderId });
   return entry;
 }
@@ -84,13 +91,13 @@ function toPublicTransaction(entry) {
 async function getWallet(userId, query = {}) {
   const page = toPositiveInt(query.page, 1);
   const type = ["credit", "debit"].includes(query.type) ? query.type : "all";
-  const filter = { user: new mongoose.Types.ObjectId(String(userId)) };
+  const filter = { user: new mongoose.Types.ObjectId(String(userId)), applied: { $ne: false } };
   if (type !== "all") filter.type = type;
   const [balance, entries, total, sums] = await Promise.all([
     getBalance(userId),
     WalletTransaction.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
     WalletTransaction.countDocuments(filter),
-    WalletTransaction.aggregate([{ $match: { user: filter.user } }, { $group: { _id: "$type", amount: { $sum: "$amount" } } }])
+    WalletTransaction.aggregate([{ $match: { user: filter.user, applied: { $ne: false } } }, { $group: { _id: "$type", amount: { $sum: "$amount" } } }])
   ]);
   const sum = kind => (sums.find(row => row._id === kind) || { amount: 0 }).amount;
   return {

@@ -55,6 +55,16 @@ async function refundPayment(paymentId, amount, notes = {}) {
   return getClient().payments.refund(paymentId, { amount, speed: "normal", notes });
 }
 
+async function findRefund(paymentId, key) {
+  for (let skip = 0; ; skip += 100) {
+    const result = await getClient().payments.fetchMultipleRefund(paymentId, { count: 100, skip });
+    const items = result.items || [];
+    const match = items.find(item => item.notes && item.notes.refundKey === key);
+    if (match) return match;
+    if (items.length < 100) return null;
+  }
+}
+
 // Payment events are logged with ids and amounts only. Never card numbers, UPI ids or contact details.
 function logEvent(event, details) {
   if (process.env.NODE_ENV === "test") return;
@@ -62,4 +72,4 @@ function logEvent(event, details) {
   console.info(`[payments] ${event} ${parts.join(" ")}`);
 }
 
-module.exports = { isEnabled, setClient, verifyPaymentSignature, verifyWebhookSignature, createOrder, refundPayment, logEvent, hmac };
+module.exports = { isEnabled, setClient, verifyPaymentSignature, verifyWebhookSignature, createOrder, refundPayment, findRefund, logEvent, hmac };

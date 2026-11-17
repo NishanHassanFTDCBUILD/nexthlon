@@ -51,21 +51,20 @@ async function taxForOrder({ lines, couponDiscount = 0, deliveryFee = 0, buyerSt
 // Gives a confirmed order its invoice number (once). Safe to call again: an order that has one keeps it.
 // Orders saved before GST invoices existed have no GST block and keep their simple invoice.
 async function issueInvoice(orderId, when = new Date()) {
-  const claim = `pending:${crypto.randomUUID()}`;
-  const claimed = await Order.findOneAndUpdate(
+  let order = await Order.findOneAndUpdate(
     { _id: orderId, "gst.scheme": { $exists: true }, "gst.invoiceNo": "" },
-    { $set: { "gst.invoiceNo": claim } },
-    { new: true }
+    { $set: { "gst.invoiceNo": "pending:" + orderId, "gst.invoiceDate": when } }, { new: true }
   );
-  if (!claimed) return Order.findById(orderId);
-  const year = financialYear(when);
-  const seq = await counterService.nextNumber(`invoice-${year}`);
-  const number = `${INVOICE_PREFIX}/${year}/${String(seq).padStart(6, "0")}`;
-  return Order.findOneAndUpdate(
-    { _id: orderId, "gst.invoiceNo": claim },
-    { $set: { "gst.invoiceNo": number, "gst.invoiceDate": when } },
-    { new: true }
-  );
+  if (!order) order = await Order.findById(orderId);
+  if (!order || !order.gst || !order.gst.invoiceNo || !order.gst.invoiceNo.startsWith("pending:")) return order;
+  const date = order.gst.invoiceDate || when;
+  const year = financialYear(date);
+  const seq = await counterService.numberFor("invoice-" + year, String(orderId));
+  const number = INVOICE_PREFIX + "/" + year + "/" + String(seq).padStart(6, "0");
+  return await Order.findOneAndUpdate(
+    { _id: orderId, "gst.invoiceNo": order.gst.invoiceNo },
+    { $set: { "gst.invoiceNo": number, "gst.invoiceDate": date } }, { new: true }
+  ) || Order.findById(orderId);
 }
 
 // A credit note for invoiced items that were cancelled or returned since the last note. The tax on each
@@ -74,6 +73,13 @@ async function issueInvoice(orderId, when = new Date()) {
 async function syncCreditNotes(orderId, reason = "") {
   const order = await Order.findById(orderId).lean();
   if (!order || !order.gst || !order.gst.invoiceNo || order.gst.invoiceNo.startsWith("pending:")) return null;
+  // Complete a number whose response was lost before deciding which lines remain.
+  for (const note of order.creditNotes || []) {
+    if (!note.number.startsWith("pending:")) continue;
+    const year = financialYear(note.date);
+    const seq = await counterService.numberFor(`credit-${year}`, `${orderId}:${note.number}`);
+    await Order.updateOne({ _id: orderId, "creditNotes.number": note.number }, { $set: { "creditNotes.$.number": `${CREDIT_PREFIX}/${year}/${String(seq).padStart(6, "0")}` } });
+  }
   const covered = new Set((order.creditNotes || []).flatMap(note => note.lines.map(line => String(line.itemId))));
   const lines = order.items
     .filter(item => ["cancelled", "returned"].includes(item.status) && !covered.has(String(item._id)) && item.tax)
@@ -115,7 +121,7 @@ async function syncCreditNotes(orderId, reason = "") {
   );
   if (!pushed) return null;
   const year = financialYear(note.date);
-  const seq = await counterService.nextNumber(`credit-${year}`);
+  const seq = await counterService.numberFor(`credit-${year}`, `${orderId}:${claim}`);
   const number = `${CREDIT_PREFIX}/${year}/${String(seq).padStart(6, "0")}`;
   return Order.findOneAndUpdate(
     { _id: orderId, "creditNotes.number": claim },

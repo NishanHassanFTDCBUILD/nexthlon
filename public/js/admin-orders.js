@@ -149,6 +149,9 @@
       } else if (form.matches("[data-refund-form]")) {
         event.preventDefault();
         const values = Nx.formValues(form);
+        // Keep the same key when a failed/uncertain submission is retried.
+        form.dataset.refundRequestKey ||= crypto.randomUUID();
+        values.requestKey = form.dataset.refundRequestKey;
         const paise = Math.round(Number(values.amount) * 100);
         if (!(paise > 0) || paise > Number(form.dataset.max)) {
           Nx.showErrors(form, { amount: `Enter an amount from ₹1 to ${money(Number(form.dataset.max))}.` });

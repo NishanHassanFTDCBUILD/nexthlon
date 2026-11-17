@@ -3,6 +3,7 @@
 //   npm run setup:check            database, settings, photo storage
 //   npm run setup:check -- --mail  also sends one real test email to ADMIN_EMAIL
 const mongoose = require("mongoose");
+const sharp = require("sharp");
 const config = require("../config/env");
 const { checkEnv } = require("../config/schema");
 const storage = require("../providers/storage");
@@ -36,10 +37,14 @@ async function checkStorage() {
   console.log(`\nPhoto storage (${config.storage.driver})`);
   if (config.storage.driver === "local") return note("photos go to this computer's disk: fine for development, not for hosting.");
   const provider = storage.current();
-  const key = `setup-check/${Date.now()}.txt`;
+  // Cloudinary's Usage endpoint is an administrative API with different permissions from
+  // Upload/Destroy. Exercise the exact least-privilege operations this app needs instead.
+  const key = `products/${require("crypto").randomBytes(16).toString("hex")}-full.webp`;
   try {
-    if (provider.ping && !(await provider.ping())) return bad("the service refused the keys. Check cloud name, API key and API secret.");
-    await provider.put(key, Buffer.from("setup check"), { contentType: "text/plain" });
+    // Generate a standards-compliant image instead of relying on an embedded byte sequence. This
+    // tests the exact upload/delete permissions without involving Cloudinary's Admin/Usage API.
+    const probe = await sharp({ create: { width: 1, height: 1, channels: 3, background: "#000000" } }).webp().toBuffer();
+    await provider.put(key, probe, { contentType: "image/webp" });
     ok("upload works");
     await provider.remove([key]);
     ok("delete works");

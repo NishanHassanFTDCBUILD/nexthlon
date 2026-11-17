@@ -103,54 +103,62 @@ async function retryPayment(userId, orderId) {
 
 // Marks the order paid, takes the stock and clears those items from the cart. Safe to run twice.
 async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
-  const paid = await Order.findOneAndUpdate(
-    { "razorpay.orderId": razorpayOrderId, paymentStatus: { $in: ["pending", "failed"] } },
-    {
-      $set: { paymentStatus: "paid", "razorpay.paymentId": razorpayPaymentId },
-      $push: { statusHistory: { status: "payment_received", by: "system", note: `Paid online (${source})` } }
-    },
-    { new: true }
-  );
-  if (!paid) return Order.findOne({ "razorpay.orderId": razorpayOrderId });
-  razorpay.logEvent("payment.paid", { order: paid.orderId, payment: razorpayPaymentId, amount: paid.total, source });
-
-  // The shopper gave up and cancelled the order, but the money still arrived (a slow bank, or the
-  // webhook): nothing will be shipped, so the online payment goes straight back.
-  if (paid.orderStatus === "cancelled") {
-    await refundService.issueRefund(paid, paid.total, { method: "original", reason: "Paid after the order was cancelled" });
-    razorpay.logEvent("payment.after_cancel", { order: paid.orderId });
+  const { runExclusive } = require("../utils/exclusive");
+  return runExclusive("payment:" + razorpayOrderId, async () => {
+    let paid = await Order.findOneAndUpdate(
+      { "razorpay.orderId": razorpayOrderId, paymentStatus: { $in: ["pending", "failed"] } },
+      { $set: { paymentStatus: "paid", "razorpay.paymentId": razorpayPaymentId, paymentFulfillmentStarted: true },
+        $inc: { __v: 1 }, $push: { statusHistory: { status: "payment_received", by: "system", note: "Paid online (" + source + ")" } } },
+      { new: true }
+    );
+    if (!paid) paid = await Order.findOne({ "razorpay.orderId": razorpayOrderId });
+    if (!paid || paid.paymentFulfilled) return paid;
+    if (paid.razorpay.paymentId !== razorpayPaymentId) throw new HttpError(409, "This order is associated with a different payment.");
+    const reservation = "payment:" + paid._id;
+    const lines = paid.items.filter(item => item.status !== "cancelled").map(item => ({ product: item.product, variant: item.variant || null, quantity: item.quantity, name: item.name }));
+    if (paid.orderStatus !== "cancelled" && !paid.stockReserved && !paid.paymentStockFailed) {
+      try {
+        await stockService.takeStockOnce(lines, reservation);
+        await Order.updateOne({ _id: paid._id }, { $set: { stockReserved: true }, $inc: { __v: 1 } });
+      } catch (error) {
+        // A network/database error is retryable, not evidence that goods sold out.
+        if (error.reason !== "items_unavailable") throw error;
+        await Order.updateOne({ _id: paid._id }, { $set: { paymentStockFailed: true }, $inc: { __v: 1 } });
+      }
+      paid = await Order.findById(paid._id);
+    }
+    if (paid.paymentStockFailed && paid.orderStatus !== "cancelled") {
+      // Only return lines actually reserved; a crash half-way through taking stock
+      // cannot inflate stock or cause a second decrement on the next callback.
+      await stockService.returnStockOnce(lines, reservation + ":rollback", reservation);
+      await Order.updateOne({ _id: paid._id }, { $set: { stockReserved: false }, $inc: { __v: 1 } });
+      paid = await Order.findById(paid._id);
+      paid = await orderService.cancelItems(paid, paid.items.filter(item => item.status !== "cancelled"), {
+        reason: "Sold out before the payment finished", by: "system", refundMethod: "original"
+      });
+    }
+    if (paid.orderStatus === "cancelled") {
+      paid = await require("./settlementService").resume(paid._id);
+      const remaining = paid.total + (paid.walletUsed || 0) - paid.refundedAmount;
+      if (remaining > 0) await refundService.issueRefund(paid, Math.min(paid.total, remaining), {
+        method: "original", reason: "Paid after the order was cancelled", key: "late-payment:" + razorpayPaymentId
+      });
+    } else {
+      if (paid.source === "buynow") await buyNowService.clear(paid.user);
+      else {
+        const bought = lines.map(line => ({ product: line.product, variant: line.variant || null }));
+        const change = { $pull: { items: { $or: bought } } };
+        if (paid.couponCode) change.$set = { couponCode: "" };
+        await Cart.updateOne({ user: paid.user }, change);
+      }
+      await gstService.issueInvoice(paid._id);
+      if (await events.emit("order.placed", { orderId: paid.orderId }, { key: paid.orderId }) === false) {
+        throw new Error("Payment confirmation could not be queued; it will be retried.");
+      }
+    }
+    await Order.updateOne({ _id: paid._id }, { $set: { paymentFulfilled: true } });
     return Order.findById(paid._id);
-  }
-
-  // Claim the stock step once; only the call that flips stockReserved takes the stock.
-  const claimed = await Order.findOneAndUpdate({ _id: paid._id, stockReserved: false }, { $set: { stockReserved: true } }, { new: true });
-  if (!claimed) return paid;
-  const lines = claimed.items.filter(item => item.status !== "cancelled").map(item => ({ product: item.product, variant: item.variant || null, quantity: item.quantity, name: item.name }));
-  try {
-    await stockService.takeStock(lines);
-  } catch (error) {
-    // Paid, but an item sold out before the payment finished: cancel it and give the money back.
-    await Order.updateOne({ _id: claimed._id }, { $set: { stockReserved: false } });
-    const fresh = await Order.findById(claimed._id);
-    await orderService.cancelItems(fresh, fresh.items.filter(item => item.status !== "cancelled"), { reason: "Sold out before the payment finished", by: "system", refundMethod: "original" });
-    razorpay.logEvent("payment.stock_failed", { order: paid.orderId });
-    return Order.findById(claimed._id);
-  }
-  if (claimed.source === "buynow") {
-    // A Buy now order: only the Buy now product is used up. The cart is left exactly as it was.
-    await buyNowService.clear(claimed.user);
-  } else {
-    // Only the lines that were bought: the same product and size (another size of it stays in the cart).
-    // variant: null also matches older cart lines that have no option field.
-    const bought = lines.map(line => ({ product: line.product, variant: line.variant || null }));
-    const cartChange = { $pull: { items: { $or: bought } } };
-    if (claimed.couponCode) cartChange.$set = { couponCode: "" };
-    await Cart.updateOne({ user: claimed.user }, cartChange);
-  }
-  // Paid and in stock: this is when an online order counts as placed, and gets its GST invoice number.
-  await gstService.issueInvoice(claimed._id);
-  await events.emit("order.placed", { orderId: claimed.orderId }, { key: claimed.orderId });
-  return Order.findById(claimed._id);
+  });
 }
 
 // Where a payment stands, for the checkout page to poll when the verify call could not get through.
