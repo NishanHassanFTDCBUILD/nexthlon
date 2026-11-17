@@ -159,8 +159,8 @@ code { font: 0.9em/1 Consolas, monospace; background: var(--brand-soft); padding
   /* Text links in lists are simply 44px tall. */
   :where(.site-footer nav a, .footer-legal a, .info-nav a) { display: inline-flex; align-items: center; min-height: var(--tap); min-width: var(--tap); }
   /* iOS zooms the page into any field under 16px when it is tapped, so every field is at least 16px on
-     touch screens, whatever its own style says. (The two-step code fields are bigger and keep their size.) */
-  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], .tf-form [name="code"], .au-form-2fa [name="code"]), select, textarea) {
+     touch screens, whatever its own style says. */
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea) {
     font-size: max(var(--text-field), 1em) !important;
   }
   /* The category links sit in a sideways scroller, which would clip an invisible hit area, so they

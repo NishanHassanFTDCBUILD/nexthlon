@@ -18,7 +18,6 @@ const production = {
   NODE_ENV: "production",
   SITE_URL: "https://www.nexthlon.in",
   ADMIN_PATH: "/nx-console-7f3k",
-  ADMIN_REQUIRE_2FA: "true",
   SMTP_HOST: "smtp.example.com", SMTP_USER: "u", SMTP_PASS: "p", MAIL_FROM: "Nexthlon <orders@nexthlon.in>",
   RAZORPAY_KEY_ID: "rzp_live_abc", RAZORPAY_KEY_SECRET: "s", RAZORPAY_WEBHOOK_SECRET: "w",
   SENTRY_DSN: "https://abc123@o1.ingest.sentry.io/42",
@@ -113,10 +112,6 @@ test("production warns about what is missing: email, payments, alerts", () => {
   for (const name of ["ADMIN_PATH", "RAZORPAY_KEY_ID", "SMTP_HOST", "SENTRY_DSN", "STORAGE_DRIVER"]) {
     assert.ok(warnings.some(line => line.startsWith(name)), `${name} should warn`);
   }
-  // Admin two-step login is on by default in production (D3): only turning it off warns.
-  assert.ok(!warnings.some(line => line.startsWith("ADMIN_REQUIRE_2FA")));
-  const off = checkEnv({ ...good, NODE_ENV: "production", SITE_URL: "https://x.in", ADMIN_REQUIRE_2FA: "false" });
-  assert.ok(off.warnings.some(line => line.startsWith("ADMIN_REQUIRE_2FA")), "turning it off warns");
   // Development stays quiet about the same things.
   assert.deepEqual(checkEnv(good).warnings, []);
 });

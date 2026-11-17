@@ -14,7 +14,6 @@ const razorpayService = require("../services/razorpayService");
 const walletService = require("../services/walletService");
 const referralService = require("../services/referralService");
 const settingsService = require("../services/settingsService");
-const twoFactorService = require("../services/twoFactorService");
 const accountService = require("../services/accountService");
 const reviewService = require("../services/reviewService");
 const recommendationService = require("../services/recommendationService");
@@ -377,16 +376,6 @@ const adminAnalytics = asyncHandler(async (req, res) => {
 });
 
 // Settings: what an admin may change, plus the fixed rules, so the page explains the whole store.
-// The admin's own security: two-step login (set up, turn off, recovery codes).
-const adminSecurity = asyncHandler(async (req, res) => {
-  res.render("admin/security", {
-    title: "Security | Nexthlon Admin",
-    twoFactor: await twoFactorService.status(req.user._id),
-    required: config.adminRequire2fa,
-    reason: req.query.reason
-  });
-});
-
 const adminSettings = asyncHandler(async (req, res) => {
   res.render("admin/settings", {
     title: "Settings | Nexthlon Admin",
@@ -454,7 +443,6 @@ module.exports = {
   adminAnalytics,
   adminUsers,
   adminSettings,
-  adminSecurity,
   adminProducts,
   adminProductNew,
   adminProductEdit

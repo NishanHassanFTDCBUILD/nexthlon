@@ -158,7 +158,7 @@ Every refresh token is revoked when the password changes, when an admin blocks t
 ## Environment variables
 
 Names only; copy `.env.example` to `.env` and fill them in:
-`NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_DRIVER`, `BREVO_API_KEY`, `JOBS_ENABLED`, `JOBS_CONCURRENCY`, `CART_RECOVERY_AUTO`, `SITE_URL`, `ADMIN_REQUIRE_2FA`, `TRUST_PROXY`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `APP_RELEASE`, `MONGODB_MAX_POOL`, `STORAGE_DRIVER`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `STORAGE_PUBLIC_URL`, `LOG_LEVEL`, `LOG_FORMAT`.
+`NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_DRIVER`, `BREVO_API_KEY`, `JOBS_ENABLED`, `JOBS_CONCURRENCY`, `CART_RECOVERY_AUTO`, `SITE_URL`, `TRUST_PROXY`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `APP_RELEASE`, `MONGODB_MAX_POOL`, `STORAGE_DRIVER`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `STORAGE_PUBLIC_URL`, `LOG_LEVEL`, `LOG_FORMAT`.
 
 Every variable is checked when the server starts (`config/schema.js`). A bad or missing value stops
 the server with **all** the problems listed at once; settings that work but look wrong for production
@@ -242,7 +242,7 @@ the Docker image, and audits the dependencies on every push and pull request.
   copies, and moves photos from the server's disk to the bucket after you switch `STORAGE_DRIVER` to `s3`. It
   rewrites the addresses in products, categories, orders and return photos, and leaves the old files in place.
 
-## Forgotten passwords, email confirmation and two-step login
+## Forgotten passwords and email confirmation
 
 **Forgot password** (`/forgot-password`). A one-time link by email, valid 30 minutes, newest link only
 (`models/AuthToken.js` keeps only a hash). The reply is identical for every address and does not wait for the
@@ -254,14 +254,6 @@ use `npm run seed:admin` with the new password in `.env`.
 **Confirm your email.** Sign-up and an email change send a link (48 hours). Opening the page confirms nothing:
 a button does, so mail scanners that open links cannot confirm for you. Nothing is blocked until it is
 confirmed; My Account and checkout show a reminder with "Send it again" (4 emails per hour).
-
-**Two-step login for admins** (Admin > Security). TOTP (RFC 6238), so Google Authenticator, Microsoft
-Authenticator, Authy or 1Password all work. After the password, sign-in asks for the 6 digits. The secret is
-stored encrypted (AES-256-GCM, key from `JWT_SECRET`), a code works once, 5 wrong codes lock the account for 15
-minutes, and 10 one-time recovery codes are made at setup. Turning it off or making new recovery codes needs the
-password **and** a code. `ADMIN_REQUIRE_2FA=true` forces every admin to turn it on before they can use anything
-else. If a phone **and** the recovery codes are lost, or after `JWT_SECRET` was changed, run
-`npm run admin:reset-2fa -- admin@your-store.in` on the server, then set it up again.
 
 Emails are built in `utils/emailLayout.js` (a table layout with a plain-text twin) and sent in the background.
 In development without SMTP they are printed to the console, so you can copy the link from there.

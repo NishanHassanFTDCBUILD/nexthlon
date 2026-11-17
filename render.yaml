@@ -28,8 +28,6 @@ services:
         value: cloudinary
       - key: MAIL_DRIVER
         value: brevo
-      - key: ADMIN_REQUIRE_2FA
-        value: "false"       # set to true after each admin has turned on two-step login
       - key: SITE_URL
         sync: false          # https://your-domain (or the https://nexthlon.onrender.com address Render gives you)
       - key: MONGODB_URI

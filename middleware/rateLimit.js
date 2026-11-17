@@ -135,17 +135,6 @@ const linkLimiter = limiter("link", {
   message: { message: "Too many attempts. Please wait 15 minutes and try again." }
 });
 
-// The code after the admin password: 10 per 15 minutes per visitor address. The account has its own
-// lock on top (5 wrong codes, then 15 minutes), which follows the account whatever address guesses come from.
-const twoFactorLimiter = limiter("twoFactor", {
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  skipSuccessfulRequests: true,
-  standardHeaders: "draft-7",
-  legacyHeaders: false,
-  message: { message: "Too many attempts. Please wait 15 minutes and try again." }
-});
-
 // PIN code lookups call India Post for the shopper. 60 in 15 minutes is plenty for typing addresses,
 // and stops anyone using the store as a free proxy.
 const pincodeLimiter = limiter("pincode", {
@@ -187,4 +176,4 @@ const stockAlertLimiter = limiter("stock-alert", {
   message: { message: "Too many alerts asked for. Try again in an hour." }
 });
 
-module.exports = { stockAlertLimiter, accountLoginLimiter, searchLimiter, orderLimiter, cartLimiter, pincodeLimiter, forgotLimiter, linkLimiter, twoFactorLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };
+module.exports = { stockAlertLimiter, accountLoginLimiter, searchLimiter, orderLimiter, cartLimiter, pincodeLimiter, forgotLimiter, linkLimiter, authLimiter, adminLoginLimiter, refreshLimiter, formLimiter, reviewLimiter, sensitiveLimiter, adminWriteLimiter, adminMoneyLimiter };

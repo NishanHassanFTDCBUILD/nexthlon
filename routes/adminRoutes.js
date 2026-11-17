@@ -8,23 +8,12 @@ const orders = require("../controllers/adminOrderController");
 const catalog = require("../controllers/adminCatalogController");
 const coupons = require("../controllers/adminCouponController");
 const { adminWriteLimiter, adminMoneyLimiter } = require("../middleware/rateLimit");
-const twoFactor = require("../controllers/twoFactorController");
 const { requireAuth, requireRole } = require("../middleware/auth");
-const { requireTwoFactorSetup } = require("../middleware/twoFactorGuard");
 const { sensitiveLimiter } = require("../middleware/rateLimit");
 const { productImages } = require("../middleware/upload");
 
 // Mounted at /api/admin. Admin login lives in authRoutes, so it is reached before this guard.
 router.use(requireAuth, requireRole("admin"));
-
-// Two-step login. Before the guard below, so an admin who is required to turn it on can reach these.
-router.get("/2fa", twoFactor.status);
-router.post("/2fa/setup", sensitiveLimiter, twoFactor.setup);
-router.post("/2fa/enable", sensitiveLimiter, twoFactor.enable);
-router.post("/2fa/disable", sensitiveLimiter, twoFactor.disable);
-router.post("/2fa/recovery-codes", sensitiveLimiter, twoFactor.regenerate);
-// With ADMIN_REQUIRE_2FA=true, nothing else works until two-step login is on.
-router.use(requireTwoFactorSetup);
 
 router.get("/dashboard", dashboard);
 router.get("/search", search);

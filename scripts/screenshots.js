@@ -190,7 +190,7 @@ async function main() {
         ["admin-products", "Products", `${a}/products`], ["admin-product-new", "Add product", `${a}/products/new`],
         ...(ids.product ? [["admin-product-edit", "Edit product", `${a}/products/${ids.product}/edit`]] : []),
         ["admin-inventory", "Inventory", `${a}/inventory`], ["admin-customers", "Customers", `${a}/customers`],
-        ["admin-settings", "Settings", `${a}/settings`], ["admin-system", "System status", `${a}/system`], ["admin-security", "Security", `${a}/security`]
+        ["admin-settings", "Settings", `${a}/settings`], ["admin-system", "System status", `${a}/system`]
       ].map(([key, title, url]) => ({ group: "Admin", key, title, url })));
     } else console.log("No --admin-path or SHOT_ADMIN_EMAIL/PASSWORD: admin pages skipped.");
     page.close();

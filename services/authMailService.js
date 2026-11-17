@@ -1,5 +1,5 @@
-// The emails about signing in: reset your password, confirm your email, "your password was changed",
-// and two-step login turned on or off. Each is a short, plain message with one action (utils/emailLayout.js).
+// The emails about signing in: reset your password, confirm your email, and "your password was
+// changed". Each is a short, plain message with one action (utils/emailLayout.js).
 const mailService = require("./mailService");
 const { renderEmail } = require("../utils/emailLayout");
 const { STORE } = require("../config/store");
@@ -49,17 +49,4 @@ function sendPasswordChanged(user, { when = new Date(), loginUrl } = {}) {
   });
 }
 
-function sendTwoFactorChanged(user, enabled) {
-  return send(user, `Two-step login ${enabled ? "turned on" : "turned off"} for your ${STORE.brandName} admin account`, {
-    preheader: enabled ? "Your account is better protected." : "Your account is less protected.",
-    heading: `Two-step login ${enabled ? "turned on" : "turned off"}`,
-    paragraphs: [
-      enabled
-        ? `Hi ${firstName(user)}, two-step login is now on for your ${STORE.brandName} admin account. From now on, signing in needs a code from your authenticator app.`
-        : `Hi ${firstName(user)}, two-step login was turned off for your ${STORE.brandName} admin account. Signing in needs only the password now.`,
-      "If you did not do this, change your password and tell the other admins straight away."
-    ]
-  });
-}
-
-module.exports = { sendPasswordReset, sendEmailVerification, sendPasswordChanged, sendTwoFactorChanged };
+module.exports = { sendPasswordReset, sendEmailVerification, sendPasswordChanged };

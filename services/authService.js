@@ -66,16 +66,8 @@ async function touchLogin(user) {
   await user.save();
 }
 
-// The admin a two-step challenge was issued to, if they are still allowed in: still an admin, not blocked
-// or deleted, and the password has not been changed since (tokenVersion). Otherwise null.
-async function adminForChallenge(claims) {
-  const user = await User.findById(claims.sub);
-  if (!user || user.role !== "admin" || user.isDeleted || user.isBlocked) return null;
-  return (user.tokenVersion || 0) === (claims.ver || 0) ? user : null;
-}
-
 async function hashPassword(password) {
   return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
-module.exports = { registerCustomer, authenticate, touchLogin, adminForChallenge, hashPassword, BCRYPT_ROUNDS };
+module.exports = { registerCustomer, authenticate, touchLogin, hashPassword, BCRYPT_ROUNDS };

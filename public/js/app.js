@@ -39,7 +39,7 @@
   // Sign-in calls answer 401/403 for a wrong password; those must stay on the form.
   // Calls where a 401 means "wrong details", not "your session ended": they are never retried after a renewal,
   // and never send the visitor to the sign-in page.
-  const LOGIN_CALLS = ["/api/login", "/api/signup", "/api/admin/login", "/api/admin/login/2fa", "/api/password/forgot", "/api/password/reset", "/api/email/verify"];
+  const LOGIN_CALLS = ["/api/login", "/api/signup", "/api/admin/login", "/api/password/forgot", "/api/password/reset", "/api/email/verify"];
   // The renewal endpoint. The refresh cookie's path is this exact URL, so the browser only sends
   // the long-lived token here. A 401 from this call means the session really is over.
   const REFRESH_URL = "/api/auth/refresh";
@@ -634,7 +634,11 @@
   });
 
   // Back/Forward can restore a page straight from memory without asking the server.
-  // Reload it so the server checks the login again and redirects a signed-out visitor.
+  // The page is blanked as it is put away, so an old admin or account screen never flashes up,
+  // then reloaded so the server checks the login again (signed out: sign-in page; signed in: no login page).
+  window.addEventListener("pagehide", event => {
+    if (event.persisted) document.documentElement.style.visibility = "hidden";
+  });
   window.addEventListener("pageshow", event => {
     if (event.persisted) window.location.reload();
   });

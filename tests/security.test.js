@@ -4,28 +4,6 @@ require("./helpers");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-test("security: admin two-step login is required by default in production, and can be turned off on purpose", () => {
-  const load = env => {
-    const saved = { ...process.env };
-    Object.assign(process.env, env);
-    delete require.cache[require.resolve("../config/env")];
-    try {
-      return require("../config/env").adminRequire2fa;
-    } finally {
-      for (const key of Object.keys(env)) {
-        if (saved[key] === undefined) delete process.env[key];
-        else process.env[key] = saved[key];
-      }
-      delete require.cache[require.resolve("../config/env")];
-    }
-  };
-  const live = { NODE_ENV: "production", SITE_URL: "https://www.nexthlon.in" };
-  assert.equal(load({ ...live, ADMIN_REQUIRE_2FA: "" }), true);
-  assert.equal(load({ ...live, ADMIN_REQUIRE_2FA: "false" }), false);
-  assert.equal(load({ NODE_ENV: "development", ADMIN_REQUIRE_2FA: "" }), false);
-  assert.equal(load({ NODE_ENV: "development", ADMIN_REQUIRE_2FA: "true" }), true);
-});
-
 if (!process.env.TEST_MONGODB_URI) {
   test("security database tests (set TEST_MONGODB_URI to run them)", { skip: true }, () => {});
   return;

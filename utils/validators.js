@@ -101,29 +101,6 @@ function validatePasswordReset(body = {}) {
   return { errors, value: { ...value, password } };
 }
 
-// A 6-digit code from the authenticator app, or a recovery code. Its format is checked when it is used.
-function validateTwoFactorCode(body = {}) {
-  const errors = {};
-  const code = typeof body.code === "string" ? body.code.trim() : "";
-  if (!code || code.length > 24) errors.code = "Enter the 6-digit code from your authenticator app.";
-  return { errors, value: { code } };
-}
-
-function validatePasswordAndCode(body = {}) {
-  const { errors, value } = validateTwoFactorCode(body);
-  const password = typeof body.password === "string" ? body.password : "";
-  if (!password || password.length > 64) errors.password = "Enter your password.";
-  return { errors, value: { ...value, password } };
-}
-
-// The second step of the admin sign-in: the challenge from the first step, and the code.
-function validateTwoFactorLogin(body = {}) {
-  const { errors, value } = validateTwoFactorCode(body);
-  const challenge = typeof body.challenge === "string" ? body.challenge.trim() : "";
-  if (!challenge || challenge.length > 2000) errors.form = "Your sign-in timed out. Enter your email and password again.";
-  return { errors, value: { ...value, challenge } };
-}
-
 function validatePasswordChange(body = {}) {
   const errors = {};
   const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
@@ -739,9 +716,6 @@ module.exports = {
   validateForgot,
   validateToken,
   validatePasswordReset,
-  validateTwoFactorCode,
-  validatePasswordAndCode,
-  validateTwoFactorLogin,
   validateAddress,
   validateProduct,
   readProductOptions,

@@ -26,7 +26,6 @@ const ADMIN_NAV = [
     { key: "questions", label: "Questions", icon: "headset" }
   ] },
   { group: "System", items: [
-    { key: "security", label: "Security", icon: "shield" },
     { key: "settings", label: "Settings", icon: "settings" },
     { key: "system", label: "System status", icon: "monitor" }
   ] }

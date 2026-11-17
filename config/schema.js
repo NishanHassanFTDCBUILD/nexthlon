@@ -109,10 +109,6 @@ function checkEnv(env = process.env) {
     fail("SITE_URL", "is not set. Emails (password reset, confirmation) link to the store, so production needs its public address, for example https://www.nexthlon.in");
   }
 
-  const require2fa = text(env, "ADMIN_REQUIRE_2FA").toLowerCase();
-  if (require2fa && !["true", "false"].includes(require2fa)) fail("ADMIN_REQUIRE_2FA", `"${require2fa}" must be true or false.`);
-  else if (production && require2fa === "false") warn("ADMIN_REQUIRE_2FA", "is false, so an admin can sign in with the password alone. Leave it unset (on by default in production) or set it to true.");
-
   // ---------- Logins ----------
   for (const [name, [fallback, limit]] of Object.entries(DURATIONS)) {
     const value = text(env, name) || fallback;

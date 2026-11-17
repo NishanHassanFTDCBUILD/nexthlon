@@ -46,22 +46,6 @@
           <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
         </button>
       </form>
-      <%# Step two, shown by auth.js after a correct password when the admin has two-step login on. %>
-      <form class="au-form au-form-2fa" data-auth-form data-endpoint="/api/admin/login/2fa" data-kind="admin-2fa" data-twofactor hidden novalidate>
-        <div class="form-alert" data-form-alert aria-live="assertive"></div>
-        <input type="hidden" name="challenge" value="">
-        <input type="hidden" name="next" value="<%= next %>">
-        <%- include('../partials/auth-field', { id: 'admin-code', name: 'code', label: '6-digit code', type: 'text', fieldIcon: 'shield', autocomplete: 'one-time-code', max: 24, hint: '<span data-code-hint>Open your authenticator app and enter the code it shows.</span>', extra: 'inputmode="numeric" autocapitalize="off" autocorrect="off" spellcheck="false" data-code-input' }) %>
-        <button class="au-submit" type="submit" data-submit data-magnetic>
-          <span class="au-submit-label">Verify and enter</span>
-          <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
-          <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-        </button>
-        <div class="au-2fa-links">
-          <button type="button" class="link-btn" data-code-toggle>Use a recovery code instead</button>
-          <button type="button" class="link-btn" data-twofactor-back>&larr; Use a different account</button>
-        </div>
-      </form>
       <p class="au-foot muted"><%- icon('user', 'i-xs') %> Shopping instead? <a href="/login">Customer sign in</a></p>
     </div>
   </section>

@@ -1,10 +1,9 @@
 const authService = require("../services/authService");
 const refreshTokenService = require("../services/refreshTokenService");
-const { startSession, endSession, readRefreshCookie, readSessionCookie, signToken, setAuthCookie, signTwoFactorChallenge, verifyTwoFactorChallenge } = require("../services/tokenService");
-const twoFactorService = require("../services/twoFactorService");
+const { startSession, endSession, readRefreshCookie, readSessionCookie, signToken, setAuthCookie } = require("../services/tokenService");
 const emailVerificationService = require("../services/emailVerificationService");
 const { siteUrlFor } = require("../utils/emailLayout");
-const { validateSignup, validateLogin, validateTwoFactorLogin, hasErrors } = require("../utils/validators");
+const { validateSignup, validateLogin, hasErrors } = require("../utils/validators");
 const { HttpError, asyncHandler } = require("../utils/http");
 const { formatPaise } = require("../utils/money");
 const accountService = require("../services/accountService");
@@ -80,37 +79,10 @@ const login = asyncHandler(async (req, res) => {
 const adminLogin = asyncHandler(async (req, res) => {
   const { errors, value } = validateLogin(req.body);
   if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
-  // The password only. With two-step login on, the admin is not signed in yet: they get a 5-minute pass
-  // to send back with a code (POST /api/admin/login/2fa).
   const user = await authService.authenticate(value, "admin", { touch: false });
-  if (user.twoFactor && user.twoFactor.enabled) {
-    return res.json({ twoFactorRequired: true, challenge: signTwoFactorChallenge(user), message: "Enter the 6-digit code from your authenticator app." });
-  }
   await authService.touchLogin(user);
   await noteLogin(req, user);
   return sendSignedIn(req, res, user, 200, "Signed in to the admin console.");
-});
-
-// POST /api/admin/login/2fa   { challenge, code }
-// The second half. The code is a 6-digit code from the app, or one of the recovery codes.
-const adminLoginTwoFactor = asyncHandler(async (req, res) => {
-  const { errors, value } = validateTwoFactorLogin(req.body);
-  if (errors.form) throw new HttpError(401, errors.form);
-  if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
-
-  let user = null;
-  try {
-    user = await authService.adminForChallenge(verifyTwoFactorChallenge(value.challenge));
-  } catch {
-    user = null;
-  }
-  if (!user) throw new HttpError(401, "Your sign-in timed out. Enter your email and password again.");
-
-  const result = await twoFactorService.verifyLogin(user._id, value.code);
-  await authService.touchLogin(user);
-  await noteLogin(req, user);
-  const note = result.method === "recovery" ? ` You used a recovery code; ${result.recoveryLeft} left. Make new ones under Security.` : "";
-  await sendSignedIn(req, res, user, 200, `Signed in to the admin console.${note}`);
 });
 
 // POST /api/auth/refresh   body (optional): { scope: "admin" } or { refreshToken } for API tools
@@ -184,4 +156,4 @@ const adminLogout = asyncHandler(async (req, res) => {
   res.json({ message: "You have been signed out of the admin console." });
 });
 
-module.exports = { signup, login, adminLogin, adminLoginTwoFactor, refresh, me, logout, adminLogout };
+module.exports = { signup, login, adminLogin, refresh, me, logout, adminLogout };
