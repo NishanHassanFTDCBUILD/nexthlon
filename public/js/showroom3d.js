@@ -256,12 +256,9 @@ function setUpShowroom(root) {
       const cardH = items[0].card.offsetHeight || 300;
       const rand = seeded(20261105);
       const placed = []; // { x, y, z } in world units
-      size = {
-        w: box.width,
-        h: box.height,
-        top: root.getBoundingClientRect().top + window.scrollY,
-        travel: Math.max(1, root.offsetHeight - window.innerHeight)
-      };
+      size.w = box.width;
+      size.h = box.height;
+      measure();
       // Where a card at world (x, y, z) shows on screen when the camera has flown camZ forward.
       const project = (x, y, z, camZ) => {
         const d = z + camZ;
@@ -617,7 +614,15 @@ function setUpShowroom(root) {
     });
 
     // ----- Layout: measured once, and again on resize (reads), never inside the frame -----
+    // Where the section starts on the page decides when the flight begins. Sections above it load and
+    // grow after this script starts, so that spot is read again whenever the page's height changes;
+    // otherwise the camera flies early and the cards are already zoomed in when you arrive.
+    function measure() {
+      size.top = root.getBoundingClientRect().top + window.scrollY;
+      size.travel = Math.max(1, root.offsetHeight - window.innerHeight);
+    }
     place();
+    new ResizeObserver(measure).observe(document.body);
     let resizeFrame = 0;
     window.addEventListener("resize", () => {
       cancelAnimationFrame(resizeFrame);
