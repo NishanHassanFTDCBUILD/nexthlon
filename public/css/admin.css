@@ -586,3 +586,29 @@ body.admin-menu-open { overflow: hidden; }
 .qa-admin-q { margin: var(--space-sm) 0; font-size: var(--text-md); }
 .qa-admin-answer { flex: 1 1 320px; }
 .qa-admin-answer textarea { width: 100%; }
+
+/* ---------- Inventory (redesigned): a clear toolbar, one tidy row per product, one adjust control ---------- */
+.admin-total-link { text-decoration: none; color: inherit; transition: border-color var(--duration-quick) var(--ease); }
+@media (hover: hover) { .admin-total-link:hover { border-color: var(--line-hover); } }
+.admin-total.is-warn strong { color: var(--warning-strong); }
+.inv-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1h); margin: var(--space-2) 0 var(--space-1h); }
+.inv-filters { display: flex; flex-wrap: wrap; gap: var(--space-sm); flex: 1 1 520px; justify-content: flex-end; }
+.inv-filters input[type="search"] { flex: 1 1 200px; min-width: 0; min-height: var(--tap); }
+.inv-filters select { min-height: var(--tap); min-width: 150px; }
+.inv-product { display: flex; align-items: flex-start; gap: var(--space-1h); min-width: 0; }
+.inv-product-text { display: grid; gap: var(--space-xxs); min-width: 0; }
+.inv-name { font-weight: 700; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.inv-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+.inv-meta { font-size: var(--text-xs); color: var(--muted); }
+.inv-stock { display: block; font-size: var(--text-lg); font-variant-numeric: tabular-nums; }
+.inv-table td[data-label="Stock"] .pill { margin-top: var(--space-xxs); }
+.inv-adjust { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-xs); }
+.inv-adjust select, .inv-adjust input { min-height: var(--tap); }
+.inv-adjust select[name="optionId"] { min-width: 130px; }
+.inv-adjust input[name="units"] { width: 96px; font-variant-numeric: tabular-nums; }
+@media (max-width: 720px) {
+  .inv-filters { justify-content: stretch; }
+  .inv-filters select, .inv-filters input { flex: 1 1 100%; }
+  .inv-adjust { justify-content: stretch; }
+  .inv-adjust select, .inv-adjust input, .inv-adjust .btn { flex: 1 1 110px; }
+}

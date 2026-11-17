@@ -61,9 +61,4 @@ async function addAll(user, slug) {
   return { message: `${bundle.name} added to your cart.`, cart };
 }
 
-async function create(value) {
-  const bundle = await Bundle.create({ ...value, slug: value.slug || slugify(value.name) });
-  return bundle;
-}
-
-module.exports = { forProduct, addAll, create, shape, slugify };
+module.exports = { forProduct, addAll, shape, slugify };
