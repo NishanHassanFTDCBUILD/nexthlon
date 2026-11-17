@@ -19,8 +19,8 @@ const { browserName } = require("../utils/device");
 const { HttpError } = require("../utils/http");
 const { LISTED_PRODUCT } = require("../utils/queryFilters");
 
-// My Account > Recently viewed shows the last 10 products.
-const RECENT_LIMIT = 10;
+// My Account > Recently viewed shows the last 5 products.
+const RECENT_LIMIT = 5;
 const LOGIN_HISTORY = 10;
 const OPEN_STATUSES = ["placed", "confirmed", "shipped", "out_for_delivery"];
 
@@ -185,7 +185,7 @@ async function overview(user) {
     couponService.listAvailable(userId, 0),
     Review.countDocuments({ user: userId }),
     lastOrder(userId),
-    recentlyViewed(userId, 6)
+    recentlyViewed(userId, RECENT_LIMIT)
   ]);
   const recommended = await recommendations(userId, recent.map(p => p._id), 6);
   return {

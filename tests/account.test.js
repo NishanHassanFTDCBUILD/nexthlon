@@ -351,16 +351,16 @@ test("returns can carry up to 3 real photos, saved only for the owner's returnab
   await fs.unlink(path.join(__dirname, "..", "public", order.returnPhotos[0]));
 });
 
-test("recently viewed keeps only the last 10 products, newest first", async () => {
+test("recently viewed keeps only the last 5 products, newest first", async () => {
   const accountService = require("../services/accountService");
   const { user } = await signUp("Ten Views", "ten-views@account.test");
   const mongoose = require("mongoose");
   const ids = Array.from({ length: 12 }, () => new mongoose.Types.ObjectId());
   for (const id of ids) await accountService.recordView(user._id, id);
   const stored = (await User.findById(user._id).lean()).recentlyViewed.map(entry => String(entry.product));
-  assert.equal(stored.length, 10);
-  // The two oldest dropped off; the newest is first.
-  assert.deepEqual(stored, ids.slice(2).reverse().map(String));
+  assert.equal(stored.length, 5);
+  // The seven oldest dropped off; the newest is first.
+  assert.deepEqual(stored, ids.slice(7).reverse().map(String));
 });
 
 test("recently viewed is synced to the account, preferences are true/false only", async () => {

@@ -9,7 +9,7 @@
   const WISH_KEY = "nx-wishlist";
   const RECENT_KEY = "nx-recent";
   const WISH_MAX = 50;
-  const RECENT_MAX = 12;
+  const RECENT_MAX = 5;
   // Admins have no wishlist link in the header, so the wishlist and history stay off for them.
   const shopper = Boolean(document.querySelector("[data-wish-link]"));
 
@@ -585,7 +585,8 @@
     const failed = recent.querySelector("[data-recent-error]");
     const rail = recent.querySelector("[data-rail]");
     const load = async () => {
-      const ids = readIds(RECENT_KEY);
+      // Lists saved before the limit was 5 may hold more; only the newest 5 show.
+      const ids = readIds(RECENT_KEY).slice(0, RECENT_MAX);
       if (!ids.length) {
         recent.hidden = true;
         return;
