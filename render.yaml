@@ -56,6 +56,11 @@ services:
         sync: false
       - key: BREVO_API_KEY
         sync: false
+      # Optional: "Continue with Google". Leave blank to keep the button hidden.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
       - key: MAIL_FROM
         sync: false # Nexthlon <orders@your-domain>
       # The business details India's e-commerce rules ask for (footer, policy pages, invoices).
