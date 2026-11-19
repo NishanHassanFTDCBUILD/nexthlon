@@ -338,6 +338,7 @@ async function main() {
               ]
             : []),
           ['admin-inventory', 'Inventory', `${a}/inventory`],
+          ['admin-pick-list', 'Pick list', `${a}/orders/pick-list`],
           ['admin-customers', 'Customers', `${a}/customers`],
           ['admin-questions', 'Questions', `${a}/questions`],
           ['admin-settings', 'Settings', `${a}/settings`],

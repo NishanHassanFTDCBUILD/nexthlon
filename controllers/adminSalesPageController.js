@@ -3,6 +3,7 @@
 const config = require('../config/env');
 const adminOrderService = require('../services/adminOrderService');
 const ledgerService = require('../services/ledgerService');
+const Order = require('../models/Order');
 const adminCouponService = require('../services/adminCouponService');
 const dealService = require('../services/dealService');
 const rules = require('../utils/orderRules');
@@ -215,6 +216,59 @@ const dealEdit = asyncHandler(async (req, res) => {
   });
 });
 
+// ---------- Pick list: what to take off the shelves for a set of orders ----------
+// GET <ADMIN_PATH>/orders/pick-list?ids=NX-2026-000001,NX-2026-000002  (or no ids: every order to ship)
+const pickList = asyncHandler(async (req, res) => {
+  const ids = String(req.query.ids || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => /^NX-\d{4}-\d{6}$/.test(id))
+    .slice(0, 200);
+  const filter = ids.length
+    ? {orderId: {$in: ids}}
+    : {orderStatus: 'confirmed'};
+  const orders = await Order.find(filter)
+    .sort({createdAt: 1})
+    .limit(200)
+    .select(
+      'orderId orderStatus createdAt items.name items.option items.sku items.quantity items.status items.product',
+    )
+    .lean();
+  const lines = new Map();
+  for (const order of orders)
+    for (const item of order.items) {
+      if (item.status === 'cancelled' || item.status === 'returned') continue;
+      const key = [String(item.product), item.option || ''].join('|');
+      const line = lines.get(key) || {
+        name: item.name,
+        option: item.option || '',
+        sku: item.sku || '',
+        units: 0,
+        orders: [],
+      };
+      line.units += item.quantity;
+      line.orders.push(order.orderId);
+      lines.set(key, line);
+    }
+  const sorted = [...lines.values()].sort(
+    (a, b) => a.name.localeCompare(b.name) || a.option.localeCompare(b.option),
+  );
+  res.render('admin/pick-list', {
+    title: 'Pick list | Nexthlon Admin',
+    lines: sorted,
+    orderCount: orders.length,
+    units: sorted.reduce((sum, line) => sum + line.units, 0),
+    scope: ids.length ? 'the orders you chose' : 'every order to ship',
+    late: orders.filter(
+      (o) =>
+        ['placed', 'confirmed'].includes(o.orderStatus) &&
+        Date.now() >
+          new Date(o.createdAt).getTime() +
+            require('../utils/orderRules').SHIP_WITHIN_HOURS * 3600000,
+    ).length,
+  });
+});
+
 module.exports = {
   orders,
   order,
@@ -230,4 +284,5 @@ module.exports = {
   deals,
   dealNew,
   dealEdit,
+  pickList,
 };

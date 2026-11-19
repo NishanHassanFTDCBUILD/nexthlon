@@ -41,6 +41,8 @@ router.get('/analytics', pages.adminAnalytics);
 
 // ---------- Sales ----------
 router.get('/orders', sales.orders);
+// The pick list must come before /orders/:orderId, or 'pick-list' would be read as an order number.
+router.get('/orders/pick-list', sales.pickList);
 router.get('/orders/:orderId', sales.order);
 router.get('/returns', sales.returns);
 router.get('/transactions', sales.transactions);

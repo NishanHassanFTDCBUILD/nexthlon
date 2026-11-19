@@ -3907,3 +3907,108 @@ body.admin-menu-open {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- Product spreadsheet: export and import ---------- */
+.admin-import {
+  position: relative;
+}
+
+.admin-import > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.admin-import > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-import-panel {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: var(--layer-3);
+  display: grid;
+  gap: var(--space-1h);
+  width: min(460px, calc(100vw - var(--space-4)));
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-import-panel p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.admin-import-result {
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: var(--text-sm);
+}
+
+.admin-import-errors {
+  margin: var(--space-1) 0;
+  padding-left: var(--space-2);
+  color: var(--danger);
+}
+
+.admin-import-changes {
+  margin: var(--space-1) 0;
+  padding-left: var(--space-2);
+}
+
+@media (max-width: 720px) {
+  .admin-import-panel {
+    position: static;
+    width: 100%;
+    margin-top: var(--space-1);
+  }
+}
+
+/* ---------- Pick list and printing ---------- */
+.pick-box {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-xs);
+}
+
+.pick-list td {
+  vertical-align: middle;
+}
+
+@media print {
+  .admin-side,
+  .admin-bar,
+  .no-print,
+  .admin-loading,
+  .admin-pager {
+    display: none !important;
+  }
+
+  .admin-body,
+  .admin-shell,
+  .admin-frame,
+  .admin-main,
+  .admin-content {
+    display: block !important;
+    background: var(--white) !important;
+    color: var(--on-brand) !important;
+    padding: 0 !important;
+  }
+
+  .pick-list .admin-table td,
+  .pick-list .admin-table th {
+    color: var(--on-brand) !important;
+    border-color: var(--muted) !important;
+  }
+
+  .admin-panel,
+  .panel {
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+}

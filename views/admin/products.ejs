@@ -12,6 +12,18 @@
         <p class="muted"><%= pagination.total %> <%= pagination.total === 1 ? 'product' : 'products' %> found. Unlisted products are hidden from the store but kept here.</p>
       </div>
       <div class="admin-top-actions">
+        <a class="btn btn-ghost btn-sm" href="/api/admin/products/export.csv" download data-full-load><%- icon('download', 'i-sm') %> Export CSV</a>
+        <details class="admin-import" data-product-import>
+          <summary class="btn btn-ghost btn-sm"><%- icon('copy', 'i-sm') %> Import CSV</summary>
+          <div class="admin-import-panel">
+            <p class="muted">Export the list, edit prices, names, brands, categories, offers or listing in the file, then upload it here. Blank cells keep the current value. Stock is changed in Inventory.</p>
+            <label class="admin-field"><span>CSV file</span><input type="file" accept=".csv,text/csv" data-import-file></label>
+            <div class="admin-import-result" data-import-result aria-live="polite"></div>
+            <div class="admin-import-actions">
+              <button type="button" class="btn btn-primary btn-sm" data-import-apply hidden>Save these changes</button>
+            </div>
+          </div>
+        </details>
         <a class="btn btn-primary btn-sm" href="<%= adminPath %>/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
       </div>
     </header>

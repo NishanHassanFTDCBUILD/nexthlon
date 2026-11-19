@@ -138,6 +138,21 @@ async function buildOrderFilter(filters) {
 const LIST_FIELDS =
   'orderId user items.name items.quantity items.status total walletUsed refundedAmount paymentMethod paymentStatus orderStatus createdAt address.fullName address.city address.state address.phone shipments';
 
+// The shipping promise (utils/orderRules.js SHIP_WITHIN_HOURS). An order still waiting to ship
+// after it is late.
+const LATE_STATUSES = ['placed', 'confirmed'];
+function shipByOf(order) {
+  if (!order.createdAt) return null;
+  return new Date(
+    new Date(order.createdAt).getTime() +
+      rules.SHIP_WITHIN_HOURS * 60 * 60 * 1000,
+  );
+}
+function isLate(order, now = new Date()) {
+  const by = shipByOf(order);
+  return Boolean(by && LATE_STATUSES.includes(order.orderStatus) && now > by);
+}
+
 function toListRow(order) {
   return {
     orderId: order.orderId,
@@ -156,6 +171,8 @@ function toListRow(order) {
     next: rules.nextStatuses(order.orderStatus),
     shipped: (order.shipments || []).length > 0,
     createdAt: order.createdAt,
+    late: isLate(order),
+    shipBy: shipByOf(order),
   };
 }
 

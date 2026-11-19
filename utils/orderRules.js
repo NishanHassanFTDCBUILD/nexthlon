@@ -19,6 +19,9 @@ const FLOW = [
   'out_for_delivery',
   'delivered',
 ];
+// The shipping promise: an order placed and not yet shipped after this many hours is late.
+const SHIP_WITHIN_HOURS = 24;
+
 const CANCELLABLE = ['placed', 'confirmed'];
 const PAYMENT_STATUSES = [
   'pending',
@@ -148,6 +151,7 @@ function settlementFor(order, itemIds) {
 }
 
 module.exports = {
+  SHIP_WITHIN_HOURS,
   ORDER_STATUSES,
   FLOW,
   CANCELLABLE,

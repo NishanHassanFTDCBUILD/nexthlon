@@ -17,6 +17,7 @@ const {
   replyTicket,
 } = require('../controllers/adminController');
 const products = require('../controllers/adminProductController');
+const productImport = require('../controllers/adminProductImportController');
 const reports = require('../controllers/adminReportController');
 const orders = require('../controllers/adminOrderController');
 const catalog = require('../controllers/adminCatalogController');
@@ -75,10 +76,19 @@ router.post('/tickets/:ticketId/reply', replyTicket);
 // Products. Uploads are read only after the admin check above, so guests cannot send files.
 router.get('/products', products.listProducts);
 router.post('/products', productImages, products.createProduct);
+// Spreadsheet: export first (a fixed path, so it is not read as a product id).
+router.get('/products/export.csv', productImport.exportProducts);
 router.get('/products/:productId', products.getProduct);
 router.patch('/products/:productId', productImages, products.updateProduct);
 router.patch('/products/:productId/listing', products.setListed);
 router.patch('/products/:productId/stock', products.restock);
+// Spreadsheet import: preview saves nothing; apply saves only a clean file.
+router.post('/products/import/preview', productImport.previewImport);
+router.post(
+  '/products/import/apply',
+  adminWriteLimiter,
+  productImport.applyImport,
+);
 
 // Orders (specific paths before /:orderId)
 router.get('/orders', orders.listOrders);

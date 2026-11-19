@@ -508,6 +508,10 @@
       if (!panel.contains(event.target)) panel.open = false;
     });
   });
+  // Buttons marked data-print print the page (the print styles hide the console chrome).
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-print]')) window.print();
+  });
   document.addEventListener('change', (event) => {
     const select = event.target.closest('.admin-content [data-auto-submit]');
     if (select && select.form) select.form.requestSubmit();
