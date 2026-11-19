@@ -14,6 +14,7 @@ const razorpayService = require('../services/razorpayService');
 const walletService = require('../services/walletService');
 const referralService = require('../services/referralService');
 const settingsService = require('../services/settingsService');
+const siteSettingsService = require('../services/siteSettingsService');
 const accountService = require('../services/accountService');
 const reviewService = require('../services/reviewService');
 const recommendationService = require('../services/recommendationService');
@@ -23,11 +24,7 @@ const Category = require('../models/Category');
 const Address = require('../models/Address');
 const {readGuestCart} = require('../middleware/guestCart');
 const {CONTACT_TOPICS, STORE} = require('../config/store');
-const {
-  INDIAN_STATES,
-  LOW_STOCK_LIMIT,
-  MAX_ADDRESSES,
-} = require('../config/catalog');
+const {INDIAN_STATES, MAX_ADDRESSES} = require('../config/catalog');
 const {HttpError, asyncHandler, safeNextPath} = require('../utils/http');
 const {linkBuilder} = require('../utils/queryString');
 const seo = require('../utils/seo');
@@ -600,8 +597,7 @@ const adminSettings = asyncHandler(async (req, res) => {
   res.render('admin/settings', {
     title: 'Settings | Nexthlon Admin',
     settings: await settingsService.getAll(),
-    lowStockLimit: LOW_STOCK_LIMIT,
-    maxPerProduct: cartService.MAX_PER_PRODUCT,
+    site: siteSettingsService.forAdmin(),
     maxAddresses: MAX_ADDRESSES,
   });
 });

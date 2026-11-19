@@ -9204,3 +9204,34 @@ html.is-pay-locked body {
 .guide-body h2 {
   margin-top: var(--space-3);
 }
+
+/* ---------- Announcement bar (admin Settings > Shopper features) ---------- */
+.announce-bar {
+  background: var(--brand);
+  color: var(--on-brand);
+  font-weight: 600;
+}
+
+.announce-inner {
+  justify-content: center;
+  text-align: center;
+  padding-block: var(--space-half);
+}
+
+.announce-bar .promo-inner .i,
+.announce-bar .promo-inner a {
+  color: var(--on-brand);
+}
+
+.announce-bar .promo-inner a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .announce-inner {
+    flex-direction: column;
+    gap: var(--space-half);
+  }
+}

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
-const {LOW_STOCK_LIMIT} = require('../config/catalog');
+const {RULES} = require('../config/catalog');
 const {paiseToRupees} = require('../utils/money');
 const {HttpError} = require('../utils/http');
 const {slugify} = require('../utils/slug');
@@ -62,7 +62,7 @@ function toAdminProduct(product) {
     })),
     hasOptions: Boolean(product.variants && product.variants.length),
     isListed: product.isListed !== false,
-    isLowStock: product.stock > 0 && product.stock <= LOW_STOCK_LIMIT,
+    isLowStock: product.stock > 0 && product.stock <= RULES.lowStockLimit,
     status: statusOf(product),
     image: product.image,
     images: imagesOf(product),
@@ -124,7 +124,7 @@ async function listAdminProducts(query) {
   if (filters.status === 'low')
     Object.assign(filter, {
       isListed: true,
-      stock: {$gt: 0, $lte: LOW_STOCK_LIMIT},
+      stock: {$gt: 0, $lte: RULES.lowStockLimit},
     });
 
   const [products, total] = await Promise.all([

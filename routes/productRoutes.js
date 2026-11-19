@@ -1,3 +1,21 @@
+const siteSettingsService = require('../services/siteSettingsService');
+const {HttpError} = require('../utils/http');
+
+// Shopper features an admin can switch off in Settings. When off, posting is refused politely.
+const featureOn = (key, message) => (req, res, next) =>
+  siteSettingsService.current()[key]
+    ? next()
+    : next(new HttpError(403, message));
+const reviewsOn = featureOn('reviewsOn', 'Reviews are switched off for now.');
+const questionsOn = featureOn(
+  'questionsOn',
+  'Questions are switched off for now.',
+);
+const alertsOn = featureOn(
+  'stockAlertsOn',
+  'Back-in-stock alerts are switched off for now.',
+);
+
 const router = require('express').Router();
 const products = require('../controllers/productController');
 const {requireAuth, requireRole} = require('../middleware/auth');
@@ -22,6 +40,7 @@ router.get('/products', searchLimiter, products.listProducts);
 router.get('/products/:id/reviews', products.listReviews);
 router.post(
   '/products/:id/reviews',
+  reviewsOn,
   requireAuth,
   requireRole('customer'),
   reviewLimiter,
@@ -31,6 +50,7 @@ router.post(
 // "Email me when it's back" (E3). Guests too: they type their email.
 router.post(
   '/products/:id/stock-alerts',
+  alertsOn,
   stockAlertLimiter,
   products.addStockAlert,
 );
@@ -38,6 +58,7 @@ router.post(
 router.get('/products/:id/questions', products.listQuestions);
 router.post(
   '/products/:id/questions',
+  questionsOn,
   requireAuth,
   requireRole('customer'),
   reviewLimiter,
@@ -45,6 +66,7 @@ router.post(
 );
 router.post(
   '/questions/:questionId/answers',
+  questionsOn,
   requireAuth,
   requireRole('customer'),
   reviewLimiter,

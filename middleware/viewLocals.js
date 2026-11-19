@@ -1,5 +1,6 @@
 const {STORE, PRICE_BANDS} = require('../config/store');
 const categoryService = require('../services/categoryService');
+const siteSettingsService = require('../services/siteSettingsService');
 const {formatPaise} = require('../utils/money');
 const {
   srcsetFor,
@@ -28,6 +29,8 @@ function viewLocals(req, res, next) {
   res.locals.navCategories = [];
   // Store details for the footer and policy pages, and price bands for the category menu.
   res.locals.store = STORE;
+  // The admin's shopper settings: announcement bar, home sections, reviews, questions, alerts.
+  res.locals.site = siteSettingsService.current();
   res.locals.priceBands = PRICE_BANDS;
   // Money is stored in paise: 12345600 shows as ₹1,23,456.
   res.locals.formatPrice = formatPaise;

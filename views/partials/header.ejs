@@ -6,8 +6,15 @@
   const searchText = typeof query.q === 'string' ? query.q : '';
 %>
 <a class="skip-link" href="#main">Skip to content</a>
-<%# The top promo strip (free delivery, returns, shipping, help) was removed: the header starts the page.
-    The same links are in the footer. %>
+<%# The announcement bar: written and switched on by the admin (Settings > Shopper features). %>
+<% if (site.announceOn && site.announceText) { %>
+  <div class="promo-bar announce-bar" role="region" aria-label="Store announcement">
+    <div class="container promo-inner announce-inner">
+      <span><%- icon('sparkles', 'i-xs') %> <%= site.announceText %></span>
+      <% if (site.announceLink) { %><a href="<%= site.announceLink %>">Shop now <%- icon('arrow-right', 'i-xs') %></a><% } %>
+    </div>
+  </div>
+<% } %>
 <header class="site-header" data-site-header data-free-delivery="<%= store.freeDeliveryMin %>" data-shopper="<%= !currentUser ? 'guest' : currentUser.role %>" data-wish-ids="<%= JSON.stringify(savedIds) %>" data-cart-fx="<%= asset('/js/fx/cartfx.js') %>">
   <div class="mainbar">
     <div class="container mainbar-inner">

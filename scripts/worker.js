@@ -20,6 +20,8 @@ async function stop(signal) {
 }
 
 connectDB()
+  // Emails and invoices use the admin's store settings (business details, return window).
+  .then(() => require('../services/siteSettingsService').start())
   .then(() => {
     worker.start();
     logger.info('worker.started', {concurrency: config.jobs.concurrency});

@@ -23,6 +23,7 @@ const catalog = require('../controllers/adminCatalogController');
 const coupons = require('../controllers/adminCouponController');
 const categories = require('../controllers/adminCategoryController');
 const deals = require('../controllers/adminDealController');
+const siteSettings = require('../controllers/adminSiteSettingsController');
 const {
   adminWriteLimiter,
   adminMoneyLimiter,
@@ -56,6 +57,12 @@ router.patch('/settings/referral', updateReferral);
 router.patch('/settings/cod', updateCod);
 router.patch('/settings/prepaid', updatePrepaid);
 router.patch('/settings/cod-otp', updateCodOtp);
+router.get('/settings/site', siteSettings.getSite);
+router.patch(
+  '/settings/site/:group(business|delivery|catalog|shopper|home)',
+  adminMoneyLimiter,
+  siteSettings.updateSite,
+);
 
 // Support tickets from customers
 router.get('/tickets', listTickets);

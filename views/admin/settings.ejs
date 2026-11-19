@@ -1,119 +1,251 @@
 <%#
-  Settings: the store numbers an admin may change, and the ones that are fixed in the code.
-  Each form posts to /api/admin/settings/ plus its data-settings-form name, and the server checks the
-  value against services/settingsService.js LIMITS before saving it.
+  Settings: everything an admin can change about the store, in one page with a section menu.
+  - Payments and rewards post to /api/admin/settings/<name> (services/settingsService.js).
+  - Business, delivery, catalogue, shopper features and home page post to
+    /api/admin/settings/site/<group> (services/siteSettingsService.js).
+  The server checks every value again, and every change applies at once and is audit-logged.
+%>
+<%
+  const v = site.values;
+  const d = site.defaults;
+  const isCustom = (key) => site.custom.includes(key);
+  const nav = [
+    ['payments', 'wallet', 'Payments and rewards'],
+    ['business', 'file-text', 'Business details'],
+    ['delivery', 'truck', 'Delivery and returns'],
+    ['catalog', 'box', 'Catalogue and cart'],
+    ['shopper', 'users', 'Shopper features'],
+    ['home', 'home', 'Home page'],
+    ['fixed', 'lock', 'Fixed in the code'],
+  ];
+  // One text or number field. type: text | money | int | email
+  const field = (key, label, hint, opts = {}) => {
+    const type = opts.type || 'text';
+    const value = type === 'money' ? v[key] / 100 : v[key];
+    const placeholder = opts.placeholder || (type === 'text' && typeof d[key] === 'string' ? d[key] : '');
+    return { key, label, hint, type, value, placeholder, max: opts.max, min: opts.min, wide: opts.wide, prefix: type === 'money' ? '₹' : '', suffix: opts.suffix || '' };
+  };
+  const business = [
+    field('legalName', 'Registered business name', 'Shown on invoices and policy pages.', { max: 120, wide: true }),
+    field('address', 'Registered address', 'Building, street, city, state and PIN code.', { max: 240, wide: true }),
+    field('gstin', 'GSTIN', '15 characters. Printed on every tax invoice.', { max: 15 }),
+    field('grievanceOfficer', 'Grievance officer', 'Required by India\'s e-commerce rules.', { max: 80 }),
+    field('supportEmail', 'Support email', 'Where customers write to you.', { type: 'email', max: 120 }),
+    field('supportPhone', 'Support phone', 'With the country code, like +91 98765 43210.', { max: 20 }),
+    field('supportHours', 'Support hours', 'Shown on the contact page.', { max: 80, wide: true }),
+  ];
+  const delivery = [
+    field('freeDeliveryMin', 'Free delivery from', 'Items worth this much or more ship free. 0 makes every order free.', { type: 'money', min: 0, max: 100000 }),
+    field('deliveryFee', 'Delivery fee below that', 'Charged once per order.', { type: 'money', min: 0, max: 1000 }),
+    field('dispatchDays', 'Dispatch time', 'Shown on product and policy pages.', { max: 40 }),
+    field('deliveryDays', 'Delivery time', 'Shown on product and policy pages.', { max: 40 }),
+    field('returnDays', 'Return window (days)', '0 turns returns off. Policy pages, product pages and My orders follow at once.', { type: 'int', min: 0, max: 30 }),
+    field('refundDays', 'Refunds reach the bank in', 'Shown on the refund policy.', { max: 40 }),
+  ];
+  const catalog = [
+    field('lowStockLimit', 'Low-stock warning at (units)', 'Products at or below this show as low stock in the admin.', { type: 'int', min: 0, max: 100 }),
+    field('maxPerProduct', 'Most of one product per order', 'A shopper cannot put more than this of one item in the cart.', { type: 'int', min: 1, max: 20 }),
+  ];
 %>
 <%- include('../partials/admin-start', { section: 'settings' }) %>
 <header class="admin-top">
   <div>
     <span class="section-kicker">System</span>
     <h1>Settings</h1>
-    <p class="muted">Rewards and the rules shoppers see at checkout. Anything you change here takes effect at once.</p>
+    <p class="muted">How your store works and what shoppers see. Every change applies at once, is checked on the server and is written to the audit log.</p>
   </div>
   <div class="admin-top-actions">
     <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/system"><%- icon('monitor', 'i-sm') %> System status</a>
   </div>
 </header>
 
-<section class="panel settings-panel" aria-labelledby="referral-title">
-  <div class="panel-head panel-head-row">
-    <h2 id="referral-title"><%- icon('gift', 'i-sm') %> Referral reward</h2>
-    <span class="muted">Credited to both wallets after the referred customer's first delivered order</span>
-  </div>
-  <form class="form settings-form" data-settings-form="referral" novalidate>
-    <div class="form-alert" data-form-alert aria-live="assertive"></div>
-    <div class="field">
-      <label for="referralReward">Reward for each person (₹)</label>
-      <input id="referralReward" name="referralReward" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.referralReward / 100 %>" aria-describedby="referralReward-hint referralReward-error">
-      <p class="hint" id="referralReward-hint">0 turns referral rewards off. Paid to both people when the new customer's first order is delivered, once per new customer.</p>
-      <p class="field-error" id="referralReward-error" data-error-for="referralReward"></p>
-    </div>
-    <button class="btn btn-primary" type="submit">Save reward</button>
-  </form>
-</section>
+<div class="settings-layout">
+  <nav class="settings-nav" aria-label="Settings sections" data-settings-nav>
+    <% nav.forEach(function ([id, ic, label]) { %>
+      <a href="#set-<%= id %>" data-settings-link="<%= id %>"><%- icon(ic, 'i-sm') %><span><%= label %></span></a>
+    <% }) %>
+  </nav>
 
-<section class="panel settings-panel" aria-labelledby="cod-title">
-  <div class="panel-head panel-head-row">
-    <h2 id="cod-title"><%- icon('wallet', 'i-sm') %> Cash on delivery</h2>
-    <span class="muted">Shoppers can pay at the door when the order total is up to this amount</span>
-  </div>
-  <form class="form settings-form" data-settings-form="cod" novalidate>
-    <div class="form-alert" data-form-alert aria-live="assertive"></div>
-    <div class="field">
-      <label for="codLimit">Cash on delivery up to (₹)</label>
-      <input id="codLimit" name="codLimit" type="number" inputmode="numeric" min="0" max="50000" step="1" required value="<%= settings.codLimit / 100 %>" aria-describedby="codLimit-hint codLimit-error">
-      <p class="hint" id="codLimit-hint">0 turns cash on delivery off. Orders above the limit must be paid online or by wallet. Checkout and product pages update at once.</p>
-      <p class="field-error" id="codLimit-error" data-error-for="codLimit"></p>
-    </div>
-    <button class="btn btn-primary" type="submit">Save limit</button>
-  </form>
-</section>
+  <div class="settings-body">
+    <%# ---------- Payments and rewards ---------- %>
+    <section class="panel settings-card" id="set-payments" aria-labelledby="set-payments-title">
+      <header class="settings-card-head">
+        <span class="settings-card-icon"><%- icon('wallet', 'i-sm') %></span>
+        <div><h2 id="set-payments-title">Payments and rewards</h2><p class="muted">Cash on delivery, the online-payment discount and referral rewards.</p></div>
+      </header>
 
-<section class="panel settings-panel" aria-labelledby="codotp-title">
-  <div class="panel-head panel-head-row">
-    <h2 id="codotp-title"><%- icon('shield', 'i-sm') %> Confirm Cash on Delivery by code</h2>
-    <span class="muted">A code to the delivery phone stops fake COD orders (once per phone, every 90 days)</span>
-  </div>
-  <form class="form settings-form" data-settings-form="cod-otp" novalidate>
-    <div class="form-alert" data-form-alert aria-live="assertive"></div>
-    <div class="field">
-      <label for="codOtp">Ask for a code</label>
-      <span class="select-wrap"><select id="codOtp" name="codOtp"><option value="off"<%= settings.codOtp ? '' : ' selected' %>>Off</option><option value="on"<%= settings.codOtp ? ' selected' : '' %>>On</option></select></span>
-      <p class="hint">Codes go by SMS (MSG91) or WhatsApp, whichever is set up. With neither, no code is asked for.</p>
-      <p class="field-error" data-error-for="codOtp"></p>
-    </div>
-    <button class="btn btn-primary" type="submit">Save</button>
-  </form>
-</section>
+      <form class="form settings-form settings-row" data-settings-form="cod" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <div class="settings-row-text"><h3>Cash on delivery</h3><p class="muted">Offered when the order total is up to this amount. 0 turns it off.</p></div>
+        <div class="settings-row-fields">
+          <div class="field">
+            <label for="codLimit">Up to (₹)</label>
+            <input id="codLimit" name="codLimit" type="number" inputmode="numeric" min="0" max="50000" step="1" required value="<%= settings.codLimit / 100 %>" aria-describedby="codLimit-error">
+            <p class="field-error" id="codLimit-error" data-error-for="codLimit"></p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="submit">Save</button>
+      </form>
 
-<section class="panel settings-panel" aria-labelledby="prepaid-title">
-  <div class="panel-head panel-head-row">
-    <h2 id="prepaid-title"><%- icon('tag', 'i-sm') %> Discount for paying online</h2>
-    <span class="muted">Fewer cash orders means fewer refused parcels and faster money</span>
-  </div>
-  <form class="form settings-form" data-settings-form="prepaid" novalidate>
-    <div class="form-alert" data-form-alert aria-live="assertive"></div>
-    <div class="field">
-      <label for="prepaidPercent">Percent off (%)</label>
-      <input id="prepaidPercent" name="prepaidPercent" type="number" inputmode="numeric" min="0" max="10" step="1" required value="<%= settings.prepaidPercent %>" aria-describedby="prepaidPercent-hint prepaidPercent-error">
-      <p class="hint" id="prepaidPercent-hint">0 turns it off. Taken off the items (after any coupon) when the shopper pays by UPI, card or netbanking; never on delivery.</p>
-      <p class="field-error" id="prepaidPercent-error" data-error-for="prepaidPercent"></p>
-    </div>
-    <div class="field">
-      <label for="prepaidMax">At most (₹)</label>
-      <input id="prepaidMax" name="prepaidMax" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.prepaidMax / 100 %>" aria-describedby="prepaidMax-hint prepaidMax-error">
-      <p class="hint" id="prepaidMax-hint">The most one order can save. 0 means no cap.</p>
-      <p class="field-error" id="prepaidMax-error" data-error-for="prepaidMax"></p>
-    </div>
-    <button class="btn btn-primary" type="submit">Save discount</button>
-  </form>
-</section>
+      <form class="form settings-form settings-row" data-settings-form="cod-otp" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <div class="settings-row-text"><h3>Confirm COD by code</h3><p class="muted">A code to the delivery phone stops fake cash orders. Needs SMS or WhatsApp set up.</p></div>
+        <div class="settings-row-fields">
+          <div class="field">
+            <label for="codOtp">Ask for a code</label>
+            <span class="select-wrap"><select id="codOtp" name="codOtp"><option value="off"<%= settings.codOtp ? '' : ' selected' %>>Off</option><option value="on"<%= settings.codOtp ? ' selected' : '' %>>On</option></select></span>
+            <p class="field-error" data-error-for="codOtp"></p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="submit">Save</button>
+      </form>
 
-<section class="panel" aria-labelledby="rules-title">
-  <div class="panel-head panel-head-row">
-    <h2 id="rules-title"><%- icon('truck', 'i-sm') %> Delivery and returns</h2>
-    <span class="muted">Fixed in config/store.js, because prices and policy pages are worked out from them</span>
-  </div>
-  <dl class="admin-facts">
-    <div><dt>Delivery fee</dt><dd><%= formatPrice(store.deliveryFee) %></dd></div>
-    <div><dt>Free delivery from</dt><dd><%= formatPrice(store.freeDeliveryMin) %></dd></div>
-    <div><dt>Return window</dt><dd><%= store.returnDays %> days</dd></div>
-    <div><dt>Refunds reach the bank in</dt><dd><%= store.refundDays %></dd></div>
-    <div><dt>Dispatch</dt><dd><%= store.dispatchDays %></dd></div>
-    <div><dt>Delivery</dt><dd><%= store.deliveryDays %></dd></div>
-  </dl>
-</section>
+      <form class="form settings-form settings-row" data-settings-form="prepaid" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <div class="settings-row-text"><h3>Discount for paying online</h3><p class="muted">Taken off the items when the shopper pays by UPI, card or netbanking. 0 turns it off.</p></div>
+        <div class="settings-row-fields settings-row-fields-2">
+          <div class="field">
+            <label for="prepaidPercent">Percent off</label>
+            <input id="prepaidPercent" name="prepaidPercent" type="number" inputmode="numeric" min="0" max="10" step="1" required value="<%= settings.prepaidPercent %>" aria-describedby="prepaidPercent-error">
+            <p class="field-error" id="prepaidPercent-error" data-error-for="prepaidPercent"></p>
+          </div>
+          <div class="field">
+            <label for="prepaidMax">At most (₹)</label>
+            <input id="prepaidMax" name="prepaidMax" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.prepaidMax / 100 %>" aria-describedby="prepaidMax-error">
+            <p class="field-error" id="prepaidMax-error" data-error-for="prepaidMax"></p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="submit">Save</button>
+      </form>
 
-<section class="panel" aria-labelledby="catalog-rules-title">
-  <div class="panel-head panel-head-row">
-    <h2 id="catalog-rules-title"><%- icon('box', 'i-sm') %> Catalogue and checkout rules</h2>
-    <span class="muted">Fixed in the code; shown here so you can see what the store is doing</span>
+      <form class="form settings-form settings-row" data-settings-form="referral" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <div class="settings-row-text"><h3>Referral reward</h3><p class="muted">Paid to both wallets after the new customer's first delivered order. 0 turns it off.</p></div>
+        <div class="settings-row-fields">
+          <div class="field">
+            <label for="referralReward">Each person (₹)</label>
+            <input id="referralReward" name="referralReward" type="number" inputmode="numeric" min="0" max="1000" step="1" required value="<%= settings.referralReward / 100 %>" aria-describedby="referralReward-error">
+            <p class="field-error" id="referralReward-error" data-error-for="referralReward"></p>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="submit">Save</button>
+      </form>
+    </section>
+
+    <%# ---------- Business, delivery, catalogue: the same field layout ---------- %>
+    <% [
+      ['business', 'file-text', 'Business details', 'Leave a box empty to use the value from the server settings (.env).', business],
+      ['delivery', 'truck', 'Delivery and returns', 'Checkout charges and the policy pages use these at once.', delivery],
+      ['catalog', 'box', 'Catalogue and cart', 'Limits on stock warnings and how many of one item a shopper can buy.', catalog],
+    ].forEach(function ([group, ic, title, sub, fields]) { %>
+      <section class="panel settings-card" id="set-<%= group %>" aria-labelledby="set-<%= group %>-title">
+        <header class="settings-card-head">
+          <span class="settings-card-icon"><%- icon(ic, 'i-sm') %></span>
+          <div><h2 id="set-<%= group %>-title"><%= title %></h2><p class="muted"><%= sub %></p></div>
+        </header>
+        <form class="form settings-form" data-settings-form="site/<%= group %>" novalidate>
+          <div class="form-alert" data-form-alert aria-live="assertive"></div>
+          <div class="form-grid form-grid-2">
+            <% fields.forEach(function (f) { %>
+              <div class="field<%= f.wide ? ' field-wide' : '' %>">
+                <label for="st-<%= f.key %>"><%= f.label %><% if (isCustom(f.key)) { %> <span class="pill pill-blue settings-changed">Changed</span><% } %></label>
+                <div class="settings-input<%= f.prefix ? ' has-prefix' : '' %>">
+                  <% if (f.prefix) { %><span class="settings-prefix" aria-hidden="true"><%= f.prefix %></span><% } %>
+                  <input id="st-<%= f.key %>" name="<%= f.key %>"
+                    <% if (f.type === 'money' || f.type === 'int') { %>type="number" inputmode="numeric" step="1" min="<%= f.type === 'money' ? f.min : f.min %>" max="<%= f.max %>"<% } else { %>type="<%= f.type === 'email' ? 'email' : 'text' %>" maxlength="<%= f.max %>"<% } %>
+                    value="<%= f.value %>" <% if (f.placeholder) { %>placeholder="<%= f.placeholder %>"<% } %>
+                    aria-describedby="st-<%= f.key %>-hint st-<%= f.key %>-error">
+                </div>
+                <p class="hint" id="st-<%= f.key %>-hint"><%= f.hint %></p>
+                <p class="field-error" id="st-<%= f.key %>-error" data-error-for="<%= f.key %>"></p>
+              </div>
+            <% }) %>
+          </div>
+          <div class="settings-actions"><button class="btn btn-primary btn-sm" type="submit"><%- icon('check', 'i-sm') %> Save <%= title.toLowerCase() %></button></div>
+        </form>
+      </section>
+    <% }) %>
+
+    <%# ---------- Shopper features ---------- %>
+    <section class="panel settings-card" id="set-shopper" aria-labelledby="set-shopper-title">
+      <header class="settings-card-head">
+        <span class="settings-card-icon"><%- icon('users', 'i-sm') %></span>
+        <div><h2 id="set-shopper-title">Shopper features</h2><p class="muted">Switch store features on or off, and put a message at the top of every page.</p></div>
+      </header>
+      <form class="form settings-form" data-settings-form="site/shopper" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <fieldset class="settings-group">
+          <legend>Announcement bar</legend>
+          <label class="switch-row">
+            <span><strong>Show the bar</strong><small class="muted">A volt strip above the header on every store page.</small></span>
+            <input class="switch-input" type="checkbox" name="announceOn" role="switch" <%= v.announceOn ? 'checked' : '' %><span class="switch" aria-hidden="true"></span>>
+          </label>
+          <div class="form-grid form-grid-2">
+            <div class="field field-wide">
+              <label for="st-announceText">Message</label>
+              <input id="st-announceText" name="announceText" maxlength="140" value="<%= v.announceText %>" placeholder="Monsoon sale: extra 10% off running shoes" aria-describedby="st-announceText-error">
+              <p class="field-error" id="st-announceText-error" data-error-for="announceText"></p>
+            </div>
+            <div class="field field-wide">
+              <label for="st-announceLink">Link <span class="optional">(optional)</span></label>
+              <input id="st-announceLink" name="announceLink" maxlength="200" value="<%= v.announceLink %>" placeholder="/products?category=running" aria-describedby="st-announceLink-hint st-announceLink-error">
+              <p class="hint" id="st-announceLink-hint">A page on this store, starting with /. Adds a "Shop now" link.</p>
+              <p class="field-error" id="st-announceLink-error" data-error-for="announceLink"></p>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="settings-group">
+          <legend>On product pages</legend>
+          <% [
+            ['reviewsOn', 'Reviews', 'Ratings, the review list and the "Write a review" form.'],
+            ['questionsOn', 'Questions and answers', 'Shoppers ask, and you or past buyers answer.'],
+            ['stockAlertsOn', 'Back-in-stock alerts', '"Email me when it\'s back" on sold-out items and sizes.'],
+          ].forEach(function ([key, label, hint]) { %>
+            <label class="switch-row">
+              <span><strong><%= label %></strong><small class="muted"><%= hint %></small></span>
+              <input class="switch-input" type="checkbox" name="<%= key %><span class="switch" aria-hidden="true"></span>" role="switch" <%= v[key] ? 'checked' : '' %>>
+            </label>
+          <% }) %>
+        </fieldset>
+        <div class="settings-actions"><button class="btn btn-primary btn-sm" type="submit"><%- icon('check', 'i-sm') %> Save shopper features</button></div>
+      </form>
+    </section>
+
+    <%# ---------- Home page sections ---------- %>
+    <section class="panel settings-card" id="set-home" aria-labelledby="set-home-title">
+      <header class="settings-card-head">
+        <span class="settings-card-icon"><%- icon('home', 'i-sm') %></span>
+        <div><h2 id="set-home-title">Home page</h2><p class="muted">Choose which sections the home page shows, in this order. The hero always shows.</p></div>
+      </header>
+      <form class="form settings-form" data-settings-form="site/home" novalidate>
+        <div class="form-alert" data-form-alert aria-live="assertive"></div>
+        <div class="settings-switch-grid">
+          <% site.homeSections.forEach(function ([key, label], n) { %>
+            <label class="switch-row">
+              <span><strong><span class="settings-step"><%= n + 1 %></span> <%= label %></strong></span>
+              <input class="switch-input" type="checkbox" name="<%= key %><span class="switch" aria-hidden="true"></span>" role="switch" <%= v[key] ? 'checked' : '' %>>
+            </label>
+          <% }) %>
+        </div>
+        <div class="settings-actions">
+          <a class="btn btn-ghost btn-sm" href="/" target="_blank" rel="noopener"><%- icon('external-link', 'i-sm') %> View the home page</a>
+          <button class="btn btn-primary btn-sm" type="submit"><%- icon('check', 'i-sm') %> Save home page</button>
+        </div>
+      </form>
+    </section>
+
+    <%# ---------- Fixed ---------- %>
+    <section class="panel settings-card" id="set-fixed" aria-labelledby="set-fixed-title">
+      <header class="settings-card-head">
+        <span class="settings-card-icon"><%- icon('lock', 'i-sm') %></span>
+        <div><h2 id="set-fixed-title">Fixed in the code</h2><p class="muted">Shown so you can see what the store is doing.</p></div>
+      </header>
+      <dl class="admin-facts">
+        <div><dt>Addresses per customer</dt><dd><%= maxAddresses %></dd></div>
+        <div><dt>Admin console address</dt><dd><code class="admin-code"><%= adminPath %></code></dd></div>
+        <div><dt>Prices and money</dt><dd>Kept in paise, so totals never round wrongly</dd></div>
+      </dl>
+    </section>
   </div>
-  <dl class="admin-facts">
-    <div><dt>Low-stock warning at</dt><dd><%= lowStockLimit %> units or fewer</dd></div>
-    <div><dt>Most of one product per order</dt><dd><%= maxPerProduct %></dd></div>
-    <div><dt>Addresses per customer</dt><dd><%= maxAddresses %></dd></div>
-    <div><dt>Admin console address</dt><dd><code class="admin-code"><%= adminPath %></code></dd></div>
-  </dl>
-</section>
+</div>
 <%- include('../partials/admin-end') %>

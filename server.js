@@ -172,6 +172,8 @@ function startServer() {
         ? null
         : require('./services/migrationService').runMigrations(),
     )
+    // The admin's store settings (delivery fee, return window, what shoppers see...).
+    .then(() => require('./services/siteSettingsService').start())
     .then(() => {
       // 0.0.0.0: reachable from other devices (a phone on the same network, a container's port).
       server = app.listen(config.port, '0.0.0.0', () => {

@@ -4,6 +4,7 @@ const GuestCart = require('../models/GuestCart');
 const Product = require('../models/Product');
 const {HttpError} = require('../utils/http');
 const {STORE} = require('../config/store');
+const {RULES} = require('../config/catalog');
 const {deliveryFeeFor} = require('../utils/pricing');
 const {
   hasOptions,
@@ -13,7 +14,8 @@ const {
   readLineKey,
 } = require('../utils/options');
 
-const MAX_PER_PRODUCT = 5;
+// The shipped default; the live limit is an admin setting (config/catalog.js RULES.maxPerProduct).
+const MAX_PER_PRODUCT = RULES.maxPerProduct;
 
 // Hidden products, and products in hidden categories, count as no longer sold.
 function isSold(product) {
@@ -37,7 +39,7 @@ function isAvailable(product, optionId) {
 
 // The most of one product (or one size of it) a customer may hold: what is in stock, never more than 5.
 function limitFor(product, optionId) {
-  return Math.min(stockFor(product, optionId), MAX_PER_PRODUCT);
+  return Math.min(stockFor(product, optionId), RULES.maxPerProduct);
 }
 
 // Every quantity rule in one place. Returns a message for the shopper, or null if it is fine.
@@ -54,8 +56,8 @@ function quantityProblem(product, quantity, optionId = null) {
       : 'This product is out of stock.';
   if (!Number.isInteger(quantity) || quantity < 1)
     return 'Choose a quantity of at least 1.';
-  if (quantity > MAX_PER_PRODUCT)
-    return `You can buy up to ${MAX_PER_PRODUCT} of each product.`;
+  if (quantity > RULES.maxPerProduct)
+    return `You can buy up to ${RULES.maxPerProduct} of each product.`;
   if (quantity > stock) return `Only ${stock} left in stock.`;
   return null;
 }

@@ -3,7 +3,7 @@ const User = require('../models/User');
 const Wallet = require('../models/Wallet');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
-const {LOW_STOCK_LIMIT} = require('../config/catalog');
+const {RULES} = require('../config/catalog');
 const {HttpError} = require('../utils/http');
 const {escapeRegex, toPositiveInt} = require('./productService');
 const refreshTokenService = require('./refreshTokenService');
@@ -29,11 +29,11 @@ async function getDashboardStats() {
     Product.countDocuments({...LISTED_PRODUCT}),
     Product.countDocuments({
       ...LISTED_PRODUCT,
-      stock: {$gt: 0, $lte: LOW_STOCK_LIMIT},
+      stock: {$gt: 0, $lte: RULES.lowStockLimit},
     }),
     Product.countDocuments({...LISTED_PRODUCT, stock: 0}),
     User.find({role: 'customer'}).sort({createdAt: -1}).limit(6).lean(),
-    Product.find({...LISTED_PRODUCT, stock: {$lte: LOW_STOCK_LIMIT}})
+    Product.find({...LISTED_PRODUCT, stock: {$lte: RULES.lowStockLimit}})
       .sort({stock: 1, name: 1})
       .limit(6)
       .select('name slug stock image category')
@@ -201,7 +201,7 @@ async function notifications(now = new Date()) {
       Order.countDocuments({orderStatus: 'return_requested'}),
       Product.countDocuments({
         ...LISTED_PRODUCT,
-        stock: {$gt: 0, $lte: LOW_STOCK_LIMIT},
+        stock: {$gt: 0, $lte: RULES.lowStockLimit},
       }),
       Product.countDocuments({...LISTED_PRODUCT, stock: 0}),
     ]);

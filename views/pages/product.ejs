@@ -81,11 +81,11 @@
           <h1 class="pdx-title" data-split><%= product.name %></h1>
           <div class="pdx-meta">
             <a class="pdx-chip" href="/products?category=<%= cat.slug %>"><%= cat.name %></a>
-            <% if (product.ratingCount > 0) { %>
+            <% if (site.reviewsOn && product.ratingCount > 0) { %>
               <a class="pdx-rating" href="#reviews"><%- icon('star', 'i-xs') %> <strong><%= product.ratingAverage.toFixed(1) %></strong> <span class="muted">(<%= product.ratingCount %> <%= product.ratingCount === 1 ? 'review' : 'reviews' %>)</span><span class="sr-only">, rated out of 5</span></a>
             <% } %>
           </div>
-          <% if (featured) { %>
+          <% if (site.reviewsOn && featured) { %>
             <figure class="pdx-quote">
               <span class="pdx-quote-mark" aria-hidden="true">&ldquo;</span>
               <blockquote>
@@ -168,7 +168,7 @@
           <%# ---------- Quantity + the two actions ---------- %>
           <% if (product.stock <= 0) { %>
             <button class="pdx-btn pdx-btn-buy" type="button" disabled>Out of stock</button>
-            <% if (shopper) { %><%- include('../partials/stock-alert', { product: product, soldOptions: [], waiting: alertWaiting || [], signedIn: Boolean(currentUser) }) %><% } else { %><p class="pdx-note">This item is sold out right now.</p><% } %>
+            <% if (shopper && site.stockAlertsOn) { %><%- include('../partials/stock-alert', { product: product, soldOptions: [], waiting: alertWaiting || [], signedIn: Boolean(currentUser) }) %><% } else { %><p class="pdx-note">This item is sold out right now.</p><% } %>
           <% } else if (shopper) { %>
             <%# The cart and Buy now need a signed-in account: a guest who presses either goes to sign in
                  and comes straight back here (store.js Nx.signInFirst). %>
@@ -229,7 +229,7 @@
           <% } %>
           <%# Some sizes or colours sold out: their own "email me" (E3). %>
           <% const soldOptions = options.filter(function (o) { return o.stock <= 0; }).map(function (o) { return { id: o.id, label: [o.size ? 'Size ' + o.size : '', o.colour].filter(Boolean).join(' · ') }; }); %>
-          <% if (shopper && product.stock > 0 && soldOptions.length) { %>
+          <% if (shopper && site.stockAlertsOn && product.stock > 0 && soldOptions.length) { %>
             <%- include('../partials/stock-alert', { product: product, soldOptions: soldOptions, waiting: alertWaiting || [], signedIn: Boolean(currentUser) }) %>
           <% } %>
 
@@ -307,7 +307,8 @@
       </ul>
     </section>
 
-    <%# ---------- Reviews: any signed-in customer can write one ---------- %>
+    <%# ---------- Reviews: any signed-in customer can write one (admin can switch off) ---------- %>
+    <% if (site.reviewsOn) { %>
     <%
       const total = reviews.pagination.total;
       const maxBar = Math.max(1, ...reviews.breakdown.map(function (row) { return row.count; }));
@@ -399,9 +400,13 @@
       </div>
     </section>
 
+    <% } %>
+
+    <% if (site.questionsOn) { %>
     <div class="pdx-extra">
       <%- include('../partials/questions', { product: product, questions: questions, canAnswer: canAnswer, signedIn: Boolean(currentUser && currentUser.role === 'customer') }) %>
     </div>
+    <% } %>
   </div>
 
   <% if (together.length) { %>

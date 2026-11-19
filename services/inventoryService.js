@@ -6,7 +6,7 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
-const {LOW_STOCK_LIMIT} = require('../config/catalog');
+const {RULES} = require('../config/catalog');
 const {HttpError} = require('../utils/http');
 const {escapeRegex, toPositiveInt} = require('./productService');
 const {optionLabel} = require('../utils/options');
@@ -32,15 +32,20 @@ const SORTS = {
   updated: {label: 'Recently changed', order: {updatedAt: -1}},
 };
 // What the three "needs attention" bands mean, in one place.
+// Worked out on each use, because the low-stock level is an admin setting.
 const BANDS = {
   out: {stock: 0},
-  low: {stock: {$gt: 0, $lte: LOW_STOCK_LIMIT}},
-  healthy: {stock: {$gt: LOW_STOCK_LIMIT}},
+  get low() {
+    return {stock: {$gt: 0, $lte: RULES.lowStockLimit}};
+  },
+  get healthy() {
+    return {stock: {$gt: RULES.lowStockLimit}};
+  },
 };
 
 function stateOf(product) {
   if (product.stock <= 0) return 'out';
-  return product.stock <= LOW_STOCK_LIMIT ? 'low' : 'healthy';
+  return product.stock <= RULES.lowStockLimit ? 'low' : 'healthy';
 }
 
 function readFilters(query = {}) {
@@ -125,7 +130,7 @@ async function totals() {
                 $and: [
                   {$ne: ['$isListed', false]},
                   {$gt: ['$stock', 0]},
-                  {$lte: ['$stock', LOW_STOCK_LIMIT]},
+                  {$lte: ['$stock', RULES.lowStockLimit]},
                 ],
               },
               1,
@@ -144,7 +149,7 @@ async function totals() {
     out: 0,
     low: 0,
   };
-  return {...base, lowStockLimit: LOW_STOCK_LIMIT};
+  return {...base, lowStockLimit: RULES.lowStockLimit};
 }
 
 async function listInventory(query = {}) {

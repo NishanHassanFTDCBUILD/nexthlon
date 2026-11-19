@@ -545,6 +545,33 @@
       },
       {signal},
     );
+
+    // The section menu marks the card in view, and keeps that link visible on phones.
+    const links = [...root.querySelectorAll('[data-settings-link]')];
+    if (!links.length || !('IntersectionObserver' in window)) return;
+    const mark = (id) =>
+      links.forEach((link) => {
+        const on = link.dataset.settingsLink === id;
+        link.classList.toggle('is-current', on);
+        if (on) {
+          link.setAttribute('aria-current', 'true');
+          link.scrollIntoView({block: 'nearest', inline: 'nearest'});
+        } else link.removeAttribute('aria-current');
+      });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const seen = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (seen.length) mark(seen[0].target.id.replace(/^set-/, ''));
+      },
+      {rootMargin: '-20% 0px -60% 0px'},
+    );
+    root
+      .querySelectorAll('.settings-card[id]')
+      .forEach((card) => observer.observe(card));
+    signal.addEventListener('abort', () => observer.disconnect());
+    mark(links[0].dataset.settingsLink);
   });
 
   // ---------- Tables that scroll can be reached by keyboard ----------

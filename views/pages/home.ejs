@@ -72,7 +72,7 @@
        Without JavaScript: a plain grid of product cards. showroom3d.js turns it into a pinned 3D room
        the camera flies through (wide screens), a floating swipe row (phones) or a still grid (reduced
        motion). The detail card is filled from the card's own markup. %>
-  <% if (featured.length >= 3) { %>
+  <% if (site.homeShowroom && featured.length >= 3) { %>
     <% const shopperKind = !currentUser ? 'guest' : (currentUser.role === 'customer' ? 'customer' : 'staff'); %>
     <section class="showroom" aria-labelledby="showroom-title" data-showroom data-shopper="<%= shopperKind %>">
       <div class="showroom-pin">
@@ -156,7 +156,7 @@
   <%# ---------- 3. Pick your sport: a 3D carousel ring of sports ----------
        Without JavaScript this is a plain grid of six linked cards. home3d.js turns it into the ring
        (or, with reduced motion, a simple swipe row). The tabs and dots only appear with JavaScript. %>
-  <% if (sports.length >= 2) { %>
+  <% if (site.homeSports && sports.length >= 2) { %>
     <section class="sport-ring" aria-labelledby="sports-title" data-sport-ring style="--count: <%= sports.length %>">
       <div class="sport-ring-pin">
         <div class="sport-ring-bg" aria-hidden="true">
@@ -220,7 +220,7 @@
   <% } %>
 
   <%# ---------- 4. Showcase: one product on a rotating podium, lit by the mouse ---------- %>
-  <% if (star) { %>
+  <% if (site.homeSpotlight && star) { %>
     <section class="container section showcase" aria-labelledby="showcase-title" data-showcase>
       <div class="showcase-copy" data-reveal>
         <span class="section-kicker">In the spotlight</span>
@@ -254,7 +254,7 @@
   <% } %>
 
   <%# ---------- 5. Deals of the day: 3D flip cards and a flip-digit countdown ---------- %>
-  <% if (deals.length) { %>
+  <% if (site.homeDeals && deals.length) { %>
     <section class="container section" aria-labelledby="deals-title">
       <div class="section-box deal-box">
         <div class="section-head deal-head">
@@ -307,7 +307,7 @@
   <% } %>
 
   <%# ---------- 6. Shop by sport: tiles with depth layers ---------- %>
-  <% if (categories.length) { %>
+  <% if (site.homeShopSports && categories.length) { %>
     <section class="container section" aria-labelledby="shop-sports-title">
       <div class="section-head" data-reveal>
         <div>
@@ -329,14 +329,16 @@
   <% } %>
 
   <%# ---------- 7. Numbers that count up ---------- %>
+  <% if (site.homeStats) { %>
   <section class="container section stats3d" aria-label="Nexthlon in numbers">
     <div class="stat3d" data-reveal><strong data-count-to="<%= productCount %>"><%= productCount %></strong><span>Products in stock and ready</span></div>
     <div class="stat3d" data-reveal><strong data-count-to="<%= categories.length %>"><%= categories.length %></strong><span>Sports covered</span></div>
     <div class="stat3d" data-reveal><strong data-count-to="<%= brands.length %>"><%= brands.length %></strong><span>Genuine brands</span></div>
     <div class="stat3d" data-reveal><strong data-count-to="<%= store.returnDays %>"><%= store.returnDays %></strong><span>Days to return, no questions</span></div>
   </section>
+  <% } %>
 
-  <% if (bestSellers.length) { %>
+  <% if (site.homeBestSellers && bestSellers.length) { %>
     <section class="container section" aria-labelledby="best-title">
       <div class="section-head" data-reveal>
         <div>
@@ -349,7 +351,7 @@
     </section>
   <% } %>
 
-  <% if (!currentUser) { %>
+  <% if (site.homeSignup && !currentUser) { %>
     <section class="container section">
       <div class="join-banner" data-reveal="scale">
         <div class="join-copy">
@@ -365,7 +367,7 @@
     </section>
   <% } %>
 
-  <% if (newest.length) { %>
+  <% if (site.homeNewArrivals && newest.length) { %>
     <section class="container section" aria-labelledby="new-title">
       <div class="section-head" data-reveal>
         <div>
