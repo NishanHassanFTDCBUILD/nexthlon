@@ -77,6 +77,7 @@ const RULES = [
   [/^\/tickets/, 'support.write'],
   [/^\/questions/, 'reviews.write'],
   [/^\/reviews/, 'reviews.write'],
+  [/^\/views/, 'read'],
   [/^\/webhooks/, 'settings.write'],
   [/^\/jobs/, 'settings.write'],
   [/^\/products/, 'products.write'],

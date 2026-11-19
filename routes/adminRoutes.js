@@ -297,6 +297,12 @@ router.post(
 router.get('/jobs', opsApi.listJobs);
 router.post('/jobs/:jobId/retry', adminWriteLimiter, opsApi.retryJob);
 router.get('/reports/gst.csv', opsApi.gstCsv);
+
+// Saved list views: personal to each admin (any staff role may keep their own).
+const viewApi = require('../controllers/adminViewController');
+router.get('/views', viewApi.list);
+router.post('/views', viewApi.create);
+router.delete('/views/:viewId', viewApi.remove);
 router.patch(
   '/reviews/:reviewId/hidden',
   adminWriteLimiter,
