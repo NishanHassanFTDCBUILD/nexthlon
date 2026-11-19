@@ -179,7 +179,40 @@ const systemStatus = asyncHandler(async (req, res) => {
   res.json(await systemService.status());
 });
 
+// PATCH /api/admin/inventory/:productId/reorder   body: { reorderLevel: 10 } (or null to clear)
+const setReorder = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+  const raw = body.reorderLevel;
+  const level =
+    raw === null || raw === '' || raw === undefined
+      ? null
+      : typeof raw === 'number'
+        ? raw
+        : /^\d{1,6}$/.test(String(raw).trim())
+          ? Number(String(raw).trim())
+          : NaN;
+  const result = await inventoryService.setReorderLevel(
+    req.params.productId,
+    level,
+  );
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: 'inventory.reorder_changed',
+    target: `product:${req.params.productId}`,
+    before: {reorderLevel: result.before},
+    after: {reorderLevel: result.after},
+  });
+  res.json({
+    message:
+      result.after === null
+        ? `${result.name} now uses the store-wide low-stock level.`
+        : `${result.name} reorders at ${result.after} units.`,
+    ...result,
+  });
+});
+
 module.exports = {
+  setReorder,
   previewRestock,
   applyRestock,
   restockTemplate,

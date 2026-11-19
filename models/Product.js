@@ -125,6 +125,8 @@ const productSchema = new mongoose.Schema(
     ratingCount: {type: Number, default: 0, min: 0},
     // Soft delete: unlisted products vanish from the store but stay in the database.
     isListed: {type: Boolean, default: true},
+    // The stock level at which this product needs reordering (null: the store-wide low-stock level).
+    reorderLevel: {type: Number, default: null, min: 0, max: 100000},
     // Marks documents whose money is in paise (older ones stored rupees; see the migration below).
     pricesInPaise: {type: Boolean, default: true},
   },

@@ -202,6 +202,11 @@ router.post(
 );
 router.get('/inventory/:productId/history', catalog.stockHistory);
 router.patch('/inventory/:productId', adminWriteLimiter, catalog.adjustStock);
+router.patch(
+  '/inventory/:productId/reorder',
+  adminWriteLimiter,
+  catalog.setReorder,
+);
 
 // Coupons. Creating and changing one is money, so these use the stricter limiter.
 router.get('/coupons', coupons.listCoupons);

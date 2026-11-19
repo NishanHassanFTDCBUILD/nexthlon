@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const StockAlert = require('../models/StockAlert');
+const Order = require('../models/Order');
 const AuditLog = require('../models/AuditLog');
 const {RULES} = require('../config/catalog');
 const {HttpError} = require('../utils/http');
@@ -113,6 +114,31 @@ function toRow(product) {
   };
 }
 
+// Units sold in the last 30 days for these products (cancelled and returned items do not count).
+const SOLD_DAYS = 30;
+async function soldLast30(productIds, now = new Date()) {
+  if (!productIds.length) return new Map();
+  const since = new Date(now.getTime() - SOLD_DAYS * 24 * 60 * 60 * 1000);
+  const rows = await Order.aggregate([
+    {$match: {createdAt: {$gte: since}}},
+    {$unwind: '$items'},
+    {
+      $match: {
+        'items.product': {$in: productIds},
+        'items.status': {$nin: ['cancelled', 'returned']},
+      },
+    },
+    {$group: {_id: '$items.product', units: {$sum: '$items.quantity'}}},
+  ]);
+  return new Map(rows.map((row) => [String(row._id), row.units]));
+}
+
+// Days of stock left at the recent pace: stock ÷ (units sold per day). null when nothing sold.
+function daysOfCover(stock, units) {
+  if (!units) return null;
+  return Math.round((stock / (units / SOLD_DAYS)) * 10) / 10;
+}
+
 // The four counters above the table, over the whole catalogue (not just this page).
 async function totals() {
   const [bands] = await Product.aggregate([
@@ -189,6 +215,7 @@ async function listInventory(query = {}) {
     totals(),
     Category.find().sort({sortOrder: 1, name: 1}).select('name').lean(),
   ]);
+  const sold = await soldLast30(rows.map((row) => row._id));
   const waiting = await StockAlert.aggregate([
     {$match: {product: {$in: rows.map((row) => row._id)}, notifiedAt: null}},
     {$group: {_id: '$product', count: {$sum: 1}}},
@@ -200,6 +227,10 @@ async function listInventory(query = {}) {
     products: rows.map((row) => ({
       ...toRow(row),
       waiting: waitingCounts.get(String(row._id)) || 0,
+      soldLast30: sold.get(String(row._id)) || 0,
+      daysOfCover: daysOfCover(row.stock, sold.get(String(row._id)) || 0),
+      reorderLevel: row.reorderLevel ?? null,
+      needsReorder: row.reorderLevel != null && row.stock <= row.reorderLevel,
     })),
     filters,
     totals: sums,
@@ -408,7 +439,36 @@ async function stockHistory(productId) {
   }));
 }
 
+// The level at which a product needs reordering (null clears it, and the store-wide level applies).
+async function setReorderLevel(productId, level) {
+  if (!mongoose.isValidObjectId(productId))
+    throw new HttpError(404, 'Product not found.');
+  if (
+    level !== null &&
+    (!Number.isInteger(level) || level < 0 || level > MAX_STOCK)
+  )
+    throw new HttpError(
+      400,
+      'Enter a whole number from 0 to ' + MAX_STOCK + ', or leave it empty.',
+      {
+        reorderLevel:
+          'Enter a whole number from 0 to ' +
+          MAX_STOCK +
+          ', or leave it empty.',
+      },
+    );
+  const product = await Product.findById(productId).select('name reorderLevel');
+  if (!product) throw new HttpError(404, 'Product not found.');
+  const before = product.reorderLevel ?? null;
+  product.reorderLevel = level;
+  await product.save();
+  return {name: product.name, before, after: level};
+}
+
 module.exports = {
+  setReorderLevel,
+  soldLast30,
+  daysOfCover,
   stockHistory,
   PAGE_SIZE,
   MAX_STOCK,

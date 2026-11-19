@@ -342,4 +342,43 @@
       {signal},
     );
   });
+
+  // ---------- Reorder level: save it, or go back to the store-wide level ----------
+  // Delegated on the document so it also works after the section is swapped in without a reload.
+  function saveReorder(productId, value) {
+    return Nx.api(
+      `/api/admin/inventory/${encodeURIComponent(productId)}/reorder`,
+      {method: 'PATCH', body: {reorderLevel: value}},
+    ).then((reply) => {
+      Nx.toast(reply.message);
+      window.setTimeout(() => window.location.reload(), 600);
+      return reply;
+    });
+  }
+  document.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-reorder-form]');
+    if (!form) return;
+    event.preventDefault();
+    const raw = form.elements.reorderLevel.value.trim();
+    if (raw !== '' && !/^\d{1,6}$/.test(raw)) {
+      Nx.toast(
+        'Enter a whole number, or leave it empty for the store-wide level.',
+        'error',
+      );
+      return;
+    }
+    saveReorder(
+      form.dataset.reorderForm,
+      raw === '' ? null : Number(raw),
+    ).catch((error) => Nx.toast(error.message, 'error'));
+  });
+  document.addEventListener('click', (event) => {
+    const clear = event.target.closest('[data-reorder-clear]');
+    if (!clear) return;
+    const form = clear.closest('[data-reorder-form]');
+    if (!form) return;
+    saveReorder(form.dataset.reorderForm, null).catch((error) =>
+      Nx.toast(error.message, 'error'),
+    );
+  });
 })();

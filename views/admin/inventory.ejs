@@ -46,6 +46,16 @@
           <div class="inv-info">
             <a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a>
             <span class="muted"><%= p.category || 'No category' %><%= p.isListed ? '' : ' · unlisted' %></span>
+            <span class="inv-pace"><%= p.soldLast30 %> sold in 30 days<%= p.daysOfCover !== null ? ' · about ' + p.daysOfCover + ' days of stock left' : ' · no recent sales' %></span>
+            <% if (p.needsReorder) { %><span class="pill pill-red inv-reorder-flag">Reorder now</span><% } %>
+            <details class="inv-reorder" data-reorder="<%= p.id %>">
+              <summary>Reorder level: <%= p.reorderLevel !== null ? p.reorderLevel + ' units' : 'store-wide (' + totals.lowStockLimit + ')' %></summary>
+              <form class="inv-reorder-form" data-reorder-form="<%= p.id %>" novalidate>
+                <label class="admin-field"><span>Reorder when stock is at or below</span><input name="reorderLevel" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= p.reorderLevel !== null ? p.reorderLevel : '' %>" placeholder="Store-wide"></label>
+                <button class="btn btn-secondary btn-sm" type="submit">Save level</button>
+                <button class="btn btn-ghost btn-sm" type="button" data-reorder-clear>Use store-wide</button>
+              </form>
+            </details>
           </div>
           </td><td data-label="Stock">
             <strong data-inv-stock><%= p.stock %></strong>
