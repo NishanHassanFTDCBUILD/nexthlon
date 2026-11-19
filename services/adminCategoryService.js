@@ -197,6 +197,23 @@ async function updateCategory(categoryId, value, files = []) {
   return {before, category: await getCategory(category._id)};
 }
 
+// The category offer on its own (the inline edit on the list, and its undo): the same products
+// are repriced and the cache is cleared, as with the full form.
+async function setOffer(categoryId, offerPercent) {
+  const category = await categoryService.getCategory(categoryId);
+  const value = Number(offerPercent);
+  if (!Number.isInteger(value) || value < 0 || value > 90)
+    throw new HttpError(400, 'Enter a whole percentage from 0 to 90.', {
+      offerPercent: 'Enter a whole percentage from 0 to 90.',
+    });
+  const before = category.offerPercent || 0;
+  category.offerPercent = value;
+  await category.save();
+  await categoryService.syncProducts(category);
+  categoryService.invalidate();
+  return {name: category.name, before, after: value};
+}
+
 async function setListed(categoryId, isListed) {
   const category = await categoryService.getCategory(categoryId);
   category.isListed = isListed;
@@ -358,6 +375,7 @@ async function moveProducts(productIds, categoryId) {
 }
 
 module.exports = {
+  setOffer,
   PAGE_SIZE,
   STATUSES,
   SORTS,

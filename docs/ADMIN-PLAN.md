@@ -26,7 +26,7 @@ Size: S = under an hour of work, M = a few hours, L = a day or more.
 - Suppliers and purchase orders: not started.
 - Step 6: done (commit 4ead86c).
 - Step 7: done (webhook log with re-run for payment events, job queue monitor with retry, GST report CSV).
-- Step 8: partly done: keyboard shortcuts with a help sheet (?), a compact-rows switch (d), saved list views per admin. Not yet: side drawers, inline edit with undo, phone bottom-sheet filters, full accessibility pass, visual review of every page.
+- Step 8: done, except a full accessibility audit with a screen reader. Keyboard shortcuts and help sheet, compact rows, saved views, a quick-look side drawer on orders, a phone filter sheet, and inline edit with undo for category offers.
 - Step 9: not started.
 
 ## Part A · Architecture (the foundation everything else stands on)

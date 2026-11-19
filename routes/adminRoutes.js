@@ -244,6 +244,11 @@ router.post(
   adminWriteLimiter,
   categories.moveProducts,
 );
+router.patch(
+  '/categories/:categoryId/offer',
+  adminWriteLimiter,
+  categories.setOffer,
+);
 router.get('/categories/:categoryId', categories.getCategory);
 router.patch(
   '/categories/:categoryId/listing',

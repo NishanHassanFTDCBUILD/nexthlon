@@ -4358,3 +4358,119 @@ body.admin-menu-open {
     margin-left: 0;
   }
 }
+
+/* ---------- Side drawer, filter sheet, inline edit ---------- */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-3);
+  background: rgb(var(--black-rgb), 0.5);
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--layer-4);
+  display: flex;
+  flex-direction: column;
+  width: min(440px, 100vw);
+  background: var(--surface);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-lg, var(--shadow-sm));
+}
+
+.drawer:focus {
+  outline: none;
+}
+
+.drawer-head,
+.drawer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.drawer-foot {
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.drawer-head h2 {
+  margin: 0;
+  font-size: var(--text-lg, 1.125rem);
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.drawer-body h3 {
+  margin: 0 0 var(--space-1);
+}
+
+.drawer-items {
+  margin: var(--space-1) 0;
+  padding-left: var(--space-2);
+}
+
+.order-quick-look {
+  margin-left: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.inline-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-half);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.inline-cell input {
+  width: 72px;
+  min-height: 34px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.inline-undo {
+  display: block;
+  margin-top: var(--space-half);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .admin-filterbar.has-sheet:not(.is-sheet) {
+    display: none;
+  }
+
+  .admin-filterbar.is-sheet {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--layer-4);
+    max-height: 80vh;
+    max-height: 80dvh;
+    overflow-y: auto;
+    border-radius: var(--radius) var(--radius) 0 0;
+    box-shadow: var(--shadow-lg, var(--shadow-sm));
+  }
+
+  .filter-sheet-toggle {
+    margin-bottom: var(--space-1);
+  }
+}

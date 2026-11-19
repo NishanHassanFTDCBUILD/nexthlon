@@ -124,7 +124,27 @@ const moveProducts = asyncHandler(async (req, res) => {
   });
 });
 
+// PATCH /api/admin/categories/:categoryId/offer   body: { offerPercent: 12 }  (inline edit, and its undo)
+const setOffer = asyncHandler(async (req, res) => {
+  const result = await adminCategoryService.setOffer(
+    req.params.categoryId,
+    (req.body || {}).offerPercent,
+  );
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: 'category.offer_changed',
+    target: 'category:' + req.params.categoryId,
+    before: {offerPercent: result.before},
+    after: {offerPercent: result.after},
+  });
+  res.json({
+    message: result.name + ' offer is now ' + result.after + '%.',
+    ...result,
+  });
+});
+
 module.exports = {
+  setOffer,
   listCategories,
   getCategory,
   createCategory,

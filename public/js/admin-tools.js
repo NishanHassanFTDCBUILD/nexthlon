@@ -219,4 +219,224 @@
   if (content) observer.observe(content, {childList: true});
   window.addEventListener('popstate', () => renderViews());
   renderViews();
+
+  // ---------- Side drawer: quick look at an order ----------
+  const drawer = document.getElementById('admin-drawer');
+  const backdrop = document.querySelector(
+    '[data-drawer-close].drawer-backdrop',
+  );
+  let returnFocus = null;
+  const esc = (text) =>
+    String(text == null ? '' : text).replace(
+      /[&<>"']/g,
+      (ch) =>
+        ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[
+          ch
+        ],
+    );
+  const money = (paise) =>
+    `₹${(Number(paise || 0) / 100).toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
+
+  function closeDrawer() {
+    if (!drawer || drawer.hidden) return;
+    drawer.hidden = true;
+    if (backdrop) backdrop.hidden = true;
+    if (returnFocus) returnFocus.focus();
+  }
+
+  async function openQuickLook(orderId, trigger) {
+    if (!drawer) return;
+    returnFocus = trigger;
+    drawer.hidden = false;
+    if (backdrop) backdrop.hidden = false;
+    const body = drawer.querySelector('[data-drawer-body]');
+    body.textContent = 'Loading…';
+    drawer.querySelector('[data-drawer-open-page]').href =
+      `${base()}/orders/${encodeURIComponent(orderId)}`;
+    drawer.focus();
+    try {
+      const data = await window.Nx.api(
+        `/api/admin/orders/${encodeURIComponent(orderId)}`,
+      );
+      const o = data.order;
+      const items = (o.items || [])
+        .map(
+          (i) =>
+            `<li><strong>${esc(i.name)}</strong>${i.option ? ` · ${esc(i.option)}` : ''} × ${i.quantity} <span class="muted">${money(i.lineTotal)}</span></li>`,
+        )
+        .join('');
+      const tags = (o.tags || [])
+        .map((t) => `<span class="pill pill-grey">${esc(t)}</span>`)
+        .join(' ');
+      const risk =
+        data.risk && data.risk.applies
+          ? `<p>Cash on delivery risk: <strong>${esc(data.risk.level)}</strong></p>`
+          : '';
+      body.innerHTML =
+        `<h3>${esc(o.orderId)}</h3>` +
+        `<p><span class="pill pill-grey">${esc(String(o.orderStatus).replace(/_/g, ' '))}</span> ${esc(o.paymentMethod === 'cod' ? 'Cash on delivery' : 'Paid online')}</p>` +
+        `<p class="muted">${esc(o.address && o.address.fullName)} · ${esc(o.address && o.address.city)}, ${esc(o.address && o.address.state)}</p>` +
+        `<ul class="drawer-items">${items}</ul>` +
+        `<p><strong>Total ${money(o.total)}</strong></p>` +
+        risk +
+        (tags ? `<p>${tags}</p>` : '');
+    } catch (error) {
+      body.textContent = error.message;
+    }
+  }
+
+  document.addEventListener('click', (event) => {
+    const look = event.target.closest('[data-quick-look]');
+    if (look) {
+      event.preventDefault();
+      openQuickLook(look.dataset.quickLook, look);
+      return;
+    }
+    if (event.target.closest('[data-drawer-close]')) closeDrawer();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && drawer && !drawer.hidden) closeDrawer();
+  });
+
+  // ---------- Phone: the filters open as a sheet ----------
+  const phone = window.matchMedia('(max-width: 720px)');
+  function addFilterSheets() {
+    document
+      .querySelectorAll('.admin-content .admin-filterbar')
+      .forEach((bar) => {
+        if (
+          bar.previousElementSibling &&
+          bar.previousElementSibling.classList.contains('filter-sheet-toggle')
+        )
+          return;
+        if (!phone.matches) return;
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'btn btn-secondary btn-sm filter-sheet-toggle';
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.textContent = 'Filters';
+        toggle.addEventListener('click', () => {
+          const open = !bar.classList.contains('is-sheet');
+          bar.classList.toggle('is-sheet', open);
+          toggle.setAttribute('aria-expanded', String(open));
+          if (open) bar.querySelector('input, select')?.focus();
+        });
+        bar.classList.add('has-sheet');
+        bar.before(toggle);
+      });
+  }
+  phone.addEventListener?.('change', addFilterSheets);
+
+  // ---------- Inline edit with undo ----------
+  // A value shown with an Edit button: change it in place, save, and a short "Undo" restores the old one.
+  document.addEventListener('click', async (event) => {
+    const edit = event.target.closest('[data-inline-edit]');
+    if (edit) {
+      event.preventDefault();
+      const cell = edit.closest('[data-inline-cell]');
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.inputMode = 'numeric';
+      input.min = edit.dataset.min || '0';
+      input.max = edit.dataset.max || '100';
+      input.step = '1';
+      input.value = edit.dataset.value;
+      input.setAttribute('aria-label', edit.dataset.label);
+      const save = document.createElement('button');
+      save.type = 'button';
+      save.className = 'btn btn-primary btn-sm';
+      save.textContent = 'Save';
+      save.dataset.inlineSave = '';
+      cell.replaceChildren(input, save);
+      input.focus();
+      input.dataset.endpoint = edit.dataset.endpoint;
+      input.dataset.field = edit.dataset.field;
+      input.dataset.label = edit.dataset.label;
+      input.dataset.unit = edit.dataset.unit || '';
+      return;
+    }
+    const saveBtn = event.target.closest('[data-inline-save]');
+    if (saveBtn) {
+      const input = saveBtn.parentElement.querySelector('input');
+      const cell = saveBtn.closest('[data-inline-cell]');
+      const next = Number(input.value);
+      const previous = cell.dataset.current;
+      if (
+        !Number.isInteger(next) ||
+        next < Number(input.min) ||
+        next > Number(input.max)
+      ) {
+        window.Nx.toast(
+          `Enter a whole number from ${input.min} to ${input.max}.`,
+          'error',
+        );
+        input.focus();
+        return;
+      }
+      try {
+        const reply = await window.Nx.api(input.dataset.endpoint, {
+          method: 'PATCH',
+          body: {[input.dataset.field]: next},
+        });
+        renderInline(cell, next, input.dataset);
+        const status = document.createElement('span');
+        status.className = 'inline-undo';
+        status.setAttribute('role', 'status');
+        status.innerHTML = `${esc(reply.message || 'Saved.')} <button type="button" class="link-btn" data-inline-undo>Undo</button>`;
+        status.dataset.endpoint = input.dataset.endpoint;
+        status.dataset.field = input.dataset.field;
+        status.dataset.previous = previous;
+        status.dataset.unit = input.dataset.unit;
+        status.dataset.label = input.dataset.label;
+        cell.after(status);
+        setTimeout(() => status.remove(), 8000);
+      } catch (error) {
+        window.Nx.toast(error.message, 'error');
+      }
+      return;
+    }
+    const undo = event.target.closest('[data-inline-undo]');
+    if (undo) {
+      const status = undo.closest('.inline-undo');
+      const cell = status.previousElementSibling;
+      try {
+        await window.Nx.api(status.dataset.endpoint, {
+          method: 'PATCH',
+          body: {[status.dataset.field]: Number(status.dataset.previous)},
+        });
+        renderInline(
+          cell,
+          Number(status.dataset.previous),
+          status.dataset,
+          status.dataset.previous,
+        );
+        status.remove();
+        window.Nx.toast('Change undone.');
+      } catch (error) {
+        window.Nx.toast(error.message, 'error');
+      }
+    }
+  });
+
+  function renderInline(cell, value, data) {
+    cell.dataset.current = String(value);
+    cell.replaceChildren();
+    const text = document.createElement('span');
+    text.textContent = `${value}${data.unit || ''}`;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'link-btn';
+    button.dataset.inlineEdit = '';
+    button.dataset.endpoint = data.endpoint;
+    button.dataset.field = data.field;
+    button.dataset.label = data.label;
+    button.dataset.unit = data.unit || '';
+    button.dataset.value = String(value);
+    button.dataset.min = '0';
+    button.dataset.max = '90';
+    button.textContent = 'Edit';
+    button.setAttribute('aria-label', `Edit ${data.label}`);
+    cell.append(text, ' ', button);
+  }
+  addFilterSheets();
 })();
