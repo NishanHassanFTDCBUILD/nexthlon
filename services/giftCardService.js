@@ -39,7 +39,7 @@ function formatCode(input) {
 
 async function issueForOrder(orderId, now = new Date()) {
   const order = await Order.findOne({orderId})
-    .select('_id orderId user paymentStatus items')
+    .select('_id orderId user paymentStatus items giftRecipient')
     .lean();
   if (!order || order.paymentStatus !== 'paid') return 0;
   if (await GiftCard.exists({order: order._id})) return 0;
@@ -67,6 +67,57 @@ async function issueForOrder(orderId, now = new Date()) {
   await GiftCard.insertMany(cards);
 
   const buyer = await User.findById(order.user).select('email name').lean();
+  const recipient =
+    order.giftRecipient && order.giftRecipient.email
+      ? order.giftRecipient
+      : null;
+  if (recipient) {
+    const base = siteUrl();
+    const {html, text} = renderEmail({
+      preheader: `A gift card for you from ${buyer ? buyer.name : 'a friend'}.`,
+      heading: 'You have a gift card',
+      paragraphs: [
+        recipient.message
+          ? `"${recipient.message}"`
+          : `${buyer ? buyer.name : 'Someone'} sent you a gift card from Nexthlon.`,
+        ...cards.map((c) => `${c.code} · ${formatPaise(c.amount)}`),
+        'Redeem a code at Nexthlon: it adds its value to a wallet, and the wallet pays at checkout. Codes work once and for a year.',
+      ],
+      button: {
+        label: 'Redeem your gift card',
+        url: `${base}/account/gift-card`,
+      },
+      note: 'Keep these codes private. Anyone with a code can redeem it.',
+    });
+    await mailService
+      .send({
+        to: recipient.email,
+        subject: 'You have a gift card from Nexthlon',
+        html,
+        text,
+      })
+      .catch(() => null);
+    if (buyer && buyer.email)
+      await mailService
+        .send({
+          to: buyer.email,
+          subject: `Your gift card was sent · ${order.orderId}`,
+          html: renderEmail({
+            preheader: 'Your gift card was sent.',
+            heading: 'Gift card sent',
+            paragraphs: [
+              `We emailed ${cards.length} gift card code${cards.length > 1 ? 's' : ''} to ${recipient.name} at ${recipient.email}.`,
+            ],
+            button: {
+              label: 'View your order',
+              url: `${base}/account/orders/${order.orderId}`,
+            },
+          }).html,
+          text: `Your gift card was sent to ${recipient.name} at ${recipient.email}.`,
+        })
+        .catch(() => null);
+    return cards.length;
+  }
   if (buyer && buyer.email) {
     const base = siteUrl();
     const lines = cards.map((c) => `${c.code} · ${formatPaise(c.amount)}`);

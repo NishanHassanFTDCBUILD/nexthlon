@@ -182,6 +182,15 @@
 
             <% const firstEta = chosen && typeof estimates !== 'undefined' ? estimates[String(chosen._id)] : null; %>
             <p class="pay-eta" data-pay-eta <%= firstEta && firstEta.deliverable ? '' : 'hidden' %>><%- icon('truck', 'i-xs') %> Arrives <strong data-pay-eta-text><%= firstEta && firstEta.deliverable ? firstEta.label : '' %></strong><% if (firstEta && firstEta.orderBy) { %> <span class="muted">if you order by <%= firstEta.orderBy %></span><% } %></p>
+            <fieldset class="gift-recipient" data-gift-block>
+              <legend class="label-caps">Gift</legend>
+              <label class="check-label"><input type="checkbox" name="giftFor" data-gift-toggle> <span>These gift cards are for someone else</span></label>
+              <div class="gift-fields" data-gift-fields hidden>
+                <div class="field"><label for="gift-name">Their name</label><input id="gift-name" name="giftName" maxlength="60" autocomplete="off"></div>
+                <div class="field"><label for="gift-email">Their email (the codes are sent here)</label><input id="gift-email" name="giftEmail" type="email" maxlength="254" autocomplete="off"></div>
+                <div class="field"><label for="gift-message">A short message <span class="optional">(optional)</span></label><textarea id="gift-message" name="giftMessage" maxlength="200" rows="2"></textarea></div>
+              </div>
+            </fieldset>
             <div class="pay-submit" data-pay-submit>
               <button class="btn btn-primary btn-lg btn-block pay-btn" type="submit" <%= firstChoice && !quote.problems.length ? '' : 'disabled' %>>
                 <%- icon('lock', 'i-sm') %> <span data-place-text>Pay <%= formatPrice(t.total) %> securely</span>

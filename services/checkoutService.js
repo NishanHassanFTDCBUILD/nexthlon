@@ -240,6 +240,7 @@ async function saveOrder(
     paymentStatus,
     stockReserved,
     note,
+    giftRecipient,
   },
   session,
   undo,
@@ -293,6 +294,7 @@ async function saveOrder(
         address: addressSnapshot(address),
         ...orderMoney(totals),
         source: quote.source === 'buynow' ? 'buynow' : 'cart',
+        giftRecipient,
         paymentMethod,
         paymentStatus,
         orderStatus: 'placed',
@@ -312,7 +314,14 @@ async function saveOrder(
 // All of it happens, or none of it.
 async function placeOrder(
   userId,
-  {addressId, paymentMethod, useWallet = false, source = 'cart', codCode = ''},
+  {
+    addressId,
+    paymentMethod,
+    useWallet = false,
+    source = 'cart',
+    codCode = '',
+    giftRecipient = null,
+  },
 ) {
   if (!PAYMENT_METHODS.includes(paymentMethod)) {
     throw new HttpError(400, 'Choose a payment method.', {
@@ -417,6 +426,7 @@ async function placeOrder(
           paymentMethod: method,
           paymentStatus: method === 'wallet' ? 'paid' : 'pending',
           stockReserved: true,
+          giftRecipient,
           note:
             method === 'wallet'
               ? 'Paid from the Nexthlon wallet'

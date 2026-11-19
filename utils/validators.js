@@ -517,6 +517,28 @@ function readFlag(value) {
 
 // Checkout: which address, how to pay and whether to use the wallet. Prices, the coupon and
 // every total are worked out on the server.
+// A gift for someone else: a name, a valid email for the codes, and an optional short message. Anything else is ignored.
+function readGiftRecipient(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const name = text(raw.name);
+  const email = String(raw.email || '')
+    .trim()
+    .toLowerCase();
+  if (
+    !name ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ||
+    email.length > 254
+  )
+    return null;
+  return {
+    name: name.slice(0, 60),
+    email,
+    message: String(raw.message || '')
+      .trim()
+      .slice(0, 200),
+  };
+}
+
 function validatePlaceOrder(body = {}) {
   const errors = {};
   const value = {
@@ -524,6 +546,7 @@ function validatePlaceOrder(body = {}) {
     paymentMethod: text(body.paymentMethod),
     useWallet: readFlag(body.useWallet),
     source: text(body.source) === 'buynow' ? 'buynow' : 'cart',
+    giftRecipient: readGiftRecipient(body.giftRecipient),
     codCode: text(body.codCode)
       .replace(/[^0-9]/g, '')
       .slice(0, 6),

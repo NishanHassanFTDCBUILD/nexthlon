@@ -125,6 +125,7 @@ test('checkout input: only the address and payment method are read', () => {
       useWallet: false,
       source: 'cart',
       codCode: '',
+      giftRecipient: null,
     },
     'prices and totals sent by the browser are never read',
   );

@@ -237,6 +237,14 @@ const orderSchema = new mongoose.Schema(
     total: {type: Number, required: true, min: 0},
     // Where the items came from: the cart, or a single "Buy now" product (the cart is then left alone).
     source: {type: String, enum: ['cart', 'buynow'], default: 'cart'},
+    // A gift card order sent to someone else: their name, the email the codes go to, and a short message.
+    giftRecipient: {
+      type: new mongoose.Schema(
+        {name: String, email: String, message: String},
+        {_id: false},
+      ),
+      default: null,
+    },
     paymentMethod: {
       type: String,
       enum: ['cod', 'razorpay', 'wallet'],
