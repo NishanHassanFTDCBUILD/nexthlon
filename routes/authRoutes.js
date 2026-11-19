@@ -31,6 +31,11 @@ const googleSignIn = require('../controllers/googleSignInController');
 router.get('/google', authLimiter, googleSignIn.start);
 router.get('/google/callback', authLimiter, googleSignIn.callback);
 router.post('/admin/login', adminLoginLimiter, accountLoginLimiter, adminLogin);
+router.post(
+  '/admin/login/2fa',
+  adminLoginLimiter,
+  require('../controllers/authController').adminLoginTwoFactor,
+);
 // Forgotten password, and confirming an email: the links in the emails lead to pages that call these.
 router.post('/password/forgot', forgotLimiter, recovery.forgotPassword);
 router.post('/password/reset', linkLimiter, recovery.resetPassword);

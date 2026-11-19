@@ -73,6 +73,7 @@ const ADMIN_NAV = [
         icon: 'bolt',
         perm: 'settings.write',
       },
+      {key: 'security', label: 'Account security', icon: 'lock'},
       {key: 'settings', label: 'Settings', icon: 'settings'},
       {key: 'system', label: 'System status', icon: 'monitor'},
     ],

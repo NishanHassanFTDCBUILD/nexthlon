@@ -92,6 +92,8 @@
       <button type="button" class="btn btn-ghost" data-customer-do="block" data-blocked="<%= customer.isBlocked ? 'true' : 'false' %>"><%= customer.isBlocked ? 'Unblock account' : 'Block account' %></button>
       <button type="button" class="btn btn-ghost" data-customer-do="cod" data-cod-blocked="<%= customer.codBlocked ? 'true' : 'false' %>"><%= customer.codBlocked ? 'Allow Cash on Delivery' : 'Turn off Cash on Delivery' %></button>
       <button type="button" class="btn btn-ghost" data-customer-do="signout">Sign out of all devices</button>
+      <a class="btn btn-ghost" href="/api/admin/customers/<%= customer.id %>/data" download>Download their data</a>
+      <button type="button" class="btn btn-ghost" data-customer-do="anonymise">Remove personal details</button>
     </div>
   </section>
 

@@ -39,6 +39,16 @@
         method: 'PATCH',
         body: {codBlocked: blocking},
       };
+    } else if (kind === 'anonymise') {
+      plan = {
+        title: 'Remove personal details?',
+        message:
+          'Their name, email, phone, addresses and saved lists are removed, and the account is switched off. Orders and invoices stay. This cannot be undone.',
+        label: 'Remove personal details',
+        tone: 'danger',
+        url: `/api/admin/customers/${id}/anonymise`,
+        method: 'POST',
+      };
     } else if (kind === 'signout') {
       plan = {
         title: 'Sign this customer out everywhere?',

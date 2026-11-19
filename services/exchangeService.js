@@ -15,12 +15,44 @@ const {STORE} = require('../config/store');
 const rules = require('../utils/orderRules');
 const {findOption, optionLabel} = require('../utils/options');
 const {runExclusive} = require('../utils/exclusive');
+const User = require('../models/User');
+const mailService = require('./mailService');
+const logger = require('../utils/logger');
+const {renderEmail, siteUrl} = require('../utils/emailLayout');
 
 const isId = (value) => mongoose.isValidObjectId(value);
 
 function findItem(order, itemId) {
   if (!isId(itemId)) return null;
   return order.items.id(itemId) || null;
+}
+
+// Tells the customer about a swap step. A mail failure is logged and never blocks the swap itself.
+async function emailCustomer(order, item, heading, line) {
+  try {
+    const buyer = await User.findById(order.user).select('email name').lean();
+    if (!buyer || !buyer.email) return;
+    const {html, text} = renderEmail({
+      preheader: `${heading}: ${item.name}`,
+      heading,
+      paragraphs: [line, `Order ${order.orderId}.`],
+      button: {
+        label: 'View your order',
+        url: `${siteUrl()}/account/orders/${order.orderId}`,
+      },
+    });
+    await mailService.send({
+      to: buyer.email,
+      subject: `${heading} · ${order.orderId}`,
+      html,
+      text,
+    });
+  } catch (error) {
+    logger.warn('exchange.email_failed', {
+      orderId: order.orderId,
+      message: error.message,
+    });
+  }
 }
 
 function pushHistory(order, status, by, note, now) {
@@ -76,6 +108,12 @@ async function requestExchange(
     now,
   );
   await order.save();
+  await emailCustomer(
+    order,
+    item,
+    'Size swap requested',
+    `We have your request to swap ${item.name} to ${item.exchange.option}. We confirm it shortly.`,
+  );
   return order;
 }
 
@@ -118,6 +156,20 @@ async function decideExchange(orderId, itemId, decision, now = new Date()) {
     now,
   );
   await order.save();
+  if (item.exchange.status === 'approved')
+    await emailCustomer(
+      order,
+      item,
+      'Size swap confirmed',
+      `Your swap of ${item.name} to ${item.exchange.option} is confirmed. The new size is on its way.`,
+    );
+  else
+    await emailCustomer(
+      order,
+      item,
+      'Size swap not approved',
+      `We could not approve the swap of ${item.name}. You keep your current size.`,
+    );
   return order;
 }
 
@@ -152,10 +204,16 @@ async function completeExchange(orderId, itemId, now = new Date()) {
     now,
   );
   await order.save();
+  await emailCustomer(
+    order,
+    item,
+    'Size swap done',
+    `Your ${item.name} is now in ${item.exchange.option}.`,
+  );
   return order;
 }
 
-module.exports = {requestExchange, decideExchange, completeExchange}; // For the customer's order page: each delivered item with the other sizes that are in stock.
+// For the customer's order page: each delivered item with the other sizes that are in stock.
 // Keyed by item id, and empty when the swap is not open (too late, already asked, or no other size).
 async function choicesFor(order, now = new Date()) {
   const open = rules.canRequestReturn(order, STORE.returnDays, now);

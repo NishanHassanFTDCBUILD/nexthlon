@@ -61,6 +61,12 @@ router.patch('/customers/:userId/block', setCustomerBlocked);
 const customerApi = require('../controllers/adminCustomerController');
 router.get('/customers/:userId/profile', customerApi.profileApi);
 router.patch('/customers/:userId/note', adminWriteLimiter, customerApi.noteApi);
+router.get('/customers/:userId/data', customerApi.dataExportApi);
+router.post(
+  '/customers/:userId/anonymise',
+  adminWriteLimiter,
+  customerApi.anonymiseApi,
+);
 router.patch(
   '/customers/:userId/cod-block',
   adminWriteLimiter,
@@ -309,6 +315,11 @@ router.post(
   opsApi.rerunWebhook,
 );
 router.get('/reports/gst.csv', opsApi.gstCsv);
+// Account security: two-step sign-in for the signed-in admin (services/adminTwoFactorService.js).
+const security = require('../controllers/adminSecurityController');
+router.post('/security/2fa/setup', adminWriteLimiter, security.setup);
+router.post('/security/2fa/enable', adminWriteLimiter, security.enable);
+router.post('/security/2fa/disable', adminWriteLimiter, security.disable);
 // Gift cards: the list and switching one off (settings.write; see utils/permissions.js).
 const giftAdmin = require('../controllers/giftCardController');
 router.get('/gift-cards', giftAdmin.listApi);

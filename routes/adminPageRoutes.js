@@ -116,6 +116,7 @@ router.get(
 const opsPages = require('../controllers/adminOpsController');
 router.get('/webhooks', needsPage('settings.write'), opsPages.webhooksPage);
 router.get('/gst', needsPage('reports.read'), opsPages.gstPage);
+router.get('/security', require('../controllers/adminSecurityController').page);
 router.get(
   '/gift-cards',
   needsPage('settings.write'),

@@ -1,0 +1,45 @@
+<%- include('../partials/admin-start', { section: 'security', page: 'security' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Your account</span>
+    <h1>Account security</h1>
+    <p class="muted">Two-step sign-in asks for a code from your phone's authenticator app after your password. You also get an email when this console is opened from a browser you have not used before.</p>
+  </div>
+</header>
+
+<% if (twoFactorOn) { %>
+<section class="panel admin-block" aria-labelledby="sec-on">
+  <h2 id="sec-on" class="panel-title">Two-step sign-in is on</h2>
+  <p class="muted">To turn it off, enter a current code from your app, or one of your recovery codes.</p>
+  <form class="admin-inline-form" data-security-disable novalidate>
+    <label class="admin-field"><span>Code</span><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" required></label>
+    <div class="form-alert" data-form-alert aria-live="assertive"></div>
+    <button type="submit" class="btn btn-danger" data-security-submit>Turn off two-step sign-in</button>
+  </form>
+</section>
+<% } else { %>
+<section class="panel admin-block" aria-labelledby="sec-off">
+  <h2 id="sec-off" class="panel-title">Turn on two-step sign-in</h2>
+  <p class="muted">You need an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, 1Password or similar).</p>
+  <button type="button" class="btn btn-primary" data-security-setup>Start setup</button>
+  <div class="security-setup" data-security-setup-panel hidden>
+    <ol class="security-steps">
+      <li>In your authenticator app, add an account and choose "Enter a setup key".</li>
+      <li>Name it Nexthlon and paste this key: <code class="security-key" data-security-key></code></li>
+      <li>Type the 6-digit code it shows, below.</li>
+    </ol>
+    <p><a class="link-btn" href="#" data-security-uri>Open in an authenticator app</a></p>
+    <form class="admin-inline-form" data-security-enable novalidate>
+      <label class="admin-field"><span>6-digit code</span><input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+      <div class="form-alert" data-form-alert aria-live="assertive"></div>
+      <button type="submit" class="btn btn-primary" data-security-submit>Turn on</button>
+    </form>
+  </div>
+  <div class="security-recovery" data-security-recovery hidden>
+    <h3>Recovery codes</h3>
+    <p class="muted">Save these now. They are shown once. Each one signs you in once if you lose your phone.</p>
+    <ul class="security-codes" data-security-codes></ul>
+  </div>
+</section>
+<% } %>
+<%- include('../partials/admin-end') %>

@@ -34,6 +34,14 @@ registry.schedule('price-sweep', {
   type: 'price.sweep',
 });
 
+// Abandoned-cart reminders: a sweep every 15 minutes (services/cartReminderService.js).
+const cartReminderService = require('../services/cartReminderService');
+registry.register('cart.reminders', () => cartReminderService.sweep());
+registry.schedule('cart-reminders', {
+  everyMs: 15 * 60 * 1000,
+  type: 'cart.reminders',
+});
+
 // Resume interrupted payment, cancellation, return and refund work after restarts.
 registry.register('commerce.recover', () =>
   require('../services/commerceRecoveryService').sweep(),

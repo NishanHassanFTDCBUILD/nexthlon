@@ -1,6 +1,7 @@
 // Customer 360: one customer's profile page, its JSON, and the team's private note.
 const customerProfileService = require('../services/customerProfileService');
 const adminService = require('../services/adminService');
+const privacyService = require('../services/privacyService');
 const auditService = require('../services/auditService');
 const config = require('../config/env');
 const {asyncHandler, HttpError} = require('../utils/http');
@@ -65,4 +66,34 @@ const customerPage = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = {profileApi, noteApi, codBlockApi, signOutApi, customerPage};
+// GET /api/admin/customers/:userId/data  (the customer's data as one file, on their request)
+const dataExportApi = asyncHandler(async (req, res) => {
+  const data = await privacyService.exportData(
+    req.params.userId,
+    auditService.fromRequest(req),
+  );
+  res.setHeader(
+    'Content-Disposition',
+    'attachment; filename="customer-data.json"',
+  );
+  res.json(data);
+});
+
+// POST /api/admin/customers/:userId/anonymise  (remove personal details; orders and invoices stay)
+const anonymiseApi = asyncHandler(async (req, res) => {
+  const result = await privacyService.anonymise(
+    req.params.userId,
+    auditService.fromRequest(req),
+  );
+  res.json({message: result.message});
+});
+
+module.exports = {
+  profileApi,
+  noteApi,
+  codBlockApi,
+  signOutApi,
+  dataExportApi,
+  anonymiseApi,
+  customerPage,
+};

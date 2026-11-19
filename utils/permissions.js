@@ -89,6 +89,7 @@ const RULES = [
   [/^\/coupons/, 'coupons.write'],
   [/^\/customers\/[^/]+\/wallet/, 'wallet.write'],
   [/^\/customers/, 'customers.write'],
+  [/^\/security\//, 'read'],
   [/^\/returns\/rules/, 'settings.write'],
   [/^\/returns/, 'refunds.write'],
   [/^\/transactions/, 'reports.read'],

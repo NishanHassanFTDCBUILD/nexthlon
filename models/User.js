@@ -42,6 +42,22 @@ const userSchema = new mongoose.Schema(
     isBlocked: {type: Boolean, default: false, index: true},
     // Cash on Delivery turned off for this one customer (fraud control). Set on the customer page.
     codBlocked: {type: Boolean, default: false},
+    // Admin two-step sign-in (services/adminTwoFactorService.js). Secrets and codes are never selected by default.
+    twoFactor: {
+      type: new mongoose.Schema(
+        {
+          enabled: {type: Boolean, default: false},
+          secret: {type: String, default: '', select: false},
+          pendingSecret: {type: String, default: '', select: false},
+          recoveryHashes: {type: [String], default: [], select: false},
+          enabledAt: {type: Date, default: null},
+        },
+        {_id: false},
+      ),
+      default: () => ({}),
+    },
+    // Hashes of the admin browsers already seen, so a new sign-in can be flagged by email.
+    adminDevices: {type: [String], default: [], select: false},
     // A private note the team keeps on a customer. Never shown to the customer.
     adminNote: {type: String, default: '', maxlength: 1000},
     // Copied into every token. Changing the password adds 1, so all older tokens stop working.

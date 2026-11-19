@@ -426,6 +426,18 @@
         return;
       }
 
+      // Admin with two-step sign-in: the password was right, so now the code is asked for.
+      if (result.twoFactorRequired) {
+        form.elements.pendingToken.value = result.pendingToken;
+        form.dataset.endpoint = '/api/admin/login/2fa';
+        form.querySelector('[data-twofactor]').hidden = false;
+        form.elements.code.required = true;
+        setButton('idle');
+        Nx.formAlert(form, result.message, 'success');
+        form.elements.code.focus();
+        return;
+      }
+
       // Forgot password, confirm email: a message in the card instead of a trip into the store.
       if (form.dataset.success === 'inline') {
         setButton('done');
