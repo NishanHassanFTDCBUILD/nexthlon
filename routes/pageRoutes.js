@@ -38,6 +38,12 @@ router.get('/shipping-policy', publicCache, pages.infoPage('shipping'));
 
 // Customer account
 router.get('/login', guestOnly, pages.login);
+// Sign in with a code to your phone (a page with a phone and a code field).
+router.get('/sign-in/phone', guestOnly, (req, res) =>
+  res.render('pages/phone-sign-in', {
+    title: 'Sign in with your phone | Nexthlon',
+  }),
+);
 router.get('/signup', guestOnly, pages.signup);
 // Forgotten password and email confirmation. The reset and confirm pages open from the links in emails,
 // so they work whether or not someone is signed in.

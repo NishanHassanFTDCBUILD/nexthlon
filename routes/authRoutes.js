@@ -22,6 +22,10 @@ const {
 // Mounted at /api
 router.post('/signup', authLimiter, signup);
 router.post('/login', authLimiter, accountLoginLimiter, login);
+// Sign in with a code to your phone (accounts that have a mobile number). Each step is rate limited by address.
+const phoneSignIn = require('../controllers/phoneSignInController');
+router.post('/phone/request', authLimiter, phoneSignIn.requestCode);
+router.post('/phone/verify', authLimiter, phoneSignIn.verifyCode);
 router.post('/admin/login', adminLoginLimiter, accountLoginLimiter, adminLogin);
 // Forgotten password, and confirming an email: the links in the emails lead to pages that call these.
 router.post('/password/forgot', forgotLimiter, recovery.forgotPassword);

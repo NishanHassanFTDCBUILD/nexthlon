@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const phoneCodeSchema = new mongoose.Schema({
   user: {type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true},
   phone: {type: String, required: true},
-  purpose: {type: String, enum: ['cod'], default: 'cod'},
+  purpose: {type: String, enum: ['cod', 'signin'], default: 'cod'},
   codeHash: {type: String, required: true},
   attempts: {type: Number, default: 0},
   sentCount: {type: Number, default: 1},
