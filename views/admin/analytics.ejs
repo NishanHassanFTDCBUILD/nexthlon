@@ -95,7 +95,6 @@
         <li><span class="dash-action"><%- icon('cart', 'i-sm') %><span>Shoppers with items in a cart</span><strong><%= funnel.carts.toLocaleString('en-IN') %></strong></span></li>
         <li><span class="dash-action has-count"><%- icon('package-check', 'i-sm') %><span>Orders placed</span><strong><%= funnel.orders.toLocaleString('en-IN') %></strong></span></li>
         <li><span class="dash-action"><%- icon('credit-card', 'i-sm') %><span>Orders paid</span><strong><%= funnel.paid.toLocaleString('en-IN') %></strong></span></li>
-        <li><a class="dash-action" href="<%= adminPath %>/abandoned-carts"><%- icon('zap-off', 'i-sm') %><span>Never became an order</span><strong><%= funnel.abandoned.toLocaleString('en-IN') %></strong></a></li>
       </ul>
       <p class="muted dash-sub">
         <strong><%= funnel.cartToOrder.toFixed(1) %>%</strong> of filled baskets became an order,

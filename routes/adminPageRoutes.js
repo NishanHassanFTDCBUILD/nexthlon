@@ -45,7 +45,6 @@ router.get('/transactions', sales.transactions);
 router.get('/transactions/reconciliation', sales.reconciliation);
 router.get('/transactions/:id', sales.transaction);
 router.get('/refunds', sales.refunds);
-router.get('/abandoned-carts', sales.abandonedCarts);
 // Coupons: the fixed paths come before /:couponId so "new" is never read as an id.
 router.get('/coupons', sales.coupons);
 router.get('/coupons/new', sales.couponNew);

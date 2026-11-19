@@ -1,8 +1,7 @@
-// Admin APIs for orders, returns, the money ledger, refunds and abandoned carts. Thin: validate,
+// Admin APIs for orders, returns, the money ledger and refunds. Thin: validate,
 // call the service, write the audit log, reply. Every change made here is audit-logged.
 const adminOrderService = require('../services/adminOrderService');
 const ledgerService = require('../services/ledgerService');
-const cartRecoveryService = require('../services/cartRecoveryService');
 const auditService = require('../services/auditService');
 const invoiceService = require('../services/invoiceService');
 const shippingService = require('../services/shippingService');
@@ -385,24 +384,6 @@ const listRefunds = asyncHandler(async (req, res) => {
   res.json(await ledgerService.listRefunds(req.query));
 });
 
-// ---------- Abandoned carts ----------
-const listAbandoned = asyncHandler(async (req, res) => {
-  res.json(await cartRecoveryService.listAbandoned(req.query));
-});
-
-const remindCart = asyncHandler(async (req, res) => {
-  const result = await cartRecoveryService.remind(req.params.cartId);
-  await audit(req, 'cart.reminder', `cart:${result.cart.id}`, null, {
-    customer: result.cart.customer,
-    value: result.cart.value,
-    queued: true,
-  });
-  res.json({
-    message: `Reminder for ${result.cart.customer} is on its way: it goes out in a moment.`,
-    ...result,
-  });
-});
-
 module.exports = {
   listOrders,
   exportOrders,
@@ -425,6 +406,4 @@ module.exports = {
   getTransaction,
   reconciliation,
   listRefunds,
-  listAbandoned,
-  remindCart,
 };

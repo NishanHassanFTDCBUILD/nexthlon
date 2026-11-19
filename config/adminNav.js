@@ -19,7 +19,6 @@ const ADMIN_NAV = [
       {key: 'returns', label: 'Returns', icon: 'rotate-ccw'},
       {key: 'transactions', label: 'Transactions', icon: 'credit-card'},
       {key: 'refunds', label: 'Refunds', icon: 'wallet'},
-      {key: 'abandoned-carts', label: 'Abandoned carts', icon: 'cart'},
       {key: 'coupons', label: 'Coupons', icon: 'ticket'},
       {key: 'deals', label: 'Deals of the day', icon: 'bolt'},
     ],

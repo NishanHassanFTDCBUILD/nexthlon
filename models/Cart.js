@@ -32,14 +32,11 @@ const cartSchema = new mongoose.Schema(
     items: {type: [cartItemSchema], default: []},
     // The coupon chosen at checkout. It is checked again every time the totals are worked out.
     couponCode: {type: String, default: ''},
-    // Abandoned-cart reminders (admin): when the last one went, and how many so far.
-    reminderSentAt: {type: Date, default: null},
-    reminderCount: {type: Number, default: 0, min: 0},
   },
   {timestamps: true},
 );
 
-// Abandoned carts: carts not touched for a while.
+// Carts by when they last changed (guest-cart clean-up and analytics).
 cartSchema.index({updatedAt: 1});
 
 module.exports = mongoose.model('Cart', cartSchema);

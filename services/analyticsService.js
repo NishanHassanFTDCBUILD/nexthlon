@@ -291,7 +291,6 @@ async function funnel(range) {
     paid,
     cartToOrder: baskets ? Math.round((orders / baskets) * 1000) / 10 : 0,
     orderToPaid: orders ? Math.round((paid / orders) * 1000) / 10 : 0,
-    abandoned: Math.max(baskets - orders, 0),
   };
 }
 

@@ -175,14 +175,6 @@ router.get('/transactions/reconciliation', orders.reconciliation);
 router.get('/transactions/:id', orders.getTransaction);
 router.get('/refunds', orders.listRefunds);
 
-// Abandoned carts
-router.get('/abandoned-carts', orders.listAbandoned);
-router.post(
-  '/abandoned-carts/:cartId/remind',
-  adminMoneyLimiter,
-  orders.remindCart,
-);
-
 // Inventory: stock corrections are one atomic update each, and all of them are audit-logged.
 router.get('/inventory', catalog.listInventory);
 router.get('/inventory/export.csv', catalog.exportInventory);

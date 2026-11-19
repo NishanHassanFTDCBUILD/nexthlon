@@ -1,5 +1,5 @@
 // Admin Sales sections: orders (filters, bulk status, column picker), one order (status, cancel,
-// shipments, notes, refunds, return decisions), returns, transactions, refunds and abandoned carts.
+// shipments, notes, refunds, return decisions), returns, transactions and refunds.
 // Each section is a window.NxPages module, so it keeps working after no-reload section switches.
 (function () {
   'use strict';
@@ -383,43 +383,6 @@
             'error',
           );
         go(`${BASE}/orders/${orderId}`);
-      },
-      {signal},
-    );
-  });
-
-  // ---------- Abandoned carts ----------
-  Pages.define('admin-abandoned-carts', (root, signal) => {
-    root.addEventListener(
-      'click',
-      async (event) => {
-        const button = event.target.closest('[data-remind]');
-        if (!button) return;
-        const ok = await Nx.confirm({
-          title: `Email ${button.dataset.name} a reminder?`,
-          message:
-            'They get a short email listing what is in their cart, with a link back to it. One reminder a day at most.',
-          confirmLabel: 'Send reminder',
-          tone: 'primary',
-        });
-        if (!ok) return;
-        Nx.busy(button, true, 'Sending…');
-        try {
-          const reply = await Nx.api(
-            `/api/admin/abandoned-carts/${encodeURIComponent(button.dataset.remind)}/remind`,
-            {method: 'POST'},
-          );
-          const done = document.createElement('span');
-          done.className = 'pill pill-green';
-          done.textContent = reply.delivered
-            ? 'Reminder sent'
-            : 'Reminder logged';
-          button.replaceWith(done);
-          Nx.toast(reply.message);
-        } catch (error) {
-          Nx.busy(button, false);
-          Nx.toast(error.message, 'error');
-        }
       },
       {signal},
     );

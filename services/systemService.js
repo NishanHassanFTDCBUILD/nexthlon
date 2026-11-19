@@ -75,7 +75,7 @@ async function counts() {
     {label: 'Orders', value: orders, section: 'orders'},
     {label: 'Products', value: products, section: 'products'},
     {label: 'Customers', value: customers, section: 'customers'},
-    {label: 'Live carts', value: carts, section: 'abandoned-carts'},
+    {label: 'Live carts', value: carts, section: ''},
     {label: 'Coupons', value: coupons, section: 'coupons'},
     {label: 'Signed-in devices', value: sessions, section: ''},
   ];

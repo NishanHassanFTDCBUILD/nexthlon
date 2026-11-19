@@ -37,8 +37,6 @@ ordinary 404.
 - **Transactions** — every Razorpay and wallet movement: status, amount, payment id, a link to the
   order, search, filters and a CSV/Excel export, plus a daily reconciliation.
 - **Refunds** — refunds to the wallet or back to the card/UPI, with status, amount and the order.
-- **Abandoned carts** — carts untouched for 24 hours or more: customer, items, value, last
-  activity, filter by age, sort by value, and a reminder email.
 - **Coupons** — see below.
 
 **Catalog**
@@ -114,7 +112,6 @@ own review from My Account → Reviews. There is no admin screen to hide or dele
   - It shows money in, money out and net totals, a detail page for each entry, and CSV/Excel export.
   - `/transactions/reconciliation` compares orders marked paid with the Razorpay payments recorded, day by day, and lists mismatches.
 - `<ADMIN_PATH>/refunds` lists refunds as pending, processed or failed.
-- `<ADMIN_PATH>/abandoned-carts` lists carts idle for 24 hours or more, with a reminder email (at most one a day, and only to customers who accept offer emails) and the recovery rate.
 - Emails go through a provider chosen by `MAIL_DRIVER`: `smtp` (nodemailer) or `brevo` (HTTPS API, `BREVO_API_KEY`). Order emails (confirmed, shipped with tracking, out for delivery, delivered, cancelled, refunded, returns) are sent by background jobs: events saved in MongoDB, retried with growing waits, sent exactly once (`EmailLog`). Run `npm run emails:preview` to see them, `npm run jobs:status` / `jobs:retry` to inspect the queue, `npm run worker` for a stand-alone worker (`JOBS_ENABLED=false` on the web copies). SMTP uses `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `MAIL_FROM`. Without SMTP they are printed to the console in development; in production sending fails with a clear message.
 - Every admin change is written to the audit log. Refunds, return decisions and reminders are rate limited.
 

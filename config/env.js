@@ -75,8 +75,6 @@ function readConfig() {
       enabled: text('JOBS_ENABLED').toLowerCase() !== 'false',
       concurrency: Number(text('JOBS_CONCURRENCY')) || 2,
     },
-    // true: abandoned carts get their reminder automatically (once a day each); false: only the admin's button.
-    cartRecoveryAuto: text('CART_RECOVERY_AUTO').toLowerCase() === 'true',
     // Online payments (Razorpay). Optional: without the keys the store still runs, and the
     // online payment option shows as unavailable. The secrets never leave the server.
     razorpay: readRazorpay(),

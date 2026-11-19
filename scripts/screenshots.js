@@ -301,7 +301,6 @@ async function main() {
             `${a}/transactions/reconciliation`,
           ],
           ['admin-refunds', 'Refunds', `${a}/refunds`],
-          ['admin-abandoned', 'Abandoned carts', `${a}/abandoned-carts`],
           ['admin-coupons', 'Coupons', `${a}/coupons`],
           ['admin-coupon-new', 'New coupon', `${a}/coupons/new`],
           ...(ids.coupon

@@ -1,4 +1,4 @@
-// Admin Part 4: orders, returns, the money ledger, refunds and abandoned carts.
+// Admin Part 4: orders, returns, the money ledger, and refunds.
 require('./helpers');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -17,11 +17,9 @@ const app = require('../app');
 const User = require('../models/User');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
-const Cart = require('../models/Cart');
 const AuditLog = require('../models/AuditLog');
 const WalletTransaction = require('../models/WalletTransaction');
 const mailService = require('../services/mailService');
-const {createWorker} = require('../jobs/worker');
 require('../jobs/handlers');
 const categoryService = require('../services/categoryService');
 const {hashPassword} = require('../services/authService');
@@ -667,93 +665,4 @@ test('money ledger: every movement, totals, one entry, filters and reconciliatio
       200,
       page,
     );
-});
-
-test('abandoned carts: listed after 24 hours, one reminder a day, opt-outs respected, recovery rate', async () => {
-  const cart = await Cart.findOneAndUpdate(
-    {user: customer._id},
-    {items: [{product: shoe._id, quantity: 2}]},
-    {upsert: true, new: true},
-  );
-  // Too fresh: not abandoned yet.
-  assert.equal(
-    (await call('GET', '/api/admin/abandoned-carts', {cookie: adminCookie}))
-      .data.carts.length,
-    0,
-  );
-  const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-  await Cart.collection.updateOne(
-    {_id: cart._id},
-    {$set: {updatedAt: twoDaysAgo}},
-  );
-  const list = await call('GET', '/api/admin/abandoned-carts', {
-    cookie: adminCookie,
-  });
-  assert.equal(list.data.carts.length, 1);
-  assert.equal(list.data.carts[0].value, shoe.price * 2);
-  assert.equal(list.data.carts[0].canRemind, true);
-
-  const sent = await call(
-    'POST',
-    `/api/admin/abandoned-carts/${cart._id}/remind`,
-    {cookie: adminCookie},
-  );
-  assert.equal(sent.status, 200);
-  await createWorker().drain();
-  const reminders = outbox.filter((mail) =>
-    /left something/.test(mail.subject),
-  );
-  assert.equal(reminders.length, 1);
-  assert.equal(reminders[0].to, 'asha@sales.test');
-  assert.match(reminders[0].text, /Sales Trail Shoe/);
-  assert.match(reminders[0].text, /Qty 2/);
-  const saved = await Cart.findById(cart._id).lean();
-  assert.ok(saved.reminderSentAt);
-  assert.equal(saved.updatedAt.getTime(), twoDaysAgo.getTime()); // still abandoned
-  assert.equal(
-    (
-      await call('POST', `/api/admin/abandoned-carts/${cart._id}/remind`, {
-        cookie: adminCookie,
-      })
-    ).status,
-    400,
-  ); // once a day
-  assert.ok(await AuditLog.findOne({action: 'cart.reminder'}));
-
-  // An order after the reminder counts as recovered.
-  await makeOrder();
-  const stats = (
-    await call('GET', '/api/admin/abandoned-carts', {cookie: adminCookie})
-  ).data.stats;
-  assert.equal(stats.reminded, 1);
-  assert.equal(stats.recovered, 1);
-  assert.equal(stats.rate, 100);
-
-  // Customers who turned off offer emails get none.
-  await User.updateOne({_id: customer._id}, {'notifyPrefs.offers': false});
-  await Cart.collection.updateOne(
-    {_id: cart._id},
-    {$set: {reminderSentAt: twoDaysAgo}},
-  );
-  assert.equal(
-    (
-      await call('POST', `/api/admin/abandoned-carts/${cart._id}/remind`, {
-        cookie: adminCookie,
-      })
-    ).status,
-    400,
-  );
-  assert.equal(
-    (await call('GET', `${ADMIN}/abandoned-carts`, {cookie: adminCookie}))
-      .status,
-    200,
-  );
-  assert.equal(
-    (
-      await call('POST', `/api/admin/abandoned-carts/${cart._id}/remind`, {
-        cookie: customerCookie,
-      })
-    ).status,
-    401,
-  );
 });

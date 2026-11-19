@@ -180,7 +180,6 @@ const analyticsCsv = asyncHandler(async (req, res) => {
   res.write(row(['Shoppers with items in a cart', data.funnel.carts]));
   res.write(row(['Orders placed', data.funnel.orders]));
   res.write(row(['Orders paid', data.funnel.paid]));
-  res.write(row(['Carts that never became an order', data.funnel.abandoned]));
   res.end();
 });
 

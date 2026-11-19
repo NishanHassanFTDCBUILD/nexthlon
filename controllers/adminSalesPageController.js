@@ -1,9 +1,8 @@
 // Admin pages for the Sales group: orders, one order, returns, transactions (and one entry, and the
-// daily reconciliation), refunds and abandoned carts. The data comes from the services.
+// daily reconciliation), and refunds. The data comes from the services.
 const config = require('../config/env');
 const adminOrderService = require('../services/adminOrderService');
 const ledgerService = require('../services/ledgerService');
-const cartRecoveryService = require('../services/cartRecoveryService');
 const adminCouponService = require('../services/adminCouponService');
 const dealService = require('../services/dealService');
 const rules = require('../utils/orderRules');
@@ -121,23 +120,6 @@ const refunds = asyncHandler(async (req, res) => {
   });
 });
 
-const abandonedCarts = asyncHandler(async (req, res) => {
-  const data = await cartRecoveryService.listAbandoned(req.query);
-  res.render('admin/abandoned-carts', {
-    title: 'Abandoned carts | Nexthlon Admin',
-    ...data,
-    sorts: {
-      value: 'Highest value',
-      oldest: 'Waiting longest',
-      newest: 'Most recent',
-    },
-    link: linkBuilder(
-      base('abandoned-carts'),
-      without(data.filters, {sort: 'value'}),
-    ),
-  });
-});
-
 // ---------- Coupons ----------
 
 const coupons = asyncHandler(async (req, res) => {
@@ -231,7 +213,6 @@ module.exports = {
   transaction,
   reconciliation,
   refunds,
-  abandonedCarts,
   coupons,
   couponNew,
   couponEdit,

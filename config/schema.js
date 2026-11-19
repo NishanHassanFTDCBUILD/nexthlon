@@ -320,7 +320,7 @@ function checkEnv(env = process.env) {
   }
 
   // ---------- Background jobs ----------
-  for (const name of ['JOBS_ENABLED', 'CART_RECOVERY_AUTO']) {
+  for (const name of ['JOBS_ENABLED']) {
     const value = text(env, name).toLowerCase();
     if (value && !['true', 'false'].includes(value))
       fail(name, `"${value}" must be true or false.`);

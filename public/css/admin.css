@@ -1708,7 +1708,7 @@ body.admin-menu-open {
 }
 
 /* ==========================================================================
-   Sales: orders, one order, returns, transactions, refunds, abandoned carts
+   Sales: orders, one order, returns, transactions, refunds
    ========================================================================== */
 
 /* Status tabs */
@@ -2435,108 +2435,9 @@ body.admin-menu-open {
   font-size: var(--text-sm);
 }
 
-/* Abandoned carts */
-.admin-carts {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.admin-cart {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr) auto minmax(
-      150px,
-      auto
-    );
-  align-items: center;
-  gap: var(--space-1h) var(--space-2);
-  padding: var(--space-md) var(--space-2);
-  border-bottom: 1px solid var(--line);
-}
-
-.admin-cart:last-child {
-  border-bottom: 0;
-}
-
-.admin-cart-who {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  min-width: 0;
-}
-
-.admin-cart-who > span:last-child {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.admin-cart-who small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-cart-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
-.admin-cart-item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-half) var(--space-1) var(--space-half) var(--space-half);
-  border-radius: var(--radius-xs);
-  background: var(--surface-2);
-  font-size: var(--text-xs);
-}
-
-.admin-cart-item img {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  object-fit: cover;
-}
-
-.admin-cart-item.is-gone {
-  opacity: 0.5;
-  text-decoration: line-through;
-}
-
-.admin-cart-value {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.admin-cart-act {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-xs);
-}
-
 @media (max-width: 1100px) {
   .admin-order-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-cart {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .admin-cart-items {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  .admin-cart-act {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
   }
 }
 
@@ -2601,10 +2502,6 @@ body.admin-menu-open {
 
   .admin-inline-form .admin-field {
     flex: 1 1 140px;
-  }
-
-  .admin-cart-value {
-    align-items: flex-start;
   }
 }
 
