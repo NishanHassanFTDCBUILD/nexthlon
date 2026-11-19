@@ -69,6 +69,11 @@ app.use(
         'style-src': ["'self'", "'unsafe-inline'"],
         // Fonts are served from this site (public/fonts), so nothing comes from Google.
         'font-src': ["'self'"],
+        // Product videos come from the photo bucket's address, like photos (see img-src).
+        'media-src': [
+          "'self'",
+          ...(config.storage.origin ? [config.storage.origin] : []),
+        ],
         // Photos: this site, Unsplash (the sample products), Razorpay's logo, and the photo bucket's address.
         'img-src': [
           "'self'",

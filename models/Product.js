@@ -120,6 +120,10 @@ const productSchema = new mongoose.Schema(
     },
     description: {type: String, default: '', maxlength: 4000},
     highlights: {type: [String], default: []},
+    // An optional short video shown under the photos (https MP4 or WebM). Empty for none.
+    videoUrl: {type: String, default: '', maxlength: 500},
+    // A 360 spin: up to 36 photos of the product turning, in order (https image links). Empty for none.
+    spinFrames: {type: [String], default: []},
     specs: {type: Map, of: String, default: {}},
     ratingAverage: {type: Number, default: 0, min: 0, max: 5},
     ratingCount: {type: Number, default: 0, min: 0},

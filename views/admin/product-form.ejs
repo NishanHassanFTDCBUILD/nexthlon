@@ -153,6 +153,16 @@
               <p class="field-error" id="p-weight-error" data-error-for="shipWeight"></p>
             </div>
             <div class="field">
+              <label for="p-video">Video link <span class="optional">(optional: an https link to an MP4 or WebM)</span></label>
+              <input id="p-video" name="videoUrl" type="url" maxlength="500" value="<%= p.videoUrl || '' %>" placeholder="https://…/shoe-spin.mp4" aria-describedby="p-video-error">
+              <p class="field-error" id="p-video-error" data-error-for="videoUrl"></p>
+            </div>
+            <div class="field">
+              <label for="p-spin">360 spin <span class="optional">(optional: one image link per line, up to 36, in turning order)</span></label>
+              <textarea id="p-spin" name="spinFrames" rows="4" placeholder="https://…/shoe-001.jpg" aria-describedby="p-spin-error"><%= p.spinFrames || '' %></textarea>
+              <p class="field-error" id="p-spin-error" data-error-for="spinFrames"></p>
+            </div>
+            <div class="field">
               <label for="p-sku">SKU <span class="optional">(for a product without sizes; sizes have their own)</span></label>
               <input id="p-sku" name="sku" maxlength="40" value="<%= p.sku || '' %>" placeholder="e.g. NX-BALL-5" aria-describedby="p-sku-error">
               <p class="field-error" id="p-sku-error" data-error-for="sku"></p>

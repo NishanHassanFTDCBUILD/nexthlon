@@ -9464,3 +9464,52 @@ html.is-pay-locked body {
   border-color: var(--ink);
   color: var(--ink);
 }
+
+/* ---------- Product video (under the photos) ---------- */
+.pdx-video {
+  margin: var(--space-1) 0 0;
+}
+
+.pdx-video video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--radius);
+  background: var(--surface-3);
+}
+
+/* ---------- 360 spin (under the photos) ---------- */
+.pdx-spin {
+  position: relative;
+  margin-top: var(--space-1);
+  border-radius: var(--radius);
+  background: var(--surface-3);
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.pdx-spin:active {
+  cursor: grabbing;
+}
+
+.pdx-spin img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.pdx-spin-hint {
+  position: absolute;
+  left: var(--space-1);
+  bottom: var(--space-1);
+  margin: 0;
+  padding: var(--space-xxs) var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+}

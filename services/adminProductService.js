@@ -92,6 +92,8 @@ function toAdminProduct(product) {
     manufacturer: product.manufacturer || '',
     netQuantity: product.netQuantity || '',
     shipWeight: product.shipWeight || '',
+    videoUrl: product.videoUrl || '',
+    spinFrames: (product.spinFrames || []).join(String.fromCharCode(10)),
     sku: product.sku || '',
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,

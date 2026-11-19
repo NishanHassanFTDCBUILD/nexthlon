@@ -189,6 +189,23 @@ function readPercent(value, max = 90) {
 // Admin product form. The selling price, discount and slug are never read from here; the server
 // works them out from the base price, the M.R.P. and the offers. category is the category's id
 // (the service checks that it exists).
+// An https link to an MP4 or WebM file: no spaces, and the path (before any ?query or #part) ends in the extension.
+function isVideoLink(url) {
+  if (!url.startsWith('https://') || url.length > 500) return false;
+  if (url.split('').some((ch) => ch === ' ' || ch === '\t' || ch === '\n'))
+    return false;
+  const path = url.split('?')[0].split('#')[0].toLowerCase();
+  return path.endsWith('.mp4') || path.endsWith('.webm');
+}
+
+// An https link to a still image (JPG, PNG or WebP): no spaces, a sane length.
+function isImageLink(url) {
+  if (!url.startsWith('https://') || url.length > 500) return false;
+  if (url.split('').some((ch) => ch === ' ' || ch === '	')) return false;
+  const path = url.split('?')[0].split('#')[0].toLowerCase();
+  return ['.jpg', '.jpeg', '.png', '.webp'].some((ext) => path.endsWith(ext));
+}
+
 function validateProduct(body = {}) {
   const errors = {};
   const value = {
@@ -254,6 +271,27 @@ function validateProduct(body = {}) {
       errors.shipWeight =
         'Enter the packed weight in whole grams, up to 50000 (50 kg).';
     else value.shipWeight = grams;
+  }
+  // A short product video: an https link to an MP4 or WebM file. Empty removes it.
+  // (Checked without a regex: the link must start with https://, have no spaces, and end in .mp4 or .webm before any ?query.)
+  if (body.videoUrl !== undefined) {
+    const url = String(body.videoUrl).trim();
+    if (url === '') value.videoUrl = '';
+    else if (url.length > 500 || !isVideoLink(url))
+      errors.videoUrl =
+        'Use an https link to an MP4 or WebM video, up to 500 characters.';
+    else value.videoUrl = url;
+  }
+  // A 360 spin: one https image link per line, 36 at most. Empty removes it.
+  if (body.spinFrames !== undefined) {
+    const lines = Array.isArray(body.spinFrames)
+      ? body.spinFrames
+      : String(body.spinFrames).split(String.fromCharCode(10));
+    const frames = lines.map((line) => String(line).trim()).filter(Boolean);
+    if (frames.length > 36 || frames.some((url) => !isImageLink(url)))
+      errors.spinFrames =
+        'List up to 36 https links to images (JPG, PNG or WebP), one per line.';
+    else value.spinFrames = frames;
   }
   if (value.countryOfOrigin === '')
     errors.countryOfOrigin = 'Enter the country of origin (for example India).';

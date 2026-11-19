@@ -72,7 +72,20 @@
             <% }) %>
           </div>
         <% } %>
+        <% if (product.videoUrl) { %>
+          <figure class="pdx-video">
+            <video src="<%= product.videoUrl %>" poster="<%= product.image %>" controls muted loop playsinline preload="none" aria-label="Video of <%= product.name %>"></video>
+          </figure>
+        <% } %>
       </div>
+
+      <%# A 360 spin under the photos: drag to turn it (public/js/spin.js). %>
+      <% if (product.spinFrames && product.spinFrames.length > 2) { %>
+      <div class="pdx-spin" data-spin data-frames="<%= product.spinFrames.join(' ') %>" tabindex="0" role="img" aria-label="360 view of <%= product.name %>, drag or use the arrow keys to turn it">
+        <img src="<%= product.spinFrames[0] %>" alt="" width="900" height="900" loading="lazy" decoding="async" data-spin-frame>
+        <p class="pdx-spin-hint"><%- icon('arrow-right', 'i-xs') %> Drag to turn</p>
+      </div>
+      <% } %>
 
       <%# ---------- Story + buy panel ---------- %>
       <div class="pdx-info">
