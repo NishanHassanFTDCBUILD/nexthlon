@@ -4557,6 +4557,14 @@ body.admin-menu-open {
   font-size: var(--text-sm);
 }
 
+.goal-alert {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+}
+
 .goal-bar {
   height: 10px;
   border-radius: var(--radius-pill);

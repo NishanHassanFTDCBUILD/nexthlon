@@ -2,7 +2,9 @@
 // report (the API, its CSV and its page). Changing a goal is audit-logged.
 const revenueGoalService = require('../services/revenueGoalService');
 const returnReasonsService = require('../services/returnReasonsService');
+const returnRulesService = require('../services/returnRulesService');
 const auditService = require('../services/auditService');
+const {can, roleOf} = require('../utils/permissions');
 const config = require('../config/env');
 const {linkBuilder} = require('../utils/queryString');
 const {asyncHandler} = require('../utils/http');
@@ -34,6 +36,23 @@ const setGoalApi = asyncHandler(async (req, res) => {
   });
 });
 
+// PATCH /api/admin/returns/rules   body: { autoApproveRupees, ownerApproveRupees }  (0 turns a rule off)
+const setReturnRulesApi = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+  const result = await returnRulesService.setRules({
+    autoApproveRupees: body.autoApproveRupees,
+    ownerApproveRupees: body.ownerApproveRupees,
+  });
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: 'returns.rules',
+    target: 'returns:rules',
+    before: result.before,
+    after: result.after,
+  });
+  res.json({message: 'Return rules saved.', rules: result.after});
+});
+
 // GET /api/admin/reports/returns?from=&to=
 const returnsApi = asyncHandler(async (req, res) => {
   res.json(await returnReasonsService.report(req.query));
@@ -52,9 +71,12 @@ const returnsCsv = asyncHandler(async (req, res) => {
 // GET <ADMIN_PATH>/returns-report?from=&to=
 const returnsPage = asyncHandler(async (req, res) => {
   const data = await returnReasonsService.report(req.query);
+  const limits = await returnRulesService.rules();
   res.render('admin/returns-report', {
     title: 'Return reasons | Nexthlon Admin',
     ...data,
+    limits,
+    canSetRules: can(roleOf(req.user), 'settings.write'),
     link: linkBuilder(`${config.adminPath}/returns-report`, {
       from: data.from,
       to: data.to,
@@ -63,4 +85,11 @@ const returnsPage = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = {goalApi, setGoalApi, returnsApi, returnsCsv, returnsPage};
+module.exports = {
+  goalApi,
+  setGoalApi,
+  setReturnRulesApi,
+  returnsApi,
+  returnsCsv,
+  returnsPage,
+};

@@ -14,6 +14,11 @@
     <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.min(100, goal.percent || 0) %>" aria-label="Goal progress">
       <span style="width: <%= Math.min(100, goal.percent || 0) %>%"></span>
     </div>
+    <% if (goal.pace === 'behind') { %>
+      <p class="goal-alert" role="status"><strong>Behind pace.</strong> The month should be at <%= formatPrice(goal.expectedNow) %> by now, and it is <%= formatPrice(goal.expectedNow - goal.revenue) %> short.</p>
+    <% } else if (goal.pace === 'missed') { %>
+      <p class="goal-alert" role="status"><strong>Missed.</strong> The month ended <%= formatPrice(goal.goal - goal.revenue) %> short of the goal.</p>
+    <% } %>
     <% if (!goal.reached && goal.daysLeft) { %>
       <p class="muted">About <%= formatPrice(goal.perDayNeeded) %> a day needed for the last <%= goal.daysLeft %> <%= goal.daysLeft === 1 ? 'day' : 'days' %>.</p>
     <% } %>

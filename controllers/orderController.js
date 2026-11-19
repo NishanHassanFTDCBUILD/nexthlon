@@ -1,6 +1,7 @@
 const checkoutService = require('../services/checkoutService');
 const codConfirmService = require('../services/codConfirmService');
 const orderService = require('../services/orderService');
+const adminOrderService = require('../services/adminOrderService');
 const buyNowService = require('../services/buyNowService');
 const {
   validatePlaceOrder,
@@ -162,9 +163,13 @@ const requestReturn = asyncHandler(async (req, res) => {
       savePhotos: () => imageService.saveImages(files, 'returns'),
     },
   );
+  // The return rules may approve it at once; either way the customer's request has been saved.
+  const approved = await adminOrderService.tryAutoApprove(order);
   res.json({
-    message: 'Return requested. We will arrange a pickup and keep you posted.',
-    order: toPublicOrder(order),
+    message: approved
+      ? 'Return approved. Your refund is on its way.'
+      : 'Return requested. We will arrange a pickup and keep you posted.',
+    order: toPublicOrder(approved || order),
   });
 });
 

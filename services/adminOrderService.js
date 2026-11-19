@@ -13,6 +13,13 @@ const {HttpError} = require('../utils/http');
 const {escapeRegex} = require('./productService');
 const settlementService = require('./settlementService');
 const {readListQuery} = require('../utils/listQuery');
+const {roleOf} = require('../utils/permissions');
+const returnRulesService = require('./returnRulesService');
+const returnRules = require('../utils/returnRules');
+const auditService = require('./auditService');
+
+// Who approves returns made by the return rules, not by a person.
+const RULE_ACTOR = {_id: null, role: 'system', name: 'Return rules'};
 
 const PAGE_SIZE = 20;
 const EXPORT_LIMIT = 20000;
@@ -650,6 +657,15 @@ async function decideReturn(orderId, {decision, note, refundMethod}, actor) {
       order,
       items.map((item) => item._id),
     );
+    const limits = await returnRulesService.rules();
+    if (
+      returnRules.ownerApprovalNeeded(refund, limits.ownerApprovalAbove) &&
+      roleOf(actor) !== 'owner'
+    )
+      throw new HttpError(
+        403,
+        `Refunds above ₹${(limits.ownerApprovalAbove / 100).toLocaleString('en-IN')} need the owner to approve this return.`,
+      );
     items.forEach((item) => {
       item.status = 'returned';
     });
@@ -719,7 +735,51 @@ async function decideReturn(orderId, {decision, note, refundMethod}, actor) {
   };
 }
 
+// Called right after a customer asks for a return. If the rules allow it, the return is approved
+// now; otherwise it waits for the team. A failed automatic approval leaves the return waiting and
+// is written to the audit log, so the team can see it and decide.
+// Returns the approved order, or null when the return was left waiting.
+async function tryAutoApprove(order) {
+  const limits = await returnRulesService.rules();
+  const requested = order.items
+    .filter((item) => item.status === 'return_requested')
+    .map((item) => item._id);
+  if (!requested.length) return null;
+  const refund = rules.refundFor(order, requested);
+  if (!returnRules.autoApprovable(refund, limits)) return null;
+  try {
+    const result = await decideReturn(
+      order.orderId,
+      {
+        decision: 'approve',
+        note: 'Approved automatically under the return rules.',
+        refundMethod: 'wallet',
+      },
+      RULE_ACTOR,
+    );
+    await auditService.record({
+      actor: null,
+      actorRole: 'system',
+      action: 'return.auto_approved',
+      target: `order:${order.orderId}`,
+      before: result.before,
+      after: {...result.after, refund: result.refund},
+    });
+    return result.order;
+  } catch (error) {
+    await auditService.record({
+      actor: null,
+      actorRole: 'system',
+      action: 'return.auto_failed',
+      target: `order:${order.orderId}`,
+      after: {error: error.message},
+    });
+    return null;
+  }
+}
+
 module.exports = {
+  tryAutoApprove,
   setTags,
   PAGE_SIZE,
   ORDER_SORTS,

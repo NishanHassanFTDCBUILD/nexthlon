@@ -53,6 +53,29 @@
     }
   });
 
+  // ---------- Return rules: save the automatic and owner approval limits ----------
+  document.addEventListener('submit', async (event) => {
+    if (!event.target.matches('[data-return-rules]')) return;
+    const form = event.target;
+    event.preventDefault();
+    const button = form.querySelector('[type="submit"]');
+    Nx.busy(button, true, 'Saving…');
+    try {
+      const reply = await Nx.api('/api/admin/returns/rules', {
+        method: 'PATCH',
+        body: {
+          autoApproveRupees: form.elements.autoApproveRupees.value,
+          ownerApproveRupees: form.elements.ownerApproveRupees.value,
+        },
+      });
+      Nx.flash(reply.message);
+      window.location.reload();
+    } catch (error) {
+      Nx.busy(button, false);
+      Nx.toast(error.message, 'error');
+    }
+  });
+
   // ---------- Monthly revenue goal: save the target for the month ----------
   document.addEventListener('submit', async (event) => {
     const form = event.target.closest('[data-goal-form]');

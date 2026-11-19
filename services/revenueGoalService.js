@@ -66,15 +66,27 @@ async function progress(month = currentMonth(), now = new Date()) {
   // Days left in the month, India time (the end is the start of next month).
   const daysLeft = Math.max(0, Math.ceil((end - now) / (24 * 60 * 60 * 1000)));
   const remaining = Math.max(0, goal - total);
+  // Pace: how much of the goal should be in by now, given how far through the month we are.
+  const through = Math.min(1, Math.max(0, (now - start) / (end - start)));
+  const expectedNow = Math.round(goal * through);
+  const reached = goal > 0 && total >= goal;
+  let pace = null;
+  if (goal) {
+    if (reached) pace = 'reached';
+    else if (daysLeft === 0) pace = 'missed';
+    else pace = total >= expectedNow ? 'on_track' : 'behind';
+  }
   return {
     month,
     revenue: total,
     orders,
     goal,
     percent: pct,
-    reached: goal > 0 && total >= goal,
+    reached,
     daysLeft,
     perDayNeeded: goal && daysLeft ? Math.ceil(remaining / daysLeft) : 0,
+    pace,
+    expectedNow,
   };
 }
 

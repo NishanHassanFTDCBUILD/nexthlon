@@ -310,6 +310,7 @@ router.get('/reports/breakdown.csv', breakdownApi.breakdownCsv);
 const goalsApi = require('../controllers/adminGoalsController');
 router.get('/goals', goalsApi.goalApi);
 router.patch('/goals/:month', adminMoneyLimiter, goalsApi.setGoalApi);
+router.patch('/returns/rules', goalsApi.setReturnRulesApi);
 router.get('/reports/returns', goalsApi.returnsApi);
 router.get('/reports/returns.csv', goalsApi.returnsCsv);
 

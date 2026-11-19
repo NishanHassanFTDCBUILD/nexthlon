@@ -153,6 +153,15 @@ function fixture(t, overrides = {}) {
       counters.stockTaken++;
     }
   });
+  // Return rules are read from the database; this fixture has none, so the rules are off here.
+  t.mock.method(
+    require('../services/returnRulesService'),
+    'rules',
+    async () => ({
+      autoApproveUnder: 0,
+      ownerApprovalAbove: 0,
+    }),
+  );
   t.mock.method(stock, 'returnStockOnce', async (_lines, key) => {
     if (!returned.has(key)) {
       returned.add(key);
