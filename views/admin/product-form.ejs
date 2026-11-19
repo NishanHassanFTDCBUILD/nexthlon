@@ -28,8 +28,16 @@
           data-method="<%= isEdit ? 'PATCH' : 'POST' %>">
       <div class="form-alert" data-form-alert aria-live="assertive"></div>
 
+      <nav class="product-jump" aria-label="Jump to a section of this form">
+        <a href="#sec-details">Details</a>
+        <a href="#sec-pricing">Price and stock</a>
+        <a href="#sec-tax">GST and legal</a>
+        <a href="#sec-options">Sizes and colours</a>
+        <a href="#sec-images">Photos</a>
+      </nav>
+
       <div class="product-form-grid">
-        <section class="panel" aria-labelledby="details-title">
+        <section class="panel" id="sec-details" aria-labelledby="details-title">
           <h2 id="details-title" class="panel-title">Details</h2>
           <div class="form-grid form-grid-2">
             <div class="field field-wide">
@@ -63,7 +71,7 @@
           </div>
         </section>
 
-        <section class="panel" aria-labelledby="pricing-title">
+        <section class="panel" id="sec-pricing" aria-labelledby="pricing-title">
           <h2 id="pricing-title" class="panel-title">Price and stock</h2>
           <div class="form-grid form-grid-2">
             <div class="field">
@@ -101,7 +109,7 @@
           const s = p.taxSuggestion || { hsn: '9506', label: 'Sports goods', rate: 5, rateAbove: null, above: null };
           const suggestText = s.label + ': HSN ' + s.hsn + ', ' + s.rate + '%' + (s.rateAbove !== null ? ' up to ₹' + (s.above / 100).toLocaleString('en-IN') + ' a piece, ' + s.rateAbove + '% above' : '');
         %>
-        <section class="panel product-tax-panel" aria-labelledby="tax-title">
+        <section class="panel product-tax-panel" id="sec-tax" aria-labelledby="tax-title">
           <h2 id="tax-title" class="panel-title">GST and legal details</h2>
           <p class="muted">Shown on the GST invoice and the product page. Leave HSN and rate empty to use the suggestion: <strong data-tax-suggest-text><%= suggestText %></strong>. Rates changed in September 2025, so confirm them with your chartered accountant.</p>
           <div class="form-grid form-grid-2">
@@ -192,7 +200,7 @@
           </div>
         </section>
 
-        <section class="panel product-options-panel" aria-labelledby="options-title" data-options-editor data-options="<%= JSON.stringify(p.options || []) %>">
+        <section class="panel product-options-panel" id="sec-options" aria-labelledby="options-title" data-options-editor data-options="<%= JSON.stringify(p.options || []) %>">
           <h2 id="options-title" class="panel-title">Sizes and colours <span class="optional">(optional)</span></h2>
           <p class="muted">Each size or colour has its own stock, and shoppers choose one before adding to the cart. The price is the same for all of them. Leave this empty for a product that comes in one size.</p>
           <div class="options-table-wrap">
@@ -209,7 +217,7 @@
           <p class="field-error" data-error-for="options" aria-live="polite"></p>
         </section>
 
-        <section class="panel product-images-panel" aria-labelledby="images-title">
+        <section class="panel product-images-panel" id="sec-images" aria-labelledby="images-title">
           <h2 id="images-title" class="panel-title">Photos</h2>
           <p class="muted">Up to 4 JPG, PNG or WEBP images, 2 MB each. Choose the main photo, and use the pencil to crop, rotate or replace one. When the product has colours, pick the colour each photo shows: shoppers see those photos when they choose that colour.</p>
           <div class="image-manager" data-image-manager data-existing="<%= JSON.stringify(p.images) %>" data-colour-photos="<%= JSON.stringify(p.colourPhotos || []) %>" data-editor-src="<%= asset('/js/image-editor.js') %>">

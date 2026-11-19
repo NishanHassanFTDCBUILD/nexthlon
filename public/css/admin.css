@@ -1744,6 +1744,11 @@ body.admin-menu-open {
   .dash-row-2 {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* Narrow screens: what needs doing comes first, the chart after it. */
+  .dash-card-actions {
+    order: -1;
+  }
 }
 
 @media (max-width: 720px) {
@@ -4754,4 +4759,55 @@ body.admin-menu-open {
   .admin-body .table-stack td .link-btn {
     white-space: nowrap;
   }
+}
+
+/* Orders: the status pill sits on its own line, and the flags (late, COD risk, tags) wrap together under it. */
+.admin-body .order-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+  margin-top: var(--space-xxs);
+}
+
+/* Product form: jump links to each section, kept under the top bar while the form scrolls. */
+.admin-body .product-jump {
+  position: sticky;
+  top: var(--admin-topbar-h);
+  z-index: var(--layer-1);
+  display: flex;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  padding: var(--space-xs) 0;
+  margin-bottom: var(--space-2);
+  background: var(--bg);
+  scrollbar-width: none;
+}
+
+.admin-body .product-jump::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-body .product-jump a {
+  flex: none;
+  padding: var(--space-xs) var(--space-2);
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-body .product-jump a:hover,
+.admin-body .product-jump a:focus-visible {
+  color: var(--ink);
+  background: var(--surface-3);
+}
+
+/* Sections scroll below the sticky bar, not under it. */
+.admin-body .product-form [id^='sec-'] {
+  scroll-margin-top: calc(var(--admin-topbar-h) + 72px);
 }
