@@ -27,7 +27,7 @@ Size: S = under an hour of work, M = a few hours, L = a day or more.
 - Step 6: done (commit 4ead86c).
 - Step 7: done (webhook log with re-run for payment events, job queue monitor with retry, GST report CSV).
 - Step 8: done, except a full accessibility audit with a screen reader. Keyboard shortcuts and help sheet, compact rows, saved views, a quick-look side drawer on orders, a phone filter sheet, and inline edit with undo for category offers.
-- Step 9: not started.
+- Step 9: partly done: sales by category and by state for a period, with a CSV (Sales > Sales breakdown). Not done: revenue goals, alerts, scheduled emails, comparing two periods, per-category and per-state trend charts, return reasons, auto-approve and large-refund approval rules, sub-categories, drag to reorder, scheduled category sales, home banners, campaigns to segments, deal stock limits and results, coupon and referral reports.
 
 ## Part A · Architecture (the foundation everything else stands on)
 

@@ -27,6 +27,12 @@ const ADMIN_NAV = [
         icon: 'file-text',
         perm: 'reports.read',
       },
+      {
+        key: 'sales-breakdown',
+        label: 'Sales breakdown',
+        icon: 'pie',
+        perm: 'reports.read',
+      },
     ],
   },
   {

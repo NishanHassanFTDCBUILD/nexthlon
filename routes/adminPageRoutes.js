@@ -118,6 +118,11 @@ const opsPages = require('../controllers/adminOpsController');
 router.get('/webhooks', needsPage('settings.write'), opsPages.webhooksPage);
 router.get('/jobs', needsPage('settings.write'), opsPages.jobsPage);
 router.get('/gst', needsPage('reports.read'), opsPages.gstPage);
+router.get(
+  '/sales-breakdown',
+  needsPage('reports.read'),
+  require('../controllers/adminBreakdownController').breakdownPage,
+);
 // Support inbox: one page to read and answer customer requests (support.write for replying).
 const supportPages = require('../controllers/adminSupportController');
 router.get('/support', supportPages.inbox);

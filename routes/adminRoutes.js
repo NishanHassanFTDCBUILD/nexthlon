@@ -302,6 +302,10 @@ router.post(
 router.get('/jobs', opsApi.listJobs);
 router.post('/jobs/:jobId/retry', adminWriteLimiter, opsApi.retryJob);
 router.get('/reports/gst.csv', opsApi.gstCsv);
+// Sales by category and state (reports.read).
+const breakdownApi = require('../controllers/adminBreakdownController');
+router.get('/reports/breakdown', breakdownApi.breakdownApi);
+router.get('/reports/breakdown.csv', breakdownApi.breakdownCsv);
 
 // Saved list views: personal to each admin (any staff role may keep their own).
 const viewApi = require('../controllers/adminViewController');
