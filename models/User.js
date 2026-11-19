@@ -40,6 +40,8 @@ const userSchema = new mongoose.Schema(
       default: '',
     },
     isBlocked: {type: Boolean, default: false, index: true},
+    // Cash on Delivery turned off for this one customer (fraud control). Set on the customer page.
+    codBlocked: {type: Boolean, default: false},
     // A private note the team keeps on a customer. Never shown to the customer.
     adminNote: {type: String, default: '', maxlength: 1000},
     // Copied into every token. Changing the password adds 1, so all older tokens stop working.

@@ -51,6 +51,8 @@
             <ul class="suggest-list" id="search-suggest-list" role="listbox" aria-label="Search suggestions" data-suggest-list></ul>
           </div>
         </div>
+        <%# Voice search: the mic shows only where the browser can listen (header.js). %>
+        <button type="button" class="search-voice" data-voice-search hidden aria-pressed="false" aria-label="Search by voice"><svg class="i i-sm" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
         <button type="submit" class="search-go"><%- icon('search') %><span class="sr-only">Search</span></button>
       </form>
 

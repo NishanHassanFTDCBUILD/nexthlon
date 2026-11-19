@@ -353,7 +353,17 @@
       else el.innerHTML = '<span class="text-success">Free</span>';
     });
     const freeNote = page.querySelector('[data-free-note]');
-    if (freeNote) freeNote.hidden = !summary.freeDeliveryGap;
+    if (freeNote) {
+      freeNote.hidden = !summary.freeDeliveryGap;
+      // The progress bar: how much of the way to the free-delivery amount the cart already is.
+      const target = summary.subtotal + summary.freeDeliveryGap;
+      const percent = target > 0 ? summary.subtotal / target : 1;
+      const fill = freeNote.querySelector('[data-free-fill]');
+      const meter = freeNote.querySelector('[role="meter"]');
+      if (fill) fill.style.transform = 'scaleX(' + percent.toFixed(2) + ')';
+      if (meter)
+        meter.setAttribute('aria-valuenow', String(Math.round(percent * 100)));
+    }
     const checkout = page.querySelector('[data-checkout-link]');
     if (checkout) {
       if (summary.itemCount) {

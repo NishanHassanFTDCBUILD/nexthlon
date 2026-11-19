@@ -244,15 +244,70 @@
   }
 }
 
+/* The current section is ink, not volt: volt is kept for the one action per screen. */
 .admin-link.is-active {
   color: var(--ink);
   font-weight: var(--weight-semibold);
-  background: var(--brand-soft);
-  box-shadow: inset 3px 0 0 var(--brand);
+  background: var(--surface-3);
+  box-shadow: inset 3px 0 0 var(--ink);
 }
 
 .admin-link.is-active .i {
-  color: var(--brand-ink);
+  color: var(--ink);
+}
+
+/* Desktop: fold the sidebar to icons to give the tables more room. */
+.admin-side-fold {
+  display: none;
+}
+
+@media (min-width: 1025px) {
+  .admin-side-fold {
+    display: inline-grid;
+  }
+
+  .admin-side-fold .i {
+    transition: transform var(--duration) var(--ease);
+  }
+
+  .admin-body.admin-side-folded .admin-shell {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .admin-body.admin-side-folded .admin-side {
+    padding-inline: var(--space-1);
+  }
+
+  .admin-body.admin-side-folded .admin-side-head {
+    justify-content: center;
+  }
+
+  .admin-body.admin-side-folded .admin-side-fold .i {
+    transform: rotate(180deg);
+  }
+
+  .admin-body.admin-side-folded .brand-word,
+  .admin-body.admin-side-folded .admin-group-btn,
+  .admin-body.admin-side-folded .admin-link span,
+  .admin-body.admin-side-folded .admin-side-foot span {
+    display: none;
+  }
+
+  .admin-body.admin-side-folded .admin-group-items,
+  .admin-body.admin-side-folded .admin-group-items[hidden] {
+    display: flex !important;
+  }
+
+  .admin-body.admin-side-folded .admin-group + .admin-group {
+    margin-top: var(--space-1);
+    padding-top: var(--space-1);
+    border-top: 1px solid var(--line);
+  }
+
+  .admin-body.admin-side-folded .admin-link {
+    justify-content: center;
+    padding: 0;
+  }
 }
 
 .admin-side-foot {
@@ -749,6 +804,59 @@
   }
 }
 
+/* Phones: a bottom tab bar for the five most-used places. */
+.admin-tabbar {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .admin-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-header);
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: var(--space-1) max(var(--space-1), env(safe-area-inset-left, 0px))
+      max(var(--space-1), env(safe-area-inset-bottom, 0px))
+      max(var(--space-1), env(safe-area-inset-right, 0px));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+
+  .admin-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xxs);
+    min-height: var(--tap);
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .admin-tab .i {
+    width: 22px;
+    height: 22px;
+  }
+
+  .admin-tab.is-active {
+    color: var(--ink);
+  }
+
+  .admin-body .admin-main {
+    padding-bottom: calc(var(--space-6) + 84px);
+  }
+}
+
 @media (max-width: 640px) {
   .admin-bar {
     gap: var(--space-xs);
@@ -902,6 +1010,28 @@ body.admin-menu-open {
   background: var(--surface);
   border: 1px solid var(--line);
   overflow: hidden;
+}
+
+/* The whole tile is one link: the stretched link covers it, and the hint icon stays on top of it. */
+.dash-kpi-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dash-kpi-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.dash-kpi:has(.dash-kpi-link:hover) {
+  border-color: var(--line-hover);
+}
+
+.dash-kpi .dash-hint {
+  position: relative;
+  z-index: var(--layer-1);
 }
 
 .dash-kpi-head {

@@ -75,22 +75,49 @@
   });
   applyGroups();
 
+  // ---------- Desktop: the sidebar folds to icons (remembered in this browser) ----------
+  const SIDE_FOLDED_KEY = 'nx-admin-side-folded';
+  const foldButton = document.querySelector('[data-admin-side-fold]');
+  function setFolded(folded) {
+    body.classList.toggle('admin-side-folded', folded);
+    if (foldButton) {
+      foldButton.setAttribute('aria-expanded', String(!folded));
+      foldButton.setAttribute(
+        'aria-label',
+        folded ? 'Expand sidebar' : 'Fold sidebar to icons',
+      );
+    }
+  }
+  setFolded(store.get(SIDE_FOLDED_KEY, false) === true);
+  if (foldButton)
+    foldButton.addEventListener('click', () => {
+      const folded = !body.classList.contains('admin-side-folded');
+      setFolded(folded);
+      store.set(SIDE_FOLDED_KEY, folded);
+    });
+
   // ---------- Phones and tablets: the sidebar is a menu panel ----------
   const side = document.querySelector('[data-admin-side]');
   const scrim = document.querySelector('.admin-scrim');
-  const menuButton = document.querySelector('[data-admin-menu-open]');
+  const menuButton = document.querySelector(
+    '.admin-menu-btn[data-admin-menu-open]',
+  );
+  const moreButtons = document.querySelectorAll('[data-admin-menu-open]');
   function setMenu(open) {
     side.classList.toggle('is-open', open);
     scrim.hidden = !open;
-    menuButton.setAttribute('aria-expanded', String(open));
+    if (menuButton) menuButton.setAttribute('aria-expanded', String(open));
     body.classList.toggle('admin-menu-open', open);
     if (open)
       (
         side.querySelector('.admin-link.is-active') || side.querySelector('a')
       ).focus();
-    else if (side.contains(document.activeElement)) menuButton.focus();
+    else if (side.contains(document.activeElement) && menuButton)
+      menuButton.focus();
   }
-  menuButton.addEventListener('click', () => setMenu(true));
+  moreButtons.forEach((button) =>
+    button.addEventListener('click', () => setMenu(true)),
+  );
   document
     .querySelectorAll('[data-admin-menu-close]')
     .forEach((button) =>

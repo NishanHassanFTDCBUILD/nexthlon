@@ -6819,15 +6819,42 @@
   gap: var(--space-xxs);
 }
 
+/* The free-delivery note: a quiet box, not volt, so the checkout button stays the one accent. */
+.free-box {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-1) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.free-box[hidden] {
+  display: none;
+}
+
 .free-note {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-1) var(--space-sm);
-  border-radius: var(--radius-sm);
-  background: var(--brand-soft);
-  color: var(--brand-ink);
+  color: var(--ink-2);
   font-size: var(--text-sm);
+}
+
+/* A track with a fill: the fill moves with transform only, so it never reflows the page. */
+.free-meter {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.free-meter-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink);
+  transform-origin: left center;
 }
 
 .empty-actions {
@@ -9233,5 +9260,34 @@ html.is-pay-locked body {
   .announce-inner {
     flex-direction: column;
     gap: var(--space-half);
+  }
+}
+
+/* Voice search: a quiet icon beside the search button. It is hidden where the browser cannot listen. */
+.search-voice {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.search-voice[hidden] {
+  display: none;
+}
+
+.search-voice[aria-pressed='true'] {
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .search-voice:hover {
+    color: var(--ink);
   }
 }

@@ -73,11 +73,22 @@
     <% } else { %><p class="muted">No saved addresses.</p><% } %>
   </section>
 
+  <section class="panel admin-block" aria-labelledby="c-actions">
+    <h2 id="c-actions" class="panel-title">Actions</h2>
+    <p class="muted">Each action is logged in the audit trail.</p>
+    <div class="customer-actions" data-customer-actions="<%= customer.id %>">
+      <button type="button" class="btn btn-ghost" data-customer-do="block" data-blocked="<%= customer.isBlocked ? 'true' : 'false' %>"><%= customer.isBlocked ? 'Unblock account' : 'Block account' %></button>
+      <button type="button" class="btn btn-ghost" data-customer-do="cod" data-cod-blocked="<%= customer.codBlocked ? 'true' : 'false' %>"><%= customer.codBlocked ? 'Allow Cash on Delivery' : 'Turn off Cash on Delivery' %></button>
+      <button type="button" class="btn btn-ghost" data-customer-do="signout">Sign out of all devices</button>
+    </div>
+  </section>
+
   <section class="panel admin-block" aria-labelledby="c-account">
     <h2 id="c-account" class="panel-title">Account</h2>
     <dl class="admin-facts">
       <div><dt>Last sign-in</dt><dd><%= customer.lastSignInAt ? formatDate(customer.lastSignInAt) : 'Never' %></dd></div>
       <div><dt>Access</dt><dd><%= customer.isBlocked ? 'Blocked' : 'Active' %></dd></div>
+      <div><dt>Cash on Delivery</dt><dd><%= customer.codBlocked ? 'Off for this account' : 'Allowed' %></dd></div>
     </dl>
     <p><a href="<%= adminPath %>/customers">Back to all customers</a></p>
   </section>

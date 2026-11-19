@@ -22,6 +22,7 @@ router.get('/stock-alerts/stop', pages.stopStockAlert);
 router.get('/offline', publicCache, (req, res) => res.render('pages/offline'));
 router.get('/about', publicCache, pages.infoPage('about'));
 router.get('/contact', publicCache, pages.infoPage('contact'));
+router.get('/track', publicCache, pages.infoPage('track'));
 router.get('/privacy', publicCache, pages.infoPage('privacy'));
 router.get('/terms', publicCache, pages.infoPage('terms'));
 router.get('/refund-policy', publicCache, pages.infoPage('refund'));

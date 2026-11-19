@@ -57,6 +57,35 @@
   scrim.hidden = true;
   document.body.append(scrim);
   scrim.addEventListener('click', () => close());
+  // ---------- Voice search: only where the browser can listen (Chrome, Edge, Safari) ----------
+  const voice = form.querySelector('[data-voice-search]');
+  const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (voice && Speech) {
+    voice.hidden = false;
+    voice.addEventListener('click', () => {
+      const listener = new Speech();
+      listener.lang =
+        document.documentElement.lang === 'hi' ? 'hi-IN' : 'en-IN';
+      listener.interimResults = false;
+      listener.maxAlternatives = 1;
+      voice.setAttribute('aria-pressed', 'true');
+      listener.onresult = (event) => {
+        const words = event.results[0][0].transcript.trim().slice(0, 80);
+        form.elements.q.value = words;
+        form.requestSubmit();
+      };
+      listener.onerror = () => {
+        if (window.Nx)
+          Nx.toast(
+            'We could not hear that. Try again, or type your search.',
+            'error',
+          );
+      };
+      listener.onend = () => voice.setAttribute('aria-pressed', 'false');
+      listener.start();
+    });
+  }
+
   const back = form.querySelector('[data-search-back]');
 
   function engage() {

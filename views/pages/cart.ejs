@@ -77,7 +77,11 @@
         <div><dt>Delivery fee</dt><dd data-summary="deliveryFee"><%- summary.deliveryFee ? formatPrice(summary.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
         <div class="summary-total"><dt>Grand total</dt><dd data-summary="grandTotal"><%= formatPrice(summary.grandTotal) %></dd></div>
       </dl>
-      <p class="free-note" data-free-note <%= summary.freeDeliveryGap ? '' : 'hidden' %>><%- icon('truck', 'i-xs') %> Add <strong data-summary="freeDeliveryGap"><%= formatPrice(summary.freeDeliveryGap) %></strong> more for free delivery.</p>
+      <div class="free-box" data-free-note <%= summary.freeDeliveryGap ? '' : 'hidden' %>>
+        <% const freePct = store.freeDeliveryMin ? Math.min(100, Math.round((summary.subtotal / store.freeDeliveryMin) * 100)) : 0; %>
+        <p class="free-note"><%- icon('truck', 'i-xs') %> Add <strong data-summary="freeDeliveryGap"><%= formatPrice(summary.freeDeliveryGap) %></strong> more for free delivery.</p>
+        <div class="free-meter" role="meter" aria-label="Progress to free delivery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= freePct %>"><span class="free-meter-fill" data-free-fill style="transform: scaleX(<%= (freePct / 100).toFixed(2) %>)"></span></div>
+      </div>
       <p class="saving summary-saving-note" data-summary-saving-note <%= summary.savings > 0 ? '' : 'hidden' %>>You save <span data-summary="savings-plain"><%= formatPrice(summary.savings) %></span> on this order.</p>
       <% if (typeof checkoutOpen !== 'undefined' && checkoutOpen) { %>
         <a class="btn btn-primary btn-block btn-lg" href="/checkout" data-checkout-link <%- summary.itemCount ? '' : 'aria-disabled="true" tabindex="-1"' %>><%- icon('lock', 'i-sm') %> Proceed to checkout</a>

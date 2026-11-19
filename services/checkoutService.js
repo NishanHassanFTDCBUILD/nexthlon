@@ -12,6 +12,7 @@ const {HttpError} = require('../utils/http');
 const {orderTotals} = require('../utils/pricing');
 const settingsService = require('./settingsService');
 const codConfirmService = require('./codConfirmService');
+const User = require('../models/User');
 const {formatPaise} = require('../utils/money');
 const counterService = require('../services/counterService');
 const gstService = require('./gstService');
@@ -334,6 +335,15 @@ async function placeOrder(
   }
   // Fake Cash on Delivery orders tie up stock and courier money (D3): at most a few unpaid ones on the way.
   if (method === 'cod') {
+    // The team can switch Cash on Delivery off for one customer (fraud control).
+    const account = await User.findById(userId).select('codBlocked').lean();
+    if (account && account.codBlocked)
+      throw new HttpError(
+        400,
+        'Cash on Delivery is not available on this account. Please pay online.',
+        null,
+        'cod_blocked',
+      );
     const open = await Order.countDocuments({
       user: userId,
       paymentMethod: 'cod',

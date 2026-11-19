@@ -2,7 +2,12 @@ const router = require('express').Router();
 const orders = require('../controllers/orderController');
 const {requireAuth, requireRole} = require('../middleware/auth');
 const {returnPhotos} = require('../middleware/upload');
-const {orderLimiter, sensitiveLimiter} = require('../middleware/rateLimit');
+const {
+  orderLimiter,
+  sensitiveLimiter,
+  trackLimiter,
+} = require('../middleware/rateLimit');
+const orderTracking = require('../controllers/orderTrackingController');
 
 // Mounted at /api. Checkout and orders are for signed-in customers only.
 const customer = [requireAuth, requireRole('customer')];
@@ -17,6 +22,8 @@ router.post(
   orders.sendCodCode,
 );
 router.post('/orders', customer, orderLimiter, orders.placeOrder);
+// Guest tracking: no sign-in, rate limited; the same answer for a wrong ID or phone.
+router.post('/orders/track', trackLimiter, orderTracking.track);
 router.get('/orders', customer, orders.listOrders);
 router.get('/orders/:orderId', customer, orders.getOrder);
 router.post('/orders/:orderId/cancel', customer, orders.cancelOrder);

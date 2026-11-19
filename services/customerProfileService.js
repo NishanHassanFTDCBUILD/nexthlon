@@ -15,7 +15,7 @@ async function profile(userId, now = new Date()) {
     throw new HttpError(404, 'Customer not found.');
   const user = await User.findOne({_id: userId, role: 'customer'})
     .select(
-      'name email phone createdAt lastLoginAt isBlocked adminNote emailVerifiedAt',
+      'name email phone createdAt lastLoginAt isBlocked codBlocked adminNote emailVerifiedAt',
     )
     .lean();
   if (!user) throw new HttpError(404, 'Customer not found.');
@@ -90,6 +90,7 @@ async function profile(userId, now = new Date()) {
       joinedAt: user.createdAt,
       lastSignInAt: user.lastLoginAt || null,
       isBlocked: Boolean(user.isBlocked),
+      codBlocked: Boolean(user.codBlocked),
       emailVerified: Boolean(user.emailVerifiedAt),
       note: user.adminNote || '',
     },
