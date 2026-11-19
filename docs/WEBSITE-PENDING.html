@@ -1,170 +1,563 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Nexthlon: everything pending before launch</title>
-<style>
-  @page { size: A4; margin: 18mm 16mm; }
-  body { font: 11pt/1.5 "Segoe UI", Arial, sans-serif; color: #111; }
-  h1 { font-size: 22pt; margin: 0 0 4pt; }
-  h2 { font-size: 15pt; margin: 18pt 0 6pt; border-bottom: 1.5px solid #111; padding-bottom: 2pt; page-break-after: avoid; }
-  h3 { font-size: 12pt; margin: 12pt 0 4pt; page-break-after: avoid; }
-  p.lead { color: #444; margin-top: 0; }
-  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 10pt; page-break-inside: auto; }
-  th, td { border: 1px solid #bbb; padding: 4pt 6pt; text-align: left; vertical-align: top; }
-  th { background: #eee; }
-  tr { page-break-inside: avoid; }
-  code { font-family: Consolas, monospace; font-size: 9.5pt; background: #f2f2f2; padding: 0 2pt; }
-  ul, ol { margin: 4pt 0 8pt 16pt; padding: 0; }
-  li { margin: 2pt 0; }
-  .box { border: 1px solid #111; padding: 6pt 9pt; margin: 8pt 0; background: #fafafa; }
-  .tag { font-weight: bold; }
-</style>
-</head>
-<body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Nexthlon: everything pending before launch</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 18mm 16mm;
+      }
+      body {
+        font:
+          11pt/1.5 'Segoe UI',
+          Arial,
+          sans-serif;
+        color: #111;
+      }
+      h1 {
+        font-size: 22pt;
+        margin: 0 0 4pt;
+      }
+      h2 {
+        font-size: 15pt;
+        margin: 18pt 0 6pt;
+        border-bottom: 1.5px solid #111;
+        padding-bottom: 2pt;
+        page-break-after: avoid;
+      }
+      h3 {
+        font-size: 12pt;
+        margin: 12pt 0 4pt;
+        page-break-after: avoid;
+      }
+      p.lead {
+        color: #444;
+        margin-top: 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 6pt 0 10pt;
+        font-size: 10pt;
+        page-break-inside: auto;
+      }
+      th,
+      td {
+        border: 1px solid #bbb;
+        padding: 4pt 6pt;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #eee;
+      }
+      tr {
+        page-break-inside: avoid;
+      }
+      code {
+        font-family: Consolas, monospace;
+        font-size: 9.5pt;
+        background: #f2f2f2;
+        padding: 0 2pt;
+      }
+      ul,
+      ol {
+        margin: 4pt 0 8pt 16pt;
+        padding: 0;
+      }
+      li {
+        margin: 2pt 0;
+      }
+      .box {
+        border: 1px solid #111;
+        padding: 6pt 9pt;
+        margin: 8pt 0;
+        background: #fafafa;
+      }
+      .tag {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Nexthlon: everything pending before launch</h1>
+    <p class="lead">
+      A full list of what is left to finish the website and put it live. Written
+      so that anyone, or an AI assistant, can work through it. Code is already
+      built and committed in the project folder; what remains is mostly
+      accounts, secrets, business details, content, and a few small website
+      items.
+    </p>
 
-<h1>Nexthlon: everything pending before launch</h1>
-<p class="lead">A full list of what is left to finish the website and put it live. Written so that anyone, or an AI assistant, can work through it. Code is already built and committed in the project folder; what remains is mostly accounts, secrets, business details, content, and a few small website items.</p>
+    <div class="box">
+      <p>
+        <span class="tag">How to use this document.</span> Work top to bottom.
+        Items marked <b>[Owner]</b> need a person with the account, card or
+        legal details. Items marked <b>[Developer]</b> are code tasks in the
+        project. Each setting name matches the file <code>.env.example</code> in
+        the project folder. Never paste real passwords or keys into chat or
+        email.
+      </p>
+    </div>
 
-<div class="box">
-  <p><span class="tag">How to use this document.</span> Work top to bottom. Items marked <b>[Owner]</b> need a person with the account, card or legal details. Items marked <b>[Developer]</b> are code tasks in the project. Each setting name matches the file <code>.env.example</code> in the project folder. Never paste real passwords or keys into chat or email.</p>
-</div>
+    <h2>1. Accounts to create [Owner]</h2>
+    <table>
+      <tr>
+        <th>#</th>
+        <th>Service</th>
+        <th>Why it is needed</th>
+        <th>Settings it fills</th>
+        <th>Required?</th>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>MongoDB Atlas (database), cluster M0 for a soft launch</td>
+        <td>Stores products, orders, customers</td>
+        <td><code>MONGODB_URI</code></td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Cloudinary (photo storage)</td>
+        <td>Product and review photos</td>
+        <td><code>STORAGE_DRIVER</code>, <code>CLOUDINARY_*</code></td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Hosting platform (Render, Railway or similar)</td>
+        <td>Runs the website</td>
+        <td>
+          <code>NODE_ENV=production</code>, <code>SITE_URL</code>,
+          <code>TRUST_PROXY</code>
+        </td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Domain name with HTTPS</td>
+        <td>Your address on the web</td>
+        <td><code>SITE_URL</code></td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Razorpay live account (complete KYC)</td>
+        <td>Card, UPI, netbanking payments</td>
+        <td>
+          <code>RAZORPAY_KEY_ID</code>, <code>RAZORPAY_KEY_SECRET</code>,
+          <code>RAZORPAY_WEBHOOK_SECRET</code>
+        </td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Email sender (Brevo, or any SMTP service)</td>
+        <td>Order, password and offer emails</td>
+        <td>
+          <code>MAIL_DRIVER</code>, <code>BREVO_API_KEY</code> or
+          <code>SMTP_*</code>, <code>MAIL_FROM</code>
+        </td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>Shiprocket (courier aggregator)</td>
+        <td>One-click shipping, tracking, PIN checks</td>
+        <td>
+          <code>SHIPPING_PROVIDER=shiprocket</code>,
+          <code>SHIPROCKET_EMAIL</code>, <code>SHIPROCKET_PASSWORD</code>,
+          <code>SHIPROCKET_PICKUP_LOCATION</code>,
+          <code>SHIPPING_PICKUP_PINCODE</code>
+        </td>
+        <td>Recommended</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>WhatsApp Business (Meta Cloud API)</td>
+        <td>WhatsApp order updates</td>
+        <td>
+          <code>WHATSAPP_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code>,
+          <code>WHATSAPP_SUPPORT_NUMBER</code>
+        </td>
+        <td>Optional</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>MSG91 (SMS)</td>
+        <td>One-time codes for Cash on Delivery</td>
+        <td><code>MSG91_AUTH_KEY</code>, <code>MSG91_OTP_TEMPLATE_ID</code></td>
+        <td>Optional</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>Sentry (error alerts)</td>
+        <td>Tells the owner when something breaks</td>
+        <td><code>SENTRY_DSN</code></td>
+        <td>Recommended</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td>Google Analytics 4 or Plausible</td>
+        <td>Visitor counts (only after consent)</td>
+        <td><code>ANALYTICS_PROVIDER</code>, <code>ANALYTICS_ID</code></td>
+        <td>Optional</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td>Meta Business (Pixel and ads)</td>
+        <td>Ads tracking (only after consent)</td>
+        <td><code>META_PIXEL_ID</code></td>
+        <td>Optional</td>
+      </tr>
+      <tr>
+        <td>13</td>
+        <td>Redis</td>
+        <td>Shared rate limits when running more than one server</td>
+        <td><code>REDIS_URL</code></td>
+        <td>Optional</td>
+      </tr>
+      <tr>
+        <td>14</td>
+        <td>Amazon, Flipkart and Myntra seller accounts</td>
+        <td>Selling on marketplaces</td>
+        <td>Feed download; <code>MARKETPLACE_TOKEN</code> for stock sync</td>
+        <td>Optional</td>
+      </tr>
+    </table>
 
-<h2>1. Accounts to create [Owner]</h2>
-<table>
-  <tr><th>#</th><th>Service</th><th>Why it is needed</th><th>Settings it fills</th><th>Required?</th></tr>
-  <tr><td>1</td><td>MongoDB Atlas (database), cluster M0 for a soft launch</td><td>Stores products, orders, customers</td><td><code>MONGODB_URI</code></td><td>Yes</td></tr>
-  <tr><td>2</td><td>Cloudinary (photo storage)</td><td>Product and review photos</td><td><code>STORAGE_DRIVER</code>, <code>CLOUDINARY_*</code></td><td>Yes</td></tr>
-  <tr><td>3</td><td>Hosting platform (Render, Railway or similar)</td><td>Runs the website</td><td><code>NODE_ENV=production</code>, <code>SITE_URL</code>, <code>TRUST_PROXY</code></td><td>Yes</td></tr>
-  <tr><td>4</td><td>Domain name with HTTPS</td><td>Your address on the web</td><td><code>SITE_URL</code></td><td>Yes</td></tr>
-  <tr><td>5</td><td>Razorpay live account (complete KYC)</td><td>Card, UPI, netbanking payments</td><td><code>RAZORPAY_KEY_ID</code>, <code>RAZORPAY_KEY_SECRET</code>, <code>RAZORPAY_WEBHOOK_SECRET</code></td><td>Yes</td></tr>
-  <tr><td>6</td><td>Email sender (Brevo, or any SMTP service)</td><td>Order, password and offer emails</td><td><code>MAIL_DRIVER</code>, <code>BREVO_API_KEY</code> or <code>SMTP_*</code>, <code>MAIL_FROM</code></td><td>Yes</td></tr>
-  <tr><td>7</td><td>Shiprocket (courier aggregator)</td><td>One-click shipping, tracking, PIN checks</td><td><code>SHIPPING_PROVIDER=shiprocket</code>, <code>SHIPROCKET_EMAIL</code>, <code>SHIPROCKET_PASSWORD</code>, <code>SHIPROCKET_PICKUP_LOCATION</code>, <code>SHIPPING_PICKUP_PINCODE</code></td><td>Recommended</td></tr>
-  <tr><td>8</td><td>WhatsApp Business (Meta Cloud API)</td><td>WhatsApp order updates</td><td><code>WHATSAPP_TOKEN</code>, <code>WHATSAPP_PHONE_NUMBER_ID</code>, <code>WHATSAPP_SUPPORT_NUMBER</code></td><td>Optional</td></tr>
-  <tr><td>9</td><td>MSG91 (SMS)</td><td>One-time codes for Cash on Delivery</td><td><code>MSG91_AUTH_KEY</code>, <code>MSG91_OTP_TEMPLATE_ID</code></td><td>Optional</td></tr>
-  <tr><td>10</td><td>Sentry (error alerts)</td><td>Tells the owner when something breaks</td><td><code>SENTRY_DSN</code></td><td>Recommended</td></tr>
-  <tr><td>11</td><td>Google Analytics 4 or Plausible</td><td>Visitor counts (only after consent)</td><td><code>ANALYTICS_PROVIDER</code>, <code>ANALYTICS_ID</code></td><td>Optional</td></tr>
-  <tr><td>12</td><td>Meta Business (Pixel and ads)</td><td>Ads tracking (only after consent)</td><td><code>META_PIXEL_ID</code></td><td>Optional</td></tr>
-  <tr><td>13</td><td>Redis</td><td>Shared rate limits when running more than one server</td><td><code>REDIS_URL</code></td><td>Optional</td></tr>
-  <tr><td>14</td><td>Amazon, Flipkart and Myntra seller accounts</td><td>Selling on marketplaces</td><td>Feed download; <code>MARKETPLACE_TOKEN</code> for stock sync</td><td>Optional</td></tr>
-</table>
+    <h2>2. Secrets to generate [Owner]</h2>
+    <p>
+      Keep these in a password manager. Never share them in chat, email or a
+      public repository.
+    </p>
+    <ul>
+      <li><b>JWT_SECRET</b>: a long random string, at least 40 characters.</li>
+      <li>
+        <b>Push notification keys</b>: run <code>npm run push:keys</code> once
+        and keep the output (<code>VAPID_PUBLIC_KEY</code>,
+        <code>VAPID_PRIVATE_KEY</code>, <code>VAPID_SUBJECT</code>). Changing
+        them later breaks saved devices.
+      </li>
+      <li><b>MARKETPLACE_TOKEN</b>: random, at least 24 characters.</li>
+      <li><b>SHIPROCKET_WEBHOOK_TOKEN</b>: random, at least 16 characters.</li>
+      <li><b>Database user password</b>: created in MongoDB Atlas.</li>
+      <li>
+        <b>Admin password</b> and <b>ADMIN_PATH</b>: a private address for the
+        admin console, for example <code>/nx-console-7f3k</code>.
+      </li>
+    </ul>
 
-<h2>2. Secrets to generate [Owner]</h2>
-<p>Keep these in a password manager. Never share them in chat, email or a public repository.</p>
-<ul>
-  <li><b>JWT_SECRET</b>: a long random string, at least 40 characters.</li>
-  <li><b>Push notification keys</b>: run <code>npm run push:keys</code> once and keep the output (<code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, <code>VAPID_SUBJECT</code>). Changing them later breaks saved devices.</li>
-  <li><b>MARKETPLACE_TOKEN</b>: random, at least 24 characters.</li>
-  <li><b>SHIPROCKET_WEBHOOK_TOKEN</b>: random, at least 16 characters.</li>
-  <li><b>Database user password</b>: created in MongoDB Atlas.</li>
-  <li><b>Admin password</b> and <b>ADMIN_PATH</b>: a private address for the admin console, for example <code>/nx-console-7f3k</code>.</li>
-</ul>
+    <h2>3. Business details (shown on invoices and policy pages) [Owner]</h2>
+    <ul>
+      <li>
+        Legal business name and registered address
+        (<code>STORE_LEGAL_NAME</code>, <code>STORE_ADDRESS</code>).
+      </li>
+      <li>
+        GSTIN (<code>STORE_GSTIN</code>), GST state (<code>STORE_STATE</code>),
+        and scheme (<code>STORE_GST_SCHEME</code>: regular or composition).
+      </li>
+      <li>
+        Support email, phone, and hours (<code>STORE_SUPPORT_EMAIL</code>,
+        <code>STORE_SUPPORT_PHONE</code>).
+      </li>
+      <li>
+        Grievance officer name and contact
+        (<code>STORE_GRIEVANCE_OFFICER</code>). Required by Indian e-commerce
+        rules.
+      </li>
+      <li>
+        Trademark check for the name "Nexthlon" (it may be close to
+        "Decathlon"). Get legal advice before launch.
+      </li>
+    </ul>
+    <p>
+      The startup check warns in production while any placeholder value (text in
+      square brackets) is still set.
+    </p>
 
-<h2>3. Business details (shown on invoices and policy pages) [Owner]</h2>
-<ul>
-  <li>Legal business name and registered address (<code>STORE_LEGAL_NAME</code>, <code>STORE_ADDRESS</code>).</li>
-  <li>GSTIN (<code>STORE_GSTIN</code>), GST state (<code>STORE_STATE</code>), and scheme (<code>STORE_GST_SCHEME</code>: regular or composition).</li>
-  <li>Support email, phone, and hours (<code>STORE_SUPPORT_EMAIL</code>, <code>STORE_SUPPORT_PHONE</code>).</li>
-  <li>Grievance officer name and contact (<code>STORE_GRIEVANCE_OFFICER</code>). Required by Indian e-commerce rules.</li>
-  <li>Trademark check for the name "Nexthlon" (it may be close to "Decathlon"). Get legal advice before launch.</li>
-</ul>
-<p>The startup check warns in production while any placeholder value (text in square brackets) is still set.</p>
+    <h2>4. Content to write or replace [Owner]</h2>
+    <h3>4.1 Policy pages</h3>
+    <p>
+      Terms and conditions, privacy policy, refund policy, shipping policy. They
+      are templates with <code>[square brackets]</code>. Replace every bracket
+      and have a lawyer or chartered accountant check them.
+    </p>
+    <h3>4.2 Products</h3>
+    <ul>
+      <li>Real photos (currently sample stock photos from Unsplash).</li>
+      <li>Descriptions, sizes and colours, and a SKU for every option.</li>
+      <li>
+        HSN code, GST rate, country of origin, net quantity, and the
+        manufacturer or importer name and address.
+      </li>
+      <li>Packed weight in grams (used by the courier for pricing).</li>
+      <li>Remove or replace the sample products before launch.</li>
+    </ul>
+    <h3>4.3 Guides (content hub)</h3>
+    <p>
+      Sport guides and stories for <code>/guides</code>. Written by the team.
+      Created through the admin API until an admin screen exists (see section
+      6).
+    </p>
+    <h3>4.4 Bundles ("Complete the kit")</h3>
+    <p>
+      Sets of 2 to 6 products with up to 30% off. Created through the admin API
+      until an admin screen exists.
+    </p>
+    <h3>4.5 Offers and coupons</h3>
+    <p>
+      Decide the launch offers. Create coupons in the admin Coupons section.
+      Decide whether the online-payment discount (admin Settings, 0 to 10%) is
+      on.
+    </p>
+    <h3>4.6 Shipping and delivery rules</h3>
+    <p>
+      Confirm delivery times, the free-delivery threshold (currently ₹499) and
+      the delivery fee (currently ₹40) match the courier.
+    </p>
 
-<h2>4. Content to write or replace [Owner]</h2>
-<h3>4.1 Policy pages</h3>
-<p>Terms and conditions, privacy policy, refund policy, shipping policy. They are templates with <code>[square brackets]</code>. Replace every bracket and have a lawyer or chartered accountant check them.</p>
-<h3>4.2 Products</h3>
-<ul>
-  <li>Real photos (currently sample stock photos from Unsplash).</li>
-  <li>Descriptions, sizes and colours, and a SKU for every option.</li>
-  <li>HSN code, GST rate, country of origin, net quantity, and the manufacturer or importer name and address.</li>
-  <li>Packed weight in grams (used by the courier for pricing).</li>
-  <li>Remove or replace the sample products before launch.</li>
-</ul>
-<h3>4.3 Guides (content hub)</h3>
-<p>Sport guides and stories for <code>/guides</code>. Written by the team. Created through the admin API until an admin screen exists (see section 6).</p>
-<h3>4.4 Bundles ("Complete the kit")</h3>
-<p>Sets of 2 to 6 products with up to 30% off. Created through the admin API until an admin screen exists.</p>
-<h3>4.5 Offers and coupons</h3>
-<p>Decide the launch offers. Create coupons in the admin Coupons section. Decide whether the online-payment discount (admin Settings, 0 to 10%) is on.</p>
-<h3>4.6 Shipping and delivery rules</h3>
-<p>Confirm delivery times, the free-delivery threshold (currently ₹499) and the delivery fee (currently ₹40) match the courier.</p>
+    <h2>5. Hosting steps, in order</h2>
+    <ol>
+      <li>
+        <b>[Owner]</b> Create the MongoDB Atlas cluster and database user. Copy
+        the connection string and add the database name
+        <code>nexthlon</code> before the <code>?</code>.
+      </li>
+      <li>
+        <b>[Owner]</b> Create the Cloudinary account and copy its cloud name,
+        API key and API secret.
+      </li>
+      <li>
+        <b>[Owner]</b> Create the hosting service, connect it to the code
+        repository. Build command: <code>npm install</code>. Start command:
+        <code>npm start</code>.
+      </li>
+      <li>
+        <b>[Owner]</b> Enter every setting from <code>.env.example</code> on the
+        host. Do not upload a <code>.env</code> file.
+      </li>
+      <li>
+        <b>[Owner]</b> Point the domain at the host and turn on HTTPS. Set
+        <code>SITE_URL</code> to the final <code>https://</code> address.
+      </li>
+      <li>
+        <b>[Owner]</b> Run the checks from the host shell:
+        <code>npm run setup:check</code> and <code>npm run db:check</code>. Fix
+        anything they report.
+      </li>
+      <li>
+        <b>[Owner]</b> Create the first admin: <code>npm run seed:admin</code>.
+        Sign in at the private admin address.
+      </li>
+      <li>
+        <b>[Owner]</b> Add the real products and categories through the admin.
+        Remove the sample products (<code>npm run seed:products</code> created
+        them).
+      </li>
+      <li>
+        <b>[Owner]</b> Test one real order end to end with a small amount: sign
+        up, add to cart, pay, check the confirmation email, the WhatsApp message
+        (if set), the invoice PDF and the tracking page.
+      </li>
+      <li>
+        <b>[Owner]</b> Test each refund path once: cancel an item, return an
+        item, refund to the wallet, refund to the original payment.
+      </li>
+      <li>
+        <b>[Owner]</b> Test on a phone: sign up, checkout, push notifications,
+        install the app to the home screen.
+      </li>
+      <li>
+        <b>[Owner]</b> Set up backups: <code>npm run db:backup</code> on a
+        schedule. Check a restore once on a copy with
+        <code>npm run db:restore</code>.
+      </li>
+      <li>
+        <b>[Owner]</b> Turn on monitoring: Sentry alerts, and check job status
+        with <code>npm run jobs:status</code>.
+      </li>
+      <li>
+        <b>[Owner]</b> Submit <code>/sitemap.xml</code> to Google Search
+        Console.
+      </li>
+      <li><b>[Owner]</b> Announce the launch only after steps 8 to 12 pass.</li>
+    </ol>
 
-<h2>5. Hosting steps, in order</h2>
-<ol>
-  <li><b>[Owner]</b> Create the MongoDB Atlas cluster and database user. Copy the connection string and add the database name <code>nexthlon</code> before the <code>?</code>.</li>
-  <li><b>[Owner]</b> Create the Cloudinary account and copy its cloud name, API key and API secret.</li>
-  <li><b>[Owner]</b> Create the hosting service, connect it to the code repository. Build command: <code>npm install</code>. Start command: <code>npm start</code>.</li>
-  <li><b>[Owner]</b> Enter every setting from <code>.env.example</code> on the host. Do not upload a <code>.env</code> file.</li>
-  <li><b>[Owner]</b> Point the domain at the host and turn on HTTPS. Set <code>SITE_URL</code> to the final <code>https://</code> address.</li>
-  <li><b>[Owner]</b> Run the checks from the host shell: <code>npm run setup:check</code> and <code>npm run db:check</code>. Fix anything they report.</li>
-  <li><b>[Owner]</b> Create the first admin: <code>npm run seed:admin</code>. Sign in at the private admin address.</li>
-  <li><b>[Owner]</b> Add the real products and categories through the admin. Remove the sample products (<code>npm run seed:products</code> created them).</li>
-  <li><b>[Owner]</b> Test one real order end to end with a small amount: sign up, add to cart, pay, check the confirmation email, the WhatsApp message (if set), the invoice PDF and the tracking page.</li>
-  <li><b>[Owner]</b> Test each refund path once: cancel an item, return an item, refund to the wallet, refund to the original payment.</li>
-  <li><b>[Owner]</b> Test on a phone: sign up, checkout, push notifications, install the app to the home screen.</li>
-  <li><b>[Owner]</b> Set up backups: <code>npm run db:backup</code> on a schedule. Check a restore once on a copy with <code>npm run db:restore</code>.</li>
-  <li><b>[Owner]</b> Turn on monitoring: Sentry alerts, and check job status with <code>npm run jobs:status</code>.</li>
-  <li><b>[Owner]</b> Submit <code>/sitemap.xml</code> to Google Search Console.</li>
-  <li><b>[Owner]</b> Announce the launch only after steps 8 to 12 pass.</li>
-</ol>
+    <h2>6. Website items still to build [Developer]</h2>
+    <table>
+      <tr>
+        <th>#</th>
+        <th>Item</th>
+        <th>Why</th>
+        <th>Priority</th>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>
+          Admin screens for Bundles and Guides (create, edit, publish, hide)
+        </td>
+        <td>Today they need the admin API. Non-developers need a screen.</td>
+        <td>High</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>
+          Admin screen for editing product SKU, HSN and packed weight in bulk
+        </td>
+        <td>Marketplace feed and courier rates depend on it</td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>
+          Update <code>docs/ROADMAP.md</code> so every step shows its real
+          status
+        </td>
+        <td>Some steps still show as not started</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>
+          Full page check on phone and desktop for every page (only the product
+          page has been checked closely)
+        </td>
+        <td>Alignment and spacing errors may remain on other pages</td>
+        <td>High</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Live connection to Amazon, Flipkart and Myntra</td>
+        <td>
+          Currently only a feed download and a stock-sync endpoint exist; each
+          marketplace needs seller accounts and API access
+        </td>
+        <td>Optional</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>
+          Remove the sample products and sample guide from the preview data
+          before launch
+        </td>
+        <td>Avoid publishing test content</td>
+        <td>High</td>
+      </tr>
+    </table>
 
-<h2>6. Website items still to build [Developer]</h2>
-<table>
-  <tr><th>#</th><th>Item</th><th>Why</th><th>Priority</th></tr>
-  <tr><td>1</td><td>Admin screens for Bundles and Guides (create, edit, publish, hide)</td><td>Today they need the admin API. Non-developers need a screen.</td><td>High</td></tr>
-  <tr><td>2</td><td>Admin screen for editing product SKU, HSN and packed weight in bulk</td><td>Marketplace feed and courier rates depend on it</td><td>Medium</td></tr>
-  <tr><td>3</td><td>Update <code>docs/ROADMAP.md</code> so every step shows its real status</td><td>Some steps still show as not started</td><td>Low</td></tr>
-  <tr><td>4</td><td>Full page check on phone and desktop for every page (only the product page has been checked closely)</td><td>Alignment and spacing errors may remain on other pages</td><td>High</td></tr>
-  <tr><td>5</td><td>Live connection to Amazon, Flipkart and Myntra</td><td>Currently only a feed download and a stock-sync endpoint exist; each marketplace needs seller accounts and API access</td><td>Optional</td></tr>
-  <tr><td>6</td><td>Remove the sample products and sample guide from the preview data before launch</td><td>Avoid publishing test content</td><td>High</td></tr>
-</table>
+    <h2>7. Things that only work after accounts are set up [Owner]</h2>
+    <ul>
+      <li>Payments (Razorpay) work only with live keys and approved KYC.</li>
+      <li>
+        Shipping labels, PIN code checks and tracking updates need the
+        Shiprocket account.
+      </li>
+      <li>
+        WhatsApp updates need Meta-approved templates named
+        <code>nx_order_placed</code>, <code>nx_order_shipped</code>,
+        <code>nx_out_for_delivery</code>, <code>nx_order_delivered</code> and
+        <code>nx_cod_otp</code>.
+      </li>
+      <li>
+        COD codes need MSG91 with a DLT-approved OTP template (required in
+        India).
+      </li>
+      <li>Push notifications need the VAPID keys.</li>
+      <li>
+        Emails need an SMTP or Brevo account; without one, production emails
+        fail with a clear message.
+      </li>
+    </ul>
 
-<h2>7. Things that only work after accounts are set up [Owner]</h2>
-<ul>
-  <li>Payments (Razorpay) work only with live keys and approved KYC.</li>
-  <li>Shipping labels, PIN code checks and tracking updates need the Shiprocket account.</li>
-  <li>WhatsApp updates need Meta-approved templates named <code>nx_order_placed</code>, <code>nx_order_shipped</code>, <code>nx_out_for_delivery</code>, <code>nx_order_delivered</code> and <code>nx_cod_otp</code>.</li>
-  <li>COD codes need MSG91 with a DLT-approved OTP template (required in India).</li>
-  <li>Push notifications need the VAPID keys.</li>
-  <li>Emails need an SMTP or Brevo account; without one, production emails fail with a clear message.</li>
-</ul>
+    <h2>8. Legal and business (outside the code) [Owner]</h2>
+    <ul>
+      <li>GST registration (and composition scheme if used).</li>
+      <li>Company registration and a current bank account.</li>
+      <li>Consumer grievance officer, and a published grievance process.</li>
+      <li>Razorpay KYC documents.</li>
+      <li>Courier contracts (through Shiprocket or direct).</li>
+      <li>Transit insurance, if wanted.</li>
+    </ul>
 
-<h2>8. Legal and business (outside the code) [Owner]</h2>
-<ul>
-  <li>GST registration (and composition scheme if used).</li>
-  <li>Company registration and a current bank account.</li>
-  <li>Consumer grievance officer, and a published grievance process.</li>
-  <li>Razorpay KYC documents.</li>
-  <li>Courier contracts (through Shiprocket or direct).</li>
-  <li>Transit insurance, if wanted.</li>
-</ul>
+    <h2>9. After launch [Owner]</h2>
+    <ul>
+      <li>Check the admin dashboard and the job queue every day.</li>
+      <li>Watch refused-parcel (RTO) and COD refusal rates.</li>
+      <li>
+        Answer product questions and review reviews weekly (admin Questions
+        page).
+      </li>
+      <li>Keep product photos and stock up to date.</li>
+      <li>
+        Renew the domain, hosting, SSL, and move the database from M0 to M10
+        when orders grow.
+      </li>
+    </ul>
 
-<h2>9. After launch [Owner]</h2>
-<ul>
-  <li>Check the admin dashboard and the job queue every day.</li>
-  <li>Watch refused-parcel (RTO) and COD refusal rates.</li>
-  <li>Answer product questions and review reviews weekly (admin Questions page).</li>
-  <li>Keep product photos and stock up to date.</li>
-  <li>Renew the domain, hosting, SSL, and move the database from M0 to M10 when orders grow.</li>
-</ul>
-
-<h2>10. Done already (no action needed)</h2>
-<table>
-  <tr><th>Area</th><th>State</th></tr>
-  <tr><td>Shop, cart, checkout, orders, GST invoices</td><td>Done</td></tr>
-  <tr><td>Sizes and colours, size guide</td><td>Done</td></tr>
-  <tr><td>Shipping: Shiprocket booking, tracking timeline, refused parcels</td><td>Code done (needs account)</td></tr>
-  <tr><td>Emails, WhatsApp, SMS, push</td><td>Code done (needs accounts and keys)</td></tr>
-  <tr><td>Privacy: cookie consent, analytics after consent, Meta Pixel after consent, data download, account deletion</td><td>Done</td></tr>
-  <tr><td>Reviews with photos, product questions and answers</td><td>Done</td></tr>
-  <tr><td>Search: typo correction, synonyms, suggestions</td><td>Done</td></tr>
-  <tr><td>Back-in-stock alerts, installable app, offline page</td><td>Done</td></tr>
-  <tr><td>Discount for paying online, COD by code</td><td>Done (admin switches)</td></tr>
-  <tr><td>Complete the kit (bundles), content hub (guides), marketplace feed</td><td>Done (API; admin screens pending)</td></tr>
-  <tr><td>Security: rate limits, hidden admin address, backups</td><td>Done</td></tr>
-  <tr><td>Test suite</td><td>500 tests passing</td></tr>
-</table>
-
-</body>
+    <h2>10. Done already (no action needed)</h2>
+    <table>
+      <tr>
+        <th>Area</th>
+        <th>State</th>
+      </tr>
+      <tr>
+        <td>Shop, cart, checkout, orders, GST invoices</td>
+        <td>Done</td>
+      </tr>
+      <tr>
+        <td>Sizes and colours, size guide</td>
+        <td>Done</td>
+      </tr>
+      <tr>
+        <td>
+          Shipping: Shiprocket booking, tracking timeline, refused parcels
+        </td>
+        <td>Code done (needs account)</td>
+      </tr>
+      <tr>
+        <td>Emails, WhatsApp, SMS, push</td>
+        <td>Code done (needs accounts and keys)</td>
+      </tr>
+      <tr>
+        <td>
+          Privacy: cookie consent, analytics after consent, Meta Pixel after
+          consent, data download, account deletion
+        </td>
+        <td>Done</td>
+      </tr>
+      <tr>
+        <td>Reviews with photos, product questions and answers</td>
+        <td>Done</td>
+      </tr>
+      <tr>
+        <td>Search: typo correction, synonyms, suggestions</td>
+        <td>Done</td>
+      </tr>
+      <tr>
+        <td>Back-in-stock alerts, installable app, offline page</td>
+        <td>Done</td>
+      </tr>
+      <tr>
+        <td>Discount for paying online, COD by code</td>
+        <td>Done (admin switches)</td>
+      </tr>
+      <tr>
+        <td>
+          Complete the kit (bundles), content hub (guides), marketplace feed
+        </td>
+        <td>Done (API; admin screens pending)</td>
+      </tr>
+      <tr>
+        <td>Security: rate limits, hidden admin address, backups</td>
+        <td>Done</td>
+      </tr>
+      <tr>
+        <td>Test suite</td>
+        <td>500 tests passing</td>
+      </tr>
+    </table>
+  </body>
 </html>

@@ -9,241 +9,916 @@
    ========================================================================== */
 
 /* Section heading underline. Static (always drawn) unless motion is allowed. */
-.section-head h2, .admin-section-title { position: relative; padding-bottom: var(--space-1); }
-.section-head h2::after, .admin-section-title::after {
-  content: ""; position: absolute; left: 0; bottom: 0; width: 56px; height: 3px; border-radius: 3px;
-  background: linear-gradient(90deg, var(--brand), var(--accent)); transform-origin: left;
+.section-head h2,
+.admin-section-title {
+  position: relative;
+  padding-bottom: var(--space-1);
+}
+
+.section-head h2::after,
+.admin-section-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 56px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--brand), var(--accent));
+  transform-origin: left;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   /* ---------- Scroll reveal ---------- */
-  .js-motion [data-reveal]:not(button):not(.is-revealed) { opacity: 0; }
-  .js-motion [data-reveal]:not(button).is-revealed:not([data-reveal-done]) {
-    animation: nx-reveal-up var(--duration-slower) var(--ease) var(--reveal-delay, 0ms) backwards;
+  .js-motion [data-reveal]:not(button, .is-revealed) {
+    opacity: 0;
   }
-  .js-motion [data-reveal="fade"].is-revealed:not([data-reveal-done]) { animation-name: nx-reveal-fade; }
-  .js-motion [data-reveal="scale"].is-revealed:not([data-reveal-done]) { animation-name: nx-reveal-scale; }
-  @keyframes nx-reveal-up { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+
+  .js-motion [data-reveal]:not(button).is-revealed:not([data-reveal-done]) {
+    animation: nx-reveal-up var(--duration-slower) var(--ease)
+      var(--reveal-delay, 0ms) backwards;
+  }
+
+  .js-motion [data-reveal='fade'].is-revealed:not([data-reveal-done]) {
+    animation-name: nx-reveal-fade;
+  }
+
+  .js-motion [data-reveal='scale'].is-revealed:not([data-reveal-done]) {
+    animation-name: nx-reveal-scale;
+  }
+
+  @keyframes nx-reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(28px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 
   /* Where the browser supports scroll-driven animations (motion.js adds .sd-reveal), the entrance is tied
      to the scroll position instead of a timer: no observer, no script per item, and scrolling back up plays
      it in reverse. Items already on screen or in a sideways row are shown straight away (data-reveal-done). */
-  .js-motion.sd-reveal [data-reveal]:not(button):not([data-reveal-done]),
-  .js-motion.sd-reveal [data-reveal]:not(button).is-revealed:not([data-reveal-done]) {
+  .js-motion.sd-reveal [data-reveal]:not(button, [data-reveal-done]),
+  .js-motion.sd-reveal
+    [data-reveal]:not(button).is-revealed:not([data-reveal-done]) {
     opacity: 1;
     animation: nx-reveal-up var(--ease-out) both;
     animation-timeline: view();
     animation-range: entry 0% entry 60%;
   }
-  .js-motion.sd-reveal [data-reveal="fade"]:not([data-reveal-done]) { animation-name: nx-reveal-fade; }
-  .js-motion.sd-reveal [data-reveal="scale"]:not([data-reveal-done]) { animation-name: nx-reveal-scale; }
-  @keyframes nx-reveal-fade { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes nx-reveal-scale { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+
+  .js-motion.sd-reveal [data-reveal='fade']:not([data-reveal-done]) {
+    animation-name: nx-reveal-fade;
+  }
+
+  .js-motion.sd-reveal [data-reveal='scale']:not([data-reveal-done]) {
+    animation-name: nx-reveal-scale;
+  }
+
+  @keyframes nx-reveal-fade {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes nx-reveal-scale {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 
   /* Heading underline draws in when its section is revealed. */
   .js-motion [data-reveal]:not(.is-revealed) h2::after,
-  .js-motion .admin-section-title[data-reveal]:not(.is-revealed)::after { transform: scaleX(0); }
+  .js-motion .admin-section-title[data-reveal]:not(.is-revealed)::after {
+    transform: scaleX(0);
+  }
+
   .js-motion [data-reveal].is-revealed h2::after,
   .js-motion .admin-section-title[data-reveal].is-revealed::after {
     transform: scaleX(1);
-    transition: transform var(--duration-slower) var(--ease) calc(var(--reveal-delay, 0ms) + var(--duration));
+    transition: transform var(--duration-slower) var(--ease)
+      calc(var(--reveal-delay, 0ms) + var(--duration));
   }
 
   /* ---------- 3D tilt with a light glare (mouse only; motion.js never tilts on touch) ---------- */
   .js-motion [data-tilt] {
-    --tilt-x: 0deg; --tilt-y: 0deg;
+    --tilt-x: 0deg;
+    --tilt-y: 0deg;
+
     transition: transform var(--duration-long) var(--ease);
   }
+
   .js-motion [data-tilt].is-tilting {
-    transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateY(-4px);
+    transform: perspective(900px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y))
+      translateY(-4px);
     transition: transform var(--duration-fast) var(--ease-linear);
   }
-  .js-motion .product-card[data-tilt].is-tilting { box-shadow: var(--shadow-md); }
+
+  .js-motion .product-card[data-tilt].is-tilting {
+    box-shadow: var(--shadow-md);
+  }
+
   /* Depth inside a tilting product card: the photo slides against the tilt like a window onto it, and
      the quick-add button floats the other way, nearer the eye (motion.js sets --tilt-nx/-ny, -1 to 1). */
-  .js-motion .product-card[data-tilt] .product-media img { transition: transform var(--duration-long) var(--ease), translate var(--duration-long) var(--ease); }
-  .js-motion .product-card[data-tilt].is-tilting .product-media img { translate: calc(var(--tilt-nx, 0) * -8px) calc(var(--tilt-ny, 0) * -8px); transition-duration: var(--duration-long), var(--duration-fast); }
-  .js-motion .product-card[data-tilt].is-tilting .card-add:not(:active) { translate: calc(var(--tilt-nx, 0) * 5px) calc(var(--tilt-ny, 0) * 5px); }
+  .js-motion .product-card[data-tilt] .product-media img {
+    transition:
+      transform var(--duration-long) var(--ease),
+      translate var(--duration-long) var(--ease);
+  }
+
+  .js-motion .product-card[data-tilt].is-tilting .product-media img {
+    translate: calc(var(--tilt-nx, 0) * -8px) calc(var(--tilt-ny, 0) * -8px);
+    transition-duration: var(--duration-long), var(--duration-fast);
+  }
+
+  .js-motion .product-card[data-tilt].is-tilting .card-add:not(:active) {
+    translate: calc(var(--tilt-nx, 0) * 5px) calc(var(--tilt-ny, 0) * 5px);
+  }
+
   .tilt-glare {
-    position: absolute; z-index: var(--layer-2); left: -50%; top: -50%; width: 200%; height: 200%;
-    pointer-events: none; opacity: 0; border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(var(--white-rgb), 0.38), rgba(var(--white-rgb), 0) 38%);
+    position: absolute;
+    z-index: var(--layer-2);
+    left: -50%;
+    top: -50%;
+    width: 200%;
+    height: 200%;
+    pointer-events: none;
+    opacity: 0;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at center,
+      rgb(var(--white-rgb), 0.38),
+      rgb(var(--white-rgb), 0) 38%
+    );
     transform: translate(var(--glare-x, 0), var(--glare-y, 0));
     transition: opacity var(--duration-slow) var(--ease);
     mix-blend-mode: soft-light;
   }
-  .is-tilting > .tilt-glare { opacity: 1; }
+
+  .is-tilting > .tilt-glare {
+    opacity: 1;
+  }
 
   /* ---------- Buttons: lift, shadow and press ---------- */
-  .js-motion .btn { isolation: isolate; transition: transform var(--duration-quick) var(--ease-spring); }
-  .js-motion .btn::after {
-    content: ""; position: absolute; z-index: var(--z-below); inset: 0; border-radius: inherit; pointer-events: none;
-    box-shadow: 0 10px 24px rgba(var(--navy-rgb), 0.22); opacity: 0; transition: opacity var(--duration-quick) var(--ease);
+  .js-motion .btn {
+    isolation: isolate;
+    transition: transform var(--duration-quick) var(--ease-spring);
   }
-  .js-motion .btn-primary::after { box-shadow: 0 12px 28px rgba(var(--brand-rgb), 0.42); }
-  @media (hover: hover) { .js-motion .btn:hover:not(:disabled) { transform: translateY(-2px); } }
-  @media (hover: hover) { .js-motion .btn:hover:not(:disabled)::after { opacity: 1; } }
-  .js-motion .btn:active:not(:disabled) { transform: translateY(0) scale(0.96); transition-duration: var(--duration-fast); }
-  .js-motion .btn:active:not(:disabled)::after { opacity: 0.4; }
+
+  .js-motion .btn::after {
+    content: '';
+    position: absolute;
+    z-index: var(--z-below);
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 0 10px 24px rgb(var(--navy-rgb), 0.22);
+    opacity: 0;
+    transition: opacity var(--duration-quick) var(--ease);
+  }
+
+  .js-motion .btn-primary::after {
+    box-shadow: 0 12px 28px rgb(var(--brand-rgb), 0.42);
+  }
+
+  @media (hover: hover) {
+    .js-motion .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+  }
+
+  @media (hover: hover) {
+    .js-motion .btn:hover:not(:disabled)::after {
+      opacity: 1;
+    }
+  }
+
+  .js-motion .btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.96);
+    transition-duration: var(--duration-fast);
+  }
+
+  .js-motion .btn:active:not(:disabled)::after {
+    opacity: 0.4;
+  }
 
   /* ---------- Glass header after scrolling 20px ---------- */
+
   /* Two layers swap by opacity: solid at the top of the page, frosted glass once scrolled. */
-  .js-motion .site-header { background: transparent; }
-  .js-motion .site-header::before,
-  .js-motion .site-header::after { content: ""; position: absolute; inset: 0; z-index: var(--z-below); pointer-events: none; transition: opacity var(--duration-medium) var(--ease); }
-  .js-motion .site-header::before { background: var(--navy-900); }
-  .js-motion .site-header::after {
-    background: rgba(var(--navy-rgb), 0.8);
-    -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
-    box-shadow: 0 10px 30px rgba(var(--navy-950-rgb), 0.35); opacity: 0;
+  .js-motion .site-header {
+    background: transparent;
   }
-  .js-motion .site-header.is-scrolled::before { opacity: 0; }
-  .js-motion .site-header.is-scrolled::after { opacity: 1; }
+
+  .js-motion .site-header::before,
+  .js-motion .site-header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-below);
+    pointer-events: none;
+    transition: opacity var(--duration-medium) var(--ease);
+  }
+
+  .js-motion .site-header::before {
+    background: var(--navy-900);
+  }
+
+  .js-motion .site-header::after {
+    background: rgb(var(--navy-rgb), 0.8);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 10px 30px rgb(var(--navy-950-rgb), 0.35);
+    opacity: 0;
+  }
+
+  .js-motion .site-header.is-scrolled::before {
+    opacity: 0;
+  }
+
+  .js-motion .site-header.is-scrolled::after {
+    opacity: 1;
+  }
+
   /* A see-through tint that looks like the usual navy-800 over the solid layer. */
-  .js-motion .site-header .catnav { background: rgba(var(--navy-700-rgb), 0.5); }
+  .js-motion .site-header .catnav {
+    background: rgb(var(--navy-700-rgb), 0.5);
+  }
 
   /* ---------- Images fade in once loaded ---------- */
-  .js-motion img.is-loading { opacity: 0; }
-  .js-motion img.is-loaded { transition: opacity var(--duration-long) var(--ease), transform var(--duration-long) var(--ease); }
+  .js-motion img.is-loading {
+    opacity: 0;
+  }
+
+  .js-motion img.is-loaded {
+    transition:
+      opacity var(--duration-long) var(--ease),
+      transform var(--duration-long) var(--ease);
+  }
 }
 
 /* ---------- Checkout step transition and coupon pop ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .js-motion .step-body.step-enter { animation: nx-step-in var(--duration-slow) var(--ease) both; }
-  @keyframes nx-step-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
-  .js-motion .coupon-applied.is-popped { animation: nx-coupon-pop var(--duration-long) var(--ease-spring); }
-  @keyframes nx-coupon-pop { 0% { transform: scale(0.94); opacity: 0.4; } 60% { transform: scale(1.02); opacity: 1; } 100% { transform: none; } }
+  .js-motion .step-body.step-enter {
+    animation: nx-step-in var(--duration-slow) var(--ease) both;
+  }
+
+  @keyframes nx-step-in {
+    from {
+      opacity: 0;
+      transform: translateX(18px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .js-motion .coupon-applied.is-popped {
+    animation: nx-coupon-pop var(--duration-long) var(--ease-spring);
+  }
+
+  @keyframes nx-coupon-pop {
+    0% {
+      transform: scale(0.94);
+      opacity: 0.4;
+    }
+
+    60% {
+      transform: scale(1.02);
+      opacity: 1;
+    }
+
+    100% {
+      transform: none;
+    }
+  }
 }
 
 /* ---------- Payment experience ---------- */
 @media (prefers-reduced-motion: no-preference) {
   /* The active checkout step glows. */
-  .stepper li[aria-current="step"] > span::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--brand); animation: nx-glow var(--loop-short) var(--ease-out) infinite; }
-  @keyframes nx-glow { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(1.6); } }
+  .stepper li[aria-current='step'] > span::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--brand);
+    animation: nx-glow var(--loop-short) var(--ease-out) infinite;
+  }
+
+  @keyframes nx-glow {
+    from {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+
+    to {
+      opacity: 0;
+      transform: scale(1.6);
+    }
+  }
 
   /* Payment cards: the chosen card's details slide open, the Pay button shines and presses. */
-  .js-motion .pay-card-details.is-entering { animation: nx-details-in var(--duration-medium) var(--ease) both; }
-  @keyframes nx-details-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-  .pay-card.is-selected .pay-tick { animation: nx-tick-pop var(--duration-slow) var(--ease-spring); }
-  @keyframes nx-tick-pop { 0% { transform: scale(0.6); } 100% { transform: scale(1); } }
-  .pay-btn { transition: transform var(--duration-fast) var(--ease), box-shadow var(--duration-quick) var(--ease); }
-  @media (hover: hover) { .pay-btn:hover:not(:disabled) { transform: translateY(-2px); } }
-  @media (hover: hover) { .pay-btn:hover:not(:disabled)::after { transform: translateX(260%) skewX(-18deg); transition: transform var(--duration-slower) var(--ease); } }
-  .pay-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+  .js-motion .pay-card-details.is-entering {
+    animation: nx-details-in var(--duration-medium) var(--ease) both;
+  }
+
+  @keyframes nx-details-in {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .pay-card.is-selected .pay-tick {
+    animation: nx-tick-pop var(--duration-slow) var(--ease-spring);
+  }
+
+  @keyframes nx-tick-pop {
+    0% {
+      transform: scale(0.6);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .pay-btn {
+    transition:
+      transform var(--duration-fast) var(--ease),
+      box-shadow var(--duration-quick) var(--ease);
+  }
+
+  @media (hover: hover) {
+    .pay-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+  }
+
+  @media (hover: hover) {
+    .pay-btn:hover:not(:disabled)::after {
+      transform: translateX(260%) skewX(-18deg);
+      transition: transform var(--duration-slower) var(--ease);
+    }
+  }
+
+  .pay-btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+  }
 
   /* The overlay card pops in; each state animates its own icon. */
-  .pay-overlay.is-open .pay-overlay-card { animation: nx-pay-in var(--duration-medium) var(--ease) both; }
-  @keyframes nx-pay-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
-  .pay-icon-lock .pay-pulse { animation: nx-pay-pulse var(--loop-short) var(--ease-out) infinite; }
-  @keyframes nx-pay-pulse { from { opacity: 1; transform: scale(0.7); } to { opacity: 0; transform: scale(1.1); } }
-  .pay-icon-lock .pay-lock-shackle { animation: nx-shackle var(--loop-short) var(--ease) infinite; }
-  @keyframes nx-shackle { 0%, 20% { transform: translateY(-4px); } 45%, 100% { transform: none; } }
-  .pay-ring-arc { animation: nx-spin var(--loop-fast) var(--ease-linear) infinite; }
-  @keyframes nx-spin { to { transform: rotate(360deg); } }
-  .pay-overlay[data-state="success"] .is-entering .pay-draw-circle,
-  .pay-overlay[data-state="failed"] .is-entering .pay-draw-circle { animation: nx-draw-circle var(--duration-long) var(--ease-out) both; }
-  .pay-overlay[data-state="success"] .is-entering .pay-draw-mark,
-  .pay-overlay[data-state="failed"] .is-entering .pay-draw-mark { animation: nx-draw-mark var(--duration-slow) var(--ease-out) var(--duration-slow) both; }
-  .pay-overlay[data-state="failed"] .is-entering .pay-draw-mark-2 { animation-delay: var(--duration-long); }
-  @keyframes nx-draw-circle { from { stroke-dashoffset: 176; } to { stroke-dashoffset: 0; } }
-  @keyframes nx-draw-mark { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
-  .pay-overlay[data-state="failed"] .pay-overlay-card.is-entering { animation: nx-shake var(--duration-long) var(--ease-in-out) var(--duration-slower); }
-  @keyframes nx-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
-  .pay-overlay[data-state="success"] .pay-result, .pay-overlay[data-state="success"] .pay-actions,
-  .pay-overlay[data-state="failed"] .pay-actions { animation: nx-details-in var(--duration-slow) var(--ease) var(--duration-slower) both; }
+  .pay-overlay.is-open .pay-overlay-card {
+    animation: nx-pay-in var(--duration-medium) var(--ease) both;
+  }
+
+  @keyframes nx-pay-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .pay-icon-lock .pay-pulse {
+    animation: nx-pay-pulse var(--loop-short) var(--ease-out) infinite;
+  }
+
+  @keyframes nx-pay-pulse {
+    from {
+      opacity: 1;
+      transform: scale(0.7);
+    }
+
+    to {
+      opacity: 0;
+      transform: scale(1.1);
+    }
+  }
+
+  .pay-icon-lock .pay-lock-shackle {
+    animation: nx-shackle var(--loop-short) var(--ease) infinite;
+  }
+
+  @keyframes nx-shackle {
+    0%,
+    20% {
+      transform: translateY(-4px);
+    }
+
+    45%,
+    100% {
+      transform: none;
+    }
+  }
+
+  .pay-ring-arc {
+    animation: nx-spin var(--loop-fast) var(--ease-linear) infinite;
+  }
+
+  @keyframes nx-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .pay-overlay[data-state='success'] .is-entering .pay-draw-circle,
+  .pay-overlay[data-state='failed'] .is-entering .pay-draw-circle {
+    animation: nx-draw-circle var(--duration-long) var(--ease-out) both;
+  }
+
+  .pay-overlay[data-state='success'] .is-entering .pay-draw-mark,
+  .pay-overlay[data-state='failed'] .is-entering .pay-draw-mark {
+    animation: nx-draw-mark var(--duration-slow) var(--ease-out)
+      var(--duration-slow) both;
+  }
+
+  .pay-overlay[data-state='failed'] .is-entering .pay-draw-mark-2 {
+    animation-delay: var(--duration-long);
+  }
+
+  @keyframes nx-draw-circle {
+    from {
+      stroke-dashoffset: 176;
+    }
+
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes nx-draw-mark {
+    from {
+      stroke-dashoffset: 40;
+    }
+
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .pay-overlay[data-state='failed'] .pay-overlay-card.is-entering {
+    animation: nx-shake var(--duration-long) var(--ease-in-out)
+      var(--duration-slower);
+  }
+
+  @keyframes nx-shake {
+    0%,
+    100% {
+      transform: none;
+    }
+
+    20%,
+    60% {
+      transform: translateX(-8px);
+    }
+
+    40%,
+    80% {
+      transform: translateX(8px);
+    }
+  }
+
+  .pay-overlay[data-state='success'] .pay-result,
+  .pay-overlay[data-state='success'] .pay-actions,
+  .pay-overlay[data-state='failed'] .pay-actions {
+    animation: nx-details-in var(--duration-slow) var(--ease)
+      var(--duration-slower) both;
+  }
 
   /* Payment status badges: Paid pulses, Pending breathes. */
-  .pay-status-paid .pay-status-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: nx-dot-pulse var(--loop-short) var(--ease-out) infinite; }
-  @keyframes nx-dot-pulse { from { opacity: 0.6; transform: scale(1); } to { opacity: 0; transform: scale(2.8); } }
-  .pay-status-pending .pay-status-dot { animation: nx-dot-breathe var(--loop-short) var(--ease-in-out) infinite; }
-  @keyframes nx-dot-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .pay-status-paid .pay-status-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: currentcolor;
+    animation: nx-dot-pulse var(--loop-short) var(--ease-out) infinite;
+  }
+
+  @keyframes nx-dot-pulse {
+    from {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+
+    to {
+      opacity: 0;
+      transform: scale(2.8);
+    }
+  }
+
+  .pay-status-pending .pay-status-dot {
+    animation: nx-dot-breathe var(--loop-short) var(--ease-in-out) infinite;
+  }
+
+  @keyframes nx-dot-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.3;
+    }
+  }
 
   /* The tracking timeline draws in, one step after another. */
-  .js-motion .timeline.will-draw:not(.is-drawn) .timeline-step { opacity: 0; }
-  .js-motion .timeline.will-draw:not(.is-drawn) .timeline-step::before { opacity: 0; }
-  .js-motion .timeline.is-drawn .timeline-step { animation: nx-step-rise var(--duration-slow) var(--ease) calc(var(--step, 0) * var(--duration-fast)) both; }
-  .js-motion .timeline.is-drawn .timeline-step::before { transform-origin: left center; animation: nx-line-draw var(--duration-slow) var(--ease) calc(var(--step, 0) * var(--duration-fast)) both; }
-  @keyframes nx-step-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-  @keyframes nx-line-draw { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
+  .js-motion .timeline.will-draw:not(.is-drawn) .timeline-step {
+    opacity: 0;
+  }
+
+  .js-motion .timeline.will-draw:not(.is-drawn) .timeline-step::before {
+    opacity: 0;
+  }
+
+  .js-motion .timeline.is-drawn .timeline-step {
+    animation: nx-step-rise var(--duration-slow) var(--ease)
+      calc(var(--step, 0) * var(--duration-fast)) both;
+  }
+
+  .js-motion .timeline.is-drawn .timeline-step::before {
+    transform-origin: left center;
+    animation: nx-line-draw var(--duration-slow) var(--ease)
+      calc(var(--step, 0) * var(--duration-fast)) both;
+  }
+
+  @keyframes nx-step-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes nx-line-draw {
+    from {
+      opacity: 0;
+      transform: scale(0);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 
   /* B5: a parcel on its way. The latest courier scan pulses, the scans rise in one after another,
      and the truck rolls gently while the order is out there. */
-  .track-scan { animation: nx-step-rise var(--duration-slow) var(--ease) calc(var(--i, 0) * var(--duration-fast) / 2) both; }
-  .track-scan.is-latest .track-scan-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: nx-dot-pulse var(--loop-short) var(--ease-out) infinite; }
-  .track-card.is-live .track-truck .i { animation: nx-truck-roll var(--loop-short) var(--ease-in-out) infinite; }
-  @keyframes nx-truck-roll { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
+  .track-scan {
+    animation: nx-step-rise var(--duration-slow) var(--ease)
+      calc(var(--i, 0) * var(--duration-fast) / 2) both;
+  }
+
+  .track-scan.is-latest .track-scan-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: currentcolor;
+    animation: nx-dot-pulse var(--loop-short) var(--ease-out) infinite;
+  }
+
+  .track-card.is-live .track-truck .i {
+    animation: nx-truck-roll var(--loop-short) var(--ease-in-out) infinite;
+  }
+
+  @keyframes nx-truck-roll {
+    0%,
+    100% {
+      transform: translateX(-2px);
+    }
+
+    50% {
+      transform: translateX(2px);
+    }
+  }
 }
 
 /* ---------- Empty-state illustrations float, and tooltips ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .empty-art .ea-object { animation: nx-float var(--loop) var(--ease-in-out) infinite; }
-  .empty-art .ea-shadow { transform-box: fill-box; transform-origin: center; animation: nx-float-shadow var(--loop) var(--ease-in-out) infinite; }
-  .empty-art .ea-spark, .empty-art .ea-spark-line { animation: nx-twinkle var(--loop-medium) var(--ease-in-out) infinite; }
-  .empty-art .ea-spark:nth-of-type(2) { animation-delay: var(--duration-slower); }
-  .empty-art .ea-spark-line { animation-delay: var(--loop-short); }
-  @keyframes nx-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-  @keyframes nx-float-shadow { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.82); opacity: 0.6; } }
-  @keyframes nx-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+  .empty-art .ea-object {
+    animation: nx-float var(--loop) var(--ease-in-out) infinite;
+  }
+
+  .empty-art .ea-shadow {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: nx-float-shadow var(--loop) var(--ease-in-out) infinite;
+  }
+
+  .empty-art .ea-spark,
+  .empty-art .ea-spark-line {
+    animation: nx-twinkle var(--loop-medium) var(--ease-in-out) infinite;
+  }
+
+  .empty-art .ea-spark:nth-of-type(2) {
+    animation-delay: var(--duration-slower);
+  }
+
+  .empty-art .ea-spark-line {
+    animation-delay: var(--loop-short);
+  }
+
+  @keyframes nx-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes nx-float-shadow {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(0.82);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes nx-twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
 }
 
 /* ---------- 3D home ---------- */
 @media (prefers-reduced-motion: no-preference) {
   /* The headline: each letter turns up from rotateX(90deg). */
-  .js-motion .hero3d-title .char { transform-origin: 50% 100%; animation: nx-char-in var(--duration-slower) var(--ease-out) calc(var(--i) * var(--stagger) + var(--duration-fast)) both; }
+  .js-motion .hero3d-title .char {
+    transform-origin: 50% 100%;
+    animation: nx-char-in var(--duration-slower) var(--ease-out)
+      calc(var(--i) * var(--stagger) + var(--duration-fast)) both;
+  }
+
   /* The letters start dim, not invisible: the headline is the page's largest paint, and an invisible
      first frame would hold Largest Contentful Paint back until the last letter lands. They only rise (no
      rotation or scale), so each letter paints at its full size from the first frame. */
-  @keyframes nx-char-in { from { opacity: 0.15; transform: translateY(0.35em); } to { opacity: 1; transform: none; } }
+  @keyframes nx-char-in {
+    from {
+      opacity: 0.15;
+      transform: translateY(0.35em);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   /* The hero is the first screen, so its text starts dim instead of invisible (see nx-char-in). */
-  .js-motion .hero3d-kicker, .js-motion .hero3d-text, .js-motion .hero3d-actions { animation: nx-hero-rise var(--duration-slower) var(--ease-out) var(--duration-medium) both; }
-  @keyframes nx-hero-rise { from { opacity: 0.15; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-  .js-motion .hero3d-text { animation-delay: var(--duration-slow); }
-  .js-motion .hero3d-actions { animation-delay: var(--duration-long); }
-  .hero3d-scroll span { transform-origin: top; animation: nx-scroll-cue var(--loop-short) var(--ease-in-out) infinite; }
-  @keyframes nx-scroll-cue { 0% { transform: scaleY(0); opacity: 1; } 60% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+  .js-motion .hero3d-kicker,
+  .js-motion .hero3d-text,
+  .js-motion .hero3d-actions {
+    animation: nx-hero-rise var(--duration-slower) var(--ease-out)
+      var(--duration-medium) both;
+  }
+
+  @keyframes nx-hero-rise {
+    from {
+      opacity: 0.15;
+      transform: translateY(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .js-motion .hero3d-text {
+    animation-delay: var(--duration-slow);
+  }
+
+  .js-motion .hero3d-actions {
+    animation-delay: var(--duration-long);
+  }
+
+  .hero3d-scroll span {
+    transform-origin: top;
+    animation: nx-scroll-cue var(--loop-short) var(--ease-in-out) infinite;
+  }
+
+  @keyframes nx-scroll-cue {
+    0% {
+      transform: scaleY(0);
+      opacity: 1;
+    }
+
+    60% {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+
+    100% {
+      transform: scaleY(1);
+      opacity: 0;
+    }
+  }
 
   /* CSS 3D fallback hero: turning rings and floating cards. */
-  .hf-ring-1 { animation: nx-ring-a var(--loop-drift) var(--ease-linear) infinite; }
-  .hf-ring-2 { animation: nx-ring-b var(--loop-drift) var(--ease-linear) infinite; }
-  .hf-ring-3 { animation: nx-ring-c var(--loop-drift-slow) var(--ease-linear) infinite; }
-  @keyframes nx-ring-a { to { transform: rotateX(72deg) rotateZ(360deg); } }
-  @keyframes nx-ring-b { to { transform: rotateY(64deg) rotateX(18deg) rotateZ(360deg); } }
-  @keyframes nx-ring-c { to { transform: rotateX(-58deg) rotateY(30deg) rotateZ(-360deg); } }
-  .hf-card { animation: nx-hover-float var(--loop-long) var(--ease-in-out) infinite; }
-  .hf-card-2 { animation-delay: -2s; }
-  .hf-card-3 { animation-delay: -4s; }
-  @keyframes nx-hover-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -14px; } }
+  .hf-ring-1 {
+    animation: nx-ring-a var(--loop-drift) var(--ease-linear) infinite;
+  }
+
+  .hf-ring-2 {
+    animation: nx-ring-b var(--loop-drift) var(--ease-linear) infinite;
+  }
+
+  .hf-ring-3 {
+    animation: nx-ring-c var(--loop-drift-slow) var(--ease-linear) infinite;
+  }
+
+  @keyframes nx-ring-a {
+    to {
+      transform: rotateX(72deg) rotateZ(360deg);
+    }
+  }
+
+  @keyframes nx-ring-b {
+    to {
+      transform: rotateY(64deg) rotateX(18deg) rotateZ(360deg);
+    }
+  }
+
+  @keyframes nx-ring-c {
+    to {
+      transform: rotateX(-58deg) rotateY(30deg) rotateZ(-360deg);
+    }
+  }
+
+  .hf-card {
+    animation: nx-hover-float var(--loop-long) var(--ease-in-out) infinite;
+  }
+
+  .hf-card-2 {
+    animation-delay: -2s;
+  }
+
+  .hf-card-3 {
+    animation-delay: -4s;
+  }
+
+  @keyframes nx-hover-float {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+
+    50% {
+      translate: 0 -14px;
+    }
+  }
 
   /* Showcase: the product floats, the ring turns, the label lines draw in. */
-  .showcase-product { animation: nx-hover-float var(--loop) var(--ease-in-out) infinite; }
-  .podium-ring { animation: nx-podium var(--loop-drift) var(--ease-linear) infinite; }
-  @keyframes nx-podium { to { transform: rotateX(73deg) rotateZ(360deg); } }
-  .showcase-stage:not(.is-in) .showcase-line { stroke-dashoffset: 120; }
-  .showcase-stage:not(.is-in) .showcase-label span { opacity: 0; transform: translateY(8px); }
-  .showcase-line { transition: stroke-dashoffset var(--duration-slower) var(--ease-out); }
-  .showcase-label span { transition: opacity var(--duration-long) var(--ease-out) var(--duration-long), transform var(--duration-long) var(--ease-out) var(--duration-long); }
-  .showcase-label-2 .showcase-line, .showcase-label-2 span { transition-delay: var(--duration), var(--duration-slower); }
-  .showcase-label-3 .showcase-line, .showcase-label-3 span { transition-delay: var(--duration-long), var(--duration-slower); }
+  .showcase-product {
+    animation: nx-hover-float var(--loop) var(--ease-in-out) infinite;
+  }
+
+  .podium-ring {
+    animation: nx-podium var(--loop-drift) var(--ease-linear) infinite;
+  }
+
+  @keyframes nx-podium {
+    to {
+      transform: rotateX(73deg) rotateZ(360deg);
+    }
+  }
+
+  .showcase-stage:not(.is-in) .showcase-line {
+    stroke-dashoffset: 120;
+  }
+
+  .showcase-stage:not(.is-in) .showcase-label span {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  .showcase-line {
+    transition: stroke-dashoffset var(--duration-slower) var(--ease-out);
+  }
+
+  .showcase-label span {
+    transition:
+      opacity var(--duration-long) var(--ease-out) var(--duration-long),
+      transform var(--duration-long) var(--ease-out) var(--duration-long);
+  }
+
+  .showcase-label-2 .showcase-line,
+  .showcase-label-2 span {
+    transition-delay: var(--duration), var(--duration-slower);
+  }
+
+  .showcase-label-3 .showcase-line,
+  .showcase-label-3 span {
+    transition-delay: var(--duration-long), var(--duration-slower);
+  }
 
   /* Flip-digit countdown. */
-  .flip-digits.is-flipping { animation: nx-flip-digit var(--duration-long) var(--ease-out); }
-  @keyframes nx-flip-digit { from { transform: perspective(240px) rotateX(-95deg); opacity: 0.3; } to { transform: perspective(240px) rotateX(0); opacity: 1; } }
+  .flip-digits.is-flipping {
+    animation: nx-flip-digit var(--duration-long) var(--ease-out);
+  }
+
+  @keyframes nx-flip-digit {
+    from {
+      transform: perspective(240px) rotateX(-95deg);
+      opacity: 0.3;
+    }
+
+    to {
+      transform: perspective(240px) rotateX(0);
+      opacity: 1;
+    }
+  }
 
   /* 3D stats turn up into place. */
-  .js-motion .stat3d[data-reveal].is-revealed:not([data-reveal-done]) { animation-name: nx-turn-up; animation-duration: var(--duration-slower); }
-  @keyframes nx-turn-up { from { opacity: 0; transform: rotateX(-75deg) translateY(30px); } to { opacity: 1; transform: none; } }
+  .js-motion .stat3d[data-reveal].is-revealed:not([data-reveal-done]) {
+    animation-name: nx-turn-up;
+    animation-duration: var(--duration-slower);
+  }
+
+  @keyframes nx-turn-up {
+    from {
+      opacity: 0;
+      transform: rotateX(-75deg) translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 
   /* Depth tiles lift a little more than flat cards. */
-  .js-motion .depth-tile[data-tilt].is-tilting { transform: perspective(700px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateZ(10px); }
+  .js-motion .depth-tile[data-tilt].is-tilting {
+    transform: perspective(700px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y))
+      translateZ(10px);
+  }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .flip-inner { transition: none; }
+  .flip-inner {
+    transition: none;
+  }
 }
 
 /* A field the page filled for the shopper (town and state from the PIN code) fades in, so the change is noticed. */
 @media (prefers-reduced-motion: no-preference) {
-  .is-filled { animation: nx-filled var(--duration-long) var(--ease-out); }
-  @keyframes nx-filled { from { opacity: 0.35; } to { opacity: 1; } }
+  .is-filled {
+    animation: nx-filled var(--duration-long) var(--ease-out);
+  }
+
+  @keyframes nx-filled {
+    from {
+      opacity: 0.35;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 /* ---------- Page transitions (cross-document View Transitions) ----------
@@ -252,62 +927,207 @@
    photo (app.js names the clicked card's photo just before the page changes). Transform and opacity
    only. Browsers without View Transitions simply change page. Off for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
-  @view-transition { navigation: auto; }
-  .site-header { view-transition-name: site-header; }
-  .pdx-photo { view-transition-name: product-photo; }
-  ::view-transition-old(root) { animation: nx-page-out var(--duration-medium) var(--ease-in-out) both; }
-  ::view-transition-new(root) { animation: nx-page-in var(--duration-long) var(--ease-out) both; }
-  @keyframes nx-page-out { to { opacity: 0; transform: scale(0.985); } }
-  @keyframes nx-page-in { from { opacity: 0; transform: translateY(14px); } }
-  ::view-transition-group(product-photo) { animation-duration: var(--duration-long); animation-timing-function: var(--ease-out); }
-  ::view-transition-old(product-photo), ::view-transition-new(product-photo) { height: 100%; object-fit: cover; overflow: clip; }
-  ::view-transition-group(site-header) { animation-duration: var(--duration-medium); }
+  @view-transition {
+    navigation: auto;
+  }
+
+  .site-header {
+    view-transition-name: site-header;
+  }
+
+  .pdx-photo {
+    view-transition-name: product-photo;
+  }
+
+  ::view-transition-old(root) {
+    animation: nx-page-out var(--duration-medium) var(--ease-in-out) both;
+  }
+
+  ::view-transition-new(root) {
+    animation: nx-page-in var(--duration-long) var(--ease-out) both;
+  }
+
+  @keyframes nx-page-out {
+    to {
+      opacity: 0;
+      transform: scale(0.985);
+    }
+  }
+
+  @keyframes nx-page-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+  }
+
+  ::view-transition-group(product-photo) {
+    animation-duration: var(--duration-long);
+    animation-timing-function: var(--ease-out);
+  }
+
+  ::view-transition-old(product-photo),
+  ::view-transition-new(product-photo) {
+    height: 100%;
+    object-fit: cover;
+    overflow: clip;
+  }
+
+  ::view-transition-group(site-header) {
+    animation-duration: var(--duration-medium);
+  }
+
   /* Back through history (page-reveal.js adds the type "back"): the same motion the other way round. The
      page being left drops away and the earlier page settles down into place from above. */
-  html:active-view-transition-type(back)::view-transition-old(root) { animation: nx-page-out-back var(--duration-medium) var(--ease-in-out) both; }
-  html:active-view-transition-type(back)::view-transition-new(root) { animation: nx-page-in-back var(--duration-long) var(--ease-out) both; }
-  @keyframes nx-page-out-back { to { opacity: 0; transform: translateY(14px) scale(0.985); } }
-  @keyframes nx-page-in-back { from { opacity: 0; transform: translateY(-14px); } }
+  html:active-view-transition-type(back)::view-transition-old(root) {
+    animation: nx-page-out-back var(--duration-medium) var(--ease-in-out) both;
+  }
+
+  html:active-view-transition-type(back)::view-transition-new(root) {
+    animation: nx-page-in-back var(--duration-long) var(--ease-out) both;
+  }
+
+  @keyframes nx-page-out-back {
+    to {
+      opacity: 0;
+      transform: translateY(14px) scale(0.985);
+    }
+  }
+
+  @keyframes nx-page-in-back {
+    from {
+      opacity: 0;
+      transform: translateY(-14px);
+    }
+  }
 }
 
 /* ---------- Micro-interactions ---------- */
+
 /* Wishlist heart: saving bursts six dots out of it (they spread by scaling one tiny dot and its
    shadows, and fade). Removing does not burst. */
 @media (prefers-reduced-motion: no-preference) {
   .wish-btn.is-bursting::after {
-    content: ""; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
-    border-radius: 50%; pointer-events: none;
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    margin: -2.5px 0 0 -2.5px;
+    border-radius: 50%;
+    pointer-events: none;
     background: var(--deal);
-    box-shadow: 0 -15px 0 var(--deal), 13px -8px 0 var(--volt), 13px 8px 0 var(--deal), 0 15px 0 var(--volt), -13px 8px 0 var(--deal), -13px -8px 0 var(--volt);
+    box-shadow:
+      0 -15px 0 var(--deal),
+      13px -8px 0 var(--volt),
+      13px 8px 0 var(--deal),
+      0 15px 0 var(--volt),
+      -13px 8px 0 var(--deal),
+      -13px -8px 0 var(--volt);
     animation: nx-heart-burst var(--duration-long) var(--ease-out) forwards;
   }
-  @keyframes nx-heart-burst { from { transform: scale(0.3); opacity: 1; } 60% { opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+
+  @keyframes nx-heart-burst {
+    0% {
+      transform: scale(0.3);
+      opacity: 1;
+    }
+
+    60% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: scale(1.7);
+      opacity: 0;
+    }
+  }
+
   /* The coupon saving lands: the chip pops (Nx.countUp counts the rupees). */
-  .coupon-applied.is-popped .coupon-chip { animation: cart-bump var(--duration-slow) var(--ease-spring); }
+  .coupon-applied.is-popped .coupon-chip {
+    animation: cart-bump var(--duration-slow) var(--ease-spring);
+  }
 }
 
 /* Order placed: the tick draws (ring, then mark), the details rise one after another, the first step
    of "what happens next" fills last. Confetti (confetti.js) starts when the tick is done. */
 @media (prefers-reduced-motion: no-preference) {
-  .success-draw circle { animation: nx-draw-circle var(--duration-long) var(--ease-out) both; }
-  .success-draw path { animation: nx-draw-mark var(--duration-slow) var(--ease-out) var(--duration-slow) both; }
-  .success-draw { animation: nx-success-pop var(--duration-long) var(--ease-spring) both; }
-  @keyframes nx-success-pop { from { transform: scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
-  .success-step { animation: nx-reveal-up var(--duration-long) var(--ease-out) both; animation-delay: calc(var(--duration-slow) + var(--i, 0) * var(--stagger) * 3); }
-  .success-track .is-done .success-track-dot { animation: cart-bump var(--duration-slow) var(--ease-spring) both; animation-delay: calc(var(--duration-slower) + var(--duration-slow)); }
-}
+  .success-draw circle {
+    animation: nx-draw-circle var(--duration-long) var(--ease-out) both;
+  }
 
+  .success-draw path {
+    animation: nx-draw-mark var(--duration-slow) var(--ease-out)
+      var(--duration-slow) both;
+  }
+
+  .success-draw {
+    animation: nx-success-pop var(--duration-long) var(--ease-spring) both;
+  }
+
+  @keyframes nx-success-pop {
+    from {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  .success-step {
+    animation: nx-reveal-up var(--duration-long) var(--ease-out) both;
+    animation-delay: calc(
+      var(--duration-slow) + var(--i, 0) * var(--stagger) * 3
+    );
+  }
+
+  .success-track .is-done .success-track-dot {
+    animation: cart-bump var(--duration-slow) var(--ease-spring) both;
+    animation-delay: calc(var(--duration-slower) + var(--duration-slow));
+  }
+}
 
 /* ---------- The address just saved (C2): the tick draws itself and the card glows (Nx.markSaved in app.js).
    The tick's look is in components.css, so pages without this motion layer (My Account) still show it. ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .saved-tick circle { stroke-dasharray: 63; stroke-dashoffset: 63; animation: nx-tick-draw var(--duration-long) var(--ease-out) forwards; }
-  .saved-tick path { stroke-dasharray: 16; stroke-dashoffset: 16; animation: nx-tick-draw var(--duration-medium) var(--ease-out) var(--duration-medium) forwards; }
-  .is-just-saved { animation: nx-saved-glow calc(var(--duration-slower) * 3) var(--ease-out); }
-  @keyframes nx-tick-draw { to { stroke-dashoffset: 0; } }
+  .saved-tick circle {
+    stroke-dasharray: 63;
+    stroke-dashoffset: 63;
+    animation: nx-tick-draw var(--duration-long) var(--ease-out) forwards;
+  }
+
+  .saved-tick path {
+    stroke-dasharray: 16;
+    stroke-dashoffset: 16;
+    animation: nx-tick-draw var(--duration-medium) var(--ease-out)
+      var(--duration-medium) forwards;
+  }
+
+  .is-just-saved {
+    animation: nx-saved-glow calc(var(--duration-slower) * 3) var(--ease-out);
+  }
+
+  @keyframes nx-tick-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
   @keyframes nx-saved-glow {
-    0% { box-shadow: 0 0 0 0 rgba(var(--success-rgb), 0.55); }
-    35% { box-shadow: 0 0 0 6px rgba(var(--success-rgb), 0.25); }
-    100% { box-shadow: 0 0 0 0 rgba(var(--success-rgb), 0); }
+    0% {
+      box-shadow: 0 0 0 0 rgb(var(--success-rgb), 0.55);
+    }
+
+    35% {
+      box-shadow: 0 0 0 6px rgb(var(--success-rgb), 0.25);
+    }
+
+    100% {
+      box-shadow: 0 0 0 0 rgb(var(--success-rgb), 0);
+    }
   }
 }

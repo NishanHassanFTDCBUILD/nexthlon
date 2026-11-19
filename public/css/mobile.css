@@ -8,128 +8,426 @@
 
 @media (max-width: 720px) {
   /* ---------- Header: hides while you scroll down, comes back when you scroll up (app.js) ---------- */
-  .site-header { position: sticky; top: 0; transition: transform var(--duration-medium) var(--ease-out); }
-  .site-header.is-tucked { transform: translateY(-100%); }
+  .site-header {
+    position: sticky;
+    top: 0;
+    transition: transform var(--duration-medium) var(--ease-out);
+  }
+
+  .site-header.is-tucked {
+    transform: translateY(-100%);
+  }
+
   /* Bars that stick below it follow it up and down. */
-  .toolbar-sticky { top: var(--header-h); transition: transform var(--duration-medium) var(--ease-out); }
+  .toolbar-sticky {
+    top: var(--header-h);
+    transition: transform var(--duration-medium) var(--ease-out);
+  }
 
   /* ---------- Search: more room to type (the category list hides; search covers everything) ---------- */
-  .search .search-cat, .search label[for="search-category"] { display: none; }
+  .search .search-cat,
+  .search label[for='search-category'] {
+    display: none;
+  }
+
   /* Tapping the search box opens it as a full-screen sheet (header.js): a back button, the box, and the
      ideas or suggestions filling the screen below, sliding up into place. The page behind does not scroll. */
-  html.search-sheet-open { overflow: hidden; }
+  html.search-sheet-open {
+    overflow: hidden;
+  }
+
   .search.is-sheet {
-    position: fixed; inset: 0; z-index: var(--z-modal); height: auto; max-width: none; margin: 0;
-    flex-wrap: wrap; align-content: flex-start; gap: var(--space-xs);
-    padding: max(var(--space-sm), env(safe-area-inset-top)) max(var(--space-sm), env(safe-area-inset-right)) var(--space-sm) max(var(--space-sm), env(safe-area-inset-left));
-    border-radius: 0; background: var(--bg); box-shadow: none; animation: sheet-up var(--duration-medium) var(--ease-out);
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    height: auto;
+    max-width: none;
+    margin: 0;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: var(--space-xs);
+    padding: max(var(--space-sm), env(safe-area-inset-top))
+      max(var(--space-sm), env(safe-area-inset-right)) var(--space-sm)
+      max(var(--space-sm), env(safe-area-inset-left));
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: none;
+    animation: sheet-up var(--duration-medium) var(--ease-out);
   }
-  .search.is-sheet .search-back { display: grid; place-items: center; width: var(--tap); height: var(--tap); flex: none; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; }
-  .search.is-sheet .search-field { height: var(--tap); border-radius: var(--radius-sm) 0 0 var(--radius-sm); background: var(--surface); box-shadow: 0 0 0 2px var(--brand); }
-  .search.is-sheet .search-go { height: var(--tap); }
+
+  .search.is-sheet .search-back {
+    display: grid;
+    place-items: center;
+    width: var(--tap);
+    height: var(--tap);
+    flex: none;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .search.is-sheet .search-field {
+    height: var(--tap);
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    background: var(--surface);
+    box-shadow: 0 0 0 2px var(--brand);
+  }
+
+  .search.is-sheet .search-go {
+    height: var(--tap);
+  }
+
   .search.is-sheet .suggest {
-    position: fixed; left: 0; right: 0; top: calc(var(--tap) + var(--space-sm) * 2 + env(safe-area-inset-top)); bottom: 0;
-    min-width: 0; margin: 0; padding: var(--space-xs) var(--space-sm) max(var(--space-sm), env(safe-area-inset-bottom));
-    border-radius: 0; background: var(--bg); box-shadow: none; overflow-y: auto; animation: none;
+    position: fixed;
+    inset: calc(var(--tap) + var(--space-sm) * 2 + env(safe-area-inset-top)) 0 0;
+    min-width: 0;
+    margin: 0;
+    padding: var(--space-xs) var(--space-sm)
+      max(var(--space-sm), env(safe-area-inset-bottom));
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: none;
+    overflow-y: auto;
+    animation: none;
   }
-  .search.is-sheet .suggest-list, .search.is-sheet .suggest.is-start .suggest-list { max-height: none; overflow: visible; }
-  .search.is-sheet .suggest-option > a, .search.is-sheet .suggest-list li a { min-height: var(--tap); }
+
+  .search.is-sheet .suggest-list,
+  .search.is-sheet .suggest.is-start .suggest-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .search.is-sheet .suggest-option > a,
+  .search.is-sheet .suggest-list li a {
+    min-height: var(--tap);
+  }
 
   /* ---------- No iPhone zoom: Safari zooms into any field whose text is under 16px ---------- */
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
-  select, textarea { font-size: var(--text-field) !important; }
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='file']),
+  select,
+  textarea {
+    font-size: var(--text-field) !important;
+  }
 
   /* ---------- Cart: thumb-sized quantity buttons; "Save for later" on one line ---------- */
-  .qty-btn, .qty-sm .qty-btn { width: var(--tap); height: var(--tap); }
-  .cart-item-actions { flex-wrap: wrap; row-gap: var(--space-1); }
-  .cart-item-actions .link-btn { white-space: nowrap; }
+  .qty-btn,
+  .qty-sm .qty-btn {
+    width: var(--tap);
+    height: var(--tap);
+  }
+
+  .cart-item-actions {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+  }
+
+  .cart-item-actions .link-btn {
+    white-space: nowrap;
+  }
 
   /* ---------- Checkout: the steps (address, summary, payment) come first, the price summary after ---------- */
-  .checkout-side { order: 0; }
+  .checkout-side {
+    order: 0;
+  }
 
   /* ---------- Account: bigger address buttons, tappable order item names, readable small labels ---------- */
-  .address-actions .btn { min-height: var(--tap); }
-  .order-item a { display: inline-block; padding: var(--space-sm) 0; }
-  .count-dot, .address-type-pill, .label-caps { font-size: var(--text-xs); }
+  .address-actions .btn {
+    min-height: var(--tap);
+  }
+
+  .order-item a {
+    display: inline-block;
+    padding: var(--space-sm) 0;
+  }
+
+  .count-dot,
+  .address-type-pill,
+  .label-caps {
+    font-size: var(--text-xs);
+  }
 
   /* ---------- Sign in / Create account: a short scene strip, so the form fits on the first screen ---------- */
-  .au-scene { height: clamp(176px, 25vh, 210px); height: clamp(176px, 25svh, 210px); min-height: 0; }
-  .au-motto { bottom: 14px; }
-  .au-motto-line { font-size: var(--text-motto-sm); margin: 0; min-height: 0; max-width: 52%; }
-  .au-scene-fallback span { width: 200px; margin: -100px 0 0 -100px; top: 46%; }
-  .au-scene-fallback span:nth-child(3) { width: 110px; margin: -55px 0 0 -55px; }
-  .au-panel { padding-top: var(--space-2); gap: var(--space-2); }
-  .au-motto { left: var(--space-2); }
+  .au-scene {
+    height: clamp(176px, 25vh, 210px);
+    height: clamp(176px, 25svh, 210px);
+    min-height: 0;
+  }
+
+  .au-motto {
+    bottom: 14px;
+    left: var(--space-2);
+  }
+
+  .au-motto-line {
+    font-size: var(--text-motto-sm);
+    margin: 0;
+    min-height: 0;
+    max-width: 52%;
+  }
+
+  .au-scene-fallback span {
+    width: 200px;
+    margin: -100px 0 0 -100px;
+    top: 46%;
+  }
+
+  .au-scene-fallback span:nth-child(3) {
+    width: 110px;
+    margin: -55px 0 0 -55px;
+  }
+
+  .au-panel {
+    padding-top: var(--space-2);
+    gap: var(--space-2);
+  }
 
   /* ---------- Home: "Shop by sport", two tiles per row (was one 405px tile per row) ---------- */
-  .depth-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
-  .depth-tile { padding: var(--space-1); gap: var(--space-xxs); }
-  .depth-title { margin-top: var(--space-half); font-size: var(--text-base); line-height: 1.2; }
-  .depth-price { font-size: var(--text-xs); }
+  .depth-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .depth-tile {
+    padding: var(--space-1);
+    gap: var(--space-xxs);
+  }
+
+  .depth-title {
+    margin-top: var(--space-half);
+    font-size: var(--text-base);
+    line-height: 1.2;
+  }
+
+  .depth-price {
+    font-size: var(--text-xs);
+  }
 
   /* ---------- Home: "Deals of the day", two flip cards per row on every phone ---------- */
-  .flip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); }
-  .flip-inner { min-height: 262px; }
-  .flip-face { padding: var(--space-sm); gap: var(--space-half); }
-  .flip-name { font-size: var(--text-sm); }
-  .flip-off { font-size: var(--text-3xl); }
-  .flip-toggle { width: var(--tap); height: var(--tap); right: 8px; bottom: 8px; }
+  .flip-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .flip-inner {
+    min-height: 262px;
+  }
+
+  .flip-face {
+    padding: var(--space-sm);
+    gap: var(--space-half);
+  }
+
+  .flip-name {
+    font-size: var(--text-sm);
+  }
+
+  .flip-off {
+    font-size: var(--text-3xl);
+  }
+
+  .flip-toggle {
+    width: var(--tap);
+    height: var(--tap);
+    right: 8px;
+    bottom: 8px;
+  }
 
   /* ---------- Home: "Pick your sport" ---------- */
+
   /* The tab row scrolls sideways: fade its right edge so it is clear there is more to swipe. */
-  .sport-tabs { -webkit-mask: linear-gradient(90deg, var(--black) 82%, transparent); mask: linear-gradient(90deg, var(--black) 82%, transparent); padding-right: 40px; }
+  .sport-tabs {
+    -webkit-mask: linear-gradient(90deg, var(--black) 82%, transparent);
+    mask: linear-gradient(90deg, var(--black) 82%, transparent);
+    padding-right: 40px;
+  }
+
   /* The big outlined sport name behind the card was almost invisible on a small screen. */
-  .sport-ring-word { -webkit-text-stroke-color: rgba(var(--white-rgb), 0.22); }
+  .sport-ring-word {
+    -webkit-text-stroke-color: rgb(var(--white-rgb), 0.22);
+  }
 
   /* ---------- Home: showcase labels stay whole (they were squeezed to 3 lines and clipped) ---------- */
+
   /* The podium's callouts covered the product and cut their words off on a phone. The same points are
      listed right under the photo, so the photo stands alone here. */
-  .showcase-label { display: none; }
+  .showcase-label {
+    display: none;
+  }
 
   /* ---------- Product cards: price line, then the saving; delivery note on one line ---------- */
-  .product-body { padding: var(--space-sm) var(--space-1h) var(--space-1h); }
-  .product-card .price-row { gap: 0 var(--space-xs); }
-  .product-card .price-row .off { flex-basis: 100%; font-size: var(--text-xs); }
-  .product-foot { flex-wrap: wrap; row-gap: var(--space-xs); }
-  .product-delivery { white-space: nowrap; }
+  .product-body {
+    padding: var(--space-sm) var(--space-1h) var(--space-1h);
+  }
+
+  .product-card .price-row {
+    gap: 0 var(--space-xs);
+  }
+
+  .product-card .price-row .off {
+    flex-basis: 100%;
+    font-size: var(--text-xs);
+  }
+
+  .product-foot {
+    flex-wrap: wrap;
+    row-gap: var(--space-xs);
+  }
+
+  .product-delivery {
+    white-space: nowrap;
+  }
 
   /* ---------- No text smaller than 12px ---------- */
-  .section-kicker, .product-meta, .trust-item small, .footer-bottom,
-  .zg-brand, .flip-face .tag, .flip-unit small { font-size: var(--text-xs); }
+  .section-kicker,
+  .product-meta,
+  .trust-item small,
+  .footer-bottom,
+  .zg-brand,
+  .flip-face .tag,
+  .flip-unit small {
+    font-size: var(--text-xs);
+  }
 
   /* ---------- Footer: shorter, with full-size controls ---------- */
-  .site-footer { margin-top: var(--space-5); }
+  .site-footer {
+    margin-top: var(--space-5);
+  }
+
   /* The email box was squashed to 21px: in the stacked row its "share the space" setting shrank it. */
-  .news-row input { flex: none; height: 48px; }
-  .news-row .btn { min-height: 48px; }
-  .footer-news-copy p { display: none; }
-  .footer-grid { gap: calc(var(--space-2h) + var(--space-xxs)) var(--space-2); padding-top: var(--space-3); padding-bottom: var(--space-3); }
-  .footer-brand p:not(.footer-tagline) { display: none; }
+  .news-row input {
+    flex: none;
+    height: 48px;
+  }
+
+  .news-row .btn {
+    min-height: 48px;
+  }
+
+  .footer-news-copy p {
+    display: none;
+  }
+
+  .footer-grid {
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .footer-brand p:not(.footer-tagline) {
+    display: none;
+  }
+
   /* Link groups: one per row, each a tap-to-open section (closed at first; app.js). */
-  .footer-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .footer-brand { margin-bottom: var(--space-2); }
-  .footer-col { border-top: 1px solid rgba(var(--white-rgb), 0.08); }
-  .footer-grid > nav:last-child .footer-col { border-bottom: 1px solid rgba(var(--white-rgb), 0.08); }
-  .footer-col > summary { min-height: 52px; pointer-events: auto; cursor: pointer; }
-  .footer-col > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .footer-col .footer-caret { display: block; color: var(--on-dark-muted); transition: transform var(--duration) var(--ease); }
-  .footer-col[open] .footer-caret { transform: rotate(180deg); }
-  .site-footer h2 { margin: 0; }
-  .site-footer nav ul { display: block; columns: 2; column-gap: var(--space-2); padding-bottom: var(--space-sm); }
-  .site-footer nav li { break-inside: avoid; }
-  .site-footer nav a, .footer-legal a { display: inline-block; padding: var(--space-sm) 0; }
-  .footer-trust { gap: var(--space-1h); padding-top: var(--space-2); padding-bottom: var(--space-2); }
+
+  .footer-brand {
+    margin-bottom: var(--space-2);
+  }
+
+  .footer-col {
+    border-top: 1px solid rgb(var(--white-rgb), 0.08);
+  }
+
+  .footer-grid > nav:last-child .footer-col {
+    border-bottom: 1px solid rgb(var(--white-rgb), 0.08);
+  }
+
+  .footer-col > summary {
+    min-height: 52px;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .footer-col > summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .footer-col .footer-caret {
+    display: block;
+    color: var(--on-dark-muted);
+    transition: transform var(--duration) var(--ease);
+  }
+
+  .footer-col[open] .footer-caret {
+    transform: rotate(180deg);
+  }
+
+  .site-footer h2 {
+    margin: 0;
+  }
+
+  .site-footer nav ul {
+    display: block;
+    columns: 2;
+    column-gap: var(--space-2);
+    padding-bottom: var(--space-sm);
+  }
+
+  .site-footer nav li {
+    break-inside: avoid;
+  }
+
+  .site-footer nav a,
+  .footer-legal a {
+    display: inline-block;
+    padding: var(--space-sm) 0;
+  }
+
+  .footer-trust {
+    gap: var(--space-1h);
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+
   /* These three repeat the trust cards on the home page and the product page. */
-  .footer-badges { display: none; }
+  .footer-badges {
+    display: none;
+  }
 
   /* ---------- Bigger tap areas: the touch target grows, the look stays the same ---------- */
-  .breadcrumb a, .pdx-crumbs a, .pdx-text-btn, .pdx-brand, .section-link, .join-signin, .link-btn, .pdx-facts a, .au-foot > a:only-child, .au-referral summary, .admin-total a, .admin-top .muted a { position: relative; }
-  .breadcrumb a::after, .pdx-crumbs a::after, .pdx-text-btn::after, .pdx-brand::after, .section-link::after, .join-signin::after,
-  .link-btn::after, .pdx-facts a::after, .au-foot > a:only-child::after, .au-referral summary::after, .admin-total a::after, .admin-top .muted a::after {
-    content: ""; position: absolute; inset: -15px -6px;
+  .breadcrumb a,
+  .pdx-crumbs a,
+  .pdx-text-btn,
+  .pdx-brand,
+  .section-link,
+  .join-signin,
+  .link-btn,
+  .pdx-facts a,
+  .au-foot > a:only-child,
+  .au-referral summary,
+  .admin-total a,
+  .admin-top .muted a {
+    position: relative;
   }
-  .sport-dot { width: 34px; height: 34px; }
-  .pdx-meta .pdx-chip { min-height: var(--tap); }
+
+  .breadcrumb a::after,
+  .pdx-crumbs a::after,
+  .pdx-text-btn::after,
+  .pdx-brand::after,
+  .section-link::after,
+  .join-signin::after,
+  .link-btn::after,
+  .pdx-facts a::after,
+  .au-foot > a:only-child::after,
+  .au-referral summary::after,
+  .admin-total a::after,
+  .admin-top .muted a::after {
+    content: '';
+    position: absolute;
+    inset: -15px -6px;
+  }
+
+  .sport-dot {
+    width: 34px;
+    height: 34px;
+  }
+
+  .pdx-meta .pdx-chip {
+    min-height: var(--tap);
+  }
 }
 
 /* ==========================================================================
@@ -140,25 +438,114 @@
    ========================================================================== */
 @media (hover: none) {
   /* ---------- Hover moves off ---------- */
-  .product-card:hover, .card-hover:hover, .address-card:hover, a.stat:hover, .pdx-thumb:hover,
-  .wish-btn:hover, .gallery-nav:hover, .gallery-full:hover, .pdx-pin-row button:hover, .pdx-star-row label:hover { transform: none; }
-  .product-card:hover .product-media img { transform: none; }
-  .js-motion .btn:hover:not(:disabled) { transform: none; }
-  .js-motion .btn:hover:not(:disabled)::after { opacity: 0; }
-  .pdx-icon-btn:hover { transform: none; background: rgba(var(--navy-rgb), 0.5); color: var(--ivory); }
-  .address-add:hover .address-add-icon { transform: none; }
+  .product-card:hover,
+  .card-hover:hover,
+  .address-card:hover,
+  a.stat:hover,
+  .pdx-thumb:hover,
+  .wish-btn:hover,
+  .gallery-nav:hover,
+  .gallery-full:hover,
+  .pdx-pin-row button:hover,
+  .pdx-star-row label:hover {
+    transform: none;
+  }
+
+  .product-card:hover .product-media img {
+    transform: none;
+  }
+
+  .js-motion .btn:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .js-motion .btn:hover:not(:disabled)::after {
+    opacity: 0;
+  }
+
+  .pdx-icon-btn:hover {
+    transform: none;
+    background: rgb(var(--navy-rgb), 0.5);
+    color: var(--ivory);
+  }
+
+  .address-add:hover .address-add-icon {
+    transform: none;
+  }
 
   /* ---------- Press states: quick to answer the finger, a little slower to let go ---------- */
-  .product-card, .card-hover, .address-card, a.stat { transition: transform var(--duration) var(--ease-out), box-shadow var(--duration) var(--ease); }
-  .product-card:active, .card-hover:active, .address-card:active, a.stat:active { transform: scale(0.985); transition-duration: var(--duration-fast); }
-  :where(.wish-btn, .gallery-nav, .gallery-full, .pdx-icon-btn, .icon-btn, .qty-btn, .flip-toggle, .nav-toggle, .header-link-icon, .chip-remove, .view-btn) {
-    transition: transform var(--duration) var(--ease-out), background-color var(--duration-quick) var(--ease), color var(--duration-quick) var(--ease);
+  .product-card,
+  .card-hover,
+  .address-card,
+  a.stat {
+    transition:
+      transform var(--duration) var(--ease-out),
+      box-shadow var(--duration) var(--ease);
   }
-  :where(.wish-btn, .gallery-nav, .gallery-full, .pdx-icon-btn, .icon-btn, .qty-btn, .flip-toggle, .nav-toggle, .header-link-icon, .chip-remove, .view-btn):active {
-    transform: scale(0.9); transition-duration: var(--duration-fast);
-  }
-  .pdx-icon-btn:active { background: var(--brand); color: var(--on-brand); }
-  :where(.fx-pill, .fx-preset, .chip, .pdx-thumb, .segmented-radio span, .zg-chip, .pdx-pin-row button):active { transform: scale(0.96); transition-duration: var(--duration-fast); }
-  .pdx-star-row label:active { transform: scale(1.12); }
-}
 
+  .product-card:active,
+  .card-hover:active,
+  .address-card:active,
+  a.stat:active {
+    transform: scale(0.985);
+    transition-duration: var(--duration-fast);
+  }
+
+  :where(
+    .wish-btn,
+    .gallery-nav,
+    .gallery-full,
+    .pdx-icon-btn,
+    .icon-btn,
+    .qty-btn,
+    .flip-toggle,
+    .nav-toggle,
+    .header-link-icon,
+    .chip-remove,
+    .view-btn
+  ) {
+    transition:
+      transform var(--duration) var(--ease-out),
+      background-color var(--duration-quick) var(--ease),
+      color var(--duration-quick) var(--ease);
+  }
+
+  :where(
+    .wish-btn,
+    .gallery-nav,
+    .gallery-full,
+    .pdx-icon-btn,
+    .icon-btn,
+    .qty-btn,
+    .flip-toggle,
+    .nav-toggle,
+    .header-link-icon,
+    .chip-remove,
+    .view-btn
+  ):active {
+    transform: scale(0.9);
+    transition-duration: var(--duration-fast);
+  }
+
+  .pdx-icon-btn:active {
+    background: var(--brand);
+    color: var(--on-brand);
+  }
+
+  :where(
+    .fx-pill,
+    .fx-preset,
+    .chip,
+    .pdx-thumb,
+    .segmented-radio span,
+    .zg-chip,
+    .pdx-pin-row button
+  ):active {
+    transform: scale(0.96);
+    transition-duration: var(--duration-fast);
+  }
+
+  .pdx-star-row label:active {
+    transform: scale(1.12);
+  }
+}

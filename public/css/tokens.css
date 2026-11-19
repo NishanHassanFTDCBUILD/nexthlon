@@ -2,26 +2,112 @@
    Barlow Condensed and Inter, both under the SIL Open Font License. "latin" covers English;
    "latin-ext" (only downloaded when needed) has the rupee sign and accented letters.
    head.ejs preloads the three files the first screen uses. */
-@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap;
-  src: url("/fonts/barlow-condensed-600-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap;
-  src: url("/fonts/barlow-condensed-600-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap;
-  src: url("/fonts/barlow-condensed-700-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap;
-  src: url("/fonts/barlow-condensed-700-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 800; font-display: swap;
-  src: url("/fonts/barlow-condensed-800-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 800; font-display: swap;
-  src: url("/fonts/barlow-condensed-800-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-600-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-600-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-700-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-700-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-800-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/barlow-condensed-800-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
 /* The rupee sign (U+20B9) lives in Inter's latin-ext file, which is 84 KB. Every page with a price would download all of it for one
    character, so the sign has its own 1.2 KB file (the same glyph, cut out of that font), and latin-ext leaves it out. */
-@font-face { font-family: "Inter"; font-style: normal; font-weight: 400 800; font-display: swap;
-  src: url("/fonts/inter-400-800-rupee.woff2") format("woff2"); unicode-range: U+20B9; }
-@font-face { font-family: "Inter"; font-style: normal; font-weight: 400 800; font-display: swap;
-  src: url("/fonts/inter-400-800-latin-ext.woff2") format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20B8, U+20BA-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-@font-face { font-family: "Inter"; font-style: normal; font-weight: 400 800; font-display: swap;
-  src: url("/fonts/inter-400-800-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/inter-400-800-rupee.woff2') format('woff2');
+  unicode-range: U+20B9;
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/inter-400-800-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20B8, U+20BA-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/inter-400-800-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
 
 /* ==========================================================================
    Nexthlon design tokens: "Obsidian & Volt"
@@ -46,15 +132,15 @@
   --brand-rgb: 212, 255, 58;
   --brand-hover: #e2ff74;
   --brand-press: #bfe81f;
-  --brand-ink: #d4ff3a;        /* volt text (dark backgrounds only) */
-  --brand-soft: rgba(212, 255, 58, 0.1);
-  --brand-soft-2: rgba(212, 255, 58, 0.18);
-  --on-brand: #0a0a0b;         /* text on volt: 17:1 */
-  --accent: #d4ff3a;           /* highlight on the always-dark areas (header, footer, hero) */
+  --brand-ink: #d4ff3a; /* volt text (dark backgrounds only) */
+  --brand-soft: rgb(212 255 58 / 10%);
+  --brand-soft-2: rgb(212 255 58 / 18%);
+  --on-brand: #0a0a0b; /* text on volt: 17:1 */
+  --accent: #d4ff3a; /* highlight on the always-dark areas (header, footer, hero) */
   --accent-rgb: 212, 255, 58;
   --volt: #d4ff3a;
   --volt-rgb: 212, 255, 58;
-  --volt-hover: #e2ff74;       /* fixed volt shades for the always-dark areas */
+  --volt-hover: #e2ff74; /* fixed volt shades for the always-dark areas */
   --volt-link-hover: #e8ff9a;
   --volt-light: #ecff9e;
   --volt-light-rgb: 236, 255, 158;
@@ -70,16 +156,16 @@
   --black-rgb: 0, 0, 0;
   --ivory: #f5f5f0;
   --ivory-rgb: 245, 245, 240;
-  --star: #f5a623;             /* rating stars */
+  --star: #f5a623; /* rating stars */
   --star-rgb: 245, 166, 35;
-  --dot-red: #ff5f56;          /* the three window dots on the recovery "terminal" */
+  --dot-red: #ff5f56; /* the three window dots on the recovery "terminal" */
   --dot-amber: #ffbd2e;
   --dot-green: #27c93f;
 
   /* ---------- Ember: sale and deal badges only ---------- */
   --deal: #ff5a1f;
   --deal-rgb: 255, 90, 31;
-  --on-deal: #0a0a0b;          /* dark text on ember: 6.9:1 */
+  --on-deal: #0a0a0b; /* dark text on ember: 6.9:1 */
   --ember: var(--deal);
 
   /* ---------- Obsidian scale (the always-dark areas; old "navy" names) ---------- */
@@ -98,63 +184,64 @@
   /* ---------- Status ---------- */
   --success: #34d399;
   --success-rgb: 52, 211, 153;
-  --success-soft: rgba(52, 211, 153, 0.12);
-  --success-line: rgba(52, 211, 153, 0.3);
+  --success-soft: rgb(52 211 153 / 12%);
+  --success-line: rgb(52 211 153 / 30%);
   --success-light: #6ee7b7;
-  --success-bright: #5fe0a3;   /* success text on dark toasts and footer forms */
+  --success-bright: #5fe0a3; /* success text on dark toasts and footer forms */
   --success-pale: #9ff0cb;
   --on-success: #0a0a0b;
   --warning-rgb: 251, 191, 36;
   --warning: #fbbf24;
   --warning-strong: #f59e0b;
-  --warning-soft: rgba(251, 191, 36, 0.12);
+  --warning-soft: rgb(251 191 36 / 12%);
   --danger: #f87171;
   --danger-rgb: 248, 113, 113;
   --danger-hover: #fca5a5;
   --danger-ink: #fca5a5;
-  --danger-soft: rgba(248, 113, 113, 0.12);
-  --danger-soft-2: rgba(248, 113, 113, 0.2);
-  --danger-line: rgba(248, 113, 113, 0.32);
+  --danger-soft: rgb(248 113 113 / 12%);
+  --danger-soft-2: rgb(248 113 113 / 20%);
+  --danger-line: rgb(248 113 113 / 32%);
   --on-danger: #0a0a0b;
-  --danger-bright: #ff8080;    /* error text and lines on always-dark areas (footer, toasts) */
+  --danger-bright: #ff8080; /* error text and lines on always-dark areas (footer, toasts) */
   --danger-bright-rgb: 255, 128, 128;
   --danger-pale: #ffb4b4;
   --danger-pale-rgb: 255, 180, 180;
-  --danger-deep: #5c1414;      /* error toast background */
+  --danger-deep: #5c1414; /* error toast background */
   --info: #60a5fa;
-  --info-soft: rgba(96, 165, 250, 0.12);
-  --chart-violet: #a78bfa;     /* admin chart series */
+  --info-soft: rgb(96 165 250 / 12%);
+  --chart-violet: #a78bfa; /* admin chart series */
   --chart-violet-strong: #7c3aed;
   --chart-cyan: #22d3ee;
   --chart-cyan-strong: #0891b2;
 
   /* ---------- Surfaces and text ---------- */
-  --bg: #0a0a0b;               /* obsidian page floor */
-  --surface: #121214;          /* cards, panels */
-  --surface-2: #1a1a1e;        /* subtle fills: table heads, inputs at rest */
-  --surface-3: #232328;        /* placeholders, tracks */
+  --bg: #0a0a0b; /* obsidian page floor */
+  --surface: #121214; /* cards, panels */
+  --surface-2: #1a1a1e; /* subtle fills: table heads, inputs at rest */
+  --surface-3: #232328; /* placeholders, tracks */
   --surface-raised: #1a1a1e;
-  --glass: rgba(18, 18, 20, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --ink: #f5f5f0;              /* ivory */
+  --glass: rgb(18 18 20 / 72%);
+  --glass-border: rgb(255 255 255 / 8%);
+  --ink: #f5f5f0; /* ivory */
   --ink-2: #d4d4cd;
   --muted: #9a9aa3;
-  --muted-2: #85858d;          /* 5.9:1 on --bg, 5.2:1 on --surface-2 (was #74747c: 4.3:1, below AA) */
+  --muted-2: #85858d; /* 5.9:1 on --bg, 5.2:1 on --surface-2 (was #74747c: 4.3:1, below AA) */
   --placeholder: #85858d;
   --disabled: #4a4a52;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.14);
-  --line-hover: rgba(255, 255, 255, 0.26);
-  --hairline: rgba(255, 255, 255, 0.06);
+  --line: rgb(255 255 255 / 8%);
+  --line-strong: rgb(255 255 255 / 14%);
+  --line-hover: rgb(255 255 255 / 26%);
+  --hairline: rgb(255 255 255 / 6%);
   --link: #d4ff3a;
   --link-hover: #e8ff9a;
   --on-dark: #d4d4cd;
   --on-dark-muted: #9a9aa3;
   --focus: #d4ff3a;
-  --ring: 0 0 0 4px rgba(212, 255, 58, 0.22);
-  --ring-brand: 0 0 0 4px rgba(var(--brand-rgb), 0.28);
-  --ring-danger: 0 0 0 4px rgba(var(--danger-rgb), 0.16);
-  --glow: 0 0 0 1px rgba(var(--brand-rgb), 0.5), 0 0 24px rgba(var(--brand-rgb), 0.22);
+  --ring: 0 0 0 4px rgb(212 255 58 / 22%);
+  --ring-brand: 0 0 0 4px rgb(var(--brand-rgb), 0.28);
+  --ring-danger: 0 0 0 4px rgb(var(--danger-rgb), 0.16);
+  --glow:
+    0 0 0 1px rgb(var(--brand-rgb), 0.5), 0 0 24px rgb(var(--brand-rgb), 0.22);
 
   /* ---------- Spacing: an 8px scale (with 4px half steps) ----------
      The small steps (inside components) are fixed, so buttons, fields and cards keep their
@@ -168,10 +255,11 @@
   --space-2h: 20px;
   --space-3: 24px;
   --space-4: 32px;
-  --space-5: clamp(32px, 0.741vw + 29.33px, 40px);    /* 32 → 40px */
-  --space-6: clamp(36px, 1.111vw + 32px, 48px);       /* 36 → 48px */
-  --space-8: clamp(44px, 1.852vw + 37.33px, 64px);    /* 44 → 64px */
-  --space-10: clamp(52px, 2.593vw + 42.67px, 80px);   /* 52 → 80px */
+  --space-5: clamp(32px, 0.741vw + 29.33px, 40px); /* 32 → 40px */
+  --space-6: clamp(36px, 1.111vw + 32px, 48px); /* 36 → 48px */
+  --space-8: clamp(44px, 1.852vw + 37.33px, 64px); /* 44 → 64px */
+  --space-10: clamp(52px, 2.593vw + 42.67px, 80px); /* 52 → 80px */
+
   /* The compact steps used inside controls (between the 4px steps above): icon gaps, chip and
      button padding, table cells. Named by size so they are easy to pick. */
   --space-xxs: 2px;
@@ -181,57 +269,105 @@
   --space-lg: 18px;
 
   /* ---------- Layout ---------- */
-  --container: 1440px;                       /* widest content column; grows on wide screens */
-  --gutter: clamp(16px, 2.5vw, 40px);        /* page side padding: 16px phone → 36px laptop → 40px */
-  --tap: 44px;                               /* smallest touch target (WCAG 2.5.5) */
+  --container: 1440px; /* widest content column; grows on wide screens */
+  --gutter: clamp(
+    16px,
+    2.5vw,
+    40px
+  ); /* page side padding: 16px phone → 36px laptop → 40px */
+
+  --tap: 44px; /* smallest touch target (WCAG 2.5.5) */
 
   /* ---------- Type ---------- */
-  --font: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
-  --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --font: 'Inter', 'Segoe UI', roboto, arial, sans-serif;
+  --display: 'Barlow Condensed', 'Arial Narrow', arial, sans-serif;
+
   /* Everything is in rem, so a visitor's own browser text size is respected (WCAG 1.4.4).
      At the default 16px root, the phone sizes are exactly what they were in px.
      Body sizes grow by one or two pixels between a 360px phone and a 1440px screen;
      the two tiny label sizes stay fixed so dense rows never reflow. On ultra-wide
      screens the root size itself grows (see "Wide screens" below), so everything follows. */
-  --text-2xs: 0.75rem;                                                /* 12px: the smallest text anywhere (was 11px) */
-  --text-field: max(1rem, 16px);                                      /* 16px or more: field text on touch screens (Safari zooms in below 16px) */
-  --text-xs: 0.75rem;                                                 /* 12px */
-  --text-sm: 0.875rem;                                                /* 14px: secondary text and controls (was 13px on phones) */
-  --text-base: clamp(0.9375rem, 0.0926vw + 0.9167rem, 1rem);         /* 15 → 16px */
-  --text-md: clamp(1.0625rem, 0.0926vw + 1.0417rem, 1.125rem);       /* 17 → 18px */
-  --text-lg: clamp(1.25rem, 0.1852vw + 1.2083rem, 1.375rem);         /* 20 → 22px */
+  --text-2xs: 0.75rem; /* 12px: the smallest text anywhere (was 11px) */
+  --text-field: max(
+    1rem,
+    16px
+  ); /* 16px or more: field text on touch screens (Safari zooms in below 16px) */
+
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px: secondary text and controls (was 13px on phones) */
+  --text-base: clamp(0.9375rem, 0.0926vw + 0.9167rem, 1rem); /* 15 → 16px */
+  --text-md: clamp(1.0625rem, 0.0926vw + 1.0417rem, 1.125rem); /* 17 → 18px */
+  --text-lg: clamp(1.25rem, 0.1852vw + 1.2083rem, 1.375rem); /* 20 → 22px */
+
   /* Headings scale smoothly between a 360px phone and a 1440px screen. */
-  --text-xl: clamp(1.25rem, 0.37vw + 1.1688rem, 1.5rem);             /* 20 → 24px */
-  --text-2xl: clamp(1.625rem, 0.74vw + 1.4563rem, 2.125rem);         /* 26 → 34px */
-  --text-3xl: clamp(2rem, 1.3vw + 1.7063rem, 2.875rem);              /* 32 → 46px */
-  --text-4xl: clamp(2.375rem, 1.85vw + 1.9563rem, 3.625rem);         /* 38 → 58px */
-  --text-hero: clamp(2.75rem, 6.4vw, 5.75rem);                       /* 44 → 92px */
-  --text-display: clamp(3.25rem, 8.4vw, 8.25rem);                    /* 52 → 132px */
+  --text-xl: clamp(1.25rem, 0.37vw + 1.1688rem, 1.5rem); /* 20 → 24px */
+  --text-2xl: clamp(1.625rem, 0.74vw + 1.4563rem, 2.125rem); /* 26 → 34px */
+  --text-3xl: clamp(2rem, 1.3vw + 1.7063rem, 2.875rem); /* 32 → 46px */
+  --text-4xl: clamp(2.375rem, 1.85vw + 1.9563rem, 3.625rem); /* 38 → 58px */
+  --text-hero: clamp(2.75rem, 6.4vw, 5.75rem); /* 44 → 92px */
+  --text-display: clamp(3.25rem, 8.4vw, 8.25rem); /* 52 → 132px */
+
   /* Numbers that must not reflow (prices, stats) stay fixed. */
-  --text-num-md: 1.75rem;                                             /* 28px */
-  --text-num-lg: 2rem;                                                /* 32px */
-  --text-num-xl: 2.5rem;                                              /* 40px, account and admin stat numbers */
-  --text-num-display: 3.25rem;                                        /* 52px, average review score */
+  --text-num-md: 1.75rem; /* 28px */
+  --text-num-lg: 2rem; /* 32px */
+  --text-num-xl: 2.5rem; /* 40px, account and admin stat numbers */
+  --text-num-display: 3.25rem; /* 52px, average review score */
+
   /* Page titles: one size for every page heading on a laptop (phones use --text-3xl). */
-  --text-page-title: 2.5rem;                                          /* 40px */
-  --text-page-title-fluid: clamp(1.875rem, 4vw, 2.5rem);              /* 30 → 40px, error, info and success pages */
-  --text-brand: 1.5625rem;                                            /* 25px, the NEXTHLON word in the header */
-  --text-stat: clamp(1.375rem, 1.6vw + 0.75rem, 1.875rem);           /* 22 → 30px, admin KPI values */
+  --text-page-title: 2.5rem; /* 40px */
+  --text-page-title-fluid: clamp(
+    1.875rem,
+    4vw,
+    2.5rem
+  ); /* 30 → 40px, error, info and success pages */
+
+  --text-brand: 1.5625rem; /* 25px, the NEXTHLON word in the header */
+  --text-stat: clamp(
+    1.375rem,
+    1.6vw + 0.75rem,
+    1.875rem
+  ); /* 22 → 30px, admin KPI values */
+
   /* Display sizes for single places, kept here so every size lives in one file. */
-  --text-lead: clamp(1.1875rem, 1.5vw, 1.5rem);                       /* 19 → 24px, product story */
-  --text-title: clamp(1.5rem, 2.4vw, 1.875rem);                       /* 24 → 30px, product title (classic layout) */
-  --text-title-display: clamp(2.5rem, 4.2vw, 4.5rem);                 /* 40 → 72px, product title */
-  --text-price-display: clamp(3rem, 4.6vw, 4.75rem);                  /* 48 → 76px, product price */
-  --text-marquee: clamp(2rem, 4.4vw, 4rem);                           /* 32 → 64px, product marquee */
-  --text-ring: clamp(5.5rem, 19vw, 18.75rem);                         /* 88 → 300px, sport ring word */
-  --text-motto: clamp(2.75rem, 6vw, 6rem);                            /* 44 → 96px, sign-in motto */
-  --text-motto-md: clamp(2.25rem, 10vw, 3.75rem);                     /* 36 → 60px */
-  --text-motto-sm: clamp(1.75rem, 8.6vw, 2.25rem);                    /* 28 → 36px */
-  --text-hero-short: clamp(2.25rem, 11svh, 3.5rem);                   /* home hero on a phone held sideways */
-  --text-feature-num: 3.5rem;                                         /* 56px, product feature numbers */
-  --text-score: clamp(3.5rem, 5vw, 5rem);                             /* 56 → 80px, product rating score */
-  --text-quote-mark: 8.75rem;                                         /* 140px, decorative quote mark */
-  --text-error-code: clamp(6.875rem, 18vw, 11.25rem);                 /* 110 → 180px, the 404 number */
+  --text-lead: clamp(1.1875rem, 1.5vw, 1.5rem); /* 19 → 24px, product story */
+  --text-title: clamp(
+    1.5rem,
+    2.4vw,
+    1.875rem
+  ); /* 24 → 30px, product title (classic layout) */
+
+  --text-title-display: clamp(
+    2.5rem,
+    4.2vw,
+    4.5rem
+  ); /* 40 → 72px, product title */
+
+  --text-price-display: clamp(
+    3rem,
+    4.6vw,
+    4.75rem
+  ); /* 48 → 76px, product price */
+
+  --text-marquee: clamp(2rem, 4.4vw, 4rem); /* 32 → 64px, product marquee */
+  --text-ring: clamp(5.5rem, 19vw, 18.75rem); /* 88 → 300px, sport ring word */
+  --text-motto: clamp(2.75rem, 6vw, 6rem); /* 44 → 96px, sign-in motto */
+  --text-motto-md: clamp(2.25rem, 10vw, 3.75rem); /* 36 → 60px */
+  --text-motto-sm: clamp(1.75rem, 8.6vw, 2.25rem); /* 28 → 36px */
+  --text-hero-short: clamp(
+    2.25rem,
+    11svh,
+    3.5rem
+  ); /* home hero on a phone held sideways */
+
+  --text-feature-num: 3.5rem; /* 56px, product feature numbers */
+  --text-score: clamp(3.5rem, 5vw, 5rem); /* 56 → 80px, product rating score */
+  --text-quote-mark: 8.75rem; /* 140px, decorative quote mark */
+  --text-error-code: clamp(
+    6.875rem,
+    18vw,
+    11.25rem
+  ); /* 110 → 180px, the 404 number */
+
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
@@ -240,7 +376,7 @@
   --leading-tight: 1.05;
   --leading-normal: 1.6;
   --tracking-display: -0.005em; /* big condensed headlines sit tight */
-  --tracking-label: 0.16em;     /* small uppercase labels */
+  --tracking-label: 0.16em; /* small uppercase labels */
 
   /* ---------- Radius ---------- */
   --radius-xs: 8px;
@@ -251,19 +387,31 @@
   --radius-pill: 999px;
 
   /* ---------- Shadows: soft and layered ---------- */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35), 0 24px 48px rgba(0, 0, 0, 0.25);
-  --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.3), 0 24px 64px rgba(0, 0, 0, 0.55);
-  --shadow-xl: 0 2px 6px rgba(0, 0, 0, 0.35), 0 40px 100px rgba(0, 0, 0, 0.65);
-  --shadow-brand: 0 8px 28px rgba(var(--brand-rgb), 0.25);
-  --shadow-brand-lg: 0 14px 44px rgba(var(--brand-rgb), 0.32);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 35%), 0 4px 12px rgb(0 0 0 / 25%);
+  --shadow-md:
+    0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 35%),
+    0 24px 48px rgb(0 0 0 / 25%);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 30%), 0 24px 64px rgb(0 0 0 / 55%);
+  --shadow-xl: 0 2px 6px rgb(0 0 0 / 35%), 0 40px 100px rgb(0 0 0 / 65%);
+  --shadow-brand: 0 8px 28px rgb(var(--brand-rgb), 0.25);
+  --shadow-brand-lg: 0 14px 44px rgb(var(--brand-rgb), 0.32);
+  --shadow-inset:
+    inset 0 1px 0 rgb(255 255 255 / 5%), inset 0 0 0 1px rgb(255 255 255 / 4%);
 
   /* ---------- Gradients and texture ---------- */
-  --gradient-brand: linear-gradient(135deg, #ecff9e 0%, #d4ff3a 48%, #a9d600 100%);
+  --gradient-brand: linear-gradient(
+    135deg,
+    #ecff9e 0%,
+    #d4ff3a 48%,
+    #a9d600 100%
+  );
   --gradient-navy: radial-gradient(120% 140% at 100% 0%, #202026, #0a0a0b 62%);
-  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+  --gradient-surface: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 3.5%),
+    rgb(255 255 255 / 0%)
+  );
   --grain-opacity: 0.05;
 
   /* ---------- Layers ---------- */
@@ -274,13 +422,17 @@
   --z-dropdown: 50;
   --z-drawer: 60;
   --z-modal: 70;
-  --z-modal-top: calc(var(--z-modal) + 1);   /* a viewer opened from inside a dialog */
+  --z-modal-top: calc(
+    var(--z-modal) + 1
+  ); /* a viewer opened from inside a dialog */
+
   --z-toast: 1000;
-  --z-flyer: 1100;             /* the photo that flies to the cart, above toasts */
-  --z-grain: 2147483000;       /* the film-grain overlay: on top of everything, never clickable */
-  --z-subbar: 20;              /* bars that stick under the header */
+  --z-flyer: 1100; /* the photo that flies to the cart, above toasts */
+  --z-grain: 2147483000; /* the film-grain overlay: on top of everything, never clickable */
+  --z-subbar: 20; /* bars that stick under the header */
   --z-scrim: calc(var(--z-header) - 1);
   --z-drawer-scrim: calc(var(--z-drawer) - 5);
+
   /* Stacking inside one component (its own stacking context): photo, overlay, badge, control. */
   --z-below: -1;
   --z-flat: 0;
@@ -295,16 +447,18 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --ease-linear: linear;       /* loops and progress bars only */
+  --ease-linear: linear; /* loops and progress bars only */
+
   /* Interface motion: 150 to 700ms, nothing outside this scale. */
-  --duration-fast: 0.15s;      /* press, hover colour */
+  --duration-fast: 0.15s; /* press, hover colour */
   --duration-quick: 0.2s;
-  --duration: 0.25s;           /* most transitions */
-  --duration-medium: 0.32s;    /* drawers, sheets, the header tucking away */
+  --duration: 0.25s; /* most transitions */
+  --duration-medium: 0.32s; /* drawers, sheets, the header tucking away */
   --duration-slow: 0.4s;
-  --duration-long: 0.55s;      /* reveals */
-  --duration-slower: 0.7s;     /* the longest entrance */
-  --stagger: 32ms;             /* delay between items in a list or a line of letters */
+  --duration-long: 0.55s; /* reveals */
+  --duration-slower: 0.7s; /* the longest entrance */
+  --stagger: 32ms; /* delay between items in a list or a line of letters */
+
   /* Ambient loops (spinners, shimmer, drifting backgrounds). They carry no information, and
      prefers-reduced-motion stops them. */
   --loop-fast: 0.8s;
@@ -314,7 +468,6 @@
   --loop-long: 6s;
   --loop-drift: 18s;
   --loop-drift-slow: 34s;
-
   --header-h: 112px;
 }
 
@@ -339,14 +492,34 @@
    so every rem-based size (all type, the tap size) scales with it. Lines stay readable and the
    page never looks like a phone layout floating in empty space. */
 @media (min-width: 1920px) {
-  :root { --container: 1600px; --gutter: 48px; }
-}
-@media (min-width: 2560px) {
-  html { font-size: 112.5%; }
-  :root { --container: 1840px; --gutter: 64px; --space-8: 72px; --space-10: 96px; }
-}
-@media (min-width: 3200px) {
-  html { font-size: 125%; }
-  :root { --container: 2200px; --gutter: 80px; --space-8: 80px; --space-10: 112px; }
+  :root {
+    --container: 1600px;
+    --gutter: 48px;
+  }
 }
 
+@media (min-width: 2560px) {
+  html {
+    font-size: 112.5%;
+  }
+
+  :root {
+    --container: 1840px;
+    --gutter: 64px;
+    --space-8: 72px;
+    --space-10: 96px;
+  }
+}
+
+@media (min-width: 3200px) {
+  html {
+    font-size: 125%;
+  }
+
+  :root {
+    --container: 2200px;
+    --gutter: 80px;
+    --space-8: 80px;
+    --space-10: 112px;
+  }
+}

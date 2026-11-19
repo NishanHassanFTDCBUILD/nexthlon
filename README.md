@@ -173,17 +173,17 @@ The app is one Node process plus MongoDB. It needs **Node 20.19 or newer** and a
 
 Set these as environment variables on the host (never commit a `.env`):
 
-| Variable | Value |
-|---|---|
-| `NODE_ENV` | `production` |
-| `MONGODB_URI` | your Atlas connection string |
-| `JWT_SECRET` | 32+ random characters (see `.env.example`) |
-| `SITE_URL` | `https://www.your-domain.in` |
-| `ADMIN_PATH` | a private path such as `/nx-console-7f3k` |
-| `TRUST_PROXY` | number of proxies in front of the app: `1` on a hosting platform, `2` with Cloudflare in front |
-| `STORAGE_DRIVER` + `CLOUDINARY_*` | `cloudinary`, so uploaded photos survive deploys |
-| `RAZORPAY_*`, `SMTP_*` | your live payment keys and email service |
-| `SENTRY_DSN` | optional, switches on error alerts |
+| Variable                          | Value                                                                                          |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                        | `production`                                                                                   |
+| `MONGODB_URI`                     | your Atlas connection string                                                                   |
+| `JWT_SECRET`                      | 32+ random characters (see `.env.example`)                                                     |
+| `SITE_URL`                        | `https://www.your-domain.in`                                                                   |
+| `ADMIN_PATH`                      | a private path such as `/nx-console-7f3k`                                                      |
+| `TRUST_PROXY`                     | number of proxies in front of the app: `1` on a hosting platform, `2` with Cloudflare in front |
+| `STORAGE_DRIVER` + `CLOUDINARY_*` | `cloudinary`, so uploaded photos survive deploys                                               |
+| `RAZORPAY_*`, `SMTP_*`            | your live payment keys and email service                                                       |
+| `SENTRY_DSN`                      | optional, switches on error alerts                                                             |
 
 `TRUST_PROXY` matters. Behind a host's load balancer, the app sees the **balancer's** address unless it
 is told how many proxies to trust, so every visitor would share one rate limit. Set it to the real number.
@@ -201,10 +201,10 @@ to Cloudinary and the container needs no volume. With the default `local` they a
 
 ### Health checks
 
-| URL | Meaning | Use it for |
-|---|---|---|
-| `/healthz` | the process is alive (never touches the database) | restart checks, `docker ps` |
-| `/readyz` | MongoDB answers, and the server is not shutting down | load balancers and uptime monitors |
+| URL        | Meaning                                              | Use it for                         |
+| ---------- | ---------------------------------------------------- | ---------------------------------- |
+| `/healthz` | the process is alive (never touches the database)    | restart checks, `docker ps`        |
+| `/readyz`  | MongoDB answers, and the server is not shutting down | load balancers and uptime monitors |
 
 ### Logs, request IDs and alerts
 

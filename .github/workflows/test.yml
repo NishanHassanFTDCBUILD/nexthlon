@@ -46,6 +46,21 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  lint:
+    name: Code quality (ESLint, Stylelint, Prettier)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run lint:css
+      - run: npm run format:check
+
   docker:
     name: Docker image builds
     runs-on: ubuntu-latest

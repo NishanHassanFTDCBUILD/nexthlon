@@ -1,3 +1,6 @@
 {
-  "recommendations": ["digitalbrain.ejs-language-support", "mongodb.mongodb-vscode"]
+  "recommendations": [
+    "digitalbrain.ejs-language-support",
+    "mongodb.mongodb-vscode"
+  ]
 }

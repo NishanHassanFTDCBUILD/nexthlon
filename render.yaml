@@ -4,15 +4,15 @@ services:
   - type: web
     name: nexthlon
     runtime: docker
-    plan: free               # demo: sleeps after 15 min idle (first visit ~50s, jobs/emails pause). Use "starter" for a real shop.
-    region: singapore        # closest Render region to India
+    plan: free # demo: sleeps after 15 min idle (first visit ~50s, jobs/emails pause). Use "starter" for a real shop.
+    region: singapore # closest Render region to India
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: TRUST_PROXY
-        value: "1"
+        value: '1'
       - key: LOG_FORMAT
         value: json
       # Scaling out (docs/SCALING.md): one copy of the app per CPU core of the instance.
@@ -20,7 +20,7 @@ services:
         value: auto
       # 10 connections per copy keeps several instances under the Atlas free tier's 500.
       - key: MONGODB_MAX_POOL
-        value: "10"
+        value: '10'
       # Optional: a Redis address once you run more than one instance (docs/SCALING.md, step 2).
       - key: REDIS_URL
         sync: false
@@ -29,7 +29,7 @@ services:
       - key: MAIL_DRIVER
         value: brevo
       - key: SITE_URL
-        sync: false          # https://your-domain (or the https://nexthlon.onrender.com address Render gives you)
+        sync: false # https://your-domain (or the https://nexthlon.onrender.com address Render gives you)
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
@@ -57,12 +57,12 @@ services:
       - key: BREVO_API_KEY
         sync: false
       - key: MAIL_FROM
-        sync: false          # Nexthlon <orders@your-domain>
+        sync: false # Nexthlon <orders@your-domain>
       # The business details India's e-commerce rules ask for (footer, policy pages, invoices).
       - key: STORE_LEGAL_NAME
         sync: false
       - key: STORE_ADDRESS
-        sync: false          # Building, street, City, State PIN, India
+        sync: false # Building, street, City, State PIN, India
       - key: STORE_GSTIN
         sync: false
       - key: STORE_SUPPORT_EMAIL

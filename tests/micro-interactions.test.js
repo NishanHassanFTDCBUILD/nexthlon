@@ -32,7 +32,7 @@ test('micro: the tick is styled where every page can see it, and only draws itse
   const components = read('public/css/components.css');
   assert.match(
     components,
-    /\.saved-tick \{ position: absolute;/,
+    /\.saved-tick \{\s*position: absolute;/,
     'My Account pages skip motion.css, so the look lives in components.css',
   );
   const motion = read('public/css/motion.css');
@@ -51,7 +51,7 @@ test('micro: reduced motion stops every animation and transition across the site
   const components = read('public/css/components.css');
   assert.match(
     components,
-    /@media \(prefers-reduced-motion: reduce\) \{\s*\*, \*::before, \*::after \{ animation: none !important; transition: none !important;/,
+    /@media \(prefers-reduced-motion: reduce\) \{\s*\*,\s*\*::before,\s*\*::after \{\s*animation: none !important;\s*transition: none !important;/,
   );
   // The script-driven ones check it too.
   assert.match(

@@ -34,7 +34,11 @@ The guide covers the major animation systems with See → Trace → Explain → 
 ```html
 <section class="hero3d" data-hero3d>
   <div class="hero3d-sticky">
-    <canvas class="hero3d-canvas" data-hero3d-canvas aria-hidden="true"></canvas>
+    <canvas
+      class="hero3d-canvas"
+      data-hero3d-canvas
+      aria-hidden="true"
+    ></canvas>
     <div class="hero3d-fallback" aria-hidden="true">...</div>
   </div>
 </section>
@@ -77,8 +81,8 @@ In `tick(now)`, `dt` is calculated from timestamps, converted from milliseconds 
 **Trace:** `home3d.js` → `buildHero()` → `spherePoints()` in `3d/shapes.js` → `Mesh` and `Scene` in `3d/scene.js`.
 
 ```js
-const PARTICLES = { high: 9000, medium: 5000, low: 2400 };
-const sphere = { positions: spherePoints(count, 1.85) };
+const PARTICLES = {high: 9000, medium: 5000, low: 2400};
+const sphere = {positions: spherePoints(count, 1.85)};
 ```
 
 `PARTICLES` is an object mapping estimated device capability to a count. Phones have a separate 6000/4200/2400 table. These are heuristics, not measured GPU benchmarks. `positions` contains X/Y/Z triplets. `1.85` is the sphere radius in scene units, not screen pixels.
@@ -93,7 +97,10 @@ export function spherePoints(count, radius) {
     const y = 1 - (i / (count - 1)) * 2;
     const r = Math.sqrt(1 - y * y);
     const rr = radius + (Math.random() - 0.5) * radius * 0.06;
-    out.set([Math.cos(golden * i) * r * rr, y * rr, Math.sin(golden * i) * r * rr], i * 3);
+    out.set(
+      [Math.cos(golden * i) * r * rr, y * rr, Math.sin(golden * i) * r * rr],
+      i * 3,
+    );
   }
   return out;
 }
@@ -134,13 +141,13 @@ function morphFor(progress) {
 
 `progress` is normalized from zero to one. Each `if` checks the next threshold. `return` immediately exits this function. The early-return sequence means the later cases only see values that failed the earlier checks.
 
-| Hero progress | Result | Meaning |
-|---|---:|---|
-| 0–8% | 0 | Hold sphere |
-| 8–30% | 0 → 1 | Blend sphere to logo |
-| 30–48% | 1 | Hold logo |
-| 48–70% | 1 → 2 | Blend logo to athlete |
-| 70–100% | 2 | Hold athlete |
+| Hero progress | Result | Meaning               |
+| ------------- | -----: | --------------------- |
+| 0–8%          |      0 | Hold sphere           |
+| 8–30%         |  0 → 1 | Blend sphere to logo  |
+| 30–48%        |      1 | Hold logo             |
+| 48–70%        |  1 → 2 | Blend logo to athlete |
+| 70–100%       |      2 | Hold athlete          |
 
 At progress 0.19, `(0.19 - 0.08) / 0.22 = 0.5`. At progress 0.59, `1 + (0.59 - 0.48) / 0.22 = 1.5`.
 
@@ -301,7 +308,7 @@ Backticks make a template literal; `${...}` inserts computed values; `toFixed` l
 
 ```js
 const step = 360 / count;
-const mod = n => ((n % count) + count) % count;
+const mod = (n) => ((n % count) + count) % count;
 ```
 
 `step` is the angle between adjacent cards: six cards means 60 degrees. JavaScript remainder can be negative; the double remainder expression wraps negative and positive indices into the valid range. `offsetBetween` chooses the shortest signed direction to a sport. Radius is calculated from card width and card count, so it adapts to layout.
@@ -532,7 +539,6 @@ For chapter C/D, a good explanation is: “The server returns the hero HTML. The
 
 The following section is generated from the current public source. Line numbers identify definitions and entry points at generation time, not stable permanent IDs. It complements, rather than replaces, reading the surrounding code.
 
-
 ### CSS keyframes, by file
 
 - `public/css/account.css`: `acct-spin` (line 14).
@@ -547,7 +553,6 @@ The following section is generated from the current public source. Line numbers 
 ### JavaScript animation and trigger entry points
 
 This scan lists likely animation-related call sites, including fallback and conditional paths; it does not establish that a path executes on every page. Read each surrounding function and the template script list.
-
 
 **`public/js/3d/boot.js`**
 

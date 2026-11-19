@@ -33,13 +33,16 @@ test('motion: page transitions run only without reduced motion, forward and back
     block,
     'cross-document transitions live inside the no-preference block',
   );
-  assert.match(block, /@view-transition \{ navigation: auto; \}/);
+  assert.match(block, /@view-transition \{\s*navigation: auto;\s*\}/);
   assert.match(
     block,
-    /\.site-header \{ view-transition-name: site-header; \}/,
+    /\.site-header \{\s*view-transition-name: site-header;\s*\}/,
     'the header stays put',
   );
-  assert.match(block, /\.pdx-photo \{ view-transition-name: product-photo; \}/);
+  assert.match(
+    block,
+    /\.pdx-photo \{\s*view-transition-name: product-photo;\s*\}/,
+  );
   assert.match(
     block,
     /:active-view-transition-type\(back\)::view-transition-old\(root\)/,

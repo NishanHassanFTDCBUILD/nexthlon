@@ -58,25 +58,25 @@ Start now with the big picture, then ask me if I'm ready for section 1.
 
 ## Useful things to say during the session
 
-| Say | What happens |
-|---|---|
-| "Next" | Moves to the next section |
-| "Repeat, simpler" | Same idea, easier words |
-| "Quiz me" | Three questions on the last part |
-| "Where is it?" | File and function to open |
-| "Jump to animation S" | Goes straight to that letter (S = photo flies to cart) |
-| "Give me the viva answer" | One-minute spoken summary |
+| Say                       | What happens                                           |
+| ------------------------- | ------------------------------------------------------ |
+| "Next"                    | Moves to the next section                              |
+| "Repeat, simpler"         | Same idea, easier words                                |
+| "Quiz me"                 | Three questions on the last part                       |
+| "Where is it?"            | File and function to open                              |
+| "Jump to animation S"     | Goes straight to that letter (S = photo flies to cart) |
+| "Give me the viva answer" | One-minute spoken summary                              |
 
 ## Suggested sessions (about 30 minutes each)
 
-| Session | Cover |
-|---|---|
-| 1 | Big picture, server start, request pipeline (guide sections 0 to 5) |
-| 2 | Cart, login, checkout and payments (sections 6 to 8) |
-| 3 | Jobs, views, admin, security and tests (sections 9 to 14) |
-| 4 | Animations A to I: first load, frame clock, 3D sphere, scroll reveals |
-| 5 | Animations J to R: showroom, sport picker, cards, header, buttons |
-| 6 | Animations S to Z: cart effects, product gallery, checkout, confetti, page transitions |
-| 7 | Practice: STUDY-GUIDE.md sections 15 and 16 (exercises and the interview answer) |
+| Session | Cover                                                                                  |
+| ------- | -------------------------------------------------------------------------------------- |
+| 1       | Big picture, server start, request pipeline (guide sections 0 to 5)                    |
+| 2       | Cart, login, checkout and payments (sections 6 to 8)                                   |
+| 3       | Jobs, views, admin, security and tests (sections 9 to 14)                              |
+| 4       | Animations A to I: first load, frame clock, 3D sphere, scroll reveals                  |
+| 5       | Animations J to R: showroom, sport picker, cards, header, buttons                      |
+| 6       | Animations S to Z: cart effects, product gallery, checkout, confetti, page transitions |
+| 7       | Practice: STUDY-GUIDE.md sections 15 and 16 (exercises and the interview answer)       |
 
 Start each new session in the same chat and say: "Continue from where we stopped."

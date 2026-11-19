@@ -11,22 +11,22 @@ Legend: **[You]** = the owner must do it (needs an account, card, or legal detai
 
 ## 1. Accounts to create
 
-| # | Service | Why | Who | Where the settings go |
-|---|---|---|---|---|
-| 1 | **MongoDB Atlas** (database) | Holds all products, orders and customers | [You] | `MONGODB_URI` |
-| 2 | **Cloudinary** (photo storage) | Product and review photos | [You] | `STORAGE_DRIVER`, `CLOUDINARY_*` |
-| 3 | **Hosting platform** (Render, Railway or similar) | Runs the website | [You] | `SITE_URL`, `TRUST_PROXY` |
-| 4 | **Domain name** and HTTPS | Your address on the web | [You] | `SITE_URL` |
-| 5 | **Razorpay** (payments) live account and KYC | Takes card, UPI and netbanking money | [You] | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` |
-| 6 | **Email sender** (Brevo, or any SMTP service) | Order, password and offer emails | [You] | `MAIL_DRIVER`, `BREVO_API_KEY` or `SMTP_*`, `MAIL_FROM` |
-| 7 | **Shiprocket** (courier aggregator) | One-click shipping, tracking, PIN checks | [You] | `SHIPROCKET_*`, `SHIPPING_PICKUP_PINCODE` |
-| 8 | **WhatsApp Business** (Meta Cloud API) | WhatsApp order updates | [You] | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_SUPPORT_NUMBER` |
-| 9 | **MSG91** (SMS) | One-time codes for Cash on Delivery | [You] | `MSG91_AUTH_KEY`, `MSG91_OTP_TEMPLATE_ID` |
-| 10 | **Sentry** (error alerts) | Tells you when something breaks | [You] (optional) | `SENTRY_DSN` |
-| 11 | **Google Analytics 4 or Plausible** | Visitor counts, after consent | [You] (optional) | `ANALYTICS_PROVIDER`, `ANALYTICS_ID` |
-| 12 | **Meta Business** (Pixel, ads) | Ads tracking, after consent | [You] (optional) | `META_PIXEL_ID` |
-| 13 | **Redis** | Shared rate limits when running more than one server | [You] (optional) | `REDIS_URL` |
-| 14 | **Amazon, Flipkart, Myntra seller accounts** | Selling on marketplaces | [You] (optional) | Feed download; `MARKETPLACE_TOKEN` for stock sync |
+| #   | Service                                           | Why                                                  | Who              | Where the settings go                                                   |
+| --- | ------------------------------------------------- | ---------------------------------------------------- | ---------------- | ----------------------------------------------------------------------- |
+| 1   | **MongoDB Atlas** (database)                      | Holds all products, orders and customers             | [You]            | `MONGODB_URI`                                                           |
+| 2   | **Cloudinary** (photo storage)                    | Product and review photos                            | [You]            | `STORAGE_DRIVER`, `CLOUDINARY_*`                                        |
+| 3   | **Hosting platform** (Render, Railway or similar) | Runs the website                                     | [You]            | `SITE_URL`, `TRUST_PROXY`                                               |
+| 4   | **Domain name** and HTTPS                         | Your address on the web                              | [You]            | `SITE_URL`                                                              |
+| 5   | **Razorpay** (payments) live account and KYC      | Takes card, UPI and netbanking money                 | [You]            | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`     |
+| 6   | **Email sender** (Brevo, or any SMTP service)     | Order, password and offer emails                     | [You]            | `MAIL_DRIVER`, `BREVO_API_KEY` or `SMTP_*`, `MAIL_FROM`                 |
+| 7   | **Shiprocket** (courier aggregator)               | One-click shipping, tracking, PIN checks             | [You]            | `SHIPROCKET_*`, `SHIPPING_PICKUP_PINCODE`                               |
+| 8   | **WhatsApp Business** (Meta Cloud API)            | WhatsApp order updates                               | [You]            | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_SUPPORT_NUMBER` |
+| 9   | **MSG91** (SMS)                                   | One-time codes for Cash on Delivery                  | [You]            | `MSG91_AUTH_KEY`, `MSG91_OTP_TEMPLATE_ID`                               |
+| 10  | **Sentry** (error alerts)                         | Tells you when something breaks                      | [You] (optional) | `SENTRY_DSN`                                                            |
+| 11  | **Google Analytics 4 or Plausible**               | Visitor counts, after consent                        | [You] (optional) | `ANALYTICS_PROVIDER`, `ANALYTICS_ID`                                    |
+| 12  | **Meta Business** (Pixel, ads)                    | Ads tracking, after consent                          | [You] (optional) | `META_PIXEL_ID`                                                         |
+| 13  | **Redis**                                         | Shared rate limits when running more than one server | [You] (optional) | `REDIS_URL`                                                             |
+| 14  | **Amazon, Flipkart, Myntra seller accounts**      | Selling on marketplaces                              | [You] (optional) | Feed download; `MARKETPLACE_TOKEN` for stock sync                       |
 
 Each account needs your own identity documents. Only you should enter passwords and card details.
 
@@ -110,15 +110,15 @@ These are small, but they are not finished:
 
 ## Quick status summary
 
-| Area | State |
-|---|---|
-| Shop, cart, checkout, orders, invoices (GST) | Done |
-| Payments (Razorpay) | Code done. Needs live keys and KYC |
-| Shipping (Shiprocket, tracking, returns) | Code done. Needs account |
-| Emails, WhatsApp, SMS, push | Code done. Needs accounts and keys |
-| Privacy, consent, data download | Done |
-| Reviews with photos, product questions | Done |
-| Search (typos, synonyms, suggestions) | Done |
-| Bundles, guides, marketplace feed | Code done. Content and admin screens still needed |
-| Photos, database, hosting | Need your accounts |
-| Policy pages, product content, business details | Need your text and details |
+| Area                                            | State                                             |
+| ----------------------------------------------- | ------------------------------------------------- |
+| Shop, cart, checkout, orders, invoices (GST)    | Done                                              |
+| Payments (Razorpay)                             | Code done. Needs live keys and KYC                |
+| Shipping (Shiprocket, tracking, returns)        | Code done. Needs account                          |
+| Emails, WhatsApp, SMS, push                     | Code done. Needs accounts and keys                |
+| Privacy, consent, data download                 | Done                                              |
+| Reviews with photos, product questions          | Done                                              |
+| Search (typos, synonyms, suggestions)           | Done                                              |
+| Bundles, guides, marketplace feed               | Code done. Content and admin screens still needed |
+| Photos, database, hosting                       | Need your accounts                                |
+| Policy pages, product content, business details | Need your text and details                        |

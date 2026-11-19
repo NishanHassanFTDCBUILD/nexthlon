@@ -26,23 +26,23 @@ Sizes: **S** = one short session, **M** = one full session, **L** = two or more 
 
 ## The Nexthlon bar (every change must meet it)
 
-| Area | The bar |
-|---|---|
-| **Design** | Colours, type, spacing, radius and shadows come only from `public/css/tokens.css` (Obsidian & Volt). No one-off values. Every screen has a clear hierarchy and plenty of space. |
-| **Motion** | Every animation has a job: guide the eye, confirm an action, or show a change. Only `transform` and `opacity` move. Animations last 150–700ms on the shared easing tokens. There is a `prefers-reduced-motion` version, and they run at 60fps on a mid-range phone. |
-| **Responsive** | Works from 320px to 2560px and on a phone held sideways. Touch targets are 44px, there's no sideways scroll, viewport heights use `dvh`/`svh`, and touch screens get press states instead of hover. See `docs/mobile-audit-checklist.md`. |
-| **Accessibility** | WCAG 2.2 AA: contrast, full keyboard use, visible focus, labelled fields, and announcements for changes. |
-| **Speed** | Lighthouse mobile 90+ (desktop 95+). LCP under 2.5s, CLS under 0.1, INP under 200ms. One CSS bundle per page, and 3D or other heavy code loads only when needed. |
-| **Architecture** | Routes, controllers, services, models. Outside services (email, storage, shipping, payments, WhatsApp) sit behind **providers** we can swap. Slow work runs as **jobs** with retries. |
-| **Security** | Validate all input, rate-limit, keep the CSP strict, keep secrets only in `.env`, and record admin actions in the audit log. |
-| **Tests** | New behaviour gets tests. All tests pass before a commit. |
+| Area              | The bar                                                                                                                                                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Design**        | Colours, type, spacing, radius and shadows come only from `public/css/tokens.css` (Obsidian & Volt). No one-off values. Every screen has a clear hierarchy and plenty of space.                                                                                     |
+| **Motion**        | Every animation has a job: guide the eye, confirm an action, or show a change. Only `transform` and `opacity` move. Animations last 150–700ms on the shared easing tokens. There is a `prefers-reduced-motion` version, and they run at 60fps on a mid-range phone. |
+| **Responsive**    | Works from 320px to 2560px and on a phone held sideways. Touch targets are 44px, there's no sideways scroll, viewport heights use `dvh`/`svh`, and touch screens get press states instead of hover. See `docs/mobile-audit-checklist.md`.                           |
+| **Accessibility** | WCAG 2.2 AA: contrast, full keyboard use, visible focus, labelled fields, and announcements for changes.                                                                                                                                                            |
+| **Speed**         | Lighthouse mobile 90+ (desktop 95+). LCP under 2.5s, CLS under 0.1, INP under 200ms. One CSS bundle per page, and 3D or other heavy code loads only when needed.                                                                                                    |
+| **Architecture**  | Routes, controllers, services, models. Outside services (email, storage, shipping, payments, WhatsApp) sit behind **providers** we can swap. Slow work runs as **jobs** with retries.                                                                               |
+| **Security**      | Validate all input, rate-limit, keep the CSP strict, keep secrets only in `.env`, and record admin actions in the audit log.                                                                                                                                        |
+| **Tests**         | New behaviour gets tests. All tests pass before a commit.                                                                                                                                                                                                           |
 
 ---
 
 ## Target architecture
 
 We keep a **modular monolith**: one Express app, organised in clear layers. It's fast, cheap to
-host, good for SEO, and easy to grow. We are *not* building a multi-company SaaS platform; we build
+host, good for SEO, and easy to grow. We are _not_ building a multi-company SaaS platform; we build
 the store to **SaaS-grade quality**.
 
 ```
@@ -61,18 +61,19 @@ routes → controllers (HTTP only) → services (business rules) → models (Mon
 
 New folders, added only by the step that first needs them:
 
-| Folder | What lives there | Added in |
-|---|---|---|
-| `providers/` | One adapter per outside service, picked by config (e.g. `mail/smtp.js`, `mail/ses.js`, `storage/local.js`, `storage/r2.js`). | A3, B2 |
-| `events/` | A small event bus plus listeners: "when an order is placed, queue the confirmation email". | B2 |
-| `jobs/` | A job queue stored in MongoDB, a worker loop, retries with back-off, and scheduled jobs (cart recovery moves here). | B2 |
-| `config/schema.js` | Every environment variable checked at start-up: missing ones stop the server with a clear message. | A2 |
+| Folder             | What lives there                                                                                                             | Added in |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `providers/`       | One adapter per outside service, picked by config (e.g. `mail/smtp.js`, `mail/ses.js`, `storage/local.js`, `storage/r2.js`). | A3, B2   |
+| `events/`          | A small event bus plus listeners: "when an order is placed, queue the confirmation email".                                   | B2       |
+| `jobs/`            | A job queue stored in MongoDB, a worker loop, retries with back-off, and scheduled jobs (cart recovery moves here).          | B2       |
+| `config/schema.js` | Every environment variable checked at start-up: missing ones stop the server with a clear message.                           | A2       |
 
 ---
 
 ## Stage A: Foundation (make what we have safe and deployable)
 
 ### [x] A1. Save our work safely · S
+
 - **Goal:** everything from the five UI/UX phases committed, and nothing broken.
 - **Files:** `server.js` (put back the "could not connect to MongoDB" message), `README.md` and `.env.example` (restore them; they are deleted in the working tree), all changed files.
 - **Done when:** all 224 tests pass, the dev server starts, and git has clean commits grouped by phase.
@@ -85,6 +86,7 @@ wait for my go-ahead.
 ```
 
 ### [x] A2. Production-ready server · M
+
 - **Goal:** the app runs safely behind a host's proxy, with health checks, error alerts and automatic tests.
 - **Files:** `app.js` (`trust proxy`, `/healthz`), `config/schema.js`, `utils/logger.js` (request IDs), Sentry, `Dockerfile`, `.github/workflows/test.yml`, `README.md` (deploy guide).
 - **Done when:**
@@ -101,6 +103,7 @@ MongoDB service. Follow the Nexthlon bar. Plan first, then wait for my go-ahead.
 ```
 
 ### [x] A3. Photos in cloud storage, with sizes for every screen · M
+
 - **Goal:** uploads survive redeploys and load fast. Every uploaded photo gets 400, 800 and 1600px WebP copies with `srcset`.
 - **Files:** `providers/storage/{local,r2}.js`, `services/imageService.js`, `utils/images.js`, `public/js/store.js`, a migration for existing uploads, and image deletes.
 - **Done when:** product cards download a card-sized photo, the `/products` mobile LCP is under 2.5s in Lighthouse, and photo storage can switch between local and Cloudinary through config.
@@ -117,6 +120,7 @@ srcset in cards and the product page. Migrate existing uploads. Re-run Lighthous
 ## Stage B: Core commerce (what a real store must do)
 
 ### [x] B1. Accounts: password reset and email check · M
+
 - **Goal:** customers can reset a forgotten password and confirm their email. Admins can turn on two-step login.
 - **Files:**
   - routes and controllers: `routes/authRoutes.js`, `controllers/authController.js`;
@@ -137,6 +141,7 @@ phone and desktop. Plan first, then wait for my go-ahead.
 ```
 
 ### [x] B2. Order emails, the event system and background jobs · L
+
 - **Goal:** customers get beautiful emails when an order is confirmed, shipped (with tracking), out for delivery, delivered, refunded, or a return is approved. The system is built to grow.
 - **Files:** `events/`, `jobs/` (MongoDB queue with retries), `providers/mail/` (SMTP, plus SES or Brevo), `views/emails/` (shared layout, dark brand style that also works in light mail apps), `services/orderService.js` hooks, and cart recovery moved onto jobs.
 - **Done when:**
@@ -153,6 +158,7 @@ Plan first, then wait for my go-ahead.
 ```
 
 ### [x] B3. Sizes and colours (product options) · L
+
 - **Goal:** each product has options (size, colour) with their own SKU, stock and photos, plus a size guide.
 - **Files:**
   - model: `models/Product.js` (an options list), plus a migration that turns each current product into one option;
@@ -180,6 +186,7 @@ size and colour picker award-level on phone and desktop. Plan first, then wait f
 ```
 
 ### [ ] B4. GST invoice and legally required product details · M (parallel)
+
 - **Goal:** invoices meet Indian GST rules, and listings show what India's e-commerce and packaging rules require.
 - **Files:**
   - model: `models/Product.js` (HSN code, GST rate, country of origin, manufacturer or importer, net quantity);
@@ -198,6 +205,7 @@ and net quantity to products, shown on the product page. Plan first, then wait f
 ```
 
 ### [x] B5. Shipping partner · L
+
 - **Done 2026-11-14:** `services/shipping/shiprocket.js` and `services/shippingService.js` (manual stays the default); PIN checks confirmed by the courier with a rules fallback; "Ship with Shiprocket" in the admin; `POST /api/webhooks/courier`; courier card with animated scans on the order page; RTO "coming back" and "back with us". Turn it on with the SHIPPING_* and SHIPROCKET_* settings in `.env.example`.
 - **Goal:** real delivery dates and COD availability by PIN code, automatic shipping labels, and live tracking that updates the order and triggers the B2 emails.
 - **Files:** `providers/shipping/{manual,shiprocket}.js`, `services/deliveryService.js`, a tracking webhook route, the admin "Create shipment" button, and a "Track order" timeline with motion.
@@ -219,6 +227,7 @@ then wait for my go-ahead.
 ## Stage C: Award-level experience
 
 ### [x] C1. Motion system v2: page transitions and scroll-driven CSS · M
+
 - **Goal:** the site feels like one smooth app.
 - **Pieces:**
   - **Page transitions:** cross-page View Transitions (`@view-transition`), so a product card's photo flows into the product page photo, and headers stay in place between pages.
@@ -242,6 +251,7 @@ and desktop recordings or screenshot sequences. Plan first, then wait for my go-
 ```
 
 ### [x] C2. Shopping micro-interactions · M
+
 - **Goal:** every key action gives satisfying feedback.
 - **Pieces:**
   - **Add to cart:** the photo flies to the cart icon and the count ticks up.
@@ -264,6 +274,7 @@ moment. Touch, mouse and keyboard; reduced-motion versions. Plan first, then wai
 ```
 
 ### [x] C3. Checkout that converts · M
+
 - **Goal:** the fastest checkout in Indian sports retail.
 - **Pieces:**
   - UPI shown first;
@@ -292,6 +303,7 @@ go-ahead.
 ```
 
 ### [x] C4. Design quality pass across every page · M
+
 - **Goal:** one consistent, premium system everywhere, including the account, order and admin pages, which were not part of the UI/UX phases.
 - **Done when:** every page passes `docs/mobile-audit-checklist.md` at all sizes, there are no one-off colours or spacing values, and there's a screenshot set of every page at 390 and 1440 wide.
 - **Progress (2026-11-14):**
@@ -311,6 +323,7 @@ wait for my go-ahead.
 ## Stage D: Launch
 
 ### [x] D1. SEO and social sharing · S
+
 - **Goal:** products show up well on Google and look good when shared.
 - **Files:**
   - `/sitemap.xml` and `robots.txt`;
@@ -328,6 +341,7 @@ Google's Rich Results Test format and a link preview. Plan first, then wait for 
 ```
 
 ### [x] D2. Analytics with consent · S
+
 - **Done 2026-11-14:** consent banner (only when ANALYTICS_PROVIDER is set), GA4 or Plausible after a yes, shopping events, CSP hosts per provider, "Download my data" on Login & security. Left out on purpose: the Meta Pixel (add it when you start Meta ads, behind the same consent).
 - **Goal:** know what sells and where customers drop off, while respecting privacy (India's DPDP Act).
 - **Files:**
@@ -345,6 +359,7 @@ data" in My Account. Plan first, then wait for my go-ahead.
 ```
 
 ### [x] D3. Security review before going live · S
+
 - **Goal:** no known weak spots on launch day.
 - **Pieces:** `npm audit` fixes, a CSP review, cookie flags, an admin path and two-step login check, abuse limits on coupons, referrals and COD, and a backup restore drill.
 - **Done when:** there are no high-risk findings, and a backup has been restored into a test database successfully.
@@ -367,6 +382,7 @@ drill. Fix what is found. Plan first, then wait for my go-ahead.
 ```
 
 ### [ ] D4. Go live · M
+
 - **Goal:** the real store on your domain.
 - **Pieces:** hosting and MongoDB Atlas, the domain with HTTPS and Cloudflare, `NODE_ENV=production`, Razorpay live keys and webhook, the email domain's records (SPF, DKIM, DMARC), the shipping provider live, real products and photos, and a soft launch with friends and family.
 - **Done when:** a real order is paid, shipped, delivered, invoiced and refunded end to end, and monitoring is green for a week.
@@ -382,17 +398,17 @@ go-ahead.
 
 ## Stage E: Growth (after launch)
 
-| Step | What | Size |
-|---|---|---|
-| [x] E1 | WhatsApp order updates and support chat. **Code done:** order events and the WhatsApp provider are ready; activate it with a WhatsApp Business account and the required settings. | M |
-| [x] E2 | COD confirmation by OTP or WhatsApp, and a discount for paying online. **Code done:** configure MSG91 or WhatsApp credentials before enabling confirmations. | S |
-| [x] E3 | Back-in-stock alerts, reviews with photos, product Q&A. **Code done:** production use needs real product and review content. | M |
-| [x] E4 | Search upgrade: suggestions as you type, tolerance for typos, synonyms. **Code done:** search works with the built-in fallback; Atlas Search remains an optional production enhancement. | M |
-| [x] E5 | Installable app (PWA) with push notifications. **Code done:** generate and configure VAPID keys to activate pushes. | M |
-| [x] E6 | "Complete the kit" bundles and recommendations. **Done 2026-11-15:** product-page kits, server-priced add-all flow, and an admin Bundles screen for creating and publishing kits. | M |
-| [x] E7 | Content hub: sport guides and athlete stories, for SEO. **Done 2026-11-15:** public guides hub, drafts and publication, plus an admin Guides writing screen. Content still needs to be written by the team. | M |
-| [~] E8 | Amazon, Flipkart and Myntra listings with stock sync. **Feed and stock-sync code done;** direct marketplace connections need seller accounts and API access. | L |
-| [ ] E9 | Hindi language | L |
+| Step   | What                                                                                                                                                                                                        | Size |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| [x] E1 | WhatsApp order updates and support chat. **Code done:** order events and the WhatsApp provider are ready; activate it with a WhatsApp Business account and the required settings.                           | M    |
+| [x] E2 | COD confirmation by OTP or WhatsApp, and a discount for paying online. **Code done:** configure MSG91 or WhatsApp credentials before enabling confirmations.                                                | S    |
+| [x] E3 | Back-in-stock alerts, reviews with photos, product Q&A. **Code done:** production use needs real product and review content.                                                                                | M    |
+| [x] E4 | Search upgrade: suggestions as you type, tolerance for typos, synonyms. **Code done:** search works with the built-in fallback; Atlas Search remains an optional production enhancement.                    | M    |
+| [x] E5 | Installable app (PWA) with push notifications. **Code done:** generate and configure VAPID keys to activate pushes.                                                                                         | M    |
+| [x] E6 | "Complete the kit" bundles and recommendations. **Done 2026-11-15:** product-page kits, server-priced add-all flow, and an admin Bundles screen for creating and publishing kits.                           | M    |
+| [x] E7 | Content hub: sport guides and athlete stories, for SEO. **Done 2026-11-15:** public guides hub, drafts and publication, plus an admin Guides writing screen. Content still needs to be written by the team. | M    |
+| [~] E8 | Amazon, Flipkart and Myntra listings with stock sync. **Feed and stock-sync code done;** direct marketplace connections need seller accounts and API access.                                                | L    |
+| [ ] E9 | Hindi language                                                                                                                                                                                              | L    |
 
 Prompt for any growth step:
 

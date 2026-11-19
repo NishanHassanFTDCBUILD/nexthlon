@@ -1,10 +1,11 @@
+# Generated or not ours
 node_modules/
 coverage/
 tmp/
 backups/
 public/uploads/
-docs/
-linkedin-post/
+docs/screenshots/
 package-lock.json
+
+# EJS templates: Prettier has no EJS support (tests/templates.test.js compiles them instead)
 *.ejs
-*.md

@@ -85,7 +85,7 @@ Part A is JavaScript, Part B is animation and 3D, Part C is CSS animation, Part 
 **Dynamic `import()`** — load a module only when needed. **Why:** a smaller first download.
 → `import("./showroom3d.js")` runs only when the showroom section comes near.
 
-**UMD wrapper** — code that works as a browser global *and* in Node. `ticker.js` uses it so tests can load it.
+**UMD wrapper** — code that works as a browser global _and_ in Node. `ticker.js` uses it so tests can load it.
 
 ## A4. Decisions and loops
 
@@ -108,6 +108,7 @@ Part A is JavaScript, Part B is animation and 3D, Part C is CSS animation, Part 
 **Spread `...`** — copy/expand: `{ ...state, ...patch }` makes a new object with changes.
 **Rest `...args`** — collect the remaining arguments into an array.
 **Array methods:**
+
 - `map` — make a new array from each item.
 - `filter` — keep items that pass a test.
 - `find` / `findIndex` — first match / its position.
@@ -131,14 +132,14 @@ Part A is JavaScript, Part B is animation and 3D, Part C is CSS animation, Part 
 **Synchronous vs asynchronous** — sync code runs line by line and blocks; async starts something (a network request) and continues, handling the result later. **Why:** the page never freezes.
 **Promise** — an object for "a value that will arrive later". It is pending, then fulfilled (success) or rejected (error).
 **`async` function** — always returns a Promise; lets you use `await` inside.
-**`await`** — pause *this function* until the Promise finishes (the page keeps working).
+**`await`** — pause _this function_ until the Promise finishes (the page keeps working).
 → `const data = await Nx.api("/api/cart");`
 **`.then` / `.catch` / `.finally`** — run code on success / on error / always.
 **`try / catch / finally`** — catch errors; `finally` always runs (used to turn off the busy spinner).
 **`throw`** — raise an error so a `catch` handles it.
 **`Error` object** — has a `message`; your code adds `status`, `fieldErrors`, `code` (app.js).
 **`Promise.all`** — wait for several Promises.
-**`Promise.race`** — first to finish wins. → the cart flight waits for landing *or* a timeout.
+**`Promise.race`** — first to finish wins. → the cart flight waits for landing _or_ a timeout.
 **Debounce** — wait until typing stops (250 ms) before calling the server. **Why:** not one request per key. (header.js)
 **`setTimeout` / `setInterval`** — run once later / repeatedly; cancel with `clearTimeout` / `clearInterval`.
 **Race condition** — two async tasks finishing in the wrong order. Fixed with `AbortController` or a `ticket` number (checkout.js `refreshing`).
@@ -258,7 +259,7 @@ Part A is JavaScript, Part B is animation and 3D, Part C is CSS animation, Part 
 **Glare** — a light spot that follows the cursor on a tilting card.
 **Parallax** — layers moving at different speeds to suggest depth (hero background at 35% of scroll; mouse moves the 3D camera).
 **Scroll reveal** — elements fade/slide in as they come on screen.
-**Scroll-driven animation** — the animation's progress *is* the scroll position (`animation-timeline: view()`).
+**Scroll-driven animation** — the animation's progress _is_ the scroll position (`animation-timeline: view()`).
 **Pinned section** — a tall section that stays on screen while you scroll through it (home hero, sport ring, showroom).
 **Scroll progress** — 0 at the start of a pinned section, 1 at its end (`scrollProgress`).
 **Morph** — one shape smoothly turning into another (sphere → logo → athlete).
@@ -298,8 +299,8 @@ Part A is JavaScript, Part B is animation and 3D, Part C is CSS animation, Part 
 **Canvas** — the `<canvas>` element WebGL (or 2D) draws into.
 **Context (`gl`)** — the object you call WebGL functions on.
 **Shader** — a tiny program that runs on the GPU, written in **GLSL**.
-**Vertex shader** — runs once **per point**; decides *where* it goes. Your hero morph happens here.
-**Fragment shader** — runs once **per pixel**; decides *what colour* it is (glowing dot, fog).
+**Vertex shader** — runs once **per point**; decides _where_ it goes. Your hero morph happens here.
+**Fragment shader** — runs once **per pixel**; decides _what colour_ it is (glowing dot, fog).
 **Program** — a vertex + fragment shader linked together.
 **Compile / link** — turning shader text into GPU code / joining the two shaders.
 **Buffer** — a block of GPU memory holding numbers (positions, colours).
@@ -364,19 +365,19 @@ Part A is JavaScript, Part B is animation and 3D, Part C is CSS animation, Part 
 
 # Part D — Maths functions in your animation
 
-| Function | Formula | Meaning | Used for |
-|---|---|---|---|
-| `clamp(v, min, max)` | `min(max, max(min, v))` | Keep a value inside a range | Everything |
-| `lerp(a, b, t)` | `a + (b − a) × t` | Blend from a to b (t = 0…1) | Camera, colours |
-| `smoothstep(e0, e1, x)` | `t² × (3 − 2t)` | Smooth S-curve from 0 to 1 | Morph, glows |
-| `damp(cur, target, λ, dt)` | `lerp(cur, target, 1 − e^(−λ·dt))` | Smooth follow, same at any fps | Mouse camera, scroll morph |
-| Quadratic Bézier | `2(1−p)p·c + p²·d` | Curved path through a control point | Fly to cart |
-| `sin` / `cos` | waves between −1 and 1 | Gentle drifting, floating, swaying | Dots, cards, confetti |
-| `Math.hypot(dx, dy)` | `√(dx² + dy²)` | Distance | Flight length, pinch zoom |
-| `Math.exp(−k·dt)` | exponential decay | Smooth slowing | Drag on sparks |
-| Golden angle | `π × (3 − √5)` | Even spread of points | Fibonacci sphere |
-| `mod(n, count)` | wrap-around | Endless ring of cards | Sport ring |
+| Function                   | Formula                            | Meaning                             | Used for                   |
+| -------------------------- | ---------------------------------- | ----------------------------------- | -------------------------- |
+| `clamp(v, min, max)`       | `min(max, max(min, v))`            | Keep a value inside a range         | Everything                 |
+| `lerp(a, b, t)`            | `a + (b − a) × t`                  | Blend from a to b (t = 0…1)         | Camera, colours            |
+| `smoothstep(e0, e1, x)`    | `t² × (3 − 2t)`                    | Smooth S-curve from 0 to 1          | Morph, glows               |
+| `damp(cur, target, λ, dt)` | `lerp(cur, target, 1 − e^(−λ·dt))` | Smooth follow, same at any fps      | Mouse camera, scroll morph |
+| Quadratic Bézier           | `2(1−p)p·c + p²·d`                 | Curved path through a control point | Fly to cart                |
+| `sin` / `cos`              | waves between −1 and 1             | Gentle drifting, floating, swaying  | Dots, cards, confetti      |
+| `Math.hypot(dx, dy)`       | `√(dx² + dy²)`                     | Distance                            | Flight length, pinch zoom  |
+| `Math.exp(−k·dt)`          | exponential decay                  | Smooth slowing                      | Drag on sparks             |
+| Golden angle               | `π × (3 − √5)`                     | Even spread of points               | Fibonacci sphere           |
+| `mod(n, count)`            | wrap-around                        | Endless ring of cards               | Sport ring                 |
 
 ---
 
-**Tip for the exam:** if you're asked about any word, give the plain meaning, then say *where it is used in Nexthlon*. For example: "Damping moves a value a fraction of the way to its target every frame, so it settles smoothly at any frame rate. I use it for the mouse-controlled camera and the scroll morph in home3d.js."
+**Tip for the exam:** if you're asked about any word, give the plain meaning, then say _where it is used in Nexthlon_. For example: "Damping moves a value a fraction of the way to its target every frame, so it settles smoothly at any frame rate. I use it for the mouse-controlled camera and the scroll morph in home3d.js."

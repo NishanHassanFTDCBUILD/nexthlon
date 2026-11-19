@@ -12,16 +12,16 @@ This was an audit. Application source, business records, and existing working-tr
 
 ## Evidence and coverage
 
-| Check | Result | Meaning |
-|---|---|---|
-| JavaScript syntax | 320 files passed `node --check` | Includes application, browser, scripts, and test JavaScript; does not prove runtime correctness. |
-| EJS syntax | 85 templates compiled | Does not prove every template receives the right data at runtime. |
-| `npm test` | 235 reported entries: 204 passed, 5 failed, 26 skipped | Skipped entries include entire database suites, so this is not 204 passing end-to-end journeys. |
-| Browser `/healthz` | `status: ok` | Running process responds. |
-| Browser `/readyz` | `status: ready`, `database: up` | The running app can reach its database. |
-| Dependency audit | Blocked | npm registry DNS lookup failed with `ENOTFOUND`; no claim that dependencies are vulnerability-free. |
-| Terminal HTTP/database requests | Blocked | Local socket connection attempts returned `EACCES`, including localhost. Browser access worked. |
-| Payment/refund failure simulations | Two defects reproduced | Used isolated in-memory substitutes, without a database or payment gateway. |
+| Check                              | Result                                                 | Meaning                                                                                             |
+| ---------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| JavaScript syntax                  | 320 files passed `node --check`                        | Includes application, browser, scripts, and test JavaScript; does not prove runtime correctness.    |
+| EJS syntax                         | 85 templates compiled                                  | Does not prove every template receives the right data at runtime.                                   |
+| `npm test`                         | 235 reported entries: 204 passed, 5 failed, 26 skipped | Skipped entries include entire database suites, so this is not 204 passing end-to-end journeys.     |
+| Browser `/healthz`                 | `status: ok`                                           | Running process responds.                                                                           |
+| Browser `/readyz`                  | `status: ready`, `database: up`                        | The running app can reach its database.                                                             |
+| Dependency audit                   | Blocked                                                | npm registry DNS lookup failed with `ENOTFOUND`; no claim that dependencies are vulnerability-free. |
+| Terminal HTTP/database requests    | Blocked                                                | Local socket connection attempts returned `EACCES`, including localhost. Browser access worked.     |
+| Payment/refund failure simulations | Two defects reproduced                                 | Used isolated in-memory substitutes, without a database or payment gateway.                         |
 
 Browser checks covered the home page, search for football, football category results, descending-price sorting, a football detail page, guest add-to-cart redirect, empty-login validation, phone navigation, phone catalogue layout, About, Contact, Privacy, Terms, Refund Policy, Shipping Policy, Guides, Signup, Forgot Password, Offline, health/readiness, and guest protection on cart, checkout, account, orders, wallet, and wishlist routes.
 
@@ -42,7 +42,11 @@ At phone width, the observed filter panel had `position: static` and the Filters
 Fix: close the `html` rule. If the intended sticky-header anchor behavior is retained, the line can be:
 
 ```css
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + var(--space-2)); }
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-h) + var(--space-2));
+}
 ```
 
 Then recheck catalogue filters, sticky controls, reduced-motion rules, and other selectors starting with `html`. The working-tree diff confirms the brace disappeared from a local edit; that edit was preserved during this audit.
@@ -108,13 +112,13 @@ Fix: remove or unlist test products, enter real support/business settings, repla
 
 Failures from the current run:
 
-| Failure | Classification | Explanation |
-|---|---|---|
-| `tests/jobs.test.js` | Test setup defect | Line 14 constructs `new URL(process.env.TEST_MONGODB_URI)` when that variable is absent. It fails before tests can skip. |
-| `tests/order-emails.test.js` | Test setup defect | Line 17 has the same missing-variable problem. |
-| `tests/ops.test.js:288` | Environment-dependent test | Child processes read local `.env`; the production-default proxy assertion received 0 instead of 1. The explicitly configured override is not evidence of a runtime proxy bug. |
-| `tests/ops.test.js:298` | Environment-blocked | The CSP subprocess requires localhost HTTP access and produced no header under the socket restriction. This does not prove the running browser CSP is wrong. |
-| `tests/upload-fields.test.js:8` | Environment-blocked | Its localhost fetch failed with `EACCES`. It does not establish that uploads are broken. |
+| Failure                         | Classification             | Explanation                                                                                                                                                                   |
+| ------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/jobs.test.js`            | Test setup defect          | Line 14 constructs `new URL(process.env.TEST_MONGODB_URI)` when that variable is absent. It fails before tests can skip.                                                      |
+| `tests/order-emails.test.js`    | Test setup defect          | Line 17 has the same missing-variable problem.                                                                                                                                |
+| `tests/ops.test.js:288`         | Environment-dependent test | Child processes read local `.env`; the production-default proxy assertion received 0 instead of 1. The explicitly configured override is not evidence of a runtime proxy bug. |
+| `tests/ops.test.js:298`         | Environment-blocked        | The CSP subprocess requires localhost HTTP access and produced no header under the socket restriction. This does not prove the running browser CSP is wrong.                  |
+| `tests/upload-fields.test.js:8` | Environment-blocked        | Its localhost fetch failed with `EACCES`. It does not establish that uploads are broken.                                                                                      |
 
 Fix: make optional database suites skip before parsing the URL, consistently isolate test settings from `.env`, and run the database suites against disposable test databases in an environment that permits local networking. The CI workflow is configured to provision MongoDB and run tests; its current remote result was not inspected.
 

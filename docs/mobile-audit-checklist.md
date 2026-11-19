@@ -16,17 +16,17 @@ My Account page.
 
 ## Screen sizes to check
 
-| Size | Stands in for | Look for |
-|---|---|---|
-| 320 × 640 | iPhone SE (1st gen), small Android | Nothing cut off, no sideways scroll, header fits |
-| 375 × 812 | iPhone 12–15 mini, most phones | The everyday layout |
-| 430 × 932 | iPhone Pro Max, large Android | Cards and rails don't look stretched |
-| 812 × 375 | Any phone held sideways | Hero and sign-in form fit a short screen |
-| 768 × 1024 | iPad portrait | Two-column pages switch over cleanly |
-| 1024 × 768 | iPad landscape, small laptop | Header and filters don't wrap |
-| 1440 × 900 | Laptop: the design width | The reference layout |
-| 1920 × 1080 | Desktop monitor | Wider column (1600px), nothing floating |
-| 2560 × 1440 | QHD, or 4K at 150% | Text 12.5% larger, 1840px column |
+| Size        | Stands in for                      | Look for                                         |
+| ----------- | ---------------------------------- | ------------------------------------------------ |
+| 320 × 640   | iPhone SE (1st gen), small Android | Nothing cut off, no sideways scroll, header fits |
+| 375 × 812   | iPhone 12–15 mini, most phones     | The everyday layout                              |
+| 430 × 932   | iPhone Pro Max, large Android      | Cards and rails don't look stretched             |
+| 812 × 375   | Any phone held sideways            | Hero and sign-in form fit a short screen         |
+| 768 × 1024  | iPad portrait                      | Two-column pages switch over cleanly             |
+| 1024 × 768  | iPad landscape, small laptop       | Header and filters don't wrap                    |
+| 1440 × 900  | Laptop: the design width           | The reference layout                             |
+| 1920 × 1080 | Desktop monitor                    | Wider column (1600px), nothing floating          |
+| 2560 × 1440 | QHD, or 4K at 150%                 | Text 12.5% larger, 1840px column                 |
 
 Breakpoints the CSS uses (documented in `public/css/tokens.css`): 420, 560, 720, 900, 1024, 1180,
 1440, 1920, 2560, 3200.
@@ -154,21 +154,74 @@ touch targets on the current page.
 
 ```js
 (() => {
-  const vis = e => { const r = e.getBoundingClientRect(); return r.width && r.height && !e.closest("[hidden],[aria-hidden=true],dialog:not([open])"); };
-  const clipped = e => { for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(p).overflowX)) return true; return false; };
-  const label = e => `${e.tagName.toLowerCase()}.${String(e.className).split(" ")[0]}`;
-  const all = [...document.querySelectorAll("body *")].filter(vis);
+  const vis = (e) => {
+    const r = e.getBoundingClientRect();
+    return (
+      r.width &&
+      r.height &&
+      !e.closest('[hidden],[aria-hidden=true],dialog:not([open])')
+    );
+  };
+  const clipped = (e) => {
+    for (let p = e.parentElement; p && p !== document.body; p = p.parentElement)
+      if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(p).overflowX))
+        return true;
+    return false;
+  };
+  const label = (e) =>
+    `${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]}`;
+  const all = [...document.querySelectorAll('body *')].filter(vis);
   console.table({
     sidewaysScroll: document.documentElement.scrollWidth > innerWidth,
-    overflowing: all.filter(e => e.getBoundingClientRect().right > innerWidth + 1 && !clipped(e) && getComputedStyle(e).position !== "fixed").slice(0, 5).map(label).join(", ") || "none",
-    tinyText: all.filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && !(e instanceof SVGElement) && parseFloat(getComputedStyle(e).fontSize) < 12).slice(0, 5).map(label).join(", ") || "none",
-    smallTargets: matchMedia("(pointer: coarse)").matches
-      ? [...document.querySelectorAll("a[href],button,select,summary")].filter(e => vis(e) && getComputedStyle(e).display !== "inline" && !e.closest(".product-name")).filter(e => {
-          const r = e.getBoundingClientRect();
-          const grow = ["::before", "::after"].map(p => getComputedStyle(e, p)).reduce((g, s) => s.content !== "none" && s.position === "absolute" ? Math.max(g, Math.max(0, -parseFloat(s.top) || 0) * 2) : g, 0);
-          return Math.min(r.width, r.height) + grow < 44;
-        }).slice(0, 8).map(label).join(", ") || "none"
-      : "switch device mode to Mobile first"
+    overflowing:
+      all
+        .filter(
+          (e) =>
+            e.getBoundingClientRect().right > innerWidth + 1 &&
+            !clipped(e) &&
+            getComputedStyle(e).position !== 'fixed',
+        )
+        .slice(0, 5)
+        .map(label)
+        .join(', ') || 'none',
+    tinyText:
+      all
+        .filter(
+          (e) =>
+            [...e.childNodes].some(
+              (n) => n.nodeType === 3 && n.textContent.trim(),
+            ) &&
+            !(e instanceof SVGElement) &&
+            parseFloat(getComputedStyle(e).fontSize) < 12,
+        )
+        .slice(0, 5)
+        .map(label)
+        .join(', ') || 'none',
+    smallTargets: matchMedia('(pointer: coarse)').matches
+      ? [...document.querySelectorAll('a[href],button,select,summary')]
+          .filter(
+            (e) =>
+              vis(e) &&
+              getComputedStyle(e).display !== 'inline' &&
+              !e.closest('.product-name'),
+          )
+          .filter((e) => {
+            const r = e.getBoundingClientRect();
+            const grow = ['::before', '::after']
+              .map((p) => getComputedStyle(e, p))
+              .reduce(
+                (g, s) =>
+                  s.content !== 'none' && s.position === 'absolute'
+                    ? Math.max(g, Math.max(0, -parseFloat(s.top) || 0) * 2)
+                    : g,
+                0,
+              );
+            return Math.min(r.width, r.height) + grow < 44;
+          })
+          .slice(0, 8)
+          .map(label)
+          .join(', ') || 'none'
+      : 'switch device mode to Mobile first',
   });
 })();
 ```

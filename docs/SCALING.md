@@ -15,18 +15,18 @@ cannot answer.
 
 ## What the code already does
 
-| Piece | Where | What it does |
-|---|---|---|
-| CDN-ready pages | `middleware/publicCache.js` | Signed-out store pages say `public, s-maxage=60`: a CDN may keep them a minute, browsers never. Anyone with a session cookie gets `private, no-store`. Errors are never cacheable. |
-| Same page for every guest | `middleware/cartCount.js`, `public/js/store.js` | A guest's cart badge is filled in after the page loads (`GET /api/cart/count`), so the page itself has nothing personal in it. |
-| All CPU cores | `server.js` | `WEB_CONCURRENCY=auto`: a small supervisor runs the migrations once, starts one copy per core, restarts a copy that crashes, and passes a shutdown on. Background jobs run in copy 0 only. |
-| Catalogue cache | `utils/memo.js` | Home page and related products kept 30–60 s in each copy, one database load at a time, cleared on any product change. |
-| Shared clearing | `services/cacheSync.js` | With Redis, a product change clears the cache on every copy of every server at once. |
-| Shared rate limits | `middleware/rateLimitStore.js` | With Redis, sign-in, cart and order limits count across all copies; without it, per copy. Redis failing never blocks the store. |
-| Order rush limit | `orderLimiter` in `middleware/rateLimit.js` | 20 order or payment starts per 10 minutes per customer. Payment verification is never limited. |
-| Database connections | `MONGODB_MAX_POOL` | A cap per copy, with a start-up warning before Atlas's free-tier limit of 500. |
-| Indexes | `npm run db:indexes` | Adds any missing index; never deletes. Run it after each deploy that adds a model or index. |
-| Load test | `npm run load:test` | `--ramp 10,25,50,100` finds how much one server handles while 95% of answers stay under half a second. |
+| Piece                     | Where                                           | What it does                                                                                                                                                                               |
+| ------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CDN-ready pages           | `middleware/publicCache.js`                     | Signed-out store pages say `public, s-maxage=60`: a CDN may keep them a minute, browsers never. Anyone with a session cookie gets `private, no-store`. Errors are never cacheable.         |
+| Same page for every guest | `middleware/cartCount.js`, `public/js/store.js` | A guest's cart badge is filled in after the page loads (`GET /api/cart/count`), so the page itself has nothing personal in it.                                                             |
+| All CPU cores             | `server.js`                                     | `WEB_CONCURRENCY=auto`: a small supervisor runs the migrations once, starts one copy per core, restarts a copy that crashes, and passes a shutdown on. Background jobs run in copy 0 only. |
+| Catalogue cache           | `utils/memo.js`                                 | Home page and related products kept 30–60 s in each copy, one database load at a time, cleared on any product change.                                                                      |
+| Shared clearing           | `services/cacheSync.js`                         | With Redis, a product change clears the cache on every copy of every server at once.                                                                                                       |
+| Shared rate limits        | `middleware/rateLimitStore.js`                  | With Redis, sign-in, cart and order limits count across all copies; without it, per copy. Redis failing never blocks the store.                                                            |
+| Order rush limit          | `orderLimiter` in `middleware/rateLimit.js`     | 20 order or payment starts per 10 minutes per customer. Payment verification is never limited.                                                                                             |
+| Database connections      | `MONGODB_MAX_POOL`                              | A cap per copy, with a start-up warning before Atlas's free-tier limit of 500.                                                                                                             |
+| Indexes                   | `npm run db:indexes`                            | Adds any missing index; never deletes. Run it after each deploy that adds a model or index.                                                                                                |
+| Load test                 | `npm run load:test`                             | `--ramp 10,25,50,100` finds how much one server handles while 95% of answers stay under half a second.                                                                                     |
 
 ## What was measured (13 November 2026, on the development laptop)
 
@@ -54,7 +54,7 @@ calls; about 80% browse signed out.
 
 1. Add your domain to Cloudflare (free plan) and change the nameservers where you bought the domain.
 2. **Caching > Cache Rules > Create rule**, named "Signed-out store pages":
-   - When: *Custom filter expression*, using the expression editor:
+   - When: _Custom filter expression_, using the expression editor:
      ```
      (http.request.method eq "GET")
      and (http.request.uri.path eq "/" or starts_with(http.request.uri.path, "/products") or http.request.uri.path in {"/about" "/contact" "/privacy" "/terms" "/refund-policy" "/shipping-policy"})
@@ -95,8 +95,10 @@ Photos come from Cloudinary or your bucket's CDN, never through the app, so they
 ### 6. Measure your real server
 
 Point the load test at a staging copy (never someone else's site):
+
 ```
 npm run load:test -- https://staging.your-domain --ramp 10,25,50,100,200 --path /products
 ```
+
 It prints how many requests a second one server handles. Divide the step above (about 500 page views a
 second at the peak) by that number to get how many servers to run, and add one spare.
