@@ -21,6 +21,7 @@
   };
   const periodHead = group.unit === 'hour' ? 'Hour' : group.unit === 'week' ? 'Week' : group.unit === 'month' ? 'Month' : 'Day';
   const totalPayments = payments.reduce(function (sum, p) { return sum + p.count; }, 0);
+  const kpiIcons = { revenue: 'wallet', orders: 'package-check', aov: 'tag', units: 'box', buyers: 'users', newCustomers: 'sparkles', cartToOrder: 'trending-up' };
 %>
 <%- include('../partials/admin-start', { section: 'analytics' }) %>
 <div class="dash" data-analytics="<%= JSON.stringify(chartData) %>">
@@ -64,6 +65,7 @@
          const down = c.change !== null && c.change < 0; %>
       <article class="dash-kpi" data-kpi="<%= c.key %>">
         <div class="dash-kpi-head">
+          <span class="dash-kpi-icon" aria-hidden="true"><%- icon(kpiIcons[c.key] || 'trending-up', 'i-xs') %></span>
           <h2><%= c.label %></h2>
           <% if (c.hint) { %><span class="dash-hint" role="img" title="<%= c.hint %>" aria-label="<%= c.hint %>"><%- icon('info', 'i-xs') %></span><% } %>
         </div>
@@ -90,7 +92,7 @@
 
     <%# Conversion: how many filled baskets turned into orders. %>
     <section class="panel dash-card" aria-labelledby="an-funnel-title">
-      <div class="dash-card-head"><h2 id="an-funnel-title">Carts → orders</h2></div>
+      <div class="dash-card-head"><h2 id="an-funnel-title">Conversion</h2></div>
       <ul class="dash-actions an-funnel">
         <li><span class="dash-action"><%- icon('cart', 'i-sm') %><span>Shoppers with items in a cart</span><strong><%= funnel.carts.toLocaleString('en-IN') %></strong></span></li>
         <li><span class="dash-action has-count"><%- icon('package-check', 'i-sm') %><span>Orders placed</span><strong><%= funnel.orders.toLocaleString('en-IN') %></strong></span></li>

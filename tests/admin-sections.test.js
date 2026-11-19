@@ -294,7 +294,7 @@ test('analytics: the page renders and the CSV holds every block', async () => {
   assert.match(page.data, /data-chart="payments"/);
   assert.match(page.data, /data-chart="newReturning"/);
   assert.match(page.data, /data-chart="categories"/);
-  assert.match(page.data, /Carts → orders|Carts &#8594; orders/);
+  assert.match(page.data, /id="an-funnel-title">Conversion</);
   // No chart library, and no inline script (the CSP forbids one).
   assert.doesNotMatch(page.data, /chart\.js|cdn\./i);
   assert.doesNotMatch(page.data, /<script>[^<]/);

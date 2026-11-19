@@ -18,14 +18,26 @@
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const stock = panels.stock;
   const stockTotal = Math.max(stock.products, 1);
+  // A greeting in Indian time, and today's to-dos from the "Needs your attention" counts.
+  const istHour = (new Date().getUTCHours() + 5 + Math.floor((new Date().getUTCMinutes() + 30) / 60)) % 24;
+  const greeting = istHour < 12 ? 'Good morning' : istHour < 17 ? 'Good afternoon' : 'Good evening';
+  const todayLabel = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long' });
+  const todo = panels.actions.filter(function (a) { return a.count > 0; });
+  const kpiIcons = { revenue: 'wallet', orders: 'package-check', aov: 'tag', customers: 'users', conversion: 'trending-up', refunds: 'rotate-ccw', credits: 'gift', coupons: 'ticket' };
 %>
 <%- include('../partials/admin-start', { section: 'dashboard' }) %>
 <div class="dash" data-dashboard="<%= JSON.stringify(chartData) %>">
-  <header class="admin-top">
+  <header class="admin-top dash-hero">
     <div>
-      <span class="section-kicker">Overview</span>
-      <h1>Dashboard</h1>
-      <p class="muted"><%= range.label %> · <%= formatDate(range.from) %> to <%= formatDate(new Date(range.to.getTime() - 1)) %>, compared with the period before.</p>
+      <span class="section-kicker"><%= todayLabel %></span>
+      <h1><%= greeting %>, <%= firstName(currentUser.name) %></h1>
+      <p class="muted">
+        <% if (todo.length) { %>
+          Today: <% todo.forEach(function (a, i) { %><a href="<%= adminPath %>/<%= a.href %>"><strong><%= a.count %></strong> <%= a.label.toLowerCase() %></a><%= i < todo.length - 1 ? ' · ' : '' %><% }) %>.
+        <% } else { %>
+          Nothing is waiting on you. Figures below: <%= range.label.toLowerCase() %>, compared with the period before.
+        <% } %>
+      </p>
     </div>
     <div class="admin-top-actions dash-quick" aria-label="Quick actions">
       <a class="btn btn-primary btn-sm" href="<%= adminPath %>/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
@@ -49,6 +61,7 @@
       <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
     </form>
   </div>
+  <p class="muted dash-range-note"><%= range.label %> · <%= formatDate(range.from) %> to <%= formatDate(new Date(range.to.getTime() - 1)) %>, compared with the period before.</p>
   <% if (range.error) { %><div class="alert alert-danger" role="alert"><%- icon('alert') %><span><%= range.error %> Showing the last 7 days instead.</span></div><% } %>
 
   <%# ---------- KPIs ---------- %>
@@ -60,6 +73,7 @@
          const bad = (up && !k.goodWhenUp) || (down && k.goodWhenUp); %>
       <article class="dash-kpi" data-kpi="<%= k.key %>">
         <div class="dash-kpi-head">
+          <span class="dash-kpi-icon" aria-hidden="true"><%- icon(kpiIcons[k.key] || 'bolt', 'i-xs') %></span>
           <h2><%= k.label %></h2>
           <% if (k.hint) { %><span class="dash-hint" role="img" title="<%= k.hint %>" aria-label="<%= k.hint %>"><%- icon('info', 'i-xs') %></span><% } %>
         </div>
@@ -173,15 +187,15 @@
       <div class="dash-card-head dash-pad"><h2 id="recent-orders-title">Recent orders</h2><a class="section-link" href="<%= adminPath %>/orders">All orders <%- icon('chevron-right', 'i-sm') %></a></div>
       <% if (panels.recentOrders.length) { %>
         <div class="table-wrap">
-          <table class="table table-stack dash-orders">
-            <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Placed</th><th scope="col">Amount</th><th scope="col">Status</th></tr></thead>
+          <table class="table table-stack admin-table dash-orders">
+            <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Placed</th><th scope="col" class="cell-num">Amount</th><th scope="col">Status</th></tr></thead>
             <tbody>
               <% panels.recentOrders.forEach(function (o) { %>
-                <tr data-row-href="<%= adminPath %>/orders?q=<%= o.orderId %>">
-                  <td data-label="Order"><a href="<%= adminPath %>/orders?q=<%= o.orderId %>"><strong><%= o.orderId %></strong></a></td>
+                <tr data-row-href="<%= adminPath %>/orders/<%= o.orderId %>">
+                  <td data-label="Order"><a href="<%= adminPath %>/orders/<%= o.orderId %>"><strong><%= o.orderId %></strong></a></td>
                   <td data-label="Customer"><%= o.customer %><% if (o.city) { %> <small class="muted">· <%= o.city %></small><% } %></td>
                   <td data-label="Placed"><%= formatDate(o.createdAt) %></td>
-                  <td data-label="Amount"><%= formatPrice(o.amount) %></td>
+                  <td data-label="Amount" class="cell-num"><%= formatPrice(o.amount) %></td>
                   <td data-label="Status"><span class="status-pill status-<%= o.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[o.status] || o.status %></span></td>
                 </tr>
               <% }) %>

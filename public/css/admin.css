@@ -3577,3 +3577,80 @@ body.admin-menu-open {
 .admin-body .admin-total.is-warn::before {
   background: var(--warning);
 }
+
+/* ---------- Long forms: the save buttons stay in view ---------- */
+.admin-body .admin-save-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--layer-2);
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: var(--space-2);
+  padding: var(--space-1h) var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: rgb(var(--black-rgb), 0.82);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -8px 24px rgb(var(--black-rgb), 0.35);
+}
+
+.admin-save-note {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.admin-save-bar.is-dirty .admin-save-note {
+  color: var(--warning);
+}
+
+@media (max-width: 720px) {
+  .admin-body .admin-save-bar {
+    margin-inline: calc(-1 * var(--space-half));
+    padding: var(--space-1);
+  }
+}
+
+/* ---------- Dashboard: greeting, lead figure, icons ---------- */
+.dash-hero p.muted a {
+  color: var(--ink-2);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--line-strong);
+}
+
+.dash-hero p.muted a strong {
+  color: var(--brand);
+}
+
+@media (hover: hover) {
+  .dash-hero p.muted a:hover {
+    color: var(--ink);
+    border-bottom-color: var(--brand);
+  }
+}
+
+.dash-range-note {
+  margin: calc(-1 * var(--space-1h)) 0 0;
+  font-size: var(--text-xs);
+}
+
+.dash-kpi-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: rgb(var(--brand-rgb), 0.12);
+  color: var(--brand);
+}
+
+.dash-kpis .dash-kpi:first-child {
+  border-color: rgb(var(--brand-rgb), 0.35);
+  background:
+    radial-gradient(
+      120% 90% at 0% 0%,
+      rgb(var(--brand-rgb), 0.12),
+      transparent 60%
+    ),
+    var(--surface);
+}

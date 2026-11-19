@@ -444,6 +444,57 @@
     }
     go(row.dataset.rowHref);
   });
+  // Unsaved changes on a long form (a product, coupon, category or deal): the save bar says so,
+  // and leaving the page asks first. A successful save moves on to the list, which ends it; a
+  // failed save keeps the warning, because the changes are still not saved.
+  let dirty = null;
+  const SAVE_FORMS =
+    '.admin-content form[data-product-form], .admin-content form[data-coupon-form], ' +
+    '.admin-content form[data-category-form], .admin-content form[data-deal-form]';
+  const setDirty = (form) => {
+    dirty = form;
+    const bar = form && form.querySelector('.admin-save-bar');
+    if (!bar) return;
+    let note = bar.querySelector('.admin-save-note');
+    if (!note) {
+      note = document.createElement('span');
+      note.className = 'admin-save-note';
+      note.setAttribute('role', 'status');
+      bar.prepend(note);
+    }
+    bar.classList.add('is-dirty');
+    note.textContent = 'Unsaved changes';
+  };
+  const isDirty = () => Boolean(dirty && document.contains(dirty));
+  ['input', 'change'].forEach((type) =>
+    document.addEventListener(type, (event) => {
+      const form = event.target.closest(SAVE_FORMS);
+      if (form && !event.target.closest('[data-auto-submit]')) setDirty(form);
+    }),
+  );
+  window.addEventListener('beforeunload', (event) => {
+    if (!isDirty()) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+  // Links inside the console load without a reload (section-nav.js), so ask here first.
+  document.addEventListener(
+    'click',
+    (event) => {
+      if (!isDirty() || event.defaultPrevented) return;
+      const link = event.target.closest('a[href]');
+      if (!link || link.closest('form') === dirty || link.target === '_blank')
+        return;
+      if (window.confirm('You have unsaved changes. Leave without saving?'))
+        dirty = null;
+      else {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
+
   document.addEventListener('change', (event) => {
     const select = event.target.closest('.admin-content [data-auto-submit]');
     if (select && select.form) select.form.requestSubmit();
