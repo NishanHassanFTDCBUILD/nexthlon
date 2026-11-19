@@ -176,6 +176,7 @@ router.get('/marketplace/feed.json', async (req, res, next) => {
 
 router.post('/orders/:orderId/rto', adminMoneyLimiter, orders.markRto);
 router.post('/orders/:orderId/notes', adminWriteLimiter, orders.addNote);
+router.patch('/orders/:orderId/tags', adminWriteLimiter, orders.setTags);
 router.post('/orders/:orderId/refunds', adminMoneyLimiter, orders.refund);
 router.get('/orders/:orderId/invoice.pdf', orders.invoicePdf);
 router.get('/orders/:orderId/credit-notes/:index.pdf', orders.creditNotePdf);

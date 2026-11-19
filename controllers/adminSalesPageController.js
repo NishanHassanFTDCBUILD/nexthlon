@@ -55,6 +55,7 @@ const order = asyncHandler(async (req, res) => {
     ...data,
     ...labels,
     cancelReasons: rules.CANCEL_REASONS,
+    tagOptions: rules.ORDER_TAGS,
     // B5: "shiprocket" shows the one-click button; "manual" only the courier and AWB form.
     shippingProvider: config.shipping.provider,
   });
@@ -216,6 +217,27 @@ const dealEdit = asyncHandler(async (req, res) => {
   });
 });
 
+// GET <ADMIN_PATH>/orders/print?ids=NX-...  The chosen orders, one page each, for printing.
+const printOrders = asyncHandler(async (req, res) => {
+  const ids = String(req.query.ids || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => /^NX-\d{4}-\d{6}$/.test(id))
+    .slice(0, 50);
+  const orders = ids.length
+    ? await Order.find({orderId: {$in: ids}})
+        .sort({createdAt: 1})
+        .limit(50)
+        .lean()
+    : [];
+  res.render('admin/print-orders', {
+    title: 'Print orders | Nexthlon Admin',
+    orders,
+    asked: ids.length,
+    rules,
+  });
+});
+
 // ---------- Pick list: what to take off the shelves for a set of orders ----------
 // GET <ADMIN_PATH>/orders/pick-list?ids=NX-2026-000001,NX-2026-000002  (or no ids: every order to ship)
 const pickList = asyncHandler(async (req, res) => {
@@ -285,4 +307,5 @@ module.exports = {
   dealNew,
   dealEdit,
   pickList,
+  printOrders,
 };

@@ -205,6 +205,19 @@
         <% } %>
       </section>
 
+      <section class="panel admin-block order-risk-panel" aria-labelledby="labels-title">
+        <div class="dash-card-head"><h2 id="labels-title"><%- icon('sparkles', 'i-sm') %> Labels and risk</h2><span class="muted">For the packing team</span></div>
+        <% if (risk.applies) { %>
+          <p class="order-risk-line">Cash on delivery risk: <span class="pill <%= risk.level === 'high' ? 'pill-red' : risk.level === 'medium' ? 'pill-amber' : 'pill-green' %>"><%= risk.level %> (<%= risk.score %>)</span></p>
+          <% if (risk.reasons.length) { %><ul class="muted order-risk-reasons"><% risk.reasons.forEach(function (reason) { %><li><%= reason %></li><% }) %></ul><% } %>
+        <% } else { %><p class="muted">Paid online, so no cash on delivery risk applies.</p><% } %>
+        <form class="order-tags-form" data-order-tags="<%= order.orderId %>" novalidate>
+          <fieldset class="order-tags"><legend>Labels</legend>
+            <% tagOptions.forEach(function (tag) { %><label class="check"><input type="checkbox" name="tags" value="<%= tag %>" <%= (order.tags || []).includes(tag) ? 'checked' : '' %>> <span><%= tag %></span></label><% }) %>
+          </fieldset>
+          <button class="btn btn-secondary btn-sm" type="submit">Save labels</button>
+        </form>
+      </section>
       <section class="panel admin-block" aria-labelledby="notes-title">
         <div class="dash-card-head"><h2 id="notes-title"><%- icon('edit', 'i-sm') %> Internal notes</h2><span class="muted">Only admins see these</span></div>
         <% if (o.notes.length) { %>

@@ -21,7 +21,10 @@ Size: S = under an hour of work, M = a few hours, L = a day or more.
 - Step 3 (Inventory): filters, stock table and CSV import done (4759e56). Stock history, reasons and bulk restock still to do.
 - Step 4 (roles, staff, history): done in 3aa553e. Roles in utils/permissions.js; staff at Settings > Staff; audit at System > Audit log; per-record history via ?target=. Not done: invite by email (staff get a temporary password shown once), two-step sign-in.
 - Audit gaps: product create/edit/unlist and customer block are now logged (856abf1).
-- Steps 5 to 9: not started.
+- Step 5: done. Product CSV export and import with preview (commit d998f6b); order late flag, pick list, cash-on-delivery risk score, order labels, batch print of packing sheets (print from the browser, or save as PDF).
+- Inventory reorder levels and days of cover: done (8b55507).
+- Suppliers and purchase orders: not started.
+- Steps 6 to 9: not started.
 
 ## Part A · Architecture (the foundation everything else stands on)
 

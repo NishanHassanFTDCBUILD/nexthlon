@@ -1,0 +1,74 @@
+<%#
+  Batch print: the orders chosen on the Orders page, one per printed page (packing sheet: what to
+  pack, where to send it, and the labels). Printing from the browser can save these as one PDF.
+%>
+<%- include('../partials/admin-start', { section: 'orders', page: 'print-orders' }) %>
+<nav class="breadcrumb breadcrumb-admin no-print" aria-label="Breadcrumb">
+  <a href="<%= adminPath %>/orders">Orders</a> <%- icon('chevron-right', 'i-xs') %>
+  <span aria-current="page">Print</span>
+</nav>
+<header class="admin-top no-print">
+  <div>
+    <span class="section-kicker">Packing</span>
+    <h1>Print orders</h1>
+    <p class="muted">
+      <%= orders.length %> <%= orders.length === 1 ? 'order' : 'orders' %> ready to print<%= asked > orders.length ? ' (' + (asked - orders.length) + ' not found)' : '' %>.
+      Each order prints on its own page. Choose "Save as PDF" in the print dialog to keep them.
+    </p>
+  </div>
+  <div class="admin-top-actions">
+    <button type="button" class="btn btn-primary btn-sm" data-print><%- icon('download', 'i-sm') %> Print</button>
+    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/orders">Back to orders</a>
+  </div>
+</header>
+
+<% if (orders.length) { %>
+  <% orders.forEach(function (o) { %>
+    <article class="print-order" aria-label="Order <%= o.orderId %>">
+      <header class="print-order-head">
+        <div>
+          <p class="print-kicker">Nexthlon · packing sheet</p>
+          <h2><%= o.orderId %></h2>
+          <p>Placed <%= formatDate(o.createdAt) %> · <%= o.paymentMethod === 'cod' ? 'Cash on delivery' : 'Paid online' %> · <%= o.orderStatus.replace(/_/g, ' ') %></p>
+        </div>
+        <% if (o.tags && o.tags.length) { %>
+          <div class="print-tags"><% o.tags.forEach(function (tag) { %><span class="print-tag"><%= tag.toUpperCase() %></span><% }) %></div>
+        <% } %>
+      </header>
+
+      <section class="print-block">
+        <h3>Ship to</h3>
+        <p><strong><%= o.address.fullName %></strong><br>
+          <%= o.address.line1 %><%= o.address.line2 ? ', ' + o.address.line2 : '' %><br>
+          <%= o.address.city %>, <%= o.address.state %> <%= o.address.pincode %><br>
+          <%= o.address.phone %></p>
+      </section>
+
+      <section class="print-block">
+        <h3>Items</h3>
+        <table class="print-table">
+          <thead><tr><th>Qty</th><th>Item</th><th>Size or colour</th><th>SKU</th><th class="num">Price</th></tr></thead>
+          <tbody>
+            <% o.items.forEach(function (item) { %>
+              <tr>
+                <td><strong><%= item.quantity %></strong></td>
+                <td><%= item.name %></td>
+                <td><%= item.option || '—' %></td>
+                <td><%= item.sku || '—' %></td>
+                <td class="num"><%= formatPrice(item.lineTotal) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <p class="print-total">Order total <strong><%= formatPrice(o.total + (o.walletUsed || 0)) %></strong><%= o.paymentMethod === 'cod' ? ' · collect on delivery: ' + formatPrice(o.total) : '' %></p>
+      </section>
+
+      <% if (o.shipments && o.shipments.length) { %>
+        <p class="print-note">Courier: <%= o.shipments[0].courier || '—' %> · tracking <%= o.shipments[0].trackingNumber || '—' %></p>
+      <% } %>
+    </article>
+  <% }) %>
+<% } else { %>
+  <div class="empty-state empty-state-flat no-print"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No orders to print</h2><p>Tick orders on the Orders page, then choose Print selected.</p></div>
+<% } %>
+<%- include('../partials/admin-end') %>

@@ -234,6 +234,25 @@ const markRto = asyncHandler(async (req, res) => {
   });
 });
 
+// PATCH /api/admin/orders/:orderId/tags   body: { tags: ['gift', 'priority'] }
+const setTags = asyncHandler(async (req, res) => {
+  const {order, before, after} = await adminOrderService.setTags(
+    req.params.orderId,
+    (req.body || {}).tags,
+  );
+  await audit(
+    req,
+    'order.tags_changed',
+    `order:${order.orderId}`,
+    {tags: before},
+    {tags: after},
+  );
+  res.json({
+    message: after.length ? 'Labels saved.' : 'Labels removed.',
+    tags: after,
+  });
+});
+
 const addNote = asyncHandler(async (req, res) => {
   const {body} = checked(v.validateOrderNote, req.body);
   const {order, note} = await adminOrderService.addNote(
@@ -385,6 +404,7 @@ const listRefunds = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  setTags,
   listOrders,
   exportOrders,
   getOrder,

@@ -293,6 +293,8 @@ const orderSchema = new mongoose.Schema(
       reason: {type: String, default: '', maxlength: 200},
       at: {type: Date, default: null},
     },
+    // Labels for the packing team (utils/orderRules.js ORDER_TAGS).
+    tags: {type: [String], default: []},
     notes: {type: [noteSchema], default: []},
     returnDecision: {type: returnDecisionSchema, default: null},
     gst: {type: gstSchema, default: undefined},

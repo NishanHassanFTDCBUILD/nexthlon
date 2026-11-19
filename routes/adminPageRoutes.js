@@ -43,6 +43,8 @@ router.get('/analytics', pages.adminAnalytics);
 router.get('/orders', sales.orders);
 // The pick list must come before /orders/:orderId, or 'pick-list' would be read as an order number.
 router.get('/orders/pick-list', sales.pickList);
+// Batch print: the chosen orders, one page each (the browser prints it or saves it as a PDF).
+router.get('/orders/print', sales.printOrders);
 router.get('/orders/:orderId', sales.order);
 router.get('/returns', sales.returns);
 router.get('/transactions', sales.transactions);

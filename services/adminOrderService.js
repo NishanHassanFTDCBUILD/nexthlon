@@ -8,6 +8,7 @@ const User = require('../models/User');
 const orderService = require('./orderService');
 const refundService = require('./refundService');
 const rules = require('../utils/orderRules');
+const {codRisk} = require('../utils/codRisk');
 const {HttpError} = require('../utils/http');
 const {escapeRegex} = require('./productService');
 const settlementService = require('./settlementService');
@@ -136,7 +137,68 @@ async function buildOrderFilter(filters) {
 }
 
 const LIST_FIELDS =
-  'orderId user items.name items.quantity items.status total walletUsed refundedAmount paymentMethod paymentStatus orderStatus createdAt address.fullName address.city address.state address.phone shipments';
+  'orderId user items.name items.quantity items.status total walletUsed refundedAmount paymentMethod paymentStatus orderStatus createdAt address.fullName address.city address.state address.phone shipments rto.stage tags';
+
+// What we know about each customer's past orders, for the cash-on-delivery risk (utils/codRisk.js).
+// One query for the whole page, not one per order.
+async function customerHistory(userIds) {
+  const ids = [...new Set(userIds.filter(Boolean).map(String))];
+  if (!ids.length) return new Map();
+  const [counts, accounts] = await Promise.all([
+    Order.aggregate([
+      {$match: {user: {$in: ids.map((id) => new mongoose.Types.ObjectId(id))}}},
+      {
+        $group: {
+          _id: '$user',
+          delivered: {
+            $sum: {$cond: [{$eq: ['$orderStatus', 'delivered']}, 1, 0]},
+          },
+          cancelled: {
+            $sum: {$cond: [{$eq: ['$orderStatus', 'cancelled']}, 1, 0]},
+          },
+          returned: {
+            $sum: {
+              $cond: [{$in: ['$rto.stage', ['initiated', 'received']]}, 1, 0],
+            },
+          },
+        },
+      },
+    ]),
+    User.find({_id: {$in: ids}})
+      .select('createdAt')
+      .lean(),
+  ]);
+  const byUser = new Map(counts.map((row) => [String(row._id), row]));
+  const now = Date.now();
+  return new Map(
+    accounts.map((account) => {
+      const row = byUser.get(String(account._id)) || {};
+      return [
+        String(account._id),
+        {
+          deliveredOrders: row.delivered || 0,
+          cancelledOrders: row.cancelled || 0,
+          returnedOrders: row.returned || 0,
+          accountAgeDays:
+            (now - new Date(account.createdAt).getTime()) / 86400000,
+        },
+      ];
+    }),
+  );
+}
+
+// The cash-on-delivery risk for one order, given the customer's history.
+function riskOf(order, history) {
+  const who =
+    history.get(
+      String(order.user && order.user._id ? order.user._id : order.user),
+    ) || {};
+  return codRisk({
+    paymentMethod: order.paymentMethod,
+    total: order.total,
+    ...who,
+  });
+}
 
 // The shipping promise (utils/orderRules.js SHIP_WITHIN_HOURS). An order still waiting to ship
 // after it is late.
@@ -173,6 +235,7 @@ function toListRow(order) {
     createdAt: order.createdAt,
     late: isLate(order),
     shipBy: shipByOf(order),
+    tags: order.tags || [],
   };
 }
 
@@ -190,8 +253,9 @@ async function listOrders(query = {}) {
     Order.countDocuments(filter),
     Order.aggregate([{$group: {_id: '$orderStatus', count: {$sum: 1}}}]),
   ]);
+  const history = await customerHistory(orders.map((o) => o.user));
   return {
-    orders: orders.map(toListRow),
+    orders: orders.map((o) => ({...toListRow(o), risk: riskOf(o, history)})),
     filters,
     counts: Object.fromEntries(statusCounts.map((row) => [row._id, row.count])),
     chips: list.chips,
@@ -240,6 +304,23 @@ async function findOrder(orderId) {
 }
 
 // The order page: the order, its customer and what an admin may do next.
+// Replaces the order's labels. Only the fixed list is accepted.
+async function setTags(orderId, tags) {
+  const order = await findOrder(orderId);
+  const wanted = [...new Set(Array.isArray(tags) ? tags : [])];
+  const bad = wanted.filter((tag) => !rules.ORDER_TAGS.includes(tag));
+  if (bad.length)
+    throw new HttpError(
+      400,
+      'Choose from: ' + rules.ORDER_TAGS.join(', ') + '.',
+      {tags: 'Choose from: ' + rules.ORDER_TAGS.join(', ') + '.'},
+    );
+  const before = order.tags || [];
+  order.tags = wanted;
+  await order.save();
+  return {order, before, after: wanted};
+}
+
 async function getOrder(orderId) {
   const order = await findOrder(orderId);
   const customer = await User.findById(order.user)
@@ -248,8 +329,10 @@ async function getOrder(orderId) {
   const paidSoFar =
     (order.walletUsed || 0) +
     (rules.PAID_STATUSES.includes(order.paymentStatus) ? order.total : 0);
+  const risk = riskOf(order, await customerHistory([order.user]));
   return {
     order,
+    risk,
     customer,
     next: rules.nextStatuses(rules.deriveOrderStatus(order.items)),
     cancellable: order.items
@@ -637,6 +720,7 @@ async function decideReturn(orderId, {decision, note, refundMethod}, actor) {
 }
 
 module.exports = {
+  setTags,
   PAGE_SIZE,
   ORDER_SORTS,
   METHODS,
