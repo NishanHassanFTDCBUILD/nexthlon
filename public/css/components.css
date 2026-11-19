@@ -2120,8 +2120,10 @@ dialog[open] {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--brand);
-  color: var(--on-brand);
+
+  /* Quiet at rest so volt stays the one accent on a listing. It turns volt on hover. */
+  background: var(--surface-2);
+  color: var(--ink);
   box-shadow: var(--shadow-md);
   cursor: pointer;
   transition:
@@ -2203,6 +2205,11 @@ dialog[open] {
   .card-add {
     opacity: 0;
     transform: translateY(8px) scale(0.9);
+  }
+
+  .card-add:hover:not(:disabled) {
+    background: var(--brand);
+    color: var(--on-brand);
   }
 
   .product-card:hover .card-add,
