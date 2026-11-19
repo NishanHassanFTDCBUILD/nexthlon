@@ -29,6 +29,10 @@ function viewLocals(req, res, next) {
   res.locals.navCategories = [];
   // Store details for the footer and policy pages, and price bands for the category menu.
   res.locals.store = STORE;
+  // The Google button shows only when the owner has set up Google sign-in (services/googleSignInService.js).
+  res.locals.googleSignIn = Boolean(
+    config.google.clientId && config.google.clientSecret && config.siteUrl,
+  );
   // The admin's shopper settings: announcement bar, home sections, reviews, questions, alerts.
   res.locals.site = siteSettingsService.current();
   res.locals.priceBands = PRICE_BANDS;

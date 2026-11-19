@@ -26,6 +26,10 @@ router.post('/login', authLimiter, accountLoginLimiter, login);
 const phoneSignIn = require('../controllers/phoneSignInController');
 router.post('/phone/request', authLimiter, phoneSignIn.requestCode);
 router.post('/phone/verify', authLimiter, phoneSignIn.verifyCode);
+// Continue with Google (only when configured; see services/googleSignInService.js).
+const googleSignIn = require('../controllers/googleSignInController');
+router.get('/google', authLimiter, googleSignIn.start);
+router.get('/google/callback', authLimiter, googleSignIn.callback);
 router.post('/admin/login', adminLoginLimiter, accountLoginLimiter, adminLogin);
 // Forgotten password, and confirming an email: the links in the emails lead to pages that call these.
 router.post('/password/forgot', forgotLimiter, recovery.forgotPassword);

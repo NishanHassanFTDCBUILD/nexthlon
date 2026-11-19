@@ -40,12 +40,16 @@
             <h1 class="au-title"><%= isSignup ? 'Welcome back' : 'Welcome back' %></h1>
             <p class="muted">Sign in to pick up where you left off.</p>
           </div>
+          <% if (googleSignIn) { %><a class="btn btn-ghost au-google" href="/api/auth/google">Continue with Google</a><% } %>
+          <p class="au-alt"><a href="/sign-in/phone">Sign in with a code to your phone</a></p>
           <% if (reason === 'blocked') { %>
             <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Your account has been blocked. Please contact Nexthlon support.</span></div>
           <% } else if (reason === 'expired') { %>
             <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
           <% } else if (reason === 'password_reset') { %>
             <div class="alert alert-info" role="status"><%- icon('check') %> <span>Your password has been changed. Sign in with the new one.</span></div>
+          <% } else if (reason === 'google') { %>
+            <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Google sign-in did not finish. Try again, or sign in with your email.</span></div>
           <% } else if (reason === 'logged_out_all') { %>
             <div class="alert alert-info" role="status"><%- icon('check') %> <span>You have been signed out of all devices. Sign in again to continue.</span></div>
           <% } %>

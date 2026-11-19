@@ -46,6 +46,11 @@ function readConfig() {
       : isProduction
         ? 1
         : 0,
+    // Continue with Google (optional): both values from the Google Cloud console (a web OAuth client).
+    google: {
+      clientId: text('GOOGLE_CLIENT_ID'),
+      clientSecret: text('GOOGLE_CLIENT_SECRET'),
+    },
     // The store's public address, with no trailing slash (emails, sitemap, share previews).
     siteUrl: text('SITE_URL').replace(/\/+$/, ''),
     // Where uploaded photos are kept: "local" (public/uploads) or Cloudinary. The secrets never leave
