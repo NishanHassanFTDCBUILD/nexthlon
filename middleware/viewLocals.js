@@ -33,6 +33,10 @@ function viewLocals(req, res, next) {
   res.locals.googleSignIn = Boolean(
     config.google.clientId && config.google.clientSecret && config.siteUrl,
   );
+  // The storefront language (the nx_lang cookie) and its strings (config/strings.js).
+  const strings = require('../config/strings');
+  res.locals.lang = strings.langFrom(req.cookies && req.cookies.nx_lang);
+  res.locals.t = strings.translator(res.locals.lang);
   // The admin's shopper settings: announcement bar, home sections, reviews, questions, alerts.
   res.locals.site = siteSettingsService.current();
   res.locals.priceBands = PRICE_BANDS;

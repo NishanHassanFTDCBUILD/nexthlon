@@ -28,6 +28,7 @@
         <span class="brand-word">NEXTHLON <small>Performance gear</small></span><span class="sr-only">, home</span>
       </a>
 
+      <a class="lang-switch" href="/lang/<%= lang === 'hi' ? 'en' : 'hi' %>" hreflang="<%= lang === 'hi' ? 'en' : 'hi' %>"><%= t('switch_language') %></a>
       <form class="search" action="/products" method="get" role="search" aria-label="Search the store" data-search>
         <%# Phones: search opens as a full-screen sheet; this closes it (header.js). Hidden on wider screens. %>
         <button type="button" class="search-back" data-search-back aria-label="Close search"><%- icon('chevron-left') %></button>
@@ -45,7 +46,7 @@
           <label class="sr-only" for="search-q">Search Nexthlon</label>
           <input id="search-q" type="search" name="q" maxlength="80" autocomplete="off" enterkeyhint="search"
                  role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-suggest-list"
-                 value="<%= searchText %>" placeholder="Search for shoes, footballs, tents and more">
+                 value="<%= searchText %>" placeholder="<%= t('search_placeholder') %>">
           <div class="suggest" data-suggest hidden>
             <p class="suggest-status" data-suggest-status aria-live="polite"></p>
             <ul class="suggest-list" id="search-suggest-list" role="listbox" aria-label="Search suggestions" data-suggest-list></ul>
@@ -63,7 +64,7 @@
               <span class="avatar avatar-sm account-avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span>
               <span class="account-text">
                 <small>Hello, <span data-user-first><%= firstName(currentUser.name) %></span></small>
-                <strong>Account &amp; Orders <%- icon('chevron-down', 'i-xs account-caret') %></strong>
+                <strong><%= t('account') %> <%- icon('chevron-down', 'i-xs account-caret') %></strong>
               </span>
               <span class="sr-only">Open account menu</span>
             </button>
@@ -108,7 +109,7 @@
               <%- icon('heart') %>
               <span class="count-dot" data-wish-count <%= savedIds.length ? '' : 'hidden' %>><%= savedIds.length %></span>
             </span>
-            <span class="header-link-text">Wishlist</span>
+            <span class="header-link-text"><%= t('wishlist') %></span>
           </a>
           <%# The link's name is its own words ("Cart, 2 items"), so voice control can say what it sees. %>
           <a class="header-link cart-link <%= path === '/cart' ? 'is-active' : '' %>" href="/cart" data-cart-link>
@@ -116,7 +117,7 @@
               <%- icon('cart') %>
               <span class="count-dot cart-badge" aria-hidden="true" data-cart-count <%= count ? '' : 'hidden' %>><%= count %></span>
             </span>
-            <span class="header-link-text">Cart</span><span class="sr-only" data-cart-count-text>, <%= count %> <%= count === 1 ? 'item' : 'items' %></span>
+            <span class="header-link-text"><%= t('cart') %></span><span class="sr-only" data-cart-count-text>, <%= count %> <%= count === 1 ? 'item' : 'items' %></span>
           </a>
         <% } %>
       </div>

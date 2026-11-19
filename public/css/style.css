@@ -9513,3 +9513,23 @@ html.is-pay-locked body {
   color: var(--ink-2);
   font-size: var(--text-xs);
 }
+
+/* ---------- Language switch (header) ---------- */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .lang-switch:hover {
+    color: var(--ink);
+    background: var(--surface-2);
+  }
+}
