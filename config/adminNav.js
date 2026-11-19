@@ -22,6 +22,12 @@ const ADMIN_NAV = [
       {key: 'coupons', label: 'Coupons', icon: 'ticket'},
       {key: 'deals', label: 'Deals of the day', icon: 'bolt'},
       {
+        key: 'gift-cards',
+        label: 'Gift cards',
+        icon: 'gift',
+        perm: 'settings.write',
+      },
+      {
         key: 'gst',
         label: 'GST report',
         icon: 'file-text',

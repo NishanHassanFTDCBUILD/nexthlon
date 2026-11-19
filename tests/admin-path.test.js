@@ -301,7 +301,6 @@ test('admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
     'offers',
     'flash-sales',
     'campaigns',
-    'gift-cards',
     'loyalty',
     'cms',
     'banners',

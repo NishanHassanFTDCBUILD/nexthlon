@@ -6,6 +6,7 @@ const registry = require('./registry');
 require('../events/listeners/orderEmails');
 require('../events/listeners/orderWhatsApp');
 require('../events/listeners/questionEmails');
+require('../events/listeners/giftCards');
 
 // Back-in-stock alerts (E3): one email per alert, and the sweep that finds alerts whose product is back.
 const stockAlertService = require('../services/stockAlertService');

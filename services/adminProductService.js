@@ -93,6 +93,7 @@ function toAdminProduct(product) {
     netQuantity: product.netQuantity || '',
     shipWeight: product.shipWeight || '',
     videoUrl: product.videoUrl || '',
+    giftCard: Boolean(product.giftCard),
     spinFrames: (product.spinFrames || []).join(String.fromCharCode(10)),
     sku: product.sku || '',
     createdAt: product.createdAt,

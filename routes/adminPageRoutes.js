@@ -117,6 +117,11 @@ const opsPages = require('../controllers/adminOpsController');
 router.get('/webhooks', needsPage('settings.write'), opsPages.webhooksPage);
 router.get('/gst', needsPage('reports.read'), opsPages.gstPage);
 router.get(
+  '/gift-cards',
+  needsPage('settings.write'),
+  require('../controllers/giftCardController').listPage,
+);
+router.get(
   '/returns-report',
   needsPage('reports.read'),
   require('../controllers/adminGoalsController').returnsPage,

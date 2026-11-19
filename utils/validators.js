@@ -282,6 +282,12 @@ function validateProduct(body = {}) {
         'Use an https link to an MP4 or WebM video, up to 500 characters.';
     else value.videoUrl = url;
   }
+  // A gift card product (a checkbox): its price is the value each card carries.
+  if (body.giftCard !== undefined)
+    value.giftCard =
+      body.giftCard === true ||
+      body.giftCard === 'on' ||
+      body.giftCard === 'true';
   // A 360 spin: one https image link per line, 36 at most. Empty removes it.
   if (body.spinFrames !== undefined) {
     const lines = Array.isArray(body.spinFrames)

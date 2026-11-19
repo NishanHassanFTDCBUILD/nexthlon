@@ -334,6 +334,17 @@ async function placeOrder(
     );
   }
   // Fake Cash on Delivery orders tie up stock and courier money (D3): at most a few unpaid ones on the way.
+  // A gift card is worth its face value on the day it is paid; cash on delivery cannot be checked for that.
+  if (
+    method === 'cod' &&
+    quote.lines.some((line) => line.product && line.product.giftCard)
+  )
+    throw new HttpError(
+      400,
+      'Gift cards need online or wallet payment. Please choose another way to pay.',
+      null,
+      'gift_card_cod',
+    );
   if (method === 'cod') {
     // The team can switch Cash on Delivery off for one customer (fraud control).
     const account = await User.findById(userId).select('codBlocked').lean();

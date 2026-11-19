@@ -42,8 +42,9 @@ router.get('/lang/:code', (req, res) => {
   }
   res.redirect(back);
 });
-// Compare 2 to 4 products (read only, not cached: the list depends on the query).
-router.get('/compare', require('../controllers/compareController').compare);
+router.get('/account/gift-card', accountPage, (req, res) =>
+  res.render('account/gift-card', {title: 'Gift card | Nexthlon'}),
+);
 // Find my shoe size (a plain form on the server; no script).
 router.get(
   '/find-my-size',

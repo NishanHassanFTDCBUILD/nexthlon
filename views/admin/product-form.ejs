@@ -163,6 +163,9 @@
               <p class="field-error" id="p-spin-error" data-error-for="spinFrames"></p>
             </div>
             <div class="field">
+              <label class="check-label"><input type="checkbox" name="giftCard" value="on"<%= p.giftCard ? ' checked' : '' %>> <span>This is a gift card. Its price is the value each card carries.</span></label>
+            </div>
+            <div class="field">
               <label for="p-sku">SKU <span class="optional">(for a product without sizes; sizes have their own)</span></label>
               <input id="p-sku" name="sku" maxlength="40" value="<%= p.sku || '' %>" placeholder="e.g. NX-BALL-5" aria-describedby="p-sku-error">
               <p class="field-error" id="p-sku-error" data-error-for="sku"></p>

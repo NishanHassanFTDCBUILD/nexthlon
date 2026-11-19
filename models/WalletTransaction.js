@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const KINDS = ['refund', 'order', 'referral', 'admin'];
+const KINDS = ['refund', 'order', 'referral', 'admin', 'gift_card'];
 
 // The wallet's history: every credit and debit, with the balance right after it. Paise.
 // "key" makes a credit happen only once (for example one referral reward per new customer).

@@ -309,6 +309,14 @@ router.post(
   opsApi.rerunWebhook,
 );
 router.get('/reports/gst.csv', opsApi.gstCsv);
+// Gift cards: the list and switching one off (settings.write; see utils/permissions.js).
+const giftAdmin = require('../controllers/giftCardController');
+router.get('/gift-cards', giftAdmin.listApi);
+router.post(
+  '/gift-cards/:cardId/disable',
+  adminWriteLimiter,
+  giftAdmin.disableApi,
+);
 // Monthly revenue goal and return reasons (reports.read; the goal can be changed by settings.write).
 const goalsApi = require('../controllers/adminGoalsController');
 router.get('/goals', goalsApi.goalApi);

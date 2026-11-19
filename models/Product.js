@@ -122,6 +122,8 @@ const productSchema = new mongoose.Schema(
     highlights: {type: [String], default: []},
     // An optional short video shown under the photos (https MP4 or WebM). Empty for none.
     videoUrl: {type: String, default: '', maxlength: 500},
+    // A gift card product: its price is the value each card carries. Codes are issued when its order is paid.
+    giftCard: {type: Boolean, default: false},
     // A 360 spin: up to 36 photos of the product turning, in order (https image links). Empty for none.
     spinFrames: {type: [String], default: []},
     specs: {type: Map, of: String, default: {}},
