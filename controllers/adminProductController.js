@@ -28,17 +28,45 @@ const getProduct = asyncHandler(async (req, res) => {
 });
 
 // POST /api/admin/products   multipart: name, description, category, brand, price, mrp, stock, images[], mainImage
+// What the audit log keeps of a product: the fields people change, never photos or internals.
+const snapshot = (p) =>
+  p && {
+    name: p.name,
+    price: p.price,
+    mrp: p.mrp,
+    stock: p.stock,
+    isListed: p.isListed,
+    offerPercent: p.offerPercent,
+    category: p.categoryName || p.category,
+  };
+
 const createProduct = asyncHandler(async (req, res) => {
   const product = await adminProductService.createProduct(readForm(req));
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: 'product.created',
+    target: `product:${product.id}`,
+    after: snapshot(product),
+  });
   res.status(201).json({message: `${product.name} has been added.`, product});
 });
 
 // PATCH /api/admin/products/:productId   multipart: the same fields, plus keepImages (JSON list of photos to keep)
 const updateProduct = asyncHandler(async (req, res) => {
+  const before = snapshot(
+    await adminProductService.getAdminProduct(req.params.productId),
+  );
   const product = await adminProductService.updateProduct(
     req.params.productId,
     readForm(req),
   );
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: 'product.updated',
+    target: `product:${product.id}`,
+    before,
+    after: snapshot(product),
+  });
   // Stock may have come back with the edit; the sweep checks (E3).
   stockAlertService.kick();
   res.json({message: `${product.name} has been saved.`, product});
@@ -49,10 +77,20 @@ const setListed = asyncHandler(async (req, res) => {
   const {isListed} = req.body || {};
   if (typeof isListed !== 'boolean')
     throw new HttpError(400, 'isListed must be true or false.');
+  const before = snapshot(
+    await adminProductService.getAdminProduct(req.params.productId),
+  );
   const product = await adminProductService.setListed(
     req.params.productId,
     isListed,
   );
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: isListed ? 'product.listed' : 'product.unlisted',
+    target: `product:${product.id}`,
+    before: {isListed: before.isListed},
+    after: {isListed},
+  });
   res.json({
     message: isListed
       ? `${product.name} is back in the store.`

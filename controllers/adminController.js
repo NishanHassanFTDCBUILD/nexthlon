@@ -50,6 +50,13 @@ const setCustomerBlocked = asyncHandler(async (req, res) => {
     req.params.userId,
     isBlocked,
   );
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: isBlocked ? 'customer.blocked' : 'customer.unblocked',
+    target: `user:${customer.id || customer._id}`,
+    before: {isBlocked: !isBlocked},
+    after: {isBlocked},
+  });
   res.json({
     //condition ? valueIfTrue : valueIfFalse
     message: isBlocked
