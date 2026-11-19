@@ -1,4 +1,6 @@
 const paymentService = require('../services/paymentService');
+const webhookLogService = require('../services/webhookLogService');
+const razorpay = require('../services/razorpayService');
 const {validatePlaceOrder, hasErrors} = require('../utils/validators');
 const {HttpError, asyncHandler} = require('../utils/http');
 
@@ -119,15 +121,32 @@ const status = asyncHandler(async (req, res) => {
 
 // POST /api/payments/razorpay/webhook   (raw JSON body, signed by Razorpay)
 const webhook = async (req, res) => {
+  const signature = req.get('x-razorpay-signature');
+  const body = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : '';
+  const signatureOk = Boolean(
+    razorpay.verifyWebhookSignature(req.body, signature),
+  );
   try {
-    await paymentService.handleWebhook(
-      req.body,
-      req.get('x-razorpay-signature'),
-    );
+    await paymentService.handleWebhook(req.body, signature);
+    await webhookLogService.record({
+      provider: 'razorpay',
+      rawBody: body,
+      signature,
+      signatureOk,
+      outcome: 'processed',
+    });
     res.json({ok: true});
   } catch (error) {
     const status = error.status && error.status < 500 ? error.status : 500;
     if (status >= 500) console.error('[payments] webhook error', error.message);
+    await webhookLogService.record({
+      provider: 'razorpay',
+      rawBody: body,
+      signature,
+      signatureOk,
+      outcome: webhookLogService.outcomeOf(error),
+      error,
+    });
     res.status(status).json({ok: false});
   }
 };

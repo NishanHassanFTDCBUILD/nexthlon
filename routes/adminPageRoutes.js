@@ -113,6 +113,11 @@ router.get(
   '/reviews',
   require('../controllers/adminReviewController').reviewsPage,
 );
+// Operations pages: webhooks and the job queue (owner or manager), the GST report (reports.read).
+const opsPages = require('../controllers/adminOpsController');
+router.get('/webhooks', needsPage('settings.write'), opsPages.webhooksPage);
+router.get('/jobs', needsPage('settings.write'), opsPages.jobsPage);
+router.get('/gst', needsPage('reports.read'), opsPages.gstPage);
 // Support inbox: one page to read and answer customer requests (support.write for replying).
 const supportPages = require('../controllers/adminSupportController');
 router.get('/support', supportPages.inbox);

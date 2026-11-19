@@ -1,0 +1,35 @@
+<%#
+  GST report: every tax invoice issued in the month, with taxable value and tax, for the accountant.
+  Figures are the ones stored when each invoice was issued. Download the CSV to send it on.
+%>
+<%- include('../partials/admin-start', { section: 'gst' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>GST report</h1>
+    <p class="muted"><%= count %> <%= count === 1 ? 'invoice' : 'invoices' %> issued in <%= month %>. Months are counted in India time.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-primary btn-sm" href="/api/admin/reports/gst.csv?month=<%= month %>" download data-full-load><%- icon('download', 'i-sm') %> Download CSV</a>
+  </div>
+</header>
+
+<form class="admin-filterbar" action="<%= adminPath %>/gst" method="get">
+  <label class="admin-field"><span>Month</span><input type="month" name="month" value="<%= month %>" required></label>
+  <button class="btn btn-secondary btn-sm" type="submit">Show month</button>
+</form>
+
+<section class="admin-totals" aria-label="GST totals">
+  <div class="admin-total"><span>Taxable value</span><strong>₹<%= totals.taxable %></strong></div>
+  <div class="admin-total"><span>CGST</span><strong>₹<%= totals.cgst %></strong></div>
+  <div class="admin-total"><span>SGST</span><strong>₹<%= totals.sgst %></strong></div>
+  <div class="admin-total"><span>IGST</span><strong>₹<%= totals.igst %></strong></div>
+  <div class="admin-total is-in"><span>Invoice value</span><strong>₹<%= totals.value %></strong></div>
+</section>
+
+<section class="panel" aria-label="What the CSV contains">
+  <h2 class="panel-title">The CSV has these columns</h2>
+  <p class="muted"><%= columns.join(' · ') %></p>
+  <p class="muted">Each row is one invoice. The last row adds up the month. Share it as it is; do not edit the figures by hand.</p>
+</section>
+<%- include('../partials/admin-end') %>

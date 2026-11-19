@@ -1,0 +1,64 @@
+<%#
+  Webhooks: every payment and courier call we received, whether its signature checked out, and what
+  we did with it. A good payment event can be run again. Script: public/js/admin-ops.js.
+%>
+<%- include('../partials/admin-start', { section: 'webhooks' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">System</span>
+    <h1>Webhooks</h1>
+    <p class="muted">Calls from Razorpay (payments) and Shiprocket (courier tracking), newest first. A call with a bad signature is refused and shown here, not acted on.</p>
+  </div>
+</header>
+
+<form class="admin-filterbar" action="<%= adminPath %>/webhooks" method="get">
+  <label class="admin-field"><span>Provider</span>
+    <select name="provider" data-auto-submit>
+      <option value="">Everyone</option>
+      <option value="razorpay" <%= filters.provider === 'razorpay' ? 'selected' : '' %>>Razorpay (payments)</option>
+      <option value="shiprocket" <%= filters.provider === 'shiprocket' ? 'selected' : '' %>>Shiprocket (courier)</option>
+    </select>
+  </label>
+  <label class="admin-field"><span>Outcome</span>
+    <select name="outcome" data-auto-submit>
+      <option value="">Any</option>
+      <% ['processed', 'ignored', 'rejected', 'failed', 'rerun'].forEach(function (o) { %><option value="<%= o %>" <%= filters.outcome === o ? 'selected' : '' %>><%= o %></option><% }) %>
+    </select>
+  </label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Webhook calls">
+  <% if (events.length) { %>
+    <div class="table-wrap">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">When</th><th scope="col">Provider</th><th scope="col">Event</th>
+          <th scope="col">About</th><th scope="col">Signature</th><th scope="col">Outcome</th>
+          <th scope="col" class="cell-action"><span class="sr-only">Actions</span></th>
+        </tr></thead>
+        <tbody>
+          <% events.forEach(function (e) { %>
+            <tr data-webhook-row="<%= e.id %>">
+              <td data-label="When"><%= formatDate(e.receivedAt) %></td>
+              <td data-label="Provider"><%= e.provider %></td>
+              <td data-label="Event"><code class="admin-code"><%= e.event %></code></td>
+              <td data-label="About"><%= e.externalId || '—' %></td>
+              <td data-label="Signature"><span class="pill <%= e.signatureOk ? 'pill-green' : 'pill-red' %>"><%= e.signatureOk ? 'checked' : 'not checked' %></span></td>
+              <td data-label="Outcome"><span class="pill <%= e.outcome === 'processed' || e.outcome === 'rerun' ? 'pill-green' : e.outcome === 'ignored' ? 'pill-grey' : 'pill-red' %>"><%= e.outcome %></span><% if (e.error) { %><small class="muted admin-sub"><%= e.error %></small><% } %></td>
+              <td class="cell-action"><div class="row-actions">
+                <% if (e.provider === 'razorpay' && e.signatureOk) { %>
+                  <button type="button" class="btn btn-ghost btn-sm" data-webhook-rerun="<%= e.id %>" aria-label="Run this event again"><%- icon('rotate-cw', 'i-xs') %> Run again</button>
+                <% } %>
+              </div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/admin-pager') %>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No calls yet</h2><p>Payment and courier calls appear here as they arrive.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

@@ -21,6 +21,12 @@ const ADMIN_NAV = [
       {key: 'refunds', label: 'Refunds', icon: 'wallet'},
       {key: 'coupons', label: 'Coupons', icon: 'ticket'},
       {key: 'deals', label: 'Deals of the day', icon: 'bolt'},
+      {
+        key: 'gst',
+        label: 'GST report',
+        icon: 'file-text',
+        perm: 'reports.read',
+      },
     ],
   },
   {
@@ -50,6 +56,18 @@ const ADMIN_NAV = [
     items: [
       {key: 'staff', label: 'Staff', icon: 'users', perm: 'staff.manage'},
       {key: 'audit', label: 'Audit log', icon: 'history', perm: 'audit.read'},
+      {
+        key: 'webhooks',
+        label: 'Webhooks',
+        icon: 'bolt',
+        perm: 'settings.write',
+      },
+      {
+        key: 'jobs',
+        label: 'Job queue',
+        icon: 'monitor',
+        perm: 'settings.write',
+      },
       {key: 'settings', label: 'Settings', icon: 'settings'},
       {key: 'system', label: 'System status', icon: 'monitor'},
     ],

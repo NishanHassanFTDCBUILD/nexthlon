@@ -1,0 +1,55 @@
+<%#
+  Job queue: background work (emails, cart reminders, stock alerts, payment recovery). Failed jobs
+  can be retried. Script: public/js/admin-ops.js.
+%>
+<%- include('../partials/admin-start', { section: 'jobs' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">System</span>
+    <h1>Job queue</h1>
+    <p class="muted">Background work the store does for itself. Failed jobs stop after their last attempt; retry one to run it again.</p>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Queue totals">
+  <div class="admin-total"><span>Waiting</span><strong><%= summary.queued %></strong></div>
+  <div class="admin-total"><span>Running now</span><strong><%= summary.running %></strong></div>
+  <div class="admin-total is-in"><span>Done</span><strong><%= summary.done %></strong></div>
+  <div class="admin-total <%= summary.failed ? 'is-out' : '' %>"><span>Failed</span><strong><%= summary.failed %></strong></div>
+</section>
+
+<nav class="segmented admin-tabs" aria-label="Job status">
+  <% [['failed', 'Failed'], ['queued', 'Waiting'], ['running', 'Running'], ['done', 'Done'], ['all', 'All']].forEach(function ([key, label]) { %>
+    <a href="<%= link({ status: key === 'failed' ? '' : key, page: '' }) %>" class="<%= status === key ? 'is-active' : '' %>" <%- status === key ? 'aria-current="page"' : '' %>><%= label %></a>
+  <% }) %>
+</nav>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Jobs">
+  <% if (jobs.length) { %>
+    <div class="table-wrap">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">Job</th><th scope="col">Status</th><th scope="col" class="cell-num">Attempts</th>
+          <th scope="col">Last run or error</th><th scope="col" class="cell-action"><span class="sr-only">Actions</span></th>
+        </tr></thead>
+        <tbody>
+          <% jobs.forEach(function (j) { %>
+            <tr data-job-row="<%= j.id %>">
+              <td data-label="Job"><code class="admin-code"><%= j.type %></code></td>
+              <td data-label="Status"><span class="pill <%= j.status === 'failed' ? 'pill-red' : j.status === 'done' ? 'pill-green' : 'pill-grey' %>"><%= j.status %></span></td>
+              <td data-label="Attempts" class="cell-num"><%= j.attempts %> / <%= j.maxAttempts %></td>
+              <td data-label="Last run or error"><%= j.lastError || formatDate(j.finishedAt || j.runAt) %></td>
+              <td class="cell-action"><div class="row-actions">
+                <% if (j.status === 'failed') { %><button type="button" class="btn btn-secondary btn-sm" data-job-retry="<%= j.id %>" data-type="<%= j.type %>" aria-label="Retry the <%= j.type %> job"><%- icon('rotate-cw', 'i-xs') %> Retry</button><% } %>
+              </div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/admin-pager') %>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>Nothing here</h2><p><%= status === 'failed' ? 'No job has failed. The store is healthy.' : 'No jobs in this state.' %></p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

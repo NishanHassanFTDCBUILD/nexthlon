@@ -286,6 +286,17 @@ router.get('/audit', staffApi.listAudit);
 // Reviews moderation (reviews.write; see utils/permissions.js).
 const reviewApi = require('../controllers/adminReviewController');
 router.get('/reviews', reviewApi.listReviews);
+// Operations: webhooks, job queue and the GST report (see utils/permissions.js).
+const opsApi = require('../controllers/adminOpsController');
+router.get('/webhooks', opsApi.listWebhooks);
+router.post(
+  '/webhooks/:webhookId/rerun',
+  adminMoneyLimiter,
+  opsApi.rerunWebhook,
+);
+router.get('/jobs', opsApi.listJobs);
+router.post('/jobs/:jobId/retry', adminWriteLimiter, opsApi.retryJob);
+router.get('/reports/gst.csv', opsApi.gstCsv);
 router.patch(
   '/reviews/:reviewId/hidden',
   adminWriteLimiter,

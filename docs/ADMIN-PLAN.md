@@ -24,7 +24,9 @@ Size: S = under an hour of work, M = a few hours, L = a day or more.
 - Step 5: done. Product CSV export and import with preview (commit d998f6b); order late flag, pick list, cash-on-delivery risk score, order labels, batch print of packing sheets (print from the browser, or save as PDF).
 - Inventory reorder levels and days of cover: done (8b55507).
 - Suppliers and purchase orders: not started.
-- Steps 6 to 9: not started.
+- Step 6: done (commit 4ead86c).
+- Step 7: done (webhook log with re-run for payment events, job queue monitor with retry, GST report CSV).
+- Steps 8 to 9: not started.
 
 ## Part A · Architecture (the foundation everything else stands on)
 
