@@ -4,14 +4,22 @@
 //   admins     a turning wireframe globe with glowing data points, for the "control room".
 // Decoration only: without WebGL the scene shows its CSS fallback, and with reduced motion one
 // still frame is drawn.
-import { Scene, Mesh, geometry } from "./3d/scene.js";
-import { boot } from "./3d/boot.js";
-import { clamp, damp } from "./3d/math.js";
-import { sampleShape, drawAthlete, drawFootball, drawDumbbell, spherePoints, fogShader, dotFragment } from "./3d/shapes.js";
+import {Scene, Mesh, geometry} from './3d/scene.js';
+import {boot} from './3d/boot.js';
+import {clamp, damp} from './3d/math.js';
+import {
+  sampleShape,
+  drawAthlete,
+  drawFootball,
+  drawDumbbell,
+  spherePoints,
+  fogShader,
+  dotFragment,
+} from './3d/shapes.js';
 
-const COUNTS = { high: 6500, medium: 4000, low: 2000 };
-const HOLD = 3.4;   // seconds each shape stays
-const MORPH = 1.4;  // seconds to change into the next
+const COUNTS = {high: 6500, medium: 4000, low: 2000};
+const HOLD = 3.4; // seconds each shape stays
+const MORPH = 1.4; // seconds to change into the next
 
 // Weights for [athlete, football, dumbbell] at this moment of the loop.
 function weightsAt(time) {
@@ -57,19 +65,27 @@ const swirlShader = {
       vMix = aRandom.z;
       vAlpha = 0.5 + 0.5 * aRandom.x;
     }`,
-  fragment: dotFragment
+  fragment: dotFragment,
 };
 
 // The pointer in world units on the z = 0 plane, for a canvas and camera.
 function pointerTracker(canvas) {
-  const state = { x: 0, y: 0, inside: false, last: 0 };
-  window.addEventListener("pointermove", event => {
-    const box = canvas.getBoundingClientRect();
-    state.inside = event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
-    state.x = ((event.clientX - box.left) / box.width) * 2 - 1;
-    state.y = ((event.clientY - box.top) / box.height) * 2 - 1;
-    state.last = performance.now();
-  }, { passive: true });
+  const state = {x: 0, y: 0, inside: false, last: 0};
+  window.addEventListener(
+    'pointermove',
+    (event) => {
+      const box = canvas.getBoundingClientRect();
+      state.inside =
+        event.clientX >= box.left &&
+        event.clientX <= box.right &&
+        event.clientY >= box.top &&
+        event.clientY <= box.bottom;
+      state.x = ((event.clientX - box.left) / box.width) * 2 - 1;
+      state.y = ((event.clientY - box.top) / box.height) * 2 - 1;
+      state.last = performance.now();
+    },
+    {passive: true},
+  );
   return state;
 }
 
@@ -77,36 +93,58 @@ function pointerTracker(canvas) {
 // piled up into a white glare behind the motto, so the strip gets fewer, smaller, softer dots,
 // placed on the right where the motto is not.
 const STRIP_COUNT = 2600;
-const STRIP_GLOW = 0.6;      // brightness compared with the full-height scene
-const STRIP_DOT = 0.8;       // dot size compared with the full-height scene
+const STRIP_GLOW = 0.6; // brightness compared with the full-height scene
+const STRIP_DOT = 0.8; // dot size compared with the full-height scene
 const FULL_GLOW = 0.85;
-const COLOR_A = [0.83, 1.0, 0.23];   // volt
-const COLOR_B = [0.9, 1.0, 0.6];     // light volt (was almost white, which read as glare)
-const SHAPE = [4.4, 4.4 * 320 / 400];
-const STRIP_TOP_BAR = 70;            // px of the strip under the logo and the "Back to store" pill
-const isStrip = canvas => canvas.clientHeight < 360 && canvas.clientWidth > canvas.clientHeight * 1.4;
+const COLOR_A = [0.83, 1.0, 0.23]; // volt
+const COLOR_B = [0.9, 1.0, 0.6]; // light volt (was almost white, which read as glare)
+const SHAPE = [4.4, (4.4 * 320) / 400];
+const STRIP_TOP_BAR = 70; // px of the strip under the logo and the "Back to store" pill
+const isStrip = (canvas) =>
+  canvas.clientHeight < 360 && canvas.clientWidth > canvas.clientHeight * 1.4;
 
-function buildAthletes(canvas, { tier }) {
+function buildAthletes(canvas, {tier}) {
   const strip = isStrip(canvas);
-  const scene = new Scene(canvas, { maxRatio: tier === "low" || strip ? 1.5 : 2, camera: { fov: 45, position: [0, 0, 7] } });
+  const scene = new Scene(canvas, {
+    maxRatio: tier === 'low' || strip ? 1.5 : 2,
+    camera: {fov: 45, position: [0, 0, 7]},
+  });
   const gl = scene.gl;
-  const count = strip ? Math.min(STRIP_COUNT, COUNTS[tier] || COUNTS.medium) : (COUNTS[tier] || COUNTS.medium);
-  const size = { width: 400, height: 320, scale: 4.4, depth: 0.5 };
+  const count = strip
+    ? Math.min(STRIP_COUNT, COUNTS[tier] || COUNTS.medium)
+    : COUNTS[tier] || COUNTS.medium;
+  const size = {width: 400, height: 320, scale: 4.4, depth: 0.5};
   const random = new Float32Array(count * 3);
   for (let i = 0; i < random.length; i += 1) random[i] = Math.random();
-  const fog = scene.add(new Mesh(gl, geometry.plane(1, 1), { ...fogShader, depthTest: false }));
-  fog.uniforms = { uMouse: [0, 0], uMorph: 0 };
-  const dots = scene.add(new Mesh(gl, { positions: sampleShape(drawAthlete, count, size) }, {
-    ...swirlShader,
-    blending: "additive",
-    depthTest: false,
-    attributes: {
-      aBall: { data: sampleShape(drawFootball, count, size), size: 3 },
-      aBell: { data: sampleShape(drawDumbbell, count, size), size: 3 },
-      aRandom: { data: random, size: 3 }
-    },
-    uniforms: { uSize: 30, uRatio: 1, uPush: 0, uMouse: [0, 0], uWeights: [1, 0, 0], uColorA: COLOR_A.slice(), uColorB: COLOR_B.slice() }
-  }));
+  const fog = scene.add(
+    new Mesh(gl, geometry.plane(1, 1), {...fogShader, depthTest: false}),
+  );
+  fog.uniforms = {uMouse: [0, 0], uMorph: 0};
+  const dots = scene.add(
+    new Mesh(
+      gl,
+      {positions: sampleShape(drawAthlete, count, size)},
+      {
+        ...swirlShader,
+        blending: 'additive',
+        depthTest: false,
+        attributes: {
+          aBall: {data: sampleShape(drawFootball, count, size), size: 3},
+          aBell: {data: sampleShape(drawDumbbell, count, size), size: 3},
+          aRandom: {data: random, size: 3},
+        },
+        uniforms: {
+          uSize: 30,
+          uRatio: 1,
+          uPush: 0,
+          uMouse: [0, 0],
+          uWeights: [1, 0, 0],
+          uColorA: COLOR_A.slice(),
+          uColorB: COLOR_B.slice(),
+        },
+      },
+    ),
+  );
   const pointer = pointerTracker(canvas);
   let push = 0;
   let mx = 0;
@@ -135,7 +173,11 @@ function buildAthletes(canvas, { tier }) {
       const unitsPerPixel = (2 * half) / Math.max(1, canvas.clientHeight);
       const top = STRIP_TOP_BAR;
       const bottom = canvas.clientHeight - 10;
-      scale = Math.min(1, ((bottom - top) * unitsPerPixel) / SHAPE[1], (2 * halfWidth * 0.4) / SHAPE[0]);
+      scale = Math.min(
+        1,
+        ((bottom - top) * unitsPerPixel) / SHAPE[1],
+        (2 * halfWidth * 0.4) / SHAPE[0],
+      );
       x = halfWidth - (SHAPE[0] * scale) / 2 - halfWidth * 0.1;
       y = (canvas.clientHeight / 2 - (top + bottom) / 2) * unitsPerPixel;
       glow = STRIP_GLOW;
@@ -146,16 +188,19 @@ function buildAthletes(canvas, { tier }) {
     dots.scale[2] = scale;
     dots.position[0] = x;
     dots.position[1] = y;
-    dots.uniforms.uColorA = COLOR_A.map(c => c * glow);
-    dots.uniforms.uColorB = COLOR_B.map(c => c * glow);
+    dots.uniforms.uColorA = COLOR_A.map((c) => c * glow);
+    dots.uniforms.uColorB = COLOR_B.map((c) => c * glow);
     dots.uniforms.uWeights = weightsAt(time);
     dots.uniforms.uPush = push;
     dots.uniforms.uMouse = [mx, my];
-    dots.uniforms.uRatio = Math.min(window.devicePixelRatio || 1, scene.maxRatio) * (distance / 7) * dot;
+    dots.uniforms.uRatio =
+      Math.min(window.devicePixelRatio || 1, scene.maxRatio) *
+      (distance / 7) *
+      dot;
     fog.uniforms.uMouse = [pointer.x, pointer.y];
     fog.uniforms.uMorph = time * 0.2;
   });
-  return { scene };
+  return {scene};
 }
 
 // ---------- The admin globe: latitude and longitude lines, and pulsing data points ----------
@@ -176,7 +221,7 @@ const lineShader = {
     void main() {
       vec3 colour = mix(vec3(0.2, 0.2, 0.23), vec3(0.83, 1.0, 0.23), vFront);
       gl_FragColor = vec4(colour * (0.2 + 0.6 * vFront), 1.0);
-    }`
+    }`,
 };
 
 const beaconShader = {
@@ -197,7 +242,7 @@ const beaconShader = {
       vMix = aRandom.z;
       vAlpha = 0.25 + 0.75 * front;
     }`,
-  fragment: dotFragment
+  fragment: dotFragment,
 };
 
 function globeLines(radius, lats = 9, longs = 14, steps = 64) {
@@ -207,44 +252,81 @@ function globeLines(radius, lats = 9, longs = 14, steps = 64) {
     const y = Math.cos(theta) * radius;
     const r = Math.sin(theta) * radius;
     for (let s = 0; s < steps; s += 1) {
-      const a = (s / steps) * Math.PI * 2, b = ((s + 1) / steps) * Math.PI * 2;
-      out.push(Math.cos(a) * r, y, Math.sin(a) * r, Math.cos(b) * r, y, Math.sin(b) * r);
+      const a = (s / steps) * Math.PI * 2;
+      const b = ((s + 1) / steps) * Math.PI * 2;
+      out.push(
+        Math.cos(a) * r,
+        y,
+        Math.sin(a) * r,
+        Math.cos(b) * r,
+        y,
+        Math.sin(b) * r,
+      );
     }
   }
   for (let j = 0; j < longs; j += 1) {
     const phi = (j / longs) * Math.PI * 2;
     for (let s = 0; s < steps; s += 1) {
-      const a = (s / steps) * Math.PI, b = ((s + 1) / steps) * Math.PI;
-      out.push(Math.sin(a) * Math.cos(phi) * radius, Math.cos(a) * radius, Math.sin(a) * Math.sin(phi) * radius,
-        Math.sin(b) * Math.cos(phi) * radius, Math.cos(b) * radius, Math.sin(b) * Math.sin(phi) * radius);
+      const a = (s / steps) * Math.PI;
+      const b = ((s + 1) / steps) * Math.PI;
+      out.push(
+        Math.sin(a) * Math.cos(phi) * radius,
+        Math.cos(a) * radius,
+        Math.sin(a) * Math.sin(phi) * radius,
+        Math.sin(b) * Math.cos(phi) * radius,
+        Math.cos(b) * radius,
+        Math.sin(b) * Math.sin(phi) * radius,
+      );
     }
   }
   return new Float32Array(out);
 }
 
-function buildGlobe(canvas, { tier }) {
-  const scene = new Scene(canvas, { maxRatio: tier === "low" ? 1.25 : 2, camera: { fov: 40, position: [0, 0.6, 6.4] } });
+function buildGlobe(canvas, {tier}) {
+  const scene = new Scene(canvas, {
+    maxRatio: tier === 'low' ? 1.25 : 2,
+    camera: {fov: 40, position: [0, 0.6, 6.4]},
+  });
   const gl = scene.gl;
-  const fog = scene.add(new Mesh(gl, geometry.plane(1, 1), { ...fogShader, depthTest: false }));
-  fog.uniforms = { uMouse: [0.4, -0.2], uMorph: 0 };
-  const lines = scene.add(new Mesh(gl, { positions: globeLines(1.9) }, { ...lineShader, mode: gl.LINES, blending: "additive", depthTest: false }));
-  const beaconCount = tier === "low" ? 90 : 180;
+  const fog = scene.add(
+    new Mesh(gl, geometry.plane(1, 1), {...fogShader, depthTest: false}),
+  );
+  fog.uniforms = {uMouse: [0.4, -0.2], uMorph: 0};
+  const lines = scene.add(
+    new Mesh(
+      gl,
+      {positions: globeLines(1.9)},
+      {...lineShader, mode: gl.LINES, blending: 'additive', depthTest: false},
+    ),
+  );
+  const beaconCount = tier === 'low' ? 90 : 180;
   const random = new Float32Array(beaconCount * 3);
   for (let i = 0; i < random.length; i += 1) random[i] = Math.random();
-  const beacons = scene.add(new Mesh(gl, { positions: spherePoints(beaconCount, 1.93) }, {
-    ...beaconShader,
-    blending: "additive",
-    depthTest: false,
-    attributes: { aRandom: { data: random, size: 3 } },
-    uniforms: { uSize: 70, uRatio: 1, uColorA: [0.83, 1.0, 0.23], uColorB: [0.96, 0.96, 0.92] }
-  }));
-  scene.onUpdate(time => {
+  const beacons = scene.add(
+    new Mesh(
+      gl,
+      {positions: spherePoints(beaconCount, 1.93)},
+      {
+        ...beaconShader,
+        blending: 'additive',
+        depthTest: false,
+        attributes: {aRandom: {data: random, size: 3}},
+        uniforms: {
+          uSize: 70,
+          uRatio: 1,
+          uColorA: [0.83, 1.0, 0.23],
+          uColorB: [0.96, 0.96, 0.92],
+        },
+      },
+    ),
+  );
+  scene.onUpdate((time) => {
     const aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
     scene.camera.position[2] = Math.max(6.4, 6.6 / Math.max(aspect, 0.4));
     // Wide screens: the globe sits left of the sign-in card. Tall screens: above it.
     const x = aspect > 1.2 ? -Math.min(1.45, 0.9 + (aspect - 1.2) * 1.4) : 0;
     const y = aspect > 1.2 ? 0 : 1.4;
-    [lines, beacons].forEach(mesh => {
+    [lines, beacons].forEach((mesh) => {
       mesh.rotation[1] = time * 0.18;
       mesh.rotation[0] = 0.32;
       mesh.position[0] = x;
@@ -253,10 +335,11 @@ function buildGlobe(canvas, { tier }) {
     beacons.uniforms.uRatio = Math.min(window.devicePixelRatio || 1, 2);
     fog.uniforms.uMorph = time * 0.15;
   });
-  return { scene };
+  return {scene};
 }
 
-const customer = document.querySelector("[data-auth-scene]");
-if (customer) boot(customer, customer.querySelector("[data-auth-canvas]"), buildAthletes);
-const admin = document.querySelector("[data-globe-scene]");
-if (admin) boot(admin, admin.querySelector("[data-globe-canvas]"), buildGlobe);
+const customer = document.querySelector('[data-auth-scene]');
+if (customer)
+  boot(customer, customer.querySelector('[data-auth-canvas]'), buildAthletes);
+const admin = document.querySelector('[data-globe-scene]');
+if (admin) boot(admin, admin.querySelector('[data-globe-canvas]'), buildGlobe);

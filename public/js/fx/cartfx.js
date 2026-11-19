@@ -7,14 +7,30 @@
 // its canvas to one pixel and leaves the shared ticker. store.js loads this file when the page is idle
 // and reads window.NxCartFx; it stays null on low-power devices, with reduced motion or reduced data,
 // and without WebGL, and then the card still flies, just without sparks.
-import { createContext, createProgram } from "../3d/gl.js";
-import { deviceTier, prefersReducedMotion, wantsLessData } from "../3d/interaction.js";
+import {createContext, createProgram} from '../3d/gl.js';
+import {
+  deviceTier,
+  prefersReducedMotion,
+  wantsLessData,
+} from '../3d/interaction.js';
 
 // ---------- Particles (plain numbers, no DOM: tested in Node) ----------
 // A fixed pool: spawning never allocates, and dead particles are swapped out of the live range.
 export class ParticlePool {
   constructor(capacity) {
-    this.items = Array.from({ length: capacity }, () => ({ x: 0, y: 0, vx: 0, vy: 0, age: 0, life: 1, size: 1, alpha: 1, mix: 0, drag: 0, gravity: 0 }));
+    this.items = Array.from({length: capacity}, () => ({
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      age: 0,
+      life: 1,
+      size: 1,
+      alpha: 1,
+      mix: 0,
+      drag: 0,
+      gravity: 0,
+    }));
     this.count = 0;
   }
 
@@ -23,12 +39,27 @@ export class ParticlePool {
   }
 
   // Adds one particle; returns false when the pool is full (the extra spark is simply skipped).
-  spawn(x, y, vx, vy, { life = 0.5, size = 4, alpha = 1, mix = 0, drag = 0, gravity = 0 } = {}) {
+  spawn(
+    x,
+    y,
+    vx,
+    vy,
+    {life = 0.5, size = 4, alpha = 1, mix = 0, drag = 0, gravity = 0} = {},
+  ) {
     if (this.count >= this.items.length) return false;
     const p = this.items[this.count];
     this.count += 1;
-    p.x = x; p.y = y; p.vx = vx; p.vy = vy; p.age = 0;
-    p.life = Math.max(0.01, life); p.size = size; p.alpha = alpha; p.mix = mix; p.drag = drag; p.gravity = gravity;
+    p.x = x;
+    p.y = y;
+    p.vx = vx;
+    p.vy = vy;
+    p.age = 0;
+    p.life = Math.max(0.01, life);
+    p.size = size;
+    p.alpha = alpha;
+    p.mix = mix;
+    p.drag = drag;
+    p.gravity = gravity;
     return true;
   }
 
@@ -101,7 +132,7 @@ const shader = {
       float halo = smoothstep(0.5, 0.0, d);
       float light = (core * 0.9 + halo * halo * 0.55) * vAlpha;
       gl_FragColor = vec4(mix(uColorA, uColorB, vMix) * light, light);
-    }`
+    }`,
 };
 
 const rand = (min, max) => min + Math.random() * (max - min);
@@ -109,32 +140,47 @@ const rand = (min, max) => min + Math.random() * (max - min);
 // The page's volt and whether the page is light (sparks are then laid over it, not added to it).
 function palette() {
   const style = getComputedStyle(document.documentElement);
-  const rgb = (style.getPropertyValue("--brand-rgb") || "212, 255, 58").split(",").map(n => Number(n) / 255);
-  const brand = rgb.length === 3 && rgb.every(Number.isFinite) ? rgb : [0.83, 1, 0.23];
-  const bg = (getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g) || [0, 0, 0]).map(Number);
+  const rgb = (style.getPropertyValue('--brand-rgb') || '212, 255, 58')
+    .split(',')
+    .map((n) => Number(n) / 255);
+  const brand =
+    rgb.length === 3 && rgb.every(Number.isFinite) ? rgb : [0.83, 1, 0.23];
+  const bg = (
+    getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g) || [
+      0, 0, 0,
+    ]
+  ).map(Number);
   const light = (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) / 255 > 0.5;
   return {
     light,
     a: brand,
     // Dark pages: the second colour is a near-white volt. Light pages: a deeper green that still shows.
-    b: light ? brand.map(c => c * 0.55) : brand.map(c => c + (1 - c) * 0.7)
+    b: light ? brand.map((c) => c * 0.55) : brand.map((c) => c + (1 - c) * 0.7),
   };
 }
 
 export function createCartFx() {
   const tier = deviceTier();
-  if (tier === "low" || prefersReducedMotion() || wantsLessData()) return null;
-  const amount = tier === "high" ? 1 : 0.6;
-  const maxRatio = tier === "high" ? 2 : 1.5;
+  if (tier === 'low' || prefersReducedMotion() || wantsLessData()) return null;
+  const amount = tier === 'high' ? 1 : 0.6;
+  const maxRatio = tier === 'high' ? 2 : 1.5;
 
-  const canvas = document.createElement("canvas");
-  canvas.className = "cart-fx";
-  canvas.setAttribute("aria-hidden", "true");
+  const canvas = document.createElement('canvas');
+  canvas.className = 'cart-fx';
+  canvas.setAttribute('aria-hidden', 'true');
   canvas.width = 1;
   canvas.height = 1;
-  const gl = createContext(canvas, { antialias: false, powerPreference: "low-power", preserveDrawingBuffer: false });
+  const gl = createContext(canvas, {
+    antialias: false,
+    powerPreference: 'low-power',
+    preserveDrawingBuffer: false,
+  });
   if (!gl) return null;
-  const { program, attributes, uniforms } = createProgram(gl, shader.vertex, shader.fragment);
+  const {program, attributes, uniforms} = createProgram(
+    gl,
+    shader.vertex,
+    shader.fragment,
+  );
   document.body.append(canvas);
 
   const pool = new ParticlePool(Math.round(560 * amount));
@@ -168,7 +214,7 @@ export function createCartFx() {
     // Idle: a one-pixel canvas holds almost no memory.
     canvas.width = 1;
     canvas.height = 1;
-    window.removeEventListener("resize", fit);
+    window.removeEventListener('resize', fit);
   };
 
   const draw = () => {
@@ -209,13 +255,13 @@ export function createCartFx() {
     if (stop || lost) return;
     colors = palette();
     fit();
-    window.addEventListener("resize", fit, { passive: true });
+    window.addEventListener('resize', fit, {passive: true});
     if (window.NxTicker) {
       stop = window.NxTicker.add(frame);
     } else {
       let id = 0;
       let last = 0;
-      const loop = now => {
+      const loop = (now) => {
         const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
         last = now;
         frame(0, dt);
@@ -243,9 +289,20 @@ export function createCartFx() {
         const side = rand(-0.35, 0.35) * size;
         const speed = rand(40, 110);
         const spread = rand(-60, 60);
-        pool.spawn(x - ux * back - uy * side, y - uy * back + ux * side, -ux * speed - uy * spread, -uy * speed + ux * spread, {
-          life: rand(0.3, 0.6), size: rand(3, 9), alpha: rand(0.55, 1), mix: Math.random(), drag: 3, gravity: 40
-        });
+        pool.spawn(
+          x - ux * back - uy * side,
+          y - uy * back + ux * side,
+          -ux * speed - uy * spread,
+          -uy * speed + ux * spread,
+          {
+            life: rand(0.3, 0.6),
+            size: rand(3, 9),
+            alpha: rand(0.55, 1),
+            mix: Math.random(),
+            drag: 3,
+            gravity: 40,
+          },
+        );
       }
     },
 
@@ -257,15 +314,31 @@ export function createCartFx() {
       for (let i = 0; i < sparks; i += 1) {
         const angle = rand(0, Math.PI * 2);
         const speed = rand(150, 420);
-        pool.spawn(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed - 80, {
-          life: rand(0.45, 0.85), size: rand(3, 7), alpha: 1, mix: Math.random() * 0.6, drag: 4, gravity: 420
-        });
+        pool.spawn(
+          x,
+          y,
+          Math.cos(angle) * speed,
+          Math.sin(angle) * speed - 80,
+          {
+            life: rand(0.45, 0.85),
+            size: rand(3, 7),
+            alpha: 1,
+            mix: Math.random() * 0.6,
+            drag: 4,
+            gravity: 420,
+          },
+        );
       }
       const ring = Math.round(32 * amount);
       for (let i = 0; i < ring; i += 1) {
         const angle = (i / ring) * Math.PI * 2;
         pool.spawn(x, y, Math.cos(angle) * 230, Math.sin(angle) * 230, {
-          life: 0.5, size: 5, alpha: 0.9, mix: 1, drag: 5, gravity: 0
+          life: 0.5,
+          size: 5,
+          alpha: 0.9,
+          mix: 1,
+          drag: 5,
+          gravity: 0,
         });
       }
     },
@@ -279,14 +352,19 @@ export function createCartFx() {
         const angle = rand(0, Math.PI * 2);
         const speed = rand(30, 100);
         pool.spawn(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed, {
-          life: rand(0.3, 0.5), size: rand(6, 12), alpha: 0.35, mix: 1, drag: 3, gravity: -20
+          life: rand(0.3, 0.5),
+          size: rand(6, 12),
+          alpha: 0.35,
+          mix: 1,
+          drag: 3,
+          gravity: -20,
         });
       }
-    }
+    },
   };
 
   // A lost GPU context (driver reset, too many contexts): stop quietly. Flights carry on without sparks.
-  canvas.addEventListener("webglcontextlost", event => {
+  canvas.addEventListener('webglcontextlost', (event) => {
     event.preventDefault();
     lost = true;
     api.ready = false;
@@ -296,11 +374,15 @@ export function createCartFx() {
   return api;
 }
 
-if (typeof window !== "undefined" && typeof document !== "undefined" && !window.NxCartFx) {
+if (
+  typeof window !== 'undefined' &&
+  typeof document !== 'undefined' &&
+  !window.NxCartFx
+) {
   try {
     window.NxCartFx = createCartFx();
   } catch (error) {
     window.NxCartFx = null;
-    if (window.console) console.warn("Cart sparks skipped:", error.message);
+    if (window.console) console.warn('Cart sparks skipped:', error.message);
   }
 }

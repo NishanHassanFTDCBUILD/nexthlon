@@ -7,7 +7,7 @@
 // after the section is swapped many times. A few actions shared by every section (copy a code,
 // add to cart, share an invite) use one delegated listener on the document, attached once.
 (function () {
-  "use strict";
+  'use strict';
 
   const Pages = (window.NxPages = window.NxPages || {});
 
@@ -21,28 +21,35 @@
         this.destroy();
         controller = new AbortController();
         const result = setup(root, controller.signal);
-        cleanup = typeof result === "function" ? result : null;
+        cleanup = typeof result === 'function' ? result : null;
       },
       destroy() {
         if (controller) controller.abort();
         if (cleanup) cleanup();
         controller = null;
         cleanup = null;
-      }
+      },
     };
   }
 
   // A delegated listener on a section root: handler(event, matchedElement).
   function on(root, type, selector, handler, signal) {
-    root.addEventListener(type, event => {
-      const target = event.target instanceof Element ? event.target.closest(selector) : null;
-      if (target && root.contains(target)) handler(event, target);
-    }, { signal });
+    root.addEventListener(
+      type,
+      (event) => {
+        const target =
+          event.target instanceof Element
+            ? event.target.closest(selector)
+            : null;
+        if (target && root.contains(target)) handler(event, target);
+      },
+      {signal},
+    );
   }
 
   // After a change, show the section again with fresh data. The no-reload router (section-nav.js)
   // swaps just the content; without it the page reloads and the message shows after.
-  function refresh(message, type = "success") {
+  function refresh(message, type = 'success') {
     if (window.NxNav && window.NxNav.reload) {
       window.NxNav.reload().then(() => message && Nx.toast(message, type));
       return;
@@ -66,36 +73,45 @@
       return true;
     } catch {
       // http:// without a secure context, or an older browser: a hidden field and the copy command.
-      const field = document.createElement("textarea");
+      const field = document.createElement('textarea');
       field.value = text;
-      field.setAttribute("readonly", "");
-      field.className = "sr-only";
+      field.setAttribute('readonly', '');
+      field.className = 'sr-only';
       document.body.append(field);
       field.select();
-      const done = document.execCommand && document.execCommand("copy");
+      const done = document.execCommand && document.execCommand('copy');
       field.remove();
       return Boolean(done);
     }
   }
 
   // ---------- Shared actions (one delegated listener for the whole page) ----------
-  document.addEventListener("click", async event => {
+  document.addEventListener('click', async (event) => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
 
     // Copy a coupon code, a referral code or an invite link.
-    const copy = target.closest("[data-copy-code]");
+    const copy = target.closest('[data-copy-code]');
     if (copy) {
       const text = copy.dataset.copyCode;
-      if (await copyText(text)) Nx.toast(`${copy.dataset.copyLabel || "Code"} copied: ${text}`);
-      else Nx.toast("Copying didn't work. Select the code and copy it instead.", "error");
+      if (await copyText(text))
+        Nx.toast(`${copy.dataset.copyLabel || 'Code'} copied: ${text}`);
+      else
+        Nx.toast(
+          "Copying didn't work. Select the code and copy it instead.",
+          'error',
+        );
       return;
     }
 
     // Share an invite: the phone's share sheet, or copy the link.
-    const share = target.closest("[data-referral-share]");
+    const share = target.closest('[data-referral-share]');
     if (share) {
-      const data = { title: "Join me on Nexthlon", text: `Use my code ${share.dataset.code} when you sign up on Nexthlon.`, url: share.dataset.link };
+      const data = {
+        title: 'Join me on Nexthlon',
+        text: `Use my code ${share.dataset.code} when you sign up on Nexthlon.`,
+        url: share.dataset.link,
+      };
       if (navigator.share) {
         try {
           await navigator.share(data);
@@ -103,9 +119,9 @@
           /* the share sheet was closed */
         }
       } else if (await copyText(share.dataset.link)) {
-        Nx.toast("Invite link copied. Paste it anywhere to share.");
+        Nx.toast('Invite link copied. Paste it anywhere to share.');
       } else {
-        Nx.toast("Could not copy the link.", "error");
+        Nx.toast('Could not copy the link.', 'error');
       }
       return;
     }
@@ -113,33 +129,45 @@
   });
 
   // ---------- A small text prompt (rename a list), built on <dialog> ----------
-  function askText({ title, label, value = "", confirmLabel = "Save", maxLength = 40 }) {
-    const dialog = document.createElement("dialog");
-    dialog.className = "modal acct-ask";
-    dialog.innerHTML = '<form method="dialog" class="form"><div class="modal-head"><h2></h2></div><div class="modal-body"><div class="field"><label for="acct-ask-input"></label><input id="acct-ask-input" name="value" required></div></div><div class="modal-foot"><button class="btn btn-ghost" value="cancel" formnovalidate>Cancel</button><button class="btn btn-primary" value="ok"></button></div></form>';
-    dialog.querySelector("h2").textContent = title;
-    dialog.querySelector("label").textContent = label;
-    const input = dialog.querySelector("input");
+  function askText({
+    title,
+    label,
+    value = '',
+    confirmLabel = 'Save',
+    maxLength = 40,
+  }) {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal acct-ask';
+    dialog.innerHTML =
+      '<form method="dialog" class="form"><div class="modal-head"><h2></h2></div><div class="modal-body"><div class="field"><label for="acct-ask-input"></label><input id="acct-ask-input" name="value" required></div></div><div class="modal-foot"><button class="btn btn-ghost" value="cancel" formnovalidate>Cancel</button><button class="btn btn-primary" value="ok"></button></div></form>';
+    dialog.querySelector('h2').textContent = title;
+    dialog.querySelector('label').textContent = label;
+    const input = dialog.querySelector('input');
     input.value = value;
     input.maxLength = maxLength;
     dialog.querySelector('[value="ok"]').textContent = confirmLabel;
     document.body.append(dialog);
     dialog.showModal();
     input.select();
-    return new Promise(resolve => {
-      dialog.addEventListener("close", () => {
-        resolve(dialog.returnValue === "ok" ? input.value.trim() : null);
-        dialog.remove();
-      }, { once: true });
+    return new Promise((resolve) => {
+      dialog.addEventListener(
+        'close',
+        () => {
+          resolve(dialog.returnValue === 'ok' ? input.value.trim() : null);
+          dialog.remove();
+        },
+        {once: true},
+      );
     });
   }
 
   // A plain "done" card, then another page (used when the visitor is signed out).
   function doneThen(message, href) {
-    const dialog = document.createElement("dialog");
-    dialog.className = "modal acct-success";
-    dialog.innerHTML = '<div class="modal-body"><span class="acct-done"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><p role="status"></p></div>';
-    dialog.querySelector("p").textContent = message;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'modal acct-success';
+    dialog.innerHTML =
+      '<div class="modal-body"><span class="acct-done"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><p role="status"></p></div>';
+    dialog.querySelector('p').textContent = message;
     document.body.append(dialog);
     dialog.showModal();
     setTimeout(() => window.location.replace(href), 1200);
@@ -151,436 +179,822 @@
       refresh(message || reply.message);
       return reply;
     } catch (error) {
-      Nx.toast(error.message, "error");
+      Nx.toast(error.message, 'error');
       return null;
     }
   }
 
   // ---------- Sections without their own actions ----------
-  ["account-overview", "account-buy-again", "account-coupons", "account-wallet", "account-referral"].forEach(name => define(name, () => {}));
+  [
+    'account-overview',
+    'account-buy-again',
+    'account-coupons',
+    'account-wallet',
+    'account-referral',
+  ].forEach((name) => define(name, () => {}));
 
   // ---------- Your orders: the time filter applies as soon as it changes ----------
-  define("account-orders", (root, signal) => {
-    on(root, "change", "[data-orders-filter] select", (event, select) => select.form.requestSubmit(), signal);
+  define('account-orders', (root, signal) => {
+    on(
+      root,
+      'change',
+      '[data-orders-filter] select',
+      (event, select) => select.form.requestSubmit(),
+      signal,
+    );
   });
 
   // ---------- One order: cancel the order or an item, ask for a return ----------
-  define("account-order", (root, signal) => {
-    const page = root.querySelector("[data-order]");
+  define('account-order', (root, signal) => {
+    const page = root.querySelector('[data-order]');
     if (!page) return;
     const orderId = encodeURIComponent(page.dataset.orderId);
-    const cancelDialog = root.querySelector("#cancel-dialog");
-    const cancelForm = cancelDialog && cancelDialog.querySelector("[data-cancel-form]");
-    const returnDialog = root.querySelector("#return-dialog");
-    const returnForm = returnDialog && returnDialog.querySelector("[data-return-form]");
+    const cancelDialog = root.querySelector('#cancel-dialog');
+    const cancelForm =
+      cancelDialog && cancelDialog.querySelector('[data-cancel-form]');
+    const returnDialog = root.querySelector('#return-dialog');
+    const returnForm =
+      returnDialog && returnDialog.querySelector('[data-return-form]');
 
-    on(root, "click", '[data-open-dialog="cancel-dialog"]', (event, button) => {
-      const item = button.dataset.cancelScope === "item";
-      cancelForm.reset();
-      Nx.clearErrors(cancelForm);
-      cancelForm.elements.itemId.value = item ? button.dataset.itemId : "";
-      cancelDialog.querySelector("[data-cancel-title]").textContent = item ? `Cancel ${button.dataset.itemName}?` : "Cancel this order?";
-      cancelDialog.querySelector("[data-cancel-text]").textContent = page.dataset.paid === "true"
-        ? "The money for this goes back to you, and the item goes back on the shelf."
-        : "The items go back on the shelf and you will not be charged for them.";
-      cancelDialog.showModal();
-    }, signal);
+    on(
+      root,
+      'click',
+      '[data-open-dialog="cancel-dialog"]',
+      (event, button) => {
+        const item = button.dataset.cancelScope === 'item';
+        cancelForm.reset();
+        Nx.clearErrors(cancelForm);
+        cancelForm.elements.itemId.value = item ? button.dataset.itemId : '';
+        cancelDialog.querySelector('[data-cancel-title]').textContent = item
+          ? `Cancel ${button.dataset.itemName}?`
+          : 'Cancel this order?';
+        cancelDialog.querySelector('[data-cancel-text]').textContent =
+          page.dataset.paid === 'true'
+            ? 'The money for this goes back to you, and the item goes back on the shelf.'
+            : 'The items go back on the shelf and you will not be charged for them.';
+        cancelDialog.showModal();
+      },
+      signal,
+    );
 
-    on(root, "click", '[data-open-dialog="return-dialog"]', () => {
-      returnForm.reset();
-      Nx.clearErrors(returnForm);
-      returnDialog.showModal();
-    }, signal);
+    on(
+      root,
+      'click',
+      '[data-open-dialog="return-dialog"]',
+      () => {
+        returnForm.reset();
+        Nx.clearErrors(returnForm);
+        returnDialog.showModal();
+      },
+      signal,
+    );
 
-    on(root, "submit", "[data-cancel-form]", async event => {
-      event.preventDefault();
-      const values = Nx.formValues(cancelForm);
-      const url = values.itemId
-        ? `/api/orders/${orderId}/items/${encodeURIComponent(values.itemId)}/cancel`
-        : `/api/orders/${orderId}/cancel`;
-      const reply = await Nx.submitForm(cancelForm, { url, body: { reason: values.reason, refundMethod: values.refundMethod || "wallet" }, busyLabel: "Cancelling…" });
-      if (reply) {
-        cancelDialog.close();
-        refresh(reply.message);
-      }
-    }, signal);
+    on(
+      root,
+      'submit',
+      '[data-cancel-form]',
+      async (event) => {
+        event.preventDefault();
+        const values = Nx.formValues(cancelForm);
+        const url = values.itemId
+          ? `/api/orders/${orderId}/items/${encodeURIComponent(values.itemId)}/cancel`
+          : `/api/orders/${orderId}/cancel`;
+        const reply = await Nx.submitForm(cancelForm, {
+          url,
+          body: {
+            reason: values.reason,
+            refundMethod: values.refundMethod || 'wallet',
+          },
+          busyLabel: 'Cancelling…',
+        });
+        if (reply) {
+          cancelDialog.close();
+          refresh(reply.message);
+        }
+      },
+      signal,
+    );
 
-    on(root, "submit", "[data-return-form]", async event => {
-      event.preventDefault();
-      // With photos the form goes as multipart; without, as plain JSON.
-      const photos = returnForm.querySelector("[data-return-photos]");
-      if (photos && photos.files.length > 3) {
-        Nx.showErrors(returnForm, { photos: "You can add up to 3 photos." });
-        return;
-      }
-      const body = photos && photos.files.length ? new FormData(returnForm) : undefined;
-      const reply = await Nx.submitForm(returnForm, { url: `/api/orders/${orderId}/return`, body, busyLabel: "Sending…" });
-      if (reply) {
-        returnDialog.close();
-        refresh(reply.message);
-      }
-    }, signal);
+    on(
+      root,
+      'submit',
+      '[data-return-form]',
+      async (event) => {
+        event.preventDefault();
+        // With photos the form goes as multipart; without, as plain JSON.
+        const photos = returnForm.querySelector('[data-return-photos]');
+        if (photos && photos.files.length > 3) {
+          Nx.showErrors(returnForm, {photos: 'You can add up to 3 photos.'});
+          return;
+        }
+        const body =
+          photos && photos.files.length ? new FormData(returnForm) : undefined;
+        const reply = await Nx.submitForm(returnForm, {
+          url: `/api/orders/${orderId}/return`,
+          body,
+          busyLabel: 'Sending…',
+        });
+        if (reply) {
+          returnDialog.close();
+          refresh(reply.message);
+        }
+      },
+      signal,
+    );
 
     // Dialogs live inside the section; close them if the section goes away while one is open.
-    return () => root.querySelectorAll("dialog[open]").forEach(dialog => dialog.close());
+    return () =>
+      root.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
   });
 
   // ---------- Wishlist & lists ----------
-  define("account-lists", (root, signal) => {
-    const shell = document.querySelector("[data-acct]");
-    const move = (productId, from, to) => apiThen(() => Nx.api("/api/lists/move", { method: "POST", body: { productId, from, to } }));
+  define('account-lists', (root, signal) => {
+    const shell = document.querySelector('[data-acct]');
+    const move = (productId, from, to) =>
+      apiThen(() =>
+        Nx.api('/api/lists/move', {
+          method: 'POST',
+          body: {productId, from, to},
+        }),
+      );
 
-    on(root, "submit", "[data-list-create]", async (event, form) => {
-      event.preventDefault();
-      const reply = await Nx.submitForm(form, { url: "/api/lists", busyLabel: "Creating…" });
-      if (reply) refresh(reply.message);
-    }, signal);
+    on(
+      root,
+      'submit',
+      '[data-list-create]',
+      async (event, form) => {
+        event.preventDefault();
+        const reply = await Nx.submitForm(form, {
+          url: '/api/lists',
+          busyLabel: 'Creating…',
+        });
+        if (reply) refresh(reply.message);
+      },
+      signal,
+    );
 
-    on(root, "click", "[data-list-rename]", async (event, button) => {
-      const name = await askText({ title: "Rename list", label: "List name", value: button.dataset.name });
-      if (name && name !== button.dataset.name) apiThen(() => Nx.api(`/api/lists/${button.dataset.listRename}`, { method: "PATCH", body: { name } }));
-    }, signal);
+    on(
+      root,
+      'click',
+      '[data-list-rename]',
+      async (event, button) => {
+        const name = await askText({
+          title: 'Rename list',
+          label: 'List name',
+          value: button.dataset.name,
+        });
+        if (name && name !== button.dataset.name)
+          apiThen(() =>
+            Nx.api(`/api/lists/${button.dataset.listRename}`, {
+              method: 'PATCH',
+              body: {name},
+            }),
+          );
+      },
+      signal,
+    );
 
-    on(root, "click", "[data-list-delete]", async (event, button) => {
-      const ok = await Nx.confirm({ title: `Delete "${button.dataset.name}"?`, message: "The list and its saved items will be removed. The products themselves stay in the store.", confirmLabel: "Delete list" });
-      if (ok) apiThen(() => Nx.api(`/api/lists/${button.dataset.listDelete}`, { method: "DELETE" }));
-    }, signal);
+    on(
+      root,
+      'click',
+      '[data-list-delete]',
+      async (event, button) => {
+        const ok = await Nx.confirm({
+          title: `Delete "${button.dataset.name}"?`,
+          message:
+            'The list and its saved items will be removed. The products themselves stay in the store.',
+          confirmLabel: 'Delete list',
+        });
+        if (ok)
+          apiThen(() =>
+            Nx.api(`/api/lists/${button.dataset.listDelete}`, {
+              method: 'DELETE',
+            }),
+          );
+      },
+      signal,
+    );
 
-    on(root, "click", "[data-list-remove]", (event, button) => {
-      const block = button.closest("[data-list]");
-      button.disabled = true;
-      apiThen(() => Nx.api(`/api/lists/${block.dataset.list}/items/${button.dataset.listRemove}`, { method: "DELETE" })).then(reply => {
-        if (!reply) button.disabled = false;
-      });
-    }, signal);
+    on(
+      root,
+      'click',
+      '[data-list-remove]',
+      (event, button) => {
+        const block = button.closest('[data-list]');
+        button.disabled = true;
+        apiThen(() =>
+          Nx.api(
+            `/api/lists/${block.dataset.list}/items/${button.dataset.listRemove}`,
+            {method: 'DELETE'},
+          ),
+        ).then((reply) => {
+          if (!reply) button.disabled = false;
+        });
+      },
+      signal,
+    );
 
-    on(root, "click", "[data-list-cart]", async (event, button) => {
-      const block = button.closest("[data-list]");
-      const photo = button.closest("[data-list-item]") && button.closest("[data-list-item]").querySelector("img");
-      // The photo flies to the cart while the item moves (store.js), and back if it cannot.
-      const flight = Nx.startFlight ? Nx.startFlight(photo) : { landed: Promise.resolve(), abort() {} };
-      Nx.busy(button, true, "Moving…");
-      try {
-        const reply = await Nx.api(`/api/lists/${block.dataset.list}/items/${button.dataset.listCart}/move-to-cart`, { method: "POST" });
-        await flight.landed;
-        if (reply.cart && reply.cart.summary) Nx.setCartCount(reply.cart.summary.count);
-        refresh(reply.message);
-      } catch (error) {
-        flight.abort();
-        Nx.busy(button, false);
-        const link = error.code === "option_required" && button.closest("[data-list-item]") && button.closest("[data-list-item]").querySelector('a[href^="/products/"]');
-        // A product with sizes: open its page, where the size is chosen.
-        if (link) return window.location.assign(link.getAttribute("href"));
-        Nx.toast(error.message, error.code === "cart_limit" || error.code === "cart_room" ? "info" : "error");
-      }
-    }, signal);
-
-    on(root, "click", "[data-share-copy]", async (event, button) => {
-      const url = new URL(button.dataset.shareCopy, window.location.origin).href;
-      if (await copyText(url)) Nx.toast("Share link copied.");
-      else Nx.toast("Could not copy the link.", "error");
-    }, signal);
-
-    on(root, "change", "[data-list-share]", (event, input) => {
-      input.disabled = true;
-      apiThen(() => Nx.api(`/api/lists/${input.dataset.listShare}/share`, { method: "PATCH", body: { enabled: input.checked } })).then(reply => {
-        if (!reply) {
-          input.checked = !input.checked;
-          input.disabled = false;
+    on(
+      root,
+      'click',
+      '[data-list-cart]',
+      async (event, button) => {
+        const block = button.closest('[data-list]');
+        const photo =
+          button.closest('[data-list-item]') &&
+          button.closest('[data-list-item]').querySelector('img');
+        // The photo flies to the cart while the item moves (store.js), and back if it cannot.
+        const flight = Nx.startFlight
+          ? Nx.startFlight(photo)
+          : {landed: Promise.resolve(), abort() {}};
+        Nx.busy(button, true, 'Moving…');
+        try {
+          const reply = await Nx.api(
+            `/api/lists/${block.dataset.list}/items/${button.dataset.listCart}/move-to-cart`,
+            {method: 'POST'},
+          );
+          await flight.landed;
+          if (reply.cart && reply.cart.summary)
+            Nx.setCartCount(reply.cart.summary.count);
+          refresh(reply.message);
+        } catch (error) {
+          flight.abort();
+          Nx.busy(button, false);
+          const link =
+            error.code === 'option_required' &&
+            button.closest('[data-list-item]') &&
+            button
+              .closest('[data-list-item]')
+              .querySelector('a[href^="/products/"]');
+          // A product with sizes: open its page, where the size is chosen.
+          if (link) return window.location.assign(link.getAttribute('href'));
+          Nx.toast(
+            error.message,
+            error.code === 'cart_limit' || error.code === 'cart_room'
+              ? 'info'
+              : 'error',
+          );
         }
-      });
-    }, signal);
+      },
+      signal,
+    );
+
+    on(
+      root,
+      'click',
+      '[data-share-copy]',
+      async (event, button) => {
+        const url = new URL(button.dataset.shareCopy, window.location.origin)
+          .href;
+        if (await copyText(url)) Nx.toast('Share link copied.');
+        else Nx.toast('Could not copy the link.', 'error');
+      },
+      signal,
+    );
+
+    on(
+      root,
+      'change',
+      '[data-list-share]',
+      (event, input) => {
+        input.disabled = true;
+        apiThen(() =>
+          Nx.api(`/api/lists/${input.dataset.listShare}/share`, {
+            method: 'PATCH',
+            body: {enabled: input.checked},
+          }),
+        ).then((reply) => {
+          if (!reply) {
+            input.checked = !input.checked;
+            input.disabled = false;
+          }
+        });
+      },
+      signal,
+    );
 
     // The keyboard (and touch) way to move an item: the "Move to…" menu on every card.
-    on(root, "change", "[data-list-move]", (event, select) => {
-      if (!select.value) return;
-      select.disabled = true;
-      move(select.dataset.listMove, select.closest("[data-list]").dataset.list, select.value).then(reply => {
-        if (!reply) {
-          select.value = "";
-          select.disabled = false;
-        }
-      });
-    }, signal);
+    on(
+      root,
+      'change',
+      '[data-list-move]',
+      (event, select) => {
+        if (!select.value) return;
+        select.disabled = true;
+        move(
+          select.dataset.listMove,
+          select.closest('[data-list]').dataset.list,
+          select.value,
+        ).then((reply) => {
+          if (!reply) {
+            select.value = '';
+            select.disabled = false;
+          }
+        });
+      },
+      signal,
+    );
 
     // Drag and drop (mouse): drag a card onto one of the list chips shown at the top while dragging.
     let dragged = null;
     const stopDrag = () => {
-      if (dragged) dragged.classList.remove("is-dragged");
-      if (shell) shell.classList.remove("is-dragging");
-      root.querySelectorAll(".list-target.is-over").forEach(target => target.classList.remove("is-over"));
+      if (dragged) dragged.classList.remove('is-dragged');
+      if (shell) shell.classList.remove('is-dragging');
+      root
+        .querySelectorAll('.list-target.is-over')
+        .forEach((target) => target.classList.remove('is-over'));
       dragged = null;
     };
-    const canDrop = target => dragged && target.dataset.dropList !== dragged.dataset.from;
-    on(root, "dragstart", "[data-list-item]", (event, card) => {
-      dragged = card;
-      card.classList.add("is-dragged");
-      if (shell) shell.classList.add("is-dragging");
-      event.dataTransfer.effectAllowed = "move";
-      event.dataTransfer.setData("text/plain", card.dataset.listItem);
-    }, signal);
-    on(root, "dragend", "[data-list-item]", stopDrag, signal);
-    on(root, "dragover", "[data-drop-list]", (event, target) => {
-      if (!canDrop(target)) return;
-      event.preventDefault();
-      target.classList.add("is-over");
-    }, signal);
-    on(root, "dragleave", "[data-drop-list]", (event, target) => target.classList.remove("is-over"), signal);
-    on(root, "drop", "[data-drop-list]", (event, target) => {
-      event.preventDefault();
-      if (!canDrop(target)) return stopDrag();
-      const card = dragged;
-      stopDrag();
-      move(card.dataset.listItem, card.dataset.from, target.dataset.dropList);
-    }, signal);
+    const canDrop = (target) =>
+      dragged && target.dataset.dropList !== dragged.dataset.from;
+    on(
+      root,
+      'dragstart',
+      '[data-list-item]',
+      (event, card) => {
+        dragged = card;
+        card.classList.add('is-dragged');
+        if (shell) shell.classList.add('is-dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', card.dataset.listItem);
+      },
+      signal,
+    );
+    on(root, 'dragend', '[data-list-item]', stopDrag, signal);
+    on(
+      root,
+      'dragover',
+      '[data-drop-list]',
+      (event, target) => {
+        if (!canDrop(target)) return;
+        event.preventDefault();
+        target.classList.add('is-over');
+      },
+      signal,
+    );
+    on(
+      root,
+      'dragleave',
+      '[data-drop-list]',
+      (event, target) => target.classList.remove('is-over'),
+      signal,
+    );
+    on(
+      root,
+      'drop',
+      '[data-drop-list]',
+      (event, target) => {
+        event.preventDefault();
+        if (!canDrop(target)) return stopDrag();
+        const card = dragged;
+        stopDrag();
+        move(card.dataset.listItem, card.dataset.from, target.dataset.dropList);
+      },
+      signal,
+    );
 
     return stopDrag;
   });
 
   // ---------- Recently viewed ----------
-  define("account-recent", (root, signal) => {
-    on(root, "click", "[data-clear-recent]", async () => {
-      const ok = await Nx.confirm({ title: "Clear your history?", message: "Your recently viewed products will be removed from every device.", confirmLabel: "Clear history" });
-      if (ok) apiThen(() => Nx.api("/api/account/recent", { method: "DELETE" }));
-    }, signal);
+  define('account-recent', (root, signal) => {
+    on(
+      root,
+      'click',
+      '[data-clear-recent]',
+      async () => {
+        const ok = await Nx.confirm({
+          title: 'Clear your history?',
+          message:
+            'Your recently viewed products will be removed from every device.',
+          confirmLabel: 'Clear history',
+        });
+        if (ok)
+          apiThen(() => Nx.api('/api/account/recent', {method: 'DELETE'}));
+      },
+      signal,
+    );
   });
 
   // ---------- Addresses ----------
-  define("account-addresses", (root, signal) => {
-    const dialog = root.querySelector("#address-dialog");
-    const form = dialog && dialog.querySelector("[data-address-form]");
+  define('account-addresses', (root, signal) => {
+    const dialog = root.querySelector('#address-dialog');
+    const form = dialog && dialog.querySelector('[data-address-form]');
     if (!form) return;
-    const title = dialog.querySelector("#address-dialog-title");
+    const title = dialog.querySelector('#address-dialog-title');
 
     function open(address) {
       form.reset();
       Nx.clearErrors(form);
-      form.elements.id.value = address ? address.id : "";
+      form.elements.id.value = address ? address.id : '';
       if (address) {
-        for (const key of ["fullName", "phone", "line1", "line2", "landmark", "city", "state", "pincode"]) form.elements[key].value = address[key] || "";
+        for (const key of [
+          'fullName',
+          'phone',
+          'line1',
+          'line2',
+          'landmark',
+          'city',
+          'state',
+          'pincode',
+        ])
+          form.elements[key].value = address[key] || '';
         form.elements.isDefault.checked = Boolean(address.isDefault);
-        if (form.elements.type) form.elements.type.value = address.type || "home";
+        if (form.elements.type)
+          form.elements.type.value = address.type || 'home';
       }
-      title.textContent = address ? "Edit address" : "Add a new address";
-      form.querySelector('[type="submit"]').textContent = address ? "Save changes" : "Save address";
+      title.textContent = address ? 'Edit address' : 'Add a new address';
+      form.querySelector('[type="submit"]').textContent = address
+        ? 'Save changes'
+        : 'Save address';
       dialog.showModal();
       form.elements.fullName.focus();
     }
 
-    on(root, "click", "[data-address-add]", () => open(null), signal);
-    on(root, "click", "[data-address-edit]", (event, button) => open(JSON.parse(button.dataset.address)), signal);
-    on(root, "submit", "[data-address-form]", async event => {
-      event.preventDefault();
-      const values = Nx.formValues(form);
-      const id = values.id;
-      delete values.id;
-      const reply = await Nx.submitForm(form, {
-        url: id ? `/api/addresses/${encodeURIComponent(id)}` : "/api/addresses",
-        method: id ? "PATCH" : "POST",
-        body: values,
-        busyLabel: "Saving…"
-      });
-      if (reply) {
-        dialog.close();
-        // The section reloads in place; then the saved address gets its "just saved" tick (C2).
-        const savedId = String((reply.address && (reply.address._id || reply.address.id)) || id);
-        const mark = () => Nx.markSaved(document.querySelector(`[data-address-id="${CSS.escape(savedId)}"]`));
-        if (window.NxNav && window.NxNav.reload) {
-          window.NxNav.reload().then(() => {
-            Nx.toast(reply.message);
-            mark();
-          });
-        } else {
-          try { sessionStorage.setItem("nx:address-saved", savedId); } catch { /* no tick, still saved */ }
-          refresh(reply.message);
+    on(root, 'click', '[data-address-add]', () => open(null), signal);
+    on(
+      root,
+      'click',
+      '[data-address-edit]',
+      (event, button) => open(JSON.parse(button.dataset.address)),
+      signal,
+    );
+    on(
+      root,
+      'submit',
+      '[data-address-form]',
+      async (event) => {
+        event.preventDefault();
+        const values = Nx.formValues(form);
+        const id = values.id;
+        delete values.id;
+        const reply = await Nx.submitForm(form, {
+          url: id
+            ? `/api/addresses/${encodeURIComponent(id)}`
+            : '/api/addresses',
+          method: id ? 'PATCH' : 'POST',
+          body: values,
+          busyLabel: 'Saving…',
+        });
+        if (reply) {
+          dialog.close();
+          // The section reloads in place; then the saved address gets its "just saved" tick (C2).
+          const savedId = String(
+            (reply.address && (reply.address._id || reply.address.id)) || id,
+          );
+          const mark = () =>
+            Nx.markSaved(
+              document.querySelector(
+                `[data-address-id="${CSS.escape(savedId)}"]`,
+              ),
+            );
+          if (window.NxNav && window.NxNav.reload) {
+            window.NxNav.reload().then(() => {
+              Nx.toast(reply.message);
+              mark();
+            });
+          } else {
+            try {
+              sessionStorage.setItem('nx:address-saved', savedId);
+            } catch {
+              /* no tick, still saved */
+            }
+            refresh(reply.message);
+          }
         }
-      }
-    }, signal);
-    on(root, "click", "[data-address-delete]", async (event, button) => {
-      const ok = await Nx.confirm({ title: "Remove this address?", message: `The address for ${button.dataset.name} will be deleted. This cannot be undone.`, confirmLabel: "Remove address" });
-      if (!ok) return;
-      Nx.busy(button, true, "Removing…");
-      if (!(await apiThen(() => Nx.api(`/api/addresses/${encodeURIComponent(button.dataset.addressDelete)}`, { method: "DELETE" })))) Nx.busy(button, false);
-    }, signal);
-    on(root, "click", "[data-address-default]", async (event, button) => {
-      Nx.busy(button, true, "Saving…");
-      if (!(await apiThen(() => Nx.api(`/api/addresses/${encodeURIComponent(button.dataset.addressDefault)}/default`, { method: "PATCH" })))) Nx.busy(button, false);
-    }, signal);
+      },
+      signal,
+    );
+    on(
+      root,
+      'click',
+      '[data-address-delete]',
+      async (event, button) => {
+        const ok = await Nx.confirm({
+          title: 'Remove this address?',
+          message: `The address for ${button.dataset.name} will be deleted. This cannot be undone.`,
+          confirmLabel: 'Remove address',
+        });
+        if (!ok) return;
+        Nx.busy(button, true, 'Removing…');
+        if (
+          !(await apiThen(() =>
+            Nx.api(
+              `/api/addresses/${encodeURIComponent(button.dataset.addressDelete)}`,
+              {method: 'DELETE'},
+            ),
+          ))
+        )
+          Nx.busy(button, false);
+      },
+      signal,
+    );
+    on(
+      root,
+      'click',
+      '[data-address-default]',
+      async (event, button) => {
+        Nx.busy(button, true, 'Saving…');
+        if (
+          !(await apiThen(() =>
+            Nx.api(
+              `/api/addresses/${encodeURIComponent(button.dataset.addressDefault)}/default`,
+              {method: 'PATCH'},
+            ),
+          ))
+        )
+          Nx.busy(button, false);
+      },
+      signal,
+    );
 
-    return () => { if (dialog.open) dialog.close(); };
+    return () => {
+      if (dialog.open) dialog.close();
+    };
   });
 
   // ---------- Login & security ----------
-  const RULES = { length: v => v.length >= 8 && v.length <= 64, letter: v => /[A-Za-z]/.test(v), number: v => /\d/.test(v) };
+  const RULES = {
+    length: (v) => v.length >= 8 && v.length <= 64,
+    letter: (v) => /[A-Za-z]/.test(v),
+    number: (v) => /\d/.test(v),
+  };
 
   function showStrength(form) {
-    const input = form.querySelector("[data-strength]");
+    const input = form.querySelector('[data-strength]');
     if (!input) return;
     let met = 0;
-    form.querySelectorAll("[data-rules] [data-rule]").forEach(item => {
+    form.querySelectorAll('[data-rules] [data-rule]').forEach((item) => {
       const ok = RULES[item.dataset.rule](input.value);
       if (ok) met += 1;
-      item.classList.toggle("is-met", ok);
-      const state = item.querySelector("[data-rule-state]");
-      if (state) state.textContent = ok ? " (done)" : " (not yet)";
+      item.classList.toggle('is-met', ok);
+      const state = item.querySelector('[data-rule-state]');
+      if (state) state.textContent = ok ? ' (done)' : ' (not yet)';
     });
-    const bar = form.querySelector("[data-strength-bar]");
-    if (bar) bar.dataset.score = input.value ? String(Math.max(1, met)) : "0";
+    const bar = form.querySelector('[data-strength-bar]');
+    if (bar) bar.dataset.score = input.value ? String(Math.max(1, met)) : '0';
   }
 
   // The sidebar card and the header greeting sit outside the swapped content: keep them in step.
-  function showIdentity({ name, email }) {
-    const set = (selector, text) => document.querySelectorAll(selector).forEach(el => { el.textContent = text; });
+  function showIdentity({name, email}) {
+    const set = (selector, text) =>
+      document.querySelectorAll(selector).forEach((el) => {
+        el.textContent = text;
+      });
     if (name) {
-      set("[data-user-name]", name);
-      set("[data-user-first]", name.trim().split(/\s+/)[0]);
-      document.querySelectorAll(".acct-me-avatar").forEach(el => { el.textContent = name.trim().charAt(0).toUpperCase(); });
+      set('[data-user-name]', name);
+      set('[data-user-first]', name.trim().split(/\s+/)[0]);
+      document.querySelectorAll('.acct-me-avatar').forEach((el) => {
+        el.textContent = name.trim().charAt(0).toUpperCase();
+      });
     }
-    if (email) set("[data-user-email]", email);
+    if (email) set('[data-user-email]', email);
   }
 
-  define("account-security", (root, signal) => {
-    on(root, "submit", "[data-profile-form]", async (event, form) => {
-      event.preventDefault();
-      const name = form.elements.name.value.trim().replace(/\s+/g, " ");
-      const reply = await Nx.submitForm(form, { url: "/api/profile", method: "PATCH", busyLabel: "Saving…" });
-      if (reply) {
-        showIdentity({ name });
-        refresh(reply.message);
-      }
-    }, signal);
+  define('account-security', (root, signal) => {
+    on(
+      root,
+      'submit',
+      '[data-profile-form]',
+      async (event, form) => {
+        event.preventDefault();
+        const name = form.elements.name.value.trim().replace(/\s+/g, ' ');
+        const reply = await Nx.submitForm(form, {
+          url: '/api/profile',
+          method: 'PATCH',
+          busyLabel: 'Saving…',
+        });
+        if (reply) {
+          showIdentity({name});
+          refresh(reply.message);
+        }
+      },
+      signal,
+    );
 
-    on(root, "submit", "[data-email-form]", async (event, form) => {
-      event.preventDefault();
-      const email = form.elements.email.value.trim().toLowerCase();
-      const reply = await Nx.submitForm(form, { url: "/api/account/email", method: "PATCH", busyLabel: "Saving…" });
-      if (reply) {
-        showIdentity({ email });
-        refresh(reply.message);
-      }
-    }, signal);
+    on(
+      root,
+      'submit',
+      '[data-email-form]',
+      async (event, form) => {
+        event.preventDefault();
+        const email = form.elements.email.value.trim().toLowerCase();
+        const reply = await Nx.submitForm(form, {
+          url: '/api/account/email',
+          method: 'PATCH',
+          busyLabel: 'Saving…',
+        });
+        if (reply) {
+          showIdentity({email});
+          refresh(reply.message);
+        }
+      },
+      signal,
+    );
 
-    on(root, "input", "[data-password-form] [data-strength]", (event, input) => showStrength(input.form), signal);
-    on(root, "submit", "[data-password-form]", async (event, form) => {
-      event.preventDefault();
-      const values = Nx.formValues(form);
-      if (values.newPassword !== values.confirmPassword) {
-        Nx.clearErrors(form);
-        Nx.showErrors(form, { confirmPassword: "Passwords do not match." });
-        return;
-      }
-      const reply = await Nx.submitForm(form, { url: "/api/profile/password", method: "PATCH", body: values, busyLabel: "Updating…" });
-      if (reply) {
-        form.reset();
-        showStrength(form);
-        Nx.formAlert(form, reply.message, "success");
-        Nx.toast(reply.message);
-      }
-    }, signal);
+    on(
+      root,
+      'input',
+      '[data-password-form] [data-strength]',
+      (event, input) => showStrength(input.form),
+      signal,
+    );
+    on(
+      root,
+      'submit',
+      '[data-password-form]',
+      async (event, form) => {
+        event.preventDefault();
+        const values = Nx.formValues(form);
+        if (values.newPassword !== values.confirmPassword) {
+          Nx.clearErrors(form);
+          Nx.showErrors(form, {confirmPassword: 'Passwords do not match.'});
+          return;
+        }
+        const reply = await Nx.submitForm(form, {
+          url: '/api/profile/password',
+          method: 'PATCH',
+          body: values,
+          busyLabel: 'Updating…',
+        });
+        if (reply) {
+          form.reset();
+          showStrength(form);
+          Nx.formAlert(form, reply.message, 'success');
+          Nx.toast(reply.message);
+        }
+      },
+      signal,
+    );
 
-    on(root, "click", "[data-logout-all]", async (event, button) => {
-      const ok = await Nx.confirm({ title: "Log out of all devices?", message: "Every device signed in to your account, including this one, will be signed out straight away.", confirmLabel: "Log out everywhere" });
-      if (!ok) return;
-      Nx.busy(button, true, "Signing out…");
-      try {
-        const reply = await Nx.api("/api/account/logout-all", { method: "POST" });
-        doneThen(reply.message, "/login?reason=logged_out_all");
-      } catch (error) {
-        Nx.busy(button, false);
-        Nx.toast(error.message, "error");
-      }
-    }, signal);
+    on(
+      root,
+      'click',
+      '[data-logout-all]',
+      async (event, button) => {
+        const ok = await Nx.confirm({
+          title: 'Log out of all devices?',
+          message:
+            'Every device signed in to your account, including this one, will be signed out straight away.',
+          confirmLabel: 'Log out everywhere',
+        });
+        if (!ok) return;
+        Nx.busy(button, true, 'Signing out…');
+        try {
+          const reply = await Nx.api('/api/account/logout-all', {
+            method: 'POST',
+          });
+          doneThen(reply.message, '/login?reason=logged_out_all');
+        } catch (error) {
+          Nx.busy(button, false);
+          Nx.toast(error.message, 'error');
+        }
+      },
+      signal,
+    );
 
     // "Log out this device": the server revokes that device's refresh token, so it can never
     // renew. Signing out the device you are on ends this session too, hence the trip to sign in.
-    on(root, "click", "[data-device-logout]", async (event, button) => {
-      const id = button.dataset.deviceLogout;
-      const row = button.closest("[data-device]");
-      const here = row && row.hasAttribute("data-device-current");
-      const ok = await Nx.confirm({
-        title: here ? "Log out this device?" : `Log out ${button.dataset.deviceName}?`,
-        message: here
-          ? "You will be signed out of this browser and sent to the sign-in page."
-          : "That device will have to sign in again to open your account.",
-        confirmLabel: "Log out"
-      });
-      if (!ok) return;
-      Nx.busy(button, true, "Signing out…");
-      try {
-        const reply = await Nx.api(`/api/account/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
-        if (reply.current) {
-          doneThen(reply.message, "/login?reason=logged_out_all");
-          return;
+    on(
+      root,
+      'click',
+      '[data-device-logout]',
+      async (event, button) => {
+        const id = button.dataset.deviceLogout;
+        const row = button.closest('[data-device]');
+        const here = row && row.hasAttribute('data-device-current');
+        const ok = await Nx.confirm({
+          title: here
+            ? 'Log out this device?'
+            : `Log out ${button.dataset.deviceName}?`,
+          message: here
+            ? 'You will be signed out of this browser and sent to the sign-in page.'
+            : 'That device will have to sign in again to open your account.',
+          confirmLabel: 'Log out',
+        });
+        if (!ok) return;
+        Nx.busy(button, true, 'Signing out…');
+        try {
+          const reply = await Nx.api(
+            `/api/account/sessions/${encodeURIComponent(id)}`,
+            {method: 'DELETE'},
+          );
+          if (reply.current) {
+            doneThen(reply.message, '/login?reason=logged_out_all');
+            return;
+          }
+          if (row) row.remove();
+          const list = root.querySelector('[data-device-list]');
+          const empty = root.querySelector('[data-device-empty]');
+          if (empty && list) empty.hidden = list.children.length > 0;
+          Nx.toast(reply.message);
+        } catch (error) {
+          Nx.busy(button, false);
+          Nx.toast(error.message, 'error');
         }
-        if (row) row.remove();
-        const list = root.querySelector("[data-device-list]");
-        const empty = root.querySelector("[data-device-empty]");
-        if (empty && list) empty.hidden = list.children.length > 0;
-        Nx.toast(reply.message);
-      } catch (error) {
-        Nx.busy(button, false);
-        Nx.toast(error.message, "error");
-      }
-    }, signal);
+      },
+      signal,
+    );
 
-    on(root, "submit", "[data-delete-form]", async (event, form) => {
-      event.preventDefault();
-      const ok = await Nx.confirm({ title: "Delete your account?", message: "You will be signed out and won't be able to sign in again. This can't be undone from here.", confirmLabel: "Delete account" });
-      if (!ok) return;
-      const reply = await Nx.submitForm(form, { url: "/api/account/delete", busyLabel: "Deleting…" });
-      if (reply) doneThen(reply.message, "/");
-    }, signal);
+    on(
+      root,
+      'submit',
+      '[data-delete-form]',
+      async (event, form) => {
+        event.preventDefault();
+        const ok = await Nx.confirm({
+          title: 'Delete your account?',
+          message:
+            "You will be signed out and won't be able to sign in again. This can't be undone from here.",
+          confirmLabel: 'Delete account',
+        });
+        if (!ok) return;
+        const reply = await Nx.submitForm(form, {
+          url: '/api/account/delete',
+          busyLabel: 'Deleting…',
+        });
+        if (reply) doneThen(reply.message, '/');
+      },
+      signal,
+    );
   });
 
   // ---------- Notifications: each switch saves as soon as it changes ----------
-  define("account-notifications", (root, signal) => {
-    on(root, "change", "[data-pref]", async (event, input) => {
-      input.disabled = true;
-      try {
-        await Nx.api("/api/account/preferences", { method: "PATCH", body: { [input.dataset.pref]: input.checked } });
-        Nx.toast("Preferences saved.");
-      } catch (error) {
-        input.checked = !input.checked;
-        Nx.toast(error.message, "error");
-      } finally {
-        input.disabled = false;
-      }
-    }, signal);
+  define('account-notifications', (root, signal) => {
+    on(
+      root,
+      'change',
+      '[data-pref]',
+      async (event, input) => {
+        input.disabled = true;
+        try {
+          await Nx.api('/api/account/preferences', {
+            method: 'PATCH',
+            body: {[input.dataset.pref]: input.checked},
+          });
+          Nx.toast('Preferences saved.');
+        } catch (error) {
+          input.checked = !input.checked;
+          Nx.toast(error.message, 'error');
+        } finally {
+          input.disabled = false;
+        }
+      },
+      signal,
+    );
   });
 
   // ---------- Help: a new request, and replies on a request ----------
-  define("account-help", (root, signal) => {
-    on(root, "submit", "[data-ticket-form]", async (event, form) => {
-      event.preventDefault();
-      const reply = await Nx.submitForm(form, { url: "/api/support/tickets", busyLabel: "Sending…" });
-      if (reply) go(`/account/help/${reply.ticket.ticketId}`, reply.message);
-    }, signal);
+  define('account-help', (root, signal) => {
+    on(
+      root,
+      'submit',
+      '[data-ticket-form]',
+      async (event, form) => {
+        event.preventDefault();
+        const reply = await Nx.submitForm(form, {
+          url: '/api/support/tickets',
+          busyLabel: 'Sending…',
+        });
+        if (reply) go(`/account/help/${reply.ticket.ticketId}`, reply.message);
+      },
+      signal,
+    );
   });
 
-  define("account-ticket", (root, signal) => {
-    on(root, "submit", "[data-ticket-reply]", async (event, form) => {
-      event.preventDefault();
-      const reply = await Nx.submitForm(form, { url: `/api/support/tickets/${form.dataset.ticketReply}/messages`, busyLabel: "Sending…" });
-      if (reply) refresh(reply.message);
-    }, signal);
+  define('account-ticket', (root, signal) => {
+    on(
+      root,
+      'submit',
+      '[data-ticket-reply]',
+      async (event, form) => {
+        event.preventDefault();
+        const reply = await Nx.submitForm(form, {
+          url: `/api/support/tickets/${form.dataset.ticketReply}/messages`,
+          busyLabel: 'Sending…',
+        });
+        if (reply) refresh(reply.message);
+      },
+      signal,
+    );
   });
 
   // ---------- Phones: the active tab in the account tab bar is scrolled into view ----------
   function showActiveTab() {
-    const nav = document.querySelector("[data-acct-nav]");
-    const active = nav && nav.querySelector(".acct-link.is-active");
+    const nav = document.querySelector('[data-acct-nav]');
+    const active = nav && nav.querySelector('.acct-link.is-active');
     if (!active || nav.scrollWidth <= nav.clientWidth) return;
     const box = nav.getBoundingClientRect();
     const link = active.getBoundingClientRect();
     nav.scrollLeft += link.left - box.left - (box.width - link.width) / 2;
   }
   showActiveTab();
-  document.addEventListener("nx:section", showActiveTab);
+  document.addEventListener('nx:section', showActiveTab);
 
   // ---------- Start the section on this page ----------
   // (When section-nav.js is on the page, it starts sections itself, including after each swap.)
   if (!window.NxNav) {
-    const root = document.querySelector("[data-page]");
+    const root = document.querySelector('[data-page]');
     const page = root && Pages[root.dataset.page];
     if (page) page.init(root);
   }

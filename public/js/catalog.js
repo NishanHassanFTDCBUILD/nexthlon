@@ -8,36 +8,59 @@
 // Without JavaScript the same markup is an ordinary GET form, so the server-rendered catalogue is
 // the complete fallback.
 (function () {
-  "use strict";
+  'use strict';
 
-  const results = document.querySelector("[data-results]");
-  const catalog = document.querySelector("[data-catalog]");
-  const filterForm = document.querySelector("[data-filter-form]");
-  const resultsContent = document.querySelector("[data-results-content]");
-  const resultsSummary = document.querySelector("[data-results-summary]");
-  const resultsHeading = document.getElementById("results-heading");
-  const chipList = document.querySelector("[data-active-chips]");
-  const toolbarHint = document.querySelector(".toolbar-hint");
+  const results = document.querySelector('[data-results]');
+  const catalog = document.querySelector('[data-catalog]');
+  const filterForm = document.querySelector('[data-filter-form]');
+  const resultsContent = document.querySelector('[data-results-content]');
+  const resultsSummary = document.querySelector('[data-results-summary]');
+  const resultsHeading = document.getElementById('results-heading');
+  const chipList = document.querySelector('[data-active-chips]');
+  const toolbarHint = document.querySelector('.toolbar-hint');
 
   // ---------- The filter state ----------
 
   const DEFAULTS = {
-    q: "", category: "", brands: [], sizes: [], colours: [], min: null, max: null,
-    discount: 0, rating: 0, inStock: false, sort: "relevance", view: "grid", page: 1
+    q: '',
+    category: '',
+    brands: [],
+    sizes: [],
+    colours: [],
+    min: null,
+    max: null,
+    discount: 0,
+    rating: 0,
+    inStock: false,
+    sort: 'relevance',
+    view: 'grid',
+    page: 1,
   };
-  const SORTS = ["relevance", "price_asc", "price_desc", "newest", "rating", "discount", "name_asc"];
+  const SORTS = [
+    'relevance',
+    'price_asc',
+    'price_desc',
+    'newest',
+    'rating',
+    'discount',
+    'name_asc',
+  ];
   // The server validates all of this again (services/productService.js readFilters); these checks
   // only keep a hand-typed URL from putting nonsense on screen before the answer comes back.
   // null when the value is missing or empty — Number(null) and Number("") are both 0, which would
   // otherwise turn "no price given" into "price 0" and put ?min=0 in every URL.
   const whole = (value, max) => {
-    if (value === null || value === undefined || String(value).trim() === "") return null;
+    if (value === null || value === undefined || String(value).trim() === '')
+      return null;
     const number = Number(value);
-    return Number.isInteger(number) && number >= 0 && number <= max ? number : null;
+    return Number.isInteger(number) && number >= 0 && number <= max
+      ? number
+      : null;
   };
-  const oneOf = (value, allowed, fallback) => (allowed.includes(Number(value)) ? Number(value) : fallback);
+  const oneOf = (value, allowed, fallback) =>
+    allowed.includes(Number(value)) ? Number(value) : fallback;
 
-  let state = { ...DEFAULTS };
+  let state = {...DEFAULTS};
   // Set by the price-slider block below; renderControls() calls it once it exists.
   let paintPrice = null;
 
@@ -45,132 +68,197 @@
     const params = new URLSearchParams(search);
     const next = {
       ...DEFAULTS,
-      q: (params.get("q") || "").trim().slice(0, 80),
-      category: (params.get("category") || "").trim().toLowerCase().slice(0, 80),
-      brands: [...new Set(params.getAll("brand").map(name => name.trim()).filter(Boolean))].slice(0, 20),
-      sizes: [...new Set(params.getAll("size").map(name => name.trim()).filter(Boolean))].slice(0, 20),
-      colours: [...new Set(params.getAll("colour").map(name => name.trim()).filter(Boolean))].slice(0, 20),
-      min: whole(params.get("min"), 10000000),
-      max: whole(params.get("max"), 10000000),
-      discount: oneOf(params.get("discount"), [10, 20, 30, 40, 50], 0),
-      rating: oneOf(params.get("rating"), [4, 3, 2], 0),
-      inStock: params.get("inStock") === "1" || params.get("inStock") === "true",
-      sort: SORTS.includes(params.get("sort")) ? params.get("sort") : "relevance",
-      view: params.get("view") === "list" ? "list" : "grid",
-      page: whole(params.get("page"), 10000) || 1
+      q: (params.get('q') || '').trim().slice(0, 80),
+      category: (params.get('category') || '')
+        .trim()
+        .toLowerCase()
+        .slice(0, 80),
+      brands: [
+        ...new Set(
+          params
+            .getAll('brand')
+            .map((name) => name.trim())
+            .filter(Boolean),
+        ),
+      ].slice(0, 20),
+      sizes: [
+        ...new Set(
+          params
+            .getAll('size')
+            .map((name) => name.trim())
+            .filter(Boolean),
+        ),
+      ].slice(0, 20),
+      colours: [
+        ...new Set(
+          params
+            .getAll('colour')
+            .map((name) => name.trim())
+            .filter(Boolean),
+        ),
+      ].slice(0, 20),
+      min: whole(params.get('min'), 10000000),
+      max: whole(params.get('max'), 10000000),
+      discount: oneOf(params.get('discount'), [10, 20, 30, 40, 50], 0),
+      rating: oneOf(params.get('rating'), [4, 3, 2], 0),
+      inStock:
+        params.get('inStock') === '1' || params.get('inStock') === 'true',
+      sort: SORTS.includes(params.get('sort'))
+        ? params.get('sort')
+        : 'relevance',
+      view: params.get('view') === 'list' ? 'list' : 'grid',
+      page: whole(params.get('page'), 10000) || 1,
     };
     // A back-to-front range is simply swapped, as the server does.
-    if (next.min !== null && next.max !== null && next.min > next.max) [next.min, next.max] = [next.max, next.min];
+    if (next.min !== null && next.max !== null && next.min > next.max)
+      [next.min, next.max] = [next.max, next.min];
     return next;
   }
 
   // The state as a query string. Defaults are left out, so the URL stays short and shareable.
   function toQuery(from = state) {
     const query = new URLSearchParams();
-    if (from.q) query.set("q", from.q);
-    if (from.category) query.set("category", from.category);
-    from.brands.forEach(brand => query.append("brand", brand));
-    from.sizes.forEach(size => query.append("size", size));
-    from.colours.forEach(colour => query.append("colour", colour));
-    if (from.min !== null) query.set("min", String(from.min));
-    if (from.max !== null) query.set("max", String(from.max));
-    if (from.discount) query.set("discount", String(from.discount));
-    if (from.rating) query.set("rating", String(from.rating));
-    if (from.inStock) query.set("inStock", "1");
-    if (from.sort !== "relevance") query.set("sort", from.sort);
-    if (from.view === "list") query.set("view", "list");
-    if (from.page > 1) query.set("page", String(from.page));
+    if (from.q) query.set('q', from.q);
+    if (from.category) query.set('category', from.category);
+    from.brands.forEach((brand) => query.append('brand', brand));
+    from.sizes.forEach((size) => query.append('size', size));
+    from.colours.forEach((colour) => query.append('colour', colour));
+    if (from.min !== null) query.set('min', String(from.min));
+    if (from.max !== null) query.set('max', String(from.max));
+    if (from.discount) query.set('discount', String(from.discount));
+    if (from.rating) query.set('rating', String(from.rating));
+    if (from.inStock) query.set('inStock', '1');
+    if (from.sort !== 'relevance') query.set('sort', from.sort);
+    if (from.view === 'list') query.set('view', 'list');
+    if (from.page > 1) query.set('page', String(from.page));
     return query;
   }
 
-  const urlFor = from => {
+  const urlFor = (from) => {
     const search = toQuery(from).toString();
-    return `/products${search ? `?${search}` : ""}`;
+    return `/products${search ? `?${search}` : ''}`;
   };
   // The link that removes one filter: a copy of the state with that part cleared.
-  const without = patch => urlFor({ ...state, ...patch, page: 1 });
+  const without = (patch) => urlFor({...state, ...patch, page: 1});
 
   // How many filters are on, for the badges. Sort, view, page and the search box are not filters.
   const activeCount = () =>
-    (state.category ? 1 : 0) + state.brands.length + state.sizes.length + state.colours.length + (state.min !== null ? 1 : 0) + (state.max !== null ? 1 : 0) +
-    (state.discount ? 1 : 0) + (state.rating ? 1 : 0) + (state.inStock ? 1 : 0) + (state.q ? 1 : 0);
+    (state.category ? 1 : 0) +
+    state.brands.length +
+    state.sizes.length +
+    state.colours.length +
+    (state.min !== null ? 1 : 0) +
+    (state.max !== null ? 1 : 0) +
+    (state.discount ? 1 : 0) +
+    (state.rating ? 1 : 0) +
+    (state.inStock ? 1 : 0) +
+    (state.q ? 1 : 0);
 
   // ---------- Reading the controls ----------
 
   // One place that turns a changed control into a state patch, so no other code reads the DOM.
   function patchFromControl(field) {
     switch (field.name) {
-      case "category": return { category: field.value };
-      case "discount": return { discount: Number(field.value) || 0 };
-      case "rating": return { rating: Number(field.value) || 0 };
-      case "inStock": return { inStock: field.checked };
-      case "sort": return { sort: SORTS.includes(field.value) ? field.value : "relevance" };
-      case "brand": {
+      case 'category':
+        return {category: field.value};
+      case 'discount':
+        return {discount: Number(field.value) || 0};
+      case 'rating':
+        return {rating: Number(field.value) || 0};
+      case 'inStock':
+        return {inStock: field.checked};
+      case 'sort':
+        return {sort: SORTS.includes(field.value) ? field.value : 'relevance'};
+      case 'brand': {
         const brands = field.checked
           ? [...new Set([...state.brands, field.value])]
-          : state.brands.filter(name => name !== field.value);
-        return { brands };
+          : state.brands.filter((name) => name !== field.value);
+        return {brands};
       }
-      case "size":
-      case "colour": {
-        const key = field.name === "size" ? "sizes" : "colours";
-        const list = field.checked ? [...new Set([...state[key], field.value])] : state[key].filter(name => name !== field.value);
-        return { [key]: list };
+      case 'size':
+      case 'colour': {
+        const key = field.name === 'size' ? 'sizes' : 'colours';
+        const list = field.checked
+          ? [...new Set([...state[key], field.value])]
+          : state[key].filter((name) => name !== field.value);
+        return {[key]: list};
       }
-      default: return null;
+      default:
+        return null;
     }
   }
 
   // The price boxes are read together, and only when the shopper applies them.
   function pricePatch() {
-    const minBox = filterForm.querySelector("[data-price-min]");
-    const maxBox = filterForm.querySelector("[data-price-max]");
-    let min = minBox.value === "" ? null : whole(minBox.value, 10000000);
-    let max = maxBox.value === "" ? null : whole(maxBox.value, 10000000);
+    const minBox = filterForm.querySelector('[data-price-min]');
+    const maxBox = filterForm.querySelector('[data-price-max]');
+    let min = minBox.value === '' ? null : whole(minBox.value, 10000000);
+    let max = maxBox.value === '' ? null : whole(maxBox.value, 10000000);
     if (min !== null && max !== null && min > max) [min, max] = [max, min];
-    return { min, max };
+    return {min, max};
   }
 
   // ---------- Rendering, all of it from the state ----------
 
   function renderControls() {
     if (!filterForm) return;
-    filterForm.querySelectorAll("input[type=radio], input[type=checkbox]").forEach(field => {
-      if (field.name === "category") field.checked = field.value === state.category;
-      else if (field.name === "brand") field.checked = state.brands.includes(field.value);
-      else if (field.name === "size") field.checked = state.sizes.includes(field.value);
-      else if (field.name === "colour") field.checked = state.colours.includes(field.value);
-      else if (field.name === "discount") field.checked = field.value === (state.discount ? String(state.discount) : "");
-      else if (field.name === "rating") field.checked = field.value === (state.rating ? String(state.rating) : "");
-      else if (field.name === "inStock") field.checked = state.inStock;
-    });
+    filterForm
+      .querySelectorAll('input[type=radio], input[type=checkbox]')
+      .forEach((field) => {
+        if (field.name === 'category')
+          field.checked = field.value === state.category;
+        else if (field.name === 'brand')
+          field.checked = state.brands.includes(field.value);
+        else if (field.name === 'size')
+          field.checked = state.sizes.includes(field.value);
+        else if (field.name === 'colour')
+          field.checked = state.colours.includes(field.value);
+        else if (field.name === 'discount')
+          field.checked =
+            field.value === (state.discount ? String(state.discount) : '');
+        else if (field.name === 'rating')
+          field.checked =
+            field.value === (state.rating ? String(state.rating) : '');
+        else if (field.name === 'inStock') field.checked = state.inStock;
+      });
     // The hidden fields keep the no-JavaScript submit carrying the search, sort and layout.
     const hidden = (name, value) => {
-      const field = filterForm.querySelector(`input[type=hidden][name="${name}"]`);
+      const field = filterForm.querySelector(
+        `input[type=hidden][name="${name}"]`,
+      );
       if (field) field.value = value;
     };
-    hidden("q", state.q);
-    hidden("sort", state.sort === "relevance" ? "" : state.sort);
-    hidden("view", state.view === "list" ? "list" : "");
+    hidden('q', state.q);
+    hidden('sort', state.sort === 'relevance' ? '' : state.sort);
+    hidden('view', state.view === 'list' ? 'list' : '');
 
-    const minBox = filterForm.querySelector("[data-price-min]");
-    const maxBox = filterForm.querySelector("[data-price-max]");
-    if (minBox) minBox.value = state.min === null ? "" : state.min;
-    if (maxBox) maxBox.value = state.max === null ? "" : state.max;
+    const minBox = filterForm.querySelector('[data-price-min]');
+    const maxBox = filterForm.querySelector('[data-price-max]');
+    if (minBox) minBox.value = state.min === null ? '' : state.min;
+    if (maxBox) maxBox.value = state.max === null ? '' : state.max;
     if (paintPrice) paintPrice();
 
-    document.querySelectorAll('select[data-filter-field][name="sort"]').forEach(field => { field.value = state.sort; });
-    document.querySelectorAll("[data-view-link]").forEach(link => {
+    document
+      .querySelectorAll('select[data-filter-field][name="sort"]')
+      .forEach((field) => {
+        field.value = state.sort;
+      });
+    document.querySelectorAll('[data-view-link]').forEach((link) => {
       const active = link.dataset.viewLink === state.view;
-      link.classList.toggle("is-active", active);
-      if (active) link.setAttribute("aria-current", "true");
-      else link.removeAttribute("aria-current");
-      link.href = urlFor({ ...state, view: link.dataset.viewLink, page: 1 });
+      link.classList.toggle('is-active', active);
+      if (active) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+      link.href = urlFor({...state, view: link.dataset.viewLink, page: 1});
     });
     // Every group reports whether it is open, for screen readers and for tests.
-    document.querySelectorAll("[data-filter-group] > summary").forEach(summary => {
-      summary.setAttribute("aria-expanded", String(summary.parentElement.open));
-    });
+    document
+      .querySelectorAll('[data-filter-group] > summary')
+      .forEach((summary) => {
+        summary.setAttribute(
+          'aria-expanded',
+          String(summary.parentElement.open),
+        );
+      });
 
     // A dot (or the number of brands) on each group that holds a choice, so it shows when closed.
     const groupCounts = {
@@ -180,75 +268,89 @@
       size: state.sizes.length,
       colour: state.colours.length,
       rating: state.rating ? 1 : 0,
-      discount: state.discount ? 1 : 0
+      discount: state.discount ? 1 : 0,
     };
-    document.querySelectorAll("[data-group-count]").forEach(dot => {
+    document.querySelectorAll('[data-group-count]').forEach((dot) => {
       const count = groupCounts[dot.dataset.groupCount] || 0;
       dot.hidden = count === 0;
-      dot.textContent = count > 1 ? String(count) : "";
-      dot.classList.toggle("has-num", count > 1);
+      dot.textContent = count > 1 ? String(count) : '';
+      dot.classList.toggle('has-num', count > 1);
     });
 
     // The quick price range that matches the current min and max is shown as chosen.
-    document.querySelectorAll("[data-price-preset]").forEach(button => {
-      const min = button.dataset.min === "" ? null : Number(button.dataset.min);
-      const max = button.dataset.max === "" ? null : Number(button.dataset.max);
+    document.querySelectorAll('[data-price-preset]').forEach((button) => {
+      const min = button.dataset.min === '' ? null : Number(button.dataset.min);
+      const max = button.dataset.max === '' ? null : Number(button.dataset.max);
       const on = min === state.min && max === state.max;
-      button.classList.toggle("is-active", on);
-      button.setAttribute("aria-pressed", String(on));
+      button.classList.toggle('is-active', on);
+      button.setAttribute('aria-pressed', String(on));
     });
   }
 
   // The label a category chip shows, taken from the radio the server rendered.
   function categoryLabel() {
-    const field = filterForm && filterForm.querySelector(`input[name="category"][value="${CSS.escape(state.category)}"]`);
-    const text = field && field.parentElement.querySelector("span");
+    const field =
+      filterForm &&
+      filterForm.querySelector(
+        `input[name="category"][value="${CSS.escape(state.category)}"]`,
+      );
+    const text = field && field.parentElement.querySelector('span');
     return text ? text.textContent.trim() : state.category;
   }
 
   function renderChips() {
     const count = activeCount();
-    document.querySelectorAll("[data-filter-count]").forEach(badge => {
+    document.querySelectorAll('[data-filter-count]').forEach((badge) => {
       badge.textContent = String(count);
       badge.hidden = count === 0;
     });
-    document.querySelectorAll("[data-clear-filters]").forEach(link => {
+    document.querySelectorAll('[data-clear-filters]').forEach((link) => {
       link.hidden = count === 0;
-      link.href = "/products";
+      link.href = '/products';
     });
     if (toolbarHint) toolbarHint.hidden = count > 0;
     if (!chipList) return;
 
     const entries = [];
-    const add = (label, patch) => entries.push({ label, href: without(patch) });
-    if (state.q) add(`“${state.q}”`, { q: "" });
-    if (state.category) add(categoryLabel(), { category: "" });
-    state.brands.forEach(brand => add(brand, { brands: state.brands.filter(name => name !== brand) }));
-    state.sizes.forEach(size => add(`Size ${size}`, { sizes: state.sizes.filter(name => name !== size) }));
-    state.colours.forEach(colour => add(colour, { colours: state.colours.filter(name => name !== colour) }));
-    if (state.min !== null) add(`From ₹${state.min.toLocaleString("en-IN")}`, { min: null });
-    if (state.max !== null) add(`Up to ₹${state.max.toLocaleString("en-IN")}`, { max: null });
-    if (state.rating) add(`${state.rating}★ and up`, { rating: 0 });
-    if (state.discount) add(`${state.discount}% off or more`, { discount: 0 });
-    if (state.inStock) add("In stock", { inStock: false });
+    const add = (label, patch) => entries.push({label, href: without(patch)});
+    if (state.q) add(`“${state.q}”`, {q: ''});
+    if (state.category) add(categoryLabel(), {category: ''});
+    state.brands.forEach((brand) =>
+      add(brand, {brands: state.brands.filter((name) => name !== brand)}),
+    );
+    state.sizes.forEach((size) =>
+      add(`Size ${size}`, {sizes: state.sizes.filter((name) => name !== size)}),
+    );
+    state.colours.forEach((colour) =>
+      add(colour, {colours: state.colours.filter((name) => name !== colour)}),
+    );
+    if (state.min !== null)
+      add(`From ₹${state.min.toLocaleString('en-IN')}`, {min: null});
+    if (state.max !== null)
+      add(`Up to ₹${state.max.toLocaleString('en-IN')}`, {max: null});
+    if (state.rating) add(`${state.rating}★ and up`, {rating: 0});
+    if (state.discount) add(`${state.discount}% off or more`, {discount: 0});
+    if (state.inStock) add('In stock', {inStock: false});
 
-    chipList.replaceChildren(...entries.map(({ label, href }) => {
-      const item = document.createElement("li");
-      const link = document.createElement("a");
-      link.className = "chip";
-      link.href = href;
-      link.setAttribute("aria-label", `Remove filter: ${label}`);
-      link.append(document.createTextNode(`${label} ×`));
-      item.append(link);
-      return item;
-    }));
+    chipList.replaceChildren(
+      ...entries.map(({label, href}) => {
+        const item = document.createElement('li');
+        const link = document.createElement('a');
+        link.className = 'chip';
+        link.href = href;
+        link.setAttribute('aria-label', `Remove filter: ${label}`);
+        link.append(document.createTextNode(`${label} ×`));
+        item.append(link);
+        return item;
+      }),
+    );
     if (entries.length) {
-      const item = document.createElement("li");
-      const clear = document.createElement("a");
-      clear.className = "chip chip-clear";
-      clear.href = "/products";
-      clear.dataset.clearFilters = "";
-      clear.textContent = "Clear all";
+      const item = document.createElement('li');
+      const clear = document.createElement('a');
+      clear.className = 'chip chip-clear';
+      clear.href = '/products';
+      clear.dataset.clearFilters = '';
+      clear.textContent = 'Clear all';
       item.append(clear);
       chipList.append(item);
     }
@@ -256,78 +358,110 @@
   }
 
   function renderPagination(pagination) {
-    const old = resultsContent.querySelector(".pagination");
+    const old = resultsContent.querySelector('.pagination');
     if (old) old.remove();
     if (pagination.pages <= 1) return;
-    const nav = document.createElement("nav");
-    nav.className = "pagination";
-    nav.setAttribute("aria-label", "Pages");
+    const nav = document.createElement('nav');
+    nav.className = 'pagination';
+    nav.setAttribute('aria-label', 'Pages');
     const add = (label, page, className, current) => {
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.className = className;
-      link.href = urlFor({ ...state, page });
+      link.href = urlFor({...state, page});
       link.textContent = label;
-      if (current) link.setAttribute("aria-current", "page");
+      if (current) link.setAttribute('aria-current', 'page');
       nav.append(link);
     };
-    if (pagination.page > 1) add("Previous", pagination.page - 1, "page-step");
-    const pages = [...new Set([1, pagination.page - 1, pagination.page, pagination.page + 1, pagination.pages]
-      .filter(page => page >= 1 && page <= pagination.pages))];
+    if (pagination.page > 1) add('Previous', pagination.page - 1, 'page-step');
+    const pages = [
+      ...new Set(
+        [
+          1,
+          pagination.page - 1,
+          pagination.page,
+          pagination.page + 1,
+          pagination.pages,
+        ].filter((page) => page >= 1 && page <= pagination.pages),
+      ),
+    ];
     pages.forEach((page, index) => {
       if (index && page > pages[index - 1] + 1) {
-        const gap = document.createElement("span");
-        gap.className = "page-gap";
-        gap.textContent = "…";
+        const gap = document.createElement('span');
+        gap.className = 'page-gap';
+        gap.textContent = '…';
         nav.append(gap);
       }
-      add(String(page), page, `page-num${page === pagination.page ? " is-current" : ""}`, page === pagination.page);
+      add(
+        String(page),
+        page,
+        `page-num${page === pagination.page ? ' is-current' : ''}`,
+        page === pagination.page,
+      );
     });
-    if (pagination.page < pagination.pages) add("Next", pagination.page + 1, "page-step");
+    if (pagination.page < pagination.pages)
+      add('Next', pagination.page + 1, 'page-step');
     resultsContent.append(nav);
   }
 
   function renderCount(pagination) {
     // The live total in the filter panel head and on the phone sheet's "Show N results" button.
-    const word = pagination.total === 1 ? "result" : "results";
-    document.querySelectorAll("[data-filter-total]").forEach(el => { el.textContent = `${pagination.total} ${word}`; });
-    document.querySelectorAll("[data-filter-total-num]").forEach(el => { el.textContent = String(pagination.total); });
-    document.querySelectorAll("[data-filter-total-word]").forEach(el => { el.textContent = word; });
+    const word = pagination.total === 1 ? 'result' : 'results';
+    document.querySelectorAll('[data-filter-total]').forEach((el) => {
+      el.textContent = `${pagination.total} ${word}`;
+    });
+    document.querySelectorAll('[data-filter-total-num]').forEach((el) => {
+      el.textContent = String(pagination.total);
+    });
+    document.querySelectorAll('[data-filter-total-word]').forEach((el) => {
+      el.textContent = word;
+    });
     if (!resultsSummary) return;
     resultsSummary.replaceChildren();
     if (!pagination.total) {
-      resultsSummary.textContent = "0 results";
+      resultsSummary.textContent = '0 results';
       return;
     }
     const first = (pagination.page - 1) * pagination.limit + 1;
     const last = Math.min(pagination.page * pagination.limit, pagination.total);
-    const total = document.createElement("strong");
+    const total = document.createElement('strong');
     total.textContent = String(pagination.total);
-    resultsSummary.append(`Showing ${first}–${last} of `, total, ` ${pagination.total === 1 ? "result" : "results"}`);
+    resultsSummary.append(
+      `Showing ${first}–${last} of `,
+      total,
+      ` ${pagination.total === 1 ? 'result' : 'results'}`,
+    );
   }
 
   function renderResults(data) {
-    const { products, pagination } = data;
+    const {products, pagination} = data;
     if (resultsHeading) {
-      resultsHeading.textContent = state.q ? `Results for “${state.q}”` : state.category ? categoryLabel() : "All sports gear";
+      resultsHeading.textContent = state.q
+        ? `Results for “${state.q}”`
+        : state.category
+          ? categoryLabel()
+          : 'All sports gear';
     }
     renderCount(pagination);
     const body = document.createDocumentFragment();
     if (products.length) {
-      const grid = document.createElement("div");
-      grid.className = `product-grid product-grid-3${state.view === "list" ? " is-list" : ""}`;
-      products.forEach(product => grid.append(window.Nx.productCard(product)));
+      const grid = document.createElement('div');
+      grid.className = `product-grid product-grid-3${state.view === 'list' ? ' is-list' : ''}`;
+      products.forEach((product) =>
+        grid.append(window.Nx.productCard(product)),
+      );
       body.append(grid);
     } else {
-      const empty = document.createElement("div");
-      empty.className = "empty-state";
-      const title = document.createElement("h2");
-      title.textContent = `No gear matches ${state.q ? `“${state.q}”` : "those filters"}`;
-      const copy = document.createElement("p");
-      copy.textContent = "Check the spelling, try a more general word, or remove a filter.";
-      const browse = document.createElement("a");
-      browse.className = "btn btn-primary";
-      browse.href = "/products";
-      browse.textContent = "Browse all gear";
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      const title = document.createElement('h2');
+      title.textContent = `No gear matches ${state.q ? `“${state.q}”` : 'those filters'}`;
+      const copy = document.createElement('p');
+      copy.textContent =
+        'Check the spelling, try a more general word, or remove a filter.';
+      const browse = document.createElement('a');
+      browse.className = 'btn btn-primary';
+      browse.href = '/products';
+      browse.textContent = 'Browse all gear';
       empty.append(title, copy, browse);
       body.append(empty);
     }
@@ -335,24 +469,26 @@
     renderPagination(pagination);
     renderChips();
     renderControls();
-    if (document.querySelector("[data-wish-link]")) {
-      resultsContent.querySelectorAll("[data-wish-id]").forEach(button => { button.hidden = false; });
+    if (document.querySelector('[data-wish-link]')) {
+      resultsContent.querySelectorAll('[data-wish-id]').forEach((button) => {
+        button.hidden = false;
+      });
     }
   }
 
   // ---------- Loading ----------
 
   let request = null;
-  const setLoading = on => {
+  const setLoading = (on) => {
     if (!results) return;
-    results.classList.toggle("is-loading", on);
-    if (on) results.setAttribute("aria-busy", "true");
-    else results.removeAttribute("aria-busy");
+    results.classList.toggle('is-loading', on);
+    if (on) results.setAttribute('aria-busy', 'true');
+    else results.removeAttribute('aria-busy');
   };
   // Coming back with the browser's Back button restores the page from cache; clear the busy look.
-  window.addEventListener("pageshow", () => setLoading(false));
+  window.addEventListener('pageshow', () => setLoading(false));
 
-  async function load({ history = "push", focusResults = false } = {}) {
+  async function load({history = 'push', focusResults = false} = {}) {
     if (!filterForm || !resultsContent) return;
     if (request) request.abort();
     const controller = new AbortController();
@@ -363,14 +499,19 @@
     renderControls();
     setLoading(true);
     try {
-      const response = await fetch(`/api/products${query.toString() ? `?${query}` : ""}`, { credentials: "same-origin", signal: controller.signal });
-      if (!response.ok) throw new Error("Couldn’t update the catalogue.");
+      const response = await fetch(
+        `/api/products${query.toString() ? `?${query}` : ''}`,
+        {credentials: 'same-origin', signal: controller.signal},
+      );
+      if (!response.ok) throw new Error('Couldn’t update the catalogue.');
       const data = await response.json();
-      if (history === "push") window.history.pushState({}, "", urlFor());
+      if (history === 'push') window.history.pushState({}, '', urlFor());
       renderResults(data);
-      if (focusResults && resultsHeading) resultsHeading.focus({ preventScroll: true });
+      if (focusResults && resultsHeading)
+        resultsHeading.focus({preventScroll: true});
     } catch (error) {
-      if (error.name !== "AbortError" && window.Nx && window.Nx.toast) window.Nx.toast(error.message, "error");
+      if (error.name !== 'AbortError' && window.Nx && window.Nx.toast)
+        window.Nx.toast(error.message, 'error');
     } finally {
       if (request === controller) {
         request = null;
@@ -381,10 +522,10 @@
 
   // Every change goes through here: patch the state, then reload. A new filter always starts at
   // page 1, because page 7 of the old results means nothing once the filter has changed.
-  function apply(patch, { keepPage = false, focusResults = true } = {}) {
-    state = { ...state, ...patch };
+  function apply(patch, {keepPage = false, focusResults = true} = {}) {
+    state = {...state, ...patch};
     if (!keepPage) state.page = 1;
-    load({ focusResults });
+    load({focusResults});
   }
 
   // ---------- Events ----------
@@ -392,85 +533,110 @@
   if (filterForm) {
     state = readState(window.location.search);
 
-    filterForm.addEventListener("change", event => {
+    filterForm.addEventListener('change', (event) => {
       const patch = patchFromControl(event.target);
       if (patch) apply(patch);
     });
     // The price group applies on its own button (and on Enter inside a price box).
-    filterForm.addEventListener("submit", event => {
+    filterForm.addEventListener('submit', (event) => {
       event.preventDefault();
       apply(pricePatch());
     });
-    document.querySelectorAll("[data-filter-field]").forEach(field => {
-      field.addEventListener("change", () => {
+    document.querySelectorAll('[data-filter-field]').forEach((field) => {
+      field.addEventListener('change', () => {
         const patch = patchFromControl(field);
         if (patch) apply(patch);
       });
     });
     // Chips, pagination, the view toggle and "Clear all" are real links: their href already holds
     // the state they mean, so the click just reads it back.
-    catalog.addEventListener("click", event => {
-      const link = event.target.closest(".chip, .pagination a, [data-view-link], [data-clear-filters]");
-      if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.button) return;
+    catalog.addEventListener('click', (event) => {
+      const link = event.target.closest(
+        '.chip, .pagination a, [data-view-link], [data-clear-filters]',
+      );
+      if (
+        !link ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.button
+      )
+        return;
       event.preventDefault();
       state = readState(new URL(link.href, window.location.origin).search);
-      load({ focusResults: true });
+      load({focusResults: true});
     });
-    window.addEventListener("popstate", () => {
+    window.addEventListener('popstate', () => {
       state = readState(window.location.search);
-      load({ history: "none" });
+      load({history: 'none'});
     });
     // Keep the open/closed state of each group reported correctly.
-    filterForm.addEventListener("toggle", event => {
-      const group = event.target.closest("[data-filter-group]");
-      if (group) group.querySelector("summary").setAttribute("aria-expanded", String(group.open));
-    }, true);
+    filterForm.addEventListener(
+      'toggle',
+      (event) => {
+        const group = event.target.closest('[data-filter-group]');
+        if (group)
+          group
+            .querySelector('summary')
+            .setAttribute('aria-expanded', String(group.open));
+      },
+      true,
+    );
     renderControls();
   }
 
   // ---------- Price range slider ----------
   // Two range handles drive the min/max boxes. Only the boxes are read into the state, and a box
   // left at the end of the range is cleared, so the URL stays clean.
-  const priceBox = document.querySelector("[data-price-filter]");
+  const priceBox = document.querySelector('[data-price-filter]');
   if (priceBox) {
-    const slider = priceBox.querySelector("[data-range]");
-    const lowRange = priceBox.querySelector("[data-range-min]");
-    const highRange = priceBox.querySelector("[data-range-max]");
-    const minBox = priceBox.querySelector("[data-price-min]");
-    const maxBox = priceBox.querySelector("[data-price-max]");
-    const fill = priceBox.querySelector("[data-range-fill]");
+    const slider = priceBox.querySelector('[data-range]');
+    const lowRange = priceBox.querySelector('[data-range-min]');
+    const highRange = priceBox.querySelector('[data-range-max]');
+    const minBox = priceBox.querySelector('[data-price-min]');
+    const maxBox = priceBox.querySelector('[data-price-max]');
+    const fill = priceBox.querySelector('[data-range-fill]');
     const low = Number(priceBox.dataset.low);
     const high = Number(priceBox.dataset.high);
-    const clamp = value => Math.min(Math.max(value, low), high);
-    const rupees = value => `₹${Number(value).toLocaleString("en-IN")}`;
+    const clamp = (value) => Math.min(Math.max(value, low), high);
+    const rupees = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
 
     // Draws the filled part of the track and keeps the handles in step with the boxes.
     paintPrice = () => {
-      lowRange.value = minBox.value === "" ? low : clamp(Number(minBox.value));
-      highRange.value = maxBox.value === "" ? high : clamp(Number(maxBox.value));
+      lowRange.value = minBox.value === '' ? low : clamp(Number(minBox.value));
+      highRange.value =
+        maxBox.value === '' ? high : clamp(Number(maxBox.value));
       const span = high - low || 1;
-      fill.style.setProperty("--from", String((Number(lowRange.value) - low) / span));
-      fill.style.setProperty("--to", String((Number(highRange.value) - low) / span));
-      lowRange.setAttribute("aria-valuetext", rupees(lowRange.value));
-      highRange.setAttribute("aria-valuetext", rupees(highRange.value));
+      fill.style.setProperty(
+        '--from',
+        String((Number(lowRange.value) - low) / span),
+      );
+      fill.style.setProperty(
+        '--to',
+        String((Number(highRange.value) - low) / span),
+      );
+      lowRange.setAttribute('aria-valuetext', rupees(lowRange.value));
+      highRange.setAttribute('aria-valuetext', rupees(highRange.value));
     };
-    const fromRanges = moved => {
+    const fromRanges = (moved) => {
       if (Number(lowRange.value) > Number(highRange.value)) {
         if (moved === lowRange) lowRange.value = highRange.value;
         else highRange.value = lowRange.value;
       }
-      minBox.value = Number(lowRange.value) <= low ? "" : lowRange.value;
-      maxBox.value = Number(highRange.value) >= high ? "" : highRange.value;
+      minBox.value = Number(lowRange.value) <= low ? '' : lowRange.value;
+      maxBox.value = Number(highRange.value) >= high ? '' : highRange.value;
       paintPrice();
     };
     if (high > low) {
       slider.hidden = false;
-      lowRange.addEventListener("input", () => fromRanges(lowRange));
-      highRange.addEventListener("input", () => fromRanges(highRange));
+      lowRange.addEventListener('input', () => fromRanges(lowRange));
+      highRange.addEventListener('input', () => fromRanges(highRange));
       // Letting go of a handle applies the new range.
-      [lowRange, highRange].forEach(range => range.addEventListener("change", () => apply(pricePatch())));
-      minBox.addEventListener("input", paintPrice);
-      maxBox.addEventListener("input", paintPrice);
+      [lowRange, highRange].forEach((range) =>
+        range.addEventListener('change', () => apply(pricePatch())),
+      );
+      minBox.addEventListener('input', paintPrice);
+      maxBox.addEventListener('input', paintPrice);
       paintPrice();
     }
   }
@@ -478,14 +644,14 @@
   // ---------- Quick price ranges ----------
   // A preset fills both price boxes and applies them; tapping the chosen one again clears the price.
   if (filterForm) {
-    filterForm.addEventListener("click", event => {
-      const button = event.target.closest("[data-price-preset]");
+    filterForm.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-price-preset]');
       if (!button) return;
-      const minBox = filterForm.querySelector("[data-price-min]");
-      const maxBox = filterForm.querySelector("[data-price-max]");
-      const again = button.classList.contains("is-active");
-      minBox.value = again ? "" : button.dataset.min;
-      maxBox.value = again ? "" : button.dataset.max;
+      const minBox = filterForm.querySelector('[data-price-min]');
+      const maxBox = filterForm.querySelector('[data-price-max]');
+      const again = button.classList.contains('is-active');
+      minBox.value = again ? '' : button.dataset.min;
+      maxBox.value = again ? '' : button.dataset.max;
       if (paintPrice) paintPrice();
       apply(pricePatch());
     });
@@ -493,81 +659,91 @@
 
   // ---------- Brand search and "Show all brands" ----------
   // Only hides and shows the brand rows already on the page; choosing still goes through the state.
-  const brandBox = document.querySelector("[data-brand-box]");
+  const brandBox = document.querySelector('[data-brand-box]');
   if (brandBox) {
-    const list = brandBox.querySelector(".fx-checks");
-    const rows = [...brandBox.querySelectorAll("[data-brand-name]")];
-    const search = brandBox.querySelector("[data-brand-search]");
-    const more = brandBox.querySelector("[data-brand-more]");
-    const none = brandBox.querySelector("[data-brand-none]");
+    const list = brandBox.querySelector('.fx-checks');
+    const rows = [...brandBox.querySelectorAll('[data-brand-name]')];
+    const search = brandBox.querySelector('[data-brand-search]');
+    const more = brandBox.querySelector('[data-brand-more]');
+    const none = brandBox.querySelector('[data-brand-none]');
     const filterRows = () => {
-      const text = search ? search.value.trim().toLowerCase() : "";
+      const text = search ? search.value.trim().toLowerCase() : '';
       // While searching, every match shows, including the ones normally behind "Show all".
-      list.classList.toggle("is-expanded", Boolean(text) || (more && more.getAttribute("aria-expanded") === "true"));
+      list.classList.toggle(
+        'is-expanded',
+        Boolean(text) ||
+          (more && more.getAttribute('aria-expanded') === 'true'),
+      );
       let shown = 0;
-      rows.forEach(row => {
+      rows.forEach((row) => {
         const match = !text || row.dataset.brandName.includes(text);
-        row.classList.toggle("is-filtered-out", !match);
+        row.classList.toggle('is-filtered-out', !match);
         if (match) shown += 1;
       });
       if (none) none.hidden = shown > 0;
       if (more) more.hidden = Boolean(text);
     };
-    if (search) search.addEventListener("input", filterRows);
+    if (search) search.addEventListener('input', filterRows);
     if (more) {
-      more.addEventListener("click", () => {
-        const open = more.getAttribute("aria-expanded") !== "true";
-        more.setAttribute("aria-expanded", String(open));
-        more.textContent = open ? "Show fewer brands" : `Show all ${rows.length} brands`;
+      more.addEventListener('click', () => {
+        const open = more.getAttribute('aria-expanded') !== 'true';
+        more.setAttribute('aria-expanded', String(open));
+        more.textContent = open
+          ? 'Show fewer brands'
+          : `Show all ${rows.length} brands`;
         filterRows();
       });
     }
   }
 
   // ---------- Filter drawer (phones and small tablets) ----------
-  const drawer = document.querySelector("[data-filter-drawer]");
-  const openButton = document.querySelector("[data-filter-open]");
+  const drawer = document.querySelector('[data-filter-drawer]');
+  const openButton = document.querySelector('[data-filter-open]');
   if (catalog && drawer && openButton) {
     // Without this script the filters simply show above the results, so nothing is ever out of reach.
-    catalog.classList.add("is-enhanced");
-    const backdrop = catalog.querySelector(".drawer-backdrop");
-    const small = window.matchMedia("(max-width: 900px)");
-    const focusable = () => [...drawer.querySelectorAll("a[href], button, input, select, summary")]
-      .filter(el => !el.disabled && el.offsetParent !== null);
+    catalog.classList.add('is-enhanced');
+    const backdrop = catalog.querySelector('.drawer-backdrop');
+    const small = window.matchMedia('(max-width: 900px)');
+    const focusable = () =>
+      [
+        ...drawer.querySelectorAll('a[href], button, input, select, summary'),
+      ].filter((el) => !el.disabled && el.offsetParent !== null);
 
     const open = () => {
-      drawer.classList.add("is-open");
+      drawer.classList.add('is-open');
       backdrop.hidden = false;
-      document.body.classList.add("drawer-open");
-      openButton.setAttribute("aria-expanded", "true");
-      drawer.setAttribute("role", "dialog");
-      drawer.setAttribute("aria-modal", "true");
-      const first = drawer.querySelector("input:checked") || focusable()[0];
+      document.body.classList.add('drawer-open');
+      openButton.setAttribute('aria-expanded', 'true');
+      drawer.setAttribute('role', 'dialog');
+      drawer.setAttribute('aria-modal', 'true');
+      const first = drawer.querySelector('input:checked') || focusable()[0];
       if (first) first.focus();
     };
     const close = () => {
-      if (!drawer.classList.contains("is-open")) return;
-      drawer.classList.remove("is-open");
+      if (!drawer.classList.contains('is-open')) return;
+      drawer.classList.remove('is-open');
       backdrop.hidden = true;
-      document.body.classList.remove("drawer-open");
-      openButton.setAttribute("aria-expanded", "false");
-      drawer.removeAttribute("role");
-      drawer.removeAttribute("aria-modal");
+      document.body.classList.remove('drawer-open');
+      openButton.setAttribute('aria-expanded', 'false');
+      drawer.removeAttribute('role');
+      drawer.removeAttribute('aria-modal');
       openButton.focus();
     };
 
-    openButton.addEventListener("click", open);
-    catalog.querySelectorAll("[data-filter-close]").forEach(el => el.addEventListener("click", close));
-    small.addEventListener("change", close);
+    openButton.addEventListener('click', open);
+    catalog
+      .querySelectorAll('[data-filter-close]')
+      .forEach((el) => el.addEventListener('click', close));
+    small.addEventListener('change', close);
 
-    drawer.addEventListener("keydown", event => {
-      if (!drawer.classList.contains("is-open")) return;
-      if (event.key === "Escape") {
+    drawer.addEventListener('keydown', (event) => {
+      if (!drawer.classList.contains('is-open')) return;
+      if (event.key === 'Escape') {
         close();
         return;
       }
       // Keep keyboard focus inside the open drawer.
-      if (event.key === "Tab") {
+      if (event.key === 'Tab') {
         const list = focusable();
         const first = list[0];
         const last = list[list.length - 1];
@@ -584,64 +760,107 @@
 
   // ---------- Zoom on hover ----------
   // Only for a real mouse: on touch screens there is no hover, so the photo stays as it is.
-  const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
-  document.querySelectorAll("[data-zoom]").forEach(frame => {
-    const img = frame.querySelector("img");
+  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
+  document.querySelectorAll('[data-zoom]').forEach((frame) => {
+    const img = frame.querySelector('img');
     if (!img) return;
-    frame.addEventListener("pointermove", event => {
-      if (!canHover.matches || event.pointerType !== "mouse") return;
+    frame.addEventListener('pointermove', (event) => {
+      if (!canHover.matches || event.pointerType !== 'mouse') return;
       const box = frame.getBoundingClientRect();
       const x = ((event.clientX - box.left) / box.width) * 100;
       const y = ((event.clientY - box.top) / box.height) * 100;
       img.style.transformOrigin = `${x}% ${y}%`;
-      frame.classList.add("is-zooming");
+      frame.classList.add('is-zooming');
     });
-    frame.addEventListener("pointerleave", () => frame.classList.remove("is-zooming"));
+    frame.addEventListener('pointerleave', () =>
+      frame.classList.remove('is-zooming'),
+    );
   });
 
   // ---------- Product gallery ----------
-  document.querySelectorAll("[data-gallery]").forEach(gallery => {
-    const main = gallery.querySelector("[data-gallery-main]");
-    const thumbs = [...gallery.querySelectorAll(".thumb")];
-    const counter = gallery.querySelector("[data-gallery-index]");
+  document.querySelectorAll('[data-gallery]').forEach((gallery) => {
+    const main = gallery.querySelector('[data-gallery-main]');
+    const thumbs = [...gallery.querySelectorAll('.thumb')];
+    const counter = gallery.querySelector('[data-gallery-index]');
     if (!main || !thumbs.length) return;
-    let current = Math.max(0, thumbs.findIndex(thumb => thumb.getAttribute("aria-current") === "true"));
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let current = Math.max(
+      0,
+      thumbs.findIndex(
+        (thumb) => thumb.getAttribute('aria-current') === 'true',
+      ),
+    );
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     // Changing photo turns it like a page in 3D: the old photo swings away and fades, the new one swings
     // in from the other side, and a band of light crosses as it settles. dir is 1 (next) or -1 (back).
     // A copy of the old photo does the leaving, so the real image only ever changes its src.
-    const turn = dir => {
-      const box = main.closest("[data-stage]");
-      if (!box || reduced.matches || typeof main.animate !== "function" || !main.currentSrc) return;
-      const ms = window.Nx && Nx.motionMs ? Nx.motionMs("--duration-slow", 400) * 1.4 : 560;
-      const ease = window.Nx && Nx.motionEase ? Nx.motionEase("--ease-out") : "ease-out";
-      box.querySelectorAll(".pdx-photo-leaving, .pdx-photo-light").forEach(old => old.remove());
-      const leaving = document.createElement("img");
-      leaving.className = "pdx-photo pdx-photo-leaving";
-      leaving.alt = "";
-      leaving.setAttribute("aria-hidden", "true");
+    const turn = (dir) => {
+      const box = main.closest('[data-stage]');
+      if (
+        !box ||
+        reduced.matches ||
+        typeof main.animate !== 'function' ||
+        !main.currentSrc
+      )
+        return;
+      const ms =
+        window.Nx && Nx.motionMs
+          ? Nx.motionMs('--duration-slow', 400) * 1.4
+          : 560;
+      const ease =
+        window.Nx && Nx.motionEase ? Nx.motionEase('--ease-out') : 'ease-out';
+      box
+        .querySelectorAll('.pdx-photo-leaving, .pdx-photo-light')
+        .forEach((old) => old.remove());
+      const leaving = document.createElement('img');
+      leaving.className = 'pdx-photo pdx-photo-leaving';
+      leaving.alt = '';
+      leaving.setAttribute('aria-hidden', 'true');
       leaving.src = main.currentSrc;
       // Only the real photo may carry the page-transition name (two with one name cancel the transition).
-      leaving.style.viewTransitionName = "none";
+      leaving.style.viewTransitionName = 'none';
       main.after(leaving);
-      const light = document.createElement("span");
-      light.className = "pdx-photo-light";
-      light.setAttribute("aria-hidden", "true");
+      const light = document.createElement('span');
+      light.className = 'pdx-photo-light';
+      light.setAttribute('aria-hidden', 'true');
       leaving.after(light);
-      leaving.animate([
-        { transform: "perspective(1200px) rotateY(0deg) translateZ(0)", opacity: 1 },
-        { transform: `perspective(1200px) rotateY(${-dir * 62}deg) translateZ(-120px) translateX(${-dir * 18}%)`, opacity: 0 }
-      ], { duration: ms * 0.8, easing: ease, fill: "forwards" }).finished.catch(() => {}).then(() => leaving.remove());
-      main.animate([
-        { transform: `perspective(1200px) rotateY(${dir * 48}deg) translateZ(-160px) translateX(${dir * 14}%)`, opacity: 0 },
-        { transform: "none", opacity: 1 }
-      ], { duration: ms, easing: ease });
-      light.animate([
-        { transform: `translateX(${dir > 0 ? -110 : 110}%)`, opacity: 0 },
-        { opacity: 1, offset: 0.4 },
-        { transform: `translateX(${dir > 0 ? 110 : -110}%)`, opacity: 0 }
-      ], { duration: ms * 1.1, easing: ease }).finished.catch(() => {}).then(() => light.remove());
+      leaving
+        .animate(
+          [
+            {
+              transform: 'perspective(1200px) rotateY(0deg) translateZ(0)',
+              opacity: 1,
+            },
+            {
+              transform: `perspective(1200px) rotateY(${-dir * 62}deg) translateZ(-120px) translateX(${-dir * 18}%)`,
+              opacity: 0,
+            },
+          ],
+          {duration: ms * 0.8, easing: ease, fill: 'forwards'},
+        )
+        .finished.catch(() => {})
+        .then(() => leaving.remove());
+      main.animate(
+        [
+          {
+            transform: `perspective(1200px) rotateY(${dir * 48}deg) translateZ(-160px) translateX(${dir * 14}%)`,
+            opacity: 0,
+          },
+          {transform: 'none', opacity: 1},
+        ],
+        {duration: ms, easing: ease},
+      );
+      light
+        .animate(
+          [
+            {transform: `translateX(${dir > 0 ? -110 : 110}%)`, opacity: 0},
+            {opacity: 1, offset: 0.4},
+            {transform: `translateX(${dir > 0 ? 110 : -110}%)`, opacity: 0},
+          ],
+          {duration: ms * 1.1, easing: ease},
+        )
+        .finished.catch(() => {})
+        .then(() => light.remove());
     };
 
     // dir: 1 for "next", -1 for "back"; worked out from the positions when not given.
@@ -656,22 +875,25 @@
       // The big photo comes in several sizes: switch its srcset together with its src, or the browser
       // would keep choosing from the previous photo's set.
       if (thumb.dataset.srcset) main.srcset = thumb.dataset.srcset;
-      else main.removeAttribute("srcset");
+      else main.removeAttribute('srcset');
       main.src = thumb.dataset.src;
-      thumbs.forEach(other => other.removeAttribute("aria-current"));
-      thumb.setAttribute("aria-current", "true");
+      thumbs.forEach((other) => other.removeAttribute('aria-current'));
+      thumb.setAttribute('aria-current', 'true');
       paintCount();
     };
 
     // Photos of other colours can be hidden (below); arrows, swipes and the counter only use the shown ones.
-    const shown = () => thumbs.filter(thumb => !thumb.hidden);
-    const countOf = gallery.querySelector(".pdx-count-of");
+    const shown = () => thumbs.filter((thumb) => !thumb.hidden);
+    const countOf = gallery.querySelector('.pdx-count-of');
     function paintCount() {
       const list = shown();
-      if (counter) counter.textContent = String(Math.max(1, list.indexOf(thumbs[current]) + 1));
+      if (counter)
+        counter.textContent = String(
+          Math.max(1, list.indexOf(thumbs[current]) + 1),
+        );
       if (countOf) countOf.textContent = `/ ${list.length}`;
     }
-    const stepBy = dir => {
+    const stepBy = (dir) => {
       const list = shown();
       if (list.length < 2) return;
       const at = Math.max(0, list.indexOf(thumbs[current]));
@@ -680,78 +902,94 @@
 
     // Picking a colour (cart.js, the size and colour picker) shows that colour's photos plus the photos
     // that are for every colour, and turns to its first one. No colour picked: every photo.
-    if (thumbs.some(thumb => thumb.dataset.colour)) {
-      document.addEventListener("nx:colour", event => {
-        const colour = (event.detail && event.detail.colour) || "";
-        thumbs.forEach(thumb => {
-          thumb.hidden = Boolean(colour && thumb.dataset.colour && thumb.dataset.colour !== colour);
+    if (thumbs.some((thumb) => thumb.dataset.colour)) {
+      document.addEventListener('nx:colour', (event) => {
+        const colour = (event.detail && event.detail.colour) || '';
+        thumbs.forEach((thumb) => {
+          thumb.hidden = Boolean(
+            colour && thumb.dataset.colour && thumb.dataset.colour !== colour,
+          );
         });
-        const first = thumbs.find(thumb => colour && thumb.dataset.colour === colour) || shown()[0];
+        const first =
+          thumbs.find((thumb) => colour && thumb.dataset.colour === colour) ||
+          shown()[0];
         if (first) show(thumbs.indexOf(first), 1);
         paintCount();
       });
     }
 
     thumbs.forEach((thumb, index) => {
-      thumb.addEventListener("click", () => show(index));
-      thumb.addEventListener("keydown", event => {
-        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+      thumb.addEventListener('click', () => show(index));
+      thumb.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
         event.preventDefault();
-        stepBy(event.key === "ArrowRight" ? 1 : -1);
+        stepBy(event.key === 'ArrowRight' ? 1 : -1);
         thumbs[current].focus();
       });
     });
-    gallery.querySelectorAll("[data-gallery-step]").forEach(button => {
-      button.addEventListener("click", () => stepBy(Number(button.dataset.galleryStep)));
+    gallery.querySelectorAll('[data-gallery-step]').forEach((button) => {
+      button.addEventListener('click', () =>
+        stepBy(Number(button.dataset.galleryStep)),
+      );
     });
 
     // Touch: swipe the big photo sideways for the next or previous one. The photo follows the finger
     // a little, so the gesture feels connected; a short or mostly vertical drag is left alone (the page
     // scrolls, or the tap opens the full-screen viewer as before).
-    const stage = main.closest("[data-stage]");
+    const stage = main.closest('[data-stage]');
     if (stage && thumbs.length > 1) {
       let startX = 0;
       let startY = 0;
       let dragging = false;
       let swiped = false;
       const settle = () => {
-        main.style.transition = "";
-        main.style.translate = "";
+        main.style.transition = '';
+        main.style.translate = '';
       };
-      stage.addEventListener("pointerdown", event => {
-        if (event.pointerType === "mouse" || event.target.closest("button, a")) return;
+      stage.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' || event.target.closest('button, a'))
+          return;
         startX = event.clientX;
         startY = event.clientY;
         dragging = true;
         swiped = false;
       });
-      stage.addEventListener("pointermove", event => {
+      stage.addEventListener('pointermove', (event) => {
         if (!dragging) return;
         const dx = event.clientX - startX;
-        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(event.clientY - startY)) return;
-        main.style.transition = "none";
+        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(event.clientY - startY))
+          return;
+        main.style.transition = 'none';
         main.style.translate = `${(dx * 0.35).toFixed(1)}px 0`;
       });
-      const end = event => {
+      const end = (event) => {
         if (!dragging) return;
         dragging = false;
         const dx = event.clientX - startX;
         const dy = event.clientY - startY;
         settle();
-        if (event.type === "pointerup" && Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (
+          event.type === 'pointerup' &&
+          Math.abs(dx) > 48 &&
+          Math.abs(dx) > Math.abs(dy) * 1.5
+        ) {
           swiped = true;
           stepBy(dx < 0 ? 1 : -1);
         }
       };
-      stage.addEventListener("pointerup", end);
-      stage.addEventListener("pointercancel", end);
+      stage.addEventListener('pointerup', end);
+      stage.addEventListener('pointercancel', end);
       // A swipe is not a tap: stop the click that follows it from opening the viewer.
-      stage.addEventListener("click", event => {
-        if (!swiped) return;
-        swiped = false;
-        event.stopImmediatePropagation();
-        event.preventDefault();
-      }, true);
+      stage.addEventListener(
+        'click',
+        (event) => {
+          if (!swiped) return;
+          swiped = false;
+          event.stopImmediatePropagation();
+          event.preventDefault();
+        },
+        true,
+      );
     }
   });
 })();

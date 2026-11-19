@@ -1,7 +1,7 @@
-const Product = require("../models/Product");
-const { HttpError } = require("../utils/http");
-const { supportsTransactions, inTransaction } = require("../utils/transaction");
-const { LISTED_PRODUCT } = require("../utils/queryFilters");
+const Product = require('../models/Product');
+const {HttpError} = require('../utils/http');
+const {supportsTransactions, inTransaction} = require('../utils/transaction');
+const {LISTED_PRODUCT} = require('../utils/queryFilters');
 
 // Taking stock is ATOMIC per product: "$inc stock by -qty, but only if stock >= qty" is one
 // database operation, so two shoppers can never both buy the last item and stock never goes
@@ -18,23 +18,48 @@ async function takeStock(lines, session = null) {
   for (const line of lines) {
     const result = line.variant
       ? await Product.updateOne(
-        { _id: line.product, ...LISTED_PRODUCT, variants: { $elemMatch: { _id: line.variant, stock: { $gte: line.quantity } } } },
-        { $inc: { "variants.$.stock": -line.quantity, stock: -line.quantity } },
-        { session }
-      )
+          {
+            _id: line.product,
+            ...LISTED_PRODUCT,
+            variants: {
+              $elemMatch: {_id: line.variant, stock: {$gte: line.quantity}},
+            },
+          },
+          {$inc: {'variants.$.stock': -line.quantity, stock: -line.quantity}},
+          {session},
+        )
       : await Product.updateOne(
-        { _id: line.product, ...LISTED_PRODUCT, stock: { $gte: line.quantity } },
-        { $inc: { stock: -line.quantity } },
-        { session }
-      );
+          {_id: line.product, ...LISTED_PRODUCT, stock: {$gte: line.quantity}},
+          {$inc: {stock: -line.quantity}},
+          {session},
+        );
     if (result.modifiedCount !== 1) {
       if (!session) await returnStock(taken);
-      const left = await Product.findById(line.product).select("stock variants").session(session).lean();
-      const option = line.variant && left ? (left.variants || []).find(v => String(v._id) === String(line.variant)) : null;
-      const stock = line.variant ? (option ? option.stock : 0) : (left ? left.stock : 0);
-      throw new HttpError(409, stock > 0
-        ? `Only ${stock} of ${line.name} left now. Please update your cart.`
-        : `${line.name} just sold out. Please remove it from your cart.`, null, "items_unavailable");
+      const left = await Product.findById(line.product)
+        .select('stock variants')
+        .session(session)
+        .lean();
+      const option =
+        line.variant && left
+          ? (left.variants || []).find(
+              (v) => String(v._id) === String(line.variant),
+            )
+          : null;
+      const stock = line.variant
+        ? option
+          ? option.stock
+          : 0
+        : left
+          ? left.stock
+          : 0;
+      throw new HttpError(
+        409,
+        stock > 0
+          ? `Only ${stock} of ${line.name} left now. Please update your cart.`
+          : `${line.name} just sold out. Please remove it from your cart.`,
+        null,
+        'items_unavailable',
+      );
     }
     taken.push(line);
   }
@@ -48,12 +73,16 @@ async function returnStock(lines, session = null) {
   for (const line of lines) {
     if (line.variant) {
       await Product.updateOne(
-        { _id: line.product, "variants._id": line.variant },
-        { $inc: { "variants.$.stock": line.quantity, stock: line.quantity } },
-        { session }
+        {_id: line.product, 'variants._id': line.variant},
+        {$inc: {'variants.$.stock': line.quantity, stock: line.quantity}},
+        {session},
       );
     } else {
-      await Product.updateOne({ _id: line.product }, { $inc: { stock: line.quantity } }, { session });
+      await Product.updateOne(
+        {_id: line.product},
+        {$inc: {stock: line.quantity}},
+        {session},
+      );
     }
   }
 }
@@ -69,7 +98,10 @@ async function withStock(lines, work) {
 }
 
 function receiptFor(key, line) {
-  return require("crypto").createHash("sha256").update(`${key}:${line.product}:${line.variant || ""}`).digest("hex");
+  return require('crypto')
+    .createHash('sha256')
+    .update(`${key}:${line.product}:${line.variant || ''}`)
+    .digest('hex');
 }
 
 // The movement and its receipt are one product update. Journals can retry a
@@ -77,21 +109,47 @@ function receiptFor(key, line) {
 async function moveOnce(lines, key, direction, reservedBy = null) {
   for (const line of lines) {
     const receipt = receiptFor(key, line);
-    const filter = { _id: line.product, stockReceipts: { $ne: receipt } };
-    if (reservedBy) filter.$and = [{ stockReceipts: receiptFor(reservedBy, line) }];
+    const filter = {_id: line.product, stockReceipts: {$ne: receipt}};
+    if (reservedBy)
+      filter.$and = [{stockReceipts: receiptFor(reservedBy, line)}];
     if (direction < 0) Object.assign(filter, LISTED_PRODUCT);
     if (line.variant) {
-      filter.variants = { $elemMatch: { _id: line.variant, ...(direction < 0 ? { stock: { $gte: line.quantity } } : {}) } };
-    } else if (direction < 0) filter.stock = { $gte: line.quantity };
-    const change = { stock: direction * line.quantity };
-    if (line.variant) change["variants.$.stock"] = direction * line.quantity;
-    const result = await Product.updateOne(filter, { $inc: change, $addToSet: { stockReceipts: receipt } });
+      filter.variants = {
+        $elemMatch: {
+          _id: line.variant,
+          ...(direction < 0 ? {stock: {$gte: line.quantity}} : {}),
+        },
+      };
+    } else if (direction < 0) filter.stock = {$gte: line.quantity};
+    const change = {stock: direction * line.quantity};
+    if (line.variant) change['variants.$.stock'] = direction * line.quantity;
+    const result = await Product.updateOne(filter, {
+      $inc: change,
+      $addToSet: {stockReceipts: receipt},
+    });
     if (result.modifiedCount || direction > 0) continue;
-    const applied = await Product.exists({ _id: line.product, stockReceipts: receipt });
-    if (!applied) throw new HttpError(409, `${line.name || "This product"} is no longer available in that quantity.`, null, "items_unavailable");
+    const applied = await Product.exists({
+      _id: line.product,
+      stockReceipts: receipt,
+    });
+    if (!applied)
+      throw new HttpError(
+        409,
+        `${line.name || 'This product'} is no longer available in that quantity.`,
+        null,
+        'items_unavailable',
+      );
   }
 }
 const takeStockOnce = (lines, key) => moveOnce(lines, key, -1);
-const returnStockOnce = (lines, key, reservedBy = null) => moveOnce(lines, key, 1, reservedBy);
+const returnStockOnce = (lines, key, reservedBy = null) =>
+  moveOnce(lines, key, 1, reservedBy);
 
-module.exports = { supportsTransactions, takeStock, returnStock, withStock, takeStockOnce, returnStockOnce };
+module.exports = {
+  supportsTransactions,
+  takeStock,
+  returnStock,
+  withStock,
+  takeStockOnce,
+  returnStockOnce,
+};

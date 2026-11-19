@@ -5,32 +5,48 @@
 // Numbering: GST needs one unbroken series per financial year. Numbers come from an atomic counter, and
 // an order (or credit note) first CLAIMS its slot with a conditional update, so a retry or a second
 // caller never takes a number that then goes unused.
-const crypto = require("crypto");
-const Order = require("../models/Order");
-const Product = require("../models/Product");
-const counterService = require("./counterService");
-const { STORE } = require("../config/store");
-const { taxOf, orderTax, financialYear } = require("../utils/gst");
+const crypto = require('crypto');
+const Order = require('../models/Order');
+const Product = require('../models/Product');
+const counterService = require('./counterService');
+const {STORE} = require('../config/store');
+const {taxOf, orderTax, financialYear} = require('../utils/gst');
 
-const INVOICE_PREFIX = "NX";
-const CREDIT_PREFIX = "CN";
+const INVOICE_PREFIX = 'NX';
+const CREDIT_PREFIX = 'CN';
 
 // The GST block of a new order, from its lines (quote lines or order item snapshots) and money.
-async function taxForOrder({ lines, couponDiscount = 0, deliveryFee = 0, buyerState }) {
-  const products = await Product.find({ _id: { $in: lines.map(line => line.productId || line.product) } })
-    .select("name tax category")
-    .populate("category", "name")
+async function taxForOrder({
+  lines,
+  couponDiscount = 0,
+  deliveryFee = 0,
+  buyerState,
+}) {
+  const products = await Product.find({
+    _id: {$in: lines.map((line) => line.productId || line.product)},
+  })
+    .select('name tax category')
+    .populate('category', 'name')
     .lean();
-  const byId = new Map(products.map(product => [String(product._id), product]));
+  const byId = new Map(
+    products.map((product) => [String(product._id), product]),
+  );
   const taxed = orderTax({
-    lines: lines.map(line => {
-      const product = byId.get(String(line.productId || line.product)) || { name: line.name };
-      return { lineTotal: line.lineTotal, price: line.price, quantity: line.quantity, tax: taxOf(product) };
+    lines: lines.map((line) => {
+      const product = byId.get(String(line.productId || line.product)) || {
+        name: line.name,
+      };
+      return {
+        lineTotal: line.lineTotal,
+        price: line.price,
+        quantity: line.quantity,
+        tax: taxOf(product),
+      };
     }),
     couponDiscount,
     deliveryFee,
     sellerState: STORE.state,
-    buyerState
+    buyerState,
   });
   return {
     perLine: taxed.lines,
@@ -42,9 +58,9 @@ async function taxForOrder({ lines, couponDiscount = 0, deliveryFee = 0, buyerSt
       interstate: taxed.interstate,
       ...taxed.totals,
       delivery: taxed.delivery,
-      invoiceNo: "",
-      invoiceDate: null
-    }
+      invoiceNo: '',
+      invoiceDate: null,
+    },
   };
 }
 
@@ -52,38 +68,77 @@ async function taxForOrder({ lines, couponDiscount = 0, deliveryFee = 0, buyerSt
 // Orders saved before GST invoices existed have no GST block and keep their simple invoice.
 async function issueInvoice(orderId, when = new Date()) {
   let order = await Order.findOneAndUpdate(
-    { _id: orderId, "gst.scheme": { $exists: true }, "gst.invoiceNo": "" },
-    { $set: { "gst.invoiceNo": "pending:" + orderId, "gst.invoiceDate": when } }, { new: true }
+    {_id: orderId, 'gst.scheme': {$exists: true}, 'gst.invoiceNo': ''},
+    {$set: {'gst.invoiceNo': 'pending:' + orderId, 'gst.invoiceDate': when}},
+    {new: true},
   );
   if (!order) order = await Order.findById(orderId);
-  if (!order || !order.gst || !order.gst.invoiceNo || !order.gst.invoiceNo.startsWith("pending:")) return order;
+  if (
+    !order ||
+    !order.gst ||
+    !order.gst.invoiceNo ||
+    !order.gst.invoiceNo.startsWith('pending:')
+  )
+    return order;
   const date = order.gst.invoiceDate || when;
   const year = financialYear(date);
-  const seq = await counterService.numberFor("invoice-" + year, String(orderId));
-  const number = INVOICE_PREFIX + "/" + year + "/" + String(seq).padStart(6, "0");
-  return await Order.findOneAndUpdate(
-    { _id: orderId, "gst.invoiceNo": order.gst.invoiceNo },
-    { $set: { "gst.invoiceNo": number, "gst.invoiceDate": date } }, { new: true }
-  ) || Order.findById(orderId);
+  const seq = await counterService.numberFor(
+    'invoice-' + year,
+    String(orderId),
+  );
+  const number =
+    INVOICE_PREFIX + '/' + year + '/' + String(seq).padStart(6, '0');
+  return (
+    (await Order.findOneAndUpdate(
+      {_id: orderId, 'gst.invoiceNo': order.gst.invoiceNo},
+      {$set: {'gst.invoiceNo': number, 'gst.invoiceDate': date}},
+      {new: true},
+    )) || Order.findById(orderId)
+  );
 }
 
 // A credit note for invoiced items that were cancelled or returned since the last note. The tax on each
 // item is the one on the invoice, in proportion to the quantity (all of it here: items go back whole).
 // A whole order cancelled before shipping also takes back the delivery charge.
-async function syncCreditNotes(orderId, reason = "") {
+async function syncCreditNotes(orderId, reason = '') {
   const order = await Order.findById(orderId).lean();
-  if (!order || !order.gst || !order.gst.invoiceNo || order.gst.invoiceNo.startsWith("pending:")) return null;
+  if (
+    !order ||
+    !order.gst ||
+    !order.gst.invoiceNo ||
+    order.gst.invoiceNo.startsWith('pending:')
+  )
+    return null;
   // Complete a number whose response was lost before deciding which lines remain.
   for (const note of order.creditNotes || []) {
-    if (!note.number.startsWith("pending:")) continue;
+    if (!note.number.startsWith('pending:')) continue;
     const year = financialYear(note.date);
-    const seq = await counterService.numberFor(`credit-${year}`, `${orderId}:${note.number}`);
-    await Order.updateOne({ _id: orderId, "creditNotes.number": note.number }, { $set: { "creditNotes.$.number": `${CREDIT_PREFIX}/${year}/${String(seq).padStart(6, "0")}` } });
+    const seq = await counterService.numberFor(
+      `credit-${year}`,
+      `${orderId}:${note.number}`,
+    );
+    await Order.updateOne(
+      {_id: orderId, 'creditNotes.number': note.number},
+      {
+        $set: {
+          'creditNotes.$.number': `${CREDIT_PREFIX}/${year}/${String(seq).padStart(6, '0')}`,
+        },
+      },
+    );
   }
-  const covered = new Set((order.creditNotes || []).flatMap(note => note.lines.map(line => String(line.itemId))));
+  const covered = new Set(
+    (order.creditNotes || []).flatMap((note) =>
+      note.lines.map((line) => String(line.itemId)),
+    ),
+  );
   const lines = order.items
-    .filter(item => ["cancelled", "returned"].includes(item.status) && !covered.has(String(item._id)) && item.tax)
-    .map(item => ({
+    .filter(
+      (item) =>
+        ['cancelled', 'returned'].includes(item.status) &&
+        !covered.has(String(item._id)) &&
+        item.tax,
+    )
+    .map((item) => ({
       itemId: item._id,
       name: item.option ? `${item.name} (${item.option})` : item.name,
       hsn: item.tax.hsn,
@@ -93,41 +148,62 @@ async function syncCreditNotes(orderId, reason = "") {
       taxable: item.tax.taxable,
       cgst: item.tax.cgst,
       sgst: item.tax.sgst,
-      igst: item.tax.igst
+      igst: item.tax.igst,
     }));
   if (!lines.length) return null;
-  const deliveryBack = order.orderStatus === "cancelled" && order.gst.delivery && !(order.creditNotes || []).some(note => note.delivery);
-  const delivery = deliveryBack ? { ...order.gst.delivery } : null;
+  const deliveryBack =
+    order.orderStatus === 'cancelled' &&
+    order.gst.delivery &&
+    !(order.creditNotes || []).some((note) => note.delivery);
+  const delivery = deliveryBack ? {...order.gst.delivery} : null;
   const all = delivery ? [...lines, delivery] : lines;
-  const sum = key => all.reduce((total, line) => total + (line[key] || 0), 0);
+  const sum = (key) => all.reduce((total, line) => total + (line[key] || 0), 0);
   const claim = `pending:${crypto.randomUUID()}`;
   const note = {
     number: claim,
     date: new Date(),
-    reason: reason || (lines.length && order.items.find(item => String(item._id) === String(lines[0].itemId)).status === "returned" ? "Goods returned" : "Order cancelled"),
+    reason:
+      reason ||
+      (lines.length &&
+      order.items.find((item) => String(item._id) === String(lines[0].itemId))
+        .status === 'returned'
+        ? 'Goods returned'
+        : 'Order cancelled'),
     lines,
     delivery,
-    taxable: sum("taxable"),
-    cgst: sum("cgst"),
-    sgst: sum("sgst"),
-    igst: sum("igst"),
-    value: sum("value")
+    taxable: sum('taxable'),
+    cgst: sum('cgst'),
+    sgst: sum('sgst'),
+    igst: sum('igst'),
+    value: sum('value'),
   };
   // Only if no other call has covered these items in the meantime.
   const pushed = await Order.findOneAndUpdate(
-    { _id: orderId, "creditNotes.lines.itemId": { $nin: lines.map(line => line.itemId) } },
-    { $push: { creditNotes: note } },
-    { new: true }
+    {
+      _id: orderId,
+      'creditNotes.lines.itemId': {$nin: lines.map((line) => line.itemId)},
+    },
+    {$push: {creditNotes: note}},
+    {new: true},
   );
   if (!pushed) return null;
   const year = financialYear(note.date);
-  const seq = await counterService.numberFor(`credit-${year}`, `${orderId}:${claim}`);
-  const number = `${CREDIT_PREFIX}/${year}/${String(seq).padStart(6, "0")}`;
+  const seq = await counterService.numberFor(
+    `credit-${year}`,
+    `${orderId}:${claim}`,
+  );
+  const number = `${CREDIT_PREFIX}/${year}/${String(seq).padStart(6, '0')}`;
   return Order.findOneAndUpdate(
-    { _id: orderId, "creditNotes.number": claim },
-    { $set: { "creditNotes.$.number": number } },
-    { new: true }
+    {_id: orderId, 'creditNotes.number': claim},
+    {$set: {'creditNotes.$.number': number}},
+    {new: true},
   );
 }
 
-module.exports = { taxForOrder, issueInvoice, syncCreditNotes, INVOICE_PREFIX, CREDIT_PREFIX };
+module.exports = {
+  taxForOrder,
+  issueInvoice,
+  syncCreditNotes,
+  INVOICE_PREFIX,
+  CREDIT_PREFIX,
+};

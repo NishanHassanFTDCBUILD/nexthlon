@@ -1,7 +1,7 @@
 // Store settings the admin can change. Each has a default, so the store works before anything is saved.
-const Setting = require("../models/Setting");
-const { COD_LIMIT } = require("../utils/orderRules");
-const { HttpError } = require("../utils/http");
+const Setting = require('../models/Setting');
+const {COD_LIMIT} = require('../utils/orderRules');
+const {HttpError} = require('../utils/http');
 
 const DEFAULTS = {
   // Wallet credit (paise) for both people when a new customer signs up with a referral code. 0 turns it off.
@@ -12,37 +12,41 @@ const DEFAULTS = {
   prepaidPercent: 0,
   prepaidMax: 10000,
   // E2: 1 = a Cash on Delivery order needs a code sent to the delivery phone (first time per phone in 90 days).
-  codOtp: 0
+  codOtp: 0,
 };
 const LIMITS = {
-  referralReward: { min: 0, max: 100000 },
-  codLimit: { min: 0, max: 5000000 },
-  prepaidPercent: { min: 0, max: 10 },
-  prepaidMax: { min: 0, max: 100000 },
-  codOtp: { min: 0, max: 1 }
+  referralReward: {min: 0, max: 100000},
+  codLimit: {min: 0, max: 5000000},
+  prepaidPercent: {min: 0, max: 10},
+  prepaidMax: {min: 0, max: 100000},
+  codOtp: {min: 0, max: 1},
 };
 
 async function get(key) {
   if (!Object.hasOwn(DEFAULTS, key)) throw new Error(`Unknown setting ${key}`);
-  const row = await Setting.findOne({ key }).lean();
+  const row = await Setting.findOne({key}).lean();
   return row ? row.value : DEFAULTS[key];
 }
 
 async function getAll() {
-  const rows = await Setting.find({ key: { $in: Object.keys(DEFAULTS) } }).lean();
-  const values = { ...DEFAULTS };
-  rows.forEach(row => { values[row.key] = row.value; });
+  const rows = await Setting.find({key: {$in: Object.keys(DEFAULTS)}}).lean();
+  const values = {...DEFAULTS};
+  rows.forEach((row) => {
+    values[row.key] = row.value;
+  });
   return values;
 }
 
 // Whole paise only, within the limits above.
 async function set(key, value) {
   const limit = LIMITS[key];
-  if (!limit) throw new HttpError(400, "Unknown setting.");
+  if (!limit) throw new HttpError(400, 'Unknown setting.');
   if (!Number.isInteger(value) || value < limit.min || value > limit.max) {
-    throw new HttpError(400, "That value is out of range.", { [key]: "That value is out of range." });
+    throw new HttpError(400, 'That value is out of range.', {
+      [key]: 'That value is out of range.',
+    });
   }
-  await Setting.updateOne({ key }, { $set: { value } }, { upsert: true });
+  await Setting.updateOne({key}, {$set: {value}}, {upsert: true});
   return getAll();
 }
 
@@ -51,4 +55,4 @@ function codAllowedFor(amount, limit) {
   return limit > 0 && amount > 0 && amount <= limit;
 }
 
-module.exports = { DEFAULTS, LIMITS, get, getAll, set, codAllowedFor };
+module.exports = {DEFAULTS, LIMITS, get, getAll, set, codAllowedFor};

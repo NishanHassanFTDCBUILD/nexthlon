@@ -6,10 +6,10 @@ const FORMULA_START = /^[=+\-@\t\r]/;
 function cell(value) {
   if (value === null || value === undefined) return '""';
   let text = value instanceof Date ? value.toISOString() : String(value);
-  if (typeof value === "string" && FORMULA_START.test(text)) text = `'${text}`;
+  if (typeof value === 'string' && FORMULA_START.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-const row = values => `${values.map(cell).join(",")}\r\n`;
+const row = (values) => `${values.map(cell).join(',')}\r\n`;
 
-module.exports = { cell, row };
+module.exports = {cell, row};

@@ -6,10 +6,10 @@
 //   Direct links and refresh send no header and get the full page.
 function workArea(req, res, next) {
   res.locals.motion = false;
-  res.locals.partial = req.get("X-Partial") === "1";
+  res.locals.partial = req.get('X-Partial') === '1';
   // The same URL answers with two shapes, so caches must keep them apart (pages are no-store anyway).
-  res.vary("X-Partial");
+  res.vary('X-Partial');
   next();
 }
 
-module.exports = { accountShell: workArea, adminShell: workArea };
+module.exports = {accountShell: workArea, adminShell: workArea};

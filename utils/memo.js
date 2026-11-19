@@ -11,22 +11,25 @@ const cancelled = new WeakSet(); // loads whose group was cleared while they ran
 
 async function remember(key, ttlMs, load) {
   const hit = entries.get(key);
-  if (hit && "value" in hit && hit.expires > Date.now()) return hit.value;
+  if (hit && 'value' in hit && hit.expires > Date.now()) return hit.value;
   if (hit && hit.pending) return hit.pending;
   // The load starts now; an error it throws straight away becomes a rejected promise like any other.
-  const pending = new Promise(resolve => resolve(load()))
-    .then(value => {
+  const pending = new Promise((resolve) => resolve(load())).then(
+    (value) => {
       // Cleared while loading: hand this value to the waiting requests, but do not keep it.
       if (!cancelled.has(pending)) {
-        entries.set(key, { value, expires: Date.now() + ttlMs });
+        entries.set(key, {value, expires: Date.now() + ttlMs});
         trim();
       }
       return value;
-    }, error => {
-      if (entries.get(key) && entries.get(key).pending === pending) entries.delete(key);
+    },
+    (error) => {
+      if (entries.get(key) && entries.get(key).pending === pending)
+        entries.delete(key);
       throw error;
-    });
-  entries.set(key, { pending });
+    },
+  );
+  entries.set(key, {pending});
   return pending;
 }
 
@@ -34,13 +37,13 @@ async function remember(key, ttlMs, load) {
 // passes it on to the other copies of the store). fromPeer: the clear came from another copy, so it is
 // not passed on again.
 const listeners = [];
-function forget(prefix = "", { fromPeer = false } = {}) {
+function forget(prefix = '', {fromPeer = false} = {}) {
   for (const [key, entry] of [...entries]) {
     if (!key.startsWith(prefix)) continue;
     if (entry.pending) cancelled.add(entry.pending);
     entries.delete(key);
   }
-  if (!fromPeer) listeners.forEach(listener => listener(prefix));
+  if (!fromPeer) listeners.forEach((listener) => listener(prefix));
 }
 
 // listener(prefix) runs after every local clear.
@@ -50,9 +53,10 @@ function onForget(listener) {
 
 // Oldest first: a Map keeps insertion order.
 function trim() {
-  while (entries.size > MAX_ENTRIES) entries.delete(entries.keys().next().value);
+  while (entries.size > MAX_ENTRIES)
+    entries.delete(entries.keys().next().value);
 }
 
 const size = () => entries.size;
 
-module.exports = { remember, forget, onForget, size };
+module.exports = {remember, forget, onForget, size};

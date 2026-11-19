@@ -3,10 +3,16 @@
 function linkBuilder(basePath, current) {
   return function link(overrides = {}) {
     const params = new URLSearchParams();
-    for (const [key, value] of Object.entries({ ...current, ...overrides })) {
+    for (const [key, value] of Object.entries({...current, ...overrides})) {
       const values = Array.isArray(value) ? value : [value];
       for (const item of values) {
-        if (item !== undefined && item !== null && item !== "" && item !== false) params.append(key, String(item));
+        if (
+          item !== undefined &&
+          item !== null &&
+          item !== '' &&
+          item !== false
+        )
+          params.append(key, String(item));
       }
     }
     const query = params.toString();
@@ -14,4 +20,4 @@ function linkBuilder(basePath, current) {
   };
 }
 
-module.exports = { linkBuilder };
+module.exports = {linkBuilder};

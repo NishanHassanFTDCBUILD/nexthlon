@@ -354,7 +354,7 @@ Start with `tokens.css` (colours, spacing, radii: the design system), then `styl
 - Private URL: `ADMIN_PATH` (e.g. `/nx-console-7f3k`). Anyone not an admin gets a normal 404.
 - Pages: `routes/adminPageRoutes.js` → `controllers/admin*PageController.js` → `views/admin/*.ejs`.
 - APIs: `routes/adminRoutes.js` under `/api/admin`.
-- Sections and nav: `config/adminNav.js`. Optional forced 2-step login: `middleware/twoFactorGuard.js` with `services/twoFactorService.js`.
+- Sections and nav: `config/adminNav.js`. (There is no two-step login in the current code.)
 - Every admin change is written to the audit log: `services/auditService.js`, `models/AuditLog.js`.
 - Business logic: `adminOrderService`, `adminProductService`, `adminCouponService`, `dashboardService`, `analyticsService`. Read `docs/ROADMAP.md` for what each section does (see also the README "The sections").
 

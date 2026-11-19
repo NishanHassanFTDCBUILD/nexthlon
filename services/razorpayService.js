@@ -1,10 +1,10 @@
 // The only place that talks to Razorpay. The key secret and webhook secret stay on the server;
 // the browser only ever gets the public key id. Signatures are checked with HMAC-SHA256 and
 // compared with crypto.timingSafeEqual, so the comparison time gives nothing away.
-const crypto = require("crypto");
-const Razorpay = require("razorpay");
-const config = require("../config/env");
-const { HttpError } = require("../utils/http");
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
+const config = require('../config/env');
+const {HttpError} = require('../utils/http');
 
 let client = null;
 
@@ -13,8 +13,16 @@ function isEnabled() {
 }
 
 function getClient() {
-  if (!isEnabled()) throw new HttpError(503, "Online payment is not available right now. Please choose Cash on Delivery.");
-  if (!client) client = new Razorpay({ key_id: config.razorpay.keyId, key_secret: config.razorpay.keySecret });
+  if (!isEnabled())
+    throw new HttpError(
+      503,
+      'Online payment is not available right now. Please choose Cash on Delivery.',
+    );
+  if (!client)
+    client = new Razorpay({
+      key_id: config.razorpay.keyId,
+      key_secret: config.razorpay.keySecret,
+    });
   return client;
 }
 
@@ -24,20 +32,23 @@ function setClient(fake) {
 }
 
 function hmac(secret, text) {
-  return crypto.createHmac("sha256", secret).update(text).digest("hex");
+  return crypto.createHmac('sha256', secret).update(text).digest('hex');
 }
 
 function safeEqual(expected, given) {
-  if (typeof given !== "string" || !/^[a-f0-9]{64}$/i.test(given)) return false;
-  const a = Buffer.from(expected, "hex");
-  const b = Buffer.from(given.toLowerCase(), "hex");
+  if (typeof given !== 'string' || !/^[a-f0-9]{64}$/i.test(given)) return false;
+  const a = Buffer.from(expected, 'hex');
+  const b = Buffer.from(given.toLowerCase(), 'hex');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 // Checkout signature: HMAC-SHA256 of "order_id|payment_id" with the key secret.
 function verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, signature) {
   if (!config.razorpay.keySecret) return false;
-  return safeEqual(hmac(config.razorpay.keySecret, `${razorpayOrderId}|${razorpayPaymentId}`), signature);
+  return safeEqual(
+    hmac(config.razorpay.keySecret, `${razorpayOrderId}|${razorpayPaymentId}`),
+    signature,
+  );
 }
 
 // Webhook signature: HMAC-SHA256 of the raw request body with the webhook secret.
@@ -47,19 +58,28 @@ function verifyWebhookSignature(rawBody, signature) {
 }
 
 // amount is in paise; receipt is our order id (NX-2026-000123).
-async function createOrder({ amount, receipt, notes = {} }) {
-  return getClient().orders.create({ amount, currency: "INR", receipt, notes });
+async function createOrder({amount, receipt, notes = {}}) {
+  return getClient().orders.create({amount, currency: 'INR', receipt, notes});
 }
 
 async function refundPayment(paymentId, amount, notes = {}) {
-  return getClient().payments.refund(paymentId, { amount, speed: "normal", notes });
+  return getClient().payments.refund(paymentId, {
+    amount,
+    speed: 'normal',
+    notes,
+  });
 }
 
 async function findRefund(paymentId, key) {
   for (let skip = 0; ; skip += 100) {
-    const result = await getClient().payments.fetchMultipleRefund(paymentId, { count: 100, skip });
+    const result = await getClient().payments.fetchMultipleRefund(paymentId, {
+      count: 100,
+      skip,
+    });
     const items = result.items || [];
-    const match = items.find(item => item.notes && item.notes.refundKey === key);
+    const match = items.find(
+      (item) => item.notes && item.notes.refundKey === key,
+    );
     if (match) return match;
     if (items.length < 100) return null;
   }
@@ -67,9 +87,21 @@ async function findRefund(paymentId, key) {
 
 // Payment events are logged with ids and amounts only. Never card numbers, UPI ids or contact details.
 function logEvent(event, details) {
-  if (process.env.NODE_ENV === "test") return;
-  const parts = Object.entries(details).filter(([, value]) => value !== undefined && value !== "").map(([key, value]) => `${key}=${value}`);
-  console.info(`[payments] ${event} ${parts.join(" ")}`);
+  if (process.env.NODE_ENV === 'test') return;
+  const parts = Object.entries(details)
+    .filter(([, value]) => value !== undefined && value !== '')
+    .map(([key, value]) => `${key}=${value}`);
+  console.info(`[payments] ${event} ${parts.join(' ')}`);
 }
 
-module.exports = { isEnabled, setClient, verifyPaymentSignature, verifyWebhookSignature, createOrder, refundPayment, findRefund, logEvent, hmac };
+module.exports = {
+  isEnabled,
+  setClient,
+  verifyPaymentSignature,
+  verifyWebhookSignature,
+  createOrder,
+  refundPayment,
+  findRefund,
+  logEvent,
+  hmac,
+};

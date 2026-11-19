@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+tmp/
+backups/
+public/uploads/
+docs/
+linkedin-post/
+package-lock.json
+*.ejs
+*.md

@@ -125,7 +125,8 @@
         <div class="zg-detail" data-zg-detail role="dialog" aria-modal="true" aria-labelledby="zg-detail-name" hidden>
           <div class="zg-book" data-zg-book>
             <div class="zg-page zg-page-photo" data-zg-photo-page>
-              <img src="" alt="" width="520" height="520" data-zg-d-img>
+              <%# No src until a card is opened (showroom3d.js fill()): an empty src makes the browser fetch this page again as an image. %>
+              <img alt="" width="520" height="520" data-zg-d-img>
             </div>
             <div class="zg-page zg-page-info" data-zg-info-page>
               <button type="button" class="zg-close" data-zg-close aria-label="Close and fly back"><%- icon('x') %></button>

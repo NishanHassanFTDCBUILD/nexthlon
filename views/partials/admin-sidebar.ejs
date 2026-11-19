@@ -26,7 +26,8 @@
     <% }) %>
   </nav>
   <div class="admin-side-foot">
-    <a href="/" class="admin-link" data-nav-skip><%- icon('home', 'i-sm') %><span>View store</span><%- icon('external-link', 'i-xs') %></a>
+    <%# Leaving for the store ends the admin session first (app.js, data-logout), so Back cannot reopen the console. %>
+    <a href="/" class="admin-link" data-nav-skip data-logout="/api/admin/logout" data-logout-to="/"><%- icon('home', 'i-sm') %><span>View store (signs you out)</span><%- icon('external-link', 'i-xs') %></a>
   </div>
 </aside>
 <div class="admin-scrim" data-admin-menu-close hidden></div>

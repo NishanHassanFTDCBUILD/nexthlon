@@ -11,37 +11,40 @@
 //   events.emit("order.placed", { orderId }, { key: orderId });          // where it happens
 //
 // key: the same event with the same key is queued once (a retry or a double click cannot send two emails).
-const queue = require("../jobs/queue");
-const registry = require("../jobs/registry");
-const logger = require("../utils/logger");
+const queue = require('../jobs/queue');
+const registry = require('../jobs/registry');
+const logger = require('../utils/logger');
 
 const listeners = new Map();
 const jobType = (event, name) => `event:${event}:${name}`;
 
-function on(event, name, handler, { maxAttempts = 6 } = {}) {
-  registry.register(jobType(event, name), handler, { maxAttempts });
+function on(event, name, handler, {maxAttempts = 6} = {}) {
+  registry.register(jobType(event, name), handler, {maxAttempts});
   if (!listeners.has(event)) listeners.set(event, new Map());
-  listeners.get(event).set(name, { maxAttempts });
+  listeners.get(event).set(name, {maxAttempts});
 }
 
 // Queues one job per listener. Never throws: the order has already happened, and the caller must not fail
 // because a reaction could not be queued (it is logged, and the listener's work is simply not done).
-async function emit(event, payload = {}, { key } = {}) {
+async function emit(event, payload = {}, {key} = {}) {
   const subscribed = listeners.get(event);
   if (!subscribed) return true;
   let queued = true;
-  for (const [name, { maxAttempts }] of subscribed) {
+  for (const [name, {maxAttempts}] of subscribed) {
     const type = jobType(event, name);
     try {
-      await queue.enqueue(type, payload, { maxAttempts, ...(key ? { dedupeKey: `${type}:${key}` } : {}) });
+      await queue.enqueue(type, payload, {
+        maxAttempts,
+        ...(key ? {dedupeKey: `${type}:${key}`} : {}),
+      });
     } catch (error) {
       queued = false;
-      logger.error("event.enqueue_failed", { event, listener: name, error });
+      logger.error('event.enqueue_failed', {event, listener: name, error});
     }
   }
   return queued;
 }
 
-const hasListeners = event => listeners.has(event);
+const hasListeners = (event) => listeners.has(event);
 
-module.exports = { on, emit, hasListeners, jobType };
+module.exports = {on, emit, hasListeners, jobType};

@@ -6,5 +6,7 @@ let shuttingDown = false;
 module.exports = {
   isShuttingDown: () => shuttingDown,
   // The argument is only for tests, which switch it back off.
-  markShuttingDown: (value = true) => { shuttingDown = value; }
+  markShuttingDown: (value = true) => {
+    shuttingDown = value;
+  },
 };

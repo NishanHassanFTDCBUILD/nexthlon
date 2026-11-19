@@ -1,24 +1,38 @@
-const User = require("../models/User");
-const config = require("../config/env");
-const { KINDS, verifyToken, clearAuthCookie, readSessionCookie } = require("../services/tokenService");
-const { HttpError } = require("../utils/http");
-const { toPublicUser } = require("../utils/publicUser");
+const User = require('../models/User');
+const config = require('../config/env');
+const {
+  KINDS,
+  verifyToken,
+  clearAuthCookie,
+  readSessionCookie,
+} = require('../services/tokenService');
+const {HttpError} = require('../utils/http');
+const {toPublicUser} = require('../utils/publicUser');
 
 // Which session a request belongs to: the admin console (its pages under ADMIN_PATH and the
 // /api/admin APIs) or the store (everything else). Each reads only its own cookie.
 function scopeOf(req) {
   const path = req.path.toLowerCase();
   const admin = config.adminPath;
-  if (path === admin || path.startsWith(`${admin}/`) || path === "/api/admin" || path.startsWith("/api/admin/")) return "admin";
-  return "customer";
+  if (
+    path === admin ||
+    path.startsWith(`${admin}/`) ||
+    path === '/api/admin' ||
+    path.startsWith('/api/admin/')
+  )
+    return 'admin';
+  return 'customer';
 }
 
 // The token can arrive as a "Bearer" header (Postman, mobile apps) or as the session cookie (browser).
 function readToken(req, scope) {
-  const header = req.get("authorization") || "";
-  if (header.startsWith("Bearer ")) return { token: header.slice(7).trim(), fromCookie: false };
+  const header = req.get('authorization') || '';
+  if (header.startsWith('Bearer '))
+    return {token: header.slice(7).trim(), fromCookie: false};
   const cookie = req.cookies && req.cookies[KINDS[scope].cookie];
-  return cookie ? { token: cookie, fromCookie: true } : { token: null, fromCookie: false };
+  return cookie
+    ? {token: cookie, fromCookie: true}
+    : {token: null, fromCookie: false};
 }
 
 // Runs on every request. The JWT says who the user is. The quick database lookup makes sure
@@ -30,7 +44,7 @@ async function attachUser(req, res, next) {
   req.authProblem = null;
   const scope = scopeOf(req);
   req.authScope = scope;
-  const { token, fromCookie } = readToken(req, scope);
+  const {token, fromCookie} = readToken(req, scope);
   if (!token) return next();
 
   try {
@@ -40,15 +54,18 @@ async function attachUser(req, res, next) {
     } catch {
       payload = null;
     }
-    const role = scope === "admin" ? "admin" : "customer";
-    const user = payload && payload.role === role ? await User.findById(payload.sub) : null;
+    const role = scope === 'admin' ? 'admin' : 'customer';
+    const user =
+      payload && payload.role === role
+        ? await User.findById(payload.sub)
+        : null;
 
     if (!user || user.role !== role || user.isDeleted) {
-      req.authProblem = "expired";
+      req.authProblem = 'expired';
     } else if ((payload.ver || 0) !== (user.tokenVersion || 0)) {
-      req.authProblem = "expired";
+      req.authProblem = 'expired';
     } else if (user.isBlocked) {
-      req.authProblem = "blocked";
+      req.authProblem = 'blocked';
     } else {
       req.user = user;
       res.locals.currentUser = toPublicUser(user);
@@ -67,16 +84,21 @@ async function attachUser(req, res, next) {
 // ---------- API guards: they reply with JSON errors ----------
 function requireAuth(req, res, next) {
   if (req.user) return next();
-  if (req.authProblem === "blocked") {
-    return next(new HttpError(403, "Your account has been blocked. Please contact Nexthlon support."));
+  if (req.authProblem === 'blocked') {
+    return next(
+      new HttpError(
+        403,
+        'Your account has been blocked. Please contact Nexthlon support.',
+      ),
+    );
   }
-  return next(new HttpError(401, "Please sign in to continue."));
+  return next(new HttpError(401, 'Please sign in to continue.'));
 }
 
 function requireRole(role) {
   return function roleGuard(req, res, next) {
     if (req.user && req.user.role === role) return next();
-    return next(new HttpError(403, "You do not have permission to do this."));
+    return next(new HttpError(403, 'You do not have permission to do this.'));
   };
 }
 
@@ -87,19 +109,19 @@ function requireRole(role) {
 // is told the session merely expired, and its script renews it and comes straight back
 // (renewAfterBounce in public/js/app.js). A visitor with no session at all gets no reason.
 function loginReason(req, kind) {
-  return req.authProblem || (readSessionCookie(req, kind) ? "expired" : null);
+  return req.authProblem || (readSessionCookie(req, kind) ? 'expired' : null);
 }
 
 function redirectToLogin(req, res, loginPath, reason) {
-  const params = new URLSearchParams({ next: req.originalUrl });
-  if (reason) params.set("reason", reason);
+  const params = new URLSearchParams({next: req.originalUrl});
+  if (reason) params.set('reason', reason);
   return res.redirect(`${loginPath}?${params}`);
 }
 
 // Customer pages send signed-out visitors to sign in.
 function customerPage(req, res, next) {
-  if (!req.user || req.user.role !== "customer") {
-    return redirectToLogin(req, res, "/login", loginReason(req, "customer"));
+  if (!req.user || req.user.role !== 'customer') {
+    return redirectToLogin(req, res, '/login', loginReason(req, 'customer'));
   }
   return next();
 }
@@ -110,9 +132,14 @@ function customerPage(req, res, next) {
 // admin session label): it is sent to the admin login, which renews the session and carries on.
 // Nothing is given away, because only a browser that already knew the console can get that far.
 function adminPage(req, res, next) {
-  if (req.user && req.user.role === "admin") return next();
-  if (readSessionCookie(req, "admin")) {
-    return redirectToLogin(req, res, `${config.adminPath}/login`, loginReason(req, "admin"));
+  if (req.user && req.user.role === 'admin') return next();
+  if (readSessionCookie(req, 'admin')) {
+    return redirectToLogin(
+      req,
+      res,
+      `${config.adminPath}/login`,
+      loginReason(req, 'admin'),
+    );
   }
   return next(new HttpError(404, "We couldn't find that page."));
 }
@@ -120,7 +147,7 @@ function adminPage(req, res, next) {
 // Signed-in customers have no reason to see the store's login and signup pages.
 function guestOnly(req, res, next) {
   if (!req.user) return next();
-  return res.redirect("/");
+  return res.redirect('/');
 }
 
 // A signed-in admin opening the admin login goes straight to the dashboard.
@@ -129,4 +156,13 @@ function adminGuestOnly(req, res, next) {
   return res.redirect(`${config.adminPath}/dashboard`);
 }
 
-module.exports = { scopeOf, attachUser, requireAuth, requireRole, customerPage, adminPage, guestOnly, adminGuestOnly };
+module.exports = {
+  scopeOf,
+  attachUser,
+  requireAuth,
+  requireRole,
+  customerPage,
+  adminPage,
+  guestOnly,
+  adminGuestOnly,
+};

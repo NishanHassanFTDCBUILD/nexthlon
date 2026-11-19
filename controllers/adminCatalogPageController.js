@@ -1,40 +1,54 @@
 // Admin pages for the Catalog group (inventory) and for System status.
 // Thin handlers: every number comes from a service, and these only choose what the page shows.
-const config = require("../config/env");
-const inventoryService = require("../services/inventoryService");
-const questionService = require("../services/questionService");
-const systemService = require("../services/systemService");
-const { linkBuilder } = require("../utils/queryString");
-const { asyncHandler } = require("../utils/http");
+const config = require('../config/env');
+const inventoryService = require('../services/inventoryService');
+const questionService = require('../services/questionService');
+const systemService = require('../services/systemService');
+const {linkBuilder} = require('../utils/queryString');
+const {asyncHandler} = require('../utils/http');
 
-const base = section => `${config.adminPath}/${section}`;
+const base = (section) => `${config.adminPath}/${section}`;
 // The current filters without their defaults, so links stay short.
-const without = (filters, defaults) => Object.fromEntries(
-  Object.entries(filters).filter(([key, value]) => key !== "page" && value !== defaults[key] && value !== "" && value !== 0 && value !== "all")
-);
+const without = (filters, defaults) =>
+  Object.fromEntries(
+    Object.entries(filters).filter(
+      ([key, value]) =>
+        key !== 'page' &&
+        value !== defaults[key] &&
+        value !== '' &&
+        value !== 0 &&
+        value !== 'all',
+    ),
+  );
 
 // GET <ADMIN_PATH>/inventory
 const inventory = asyncHandler(async (req, res) => {
   const data = await inventoryService.listInventory(req.query);
-  const current = without(data.filters, { sort: "stock_asc" });
-  res.render("admin/inventory", {
-    title: "Inventory | Nexthlon Admin",
+  const current = without(data.filters, {sort: 'stock_asc'});
+  res.render('admin/inventory', {
+    title: 'Inventory | Nexthlon Admin',
     ...data,
     current,
-    link: linkBuilder(base("inventory"), current),
-    exportQuery: new URLSearchParams(current).toString()
+    link: linkBuilder(base('inventory'), current),
+    exportQuery: new URLSearchParams(current).toString(),
   });
 });
 
 // GET <ADMIN_PATH>/questions?status=waiting|all|hidden   Product Q&A (E3).
 const questions = asyncHandler(async (req, res) => {
-  const data = await questionService.adminList({ status: String(req.query.status || "waiting"), page: req.query.page });
-  res.render("admin/questions", { title: "Questions | Nexthlon Admin", ...data });
+  const data = await questionService.adminList({
+    status: String(req.query.status || 'waiting'),
+    page: req.query.page,
+  });
+  res.render('admin/questions', {title: 'Questions | Nexthlon Admin', ...data});
 });
 
 // GET <ADMIN_PATH>/system
 const system = asyncHandler(async (req, res) => {
-  res.render("admin/system", { title: "System status | Nexthlon Admin", ...await systemService.status() });
+  res.render('admin/system', {
+    title: 'System status | Nexthlon Admin',
+    ...(await systemService.status()),
+  });
 });
 
-module.exports = { questions, inventory, system };
+module.exports = {questions, inventory, system};

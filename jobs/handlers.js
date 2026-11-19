@@ -1,28 +1,48 @@
 // Everything the job worker (and the event system) knows how to do, registered in one place. Required once at
 // start-up, by the app and by the stand-alone worker, so a job saved by one can be run by the other.
-const config = require("../config/env");
-const registry = require("./registry");
-const cartRecoveryService = require("../services/cartRecoveryService");
+const config = require('../config/env');
+const registry = require('./registry');
+const cartRecoveryService = require('../services/cartRecoveryService');
 
 // Event listeners (each becomes a job type "event:<event>:<name>").
-require("../events/listeners/orderEmails");
-require("../events/listeners/orderWhatsApp");
-require("../events/listeners/questionEmails");
+require('../events/listeners/orderEmails');
+require('../events/listeners/orderWhatsApp');
+require('../events/listeners/questionEmails');
 
 // One abandoned-cart reminder.
-registry.register("cart.remind", ({ cartId }) => cartRecoveryService.sendReminder(cartId));
+registry.register('cart.remind', ({cartId}) =>
+  cartRecoveryService.sendReminder(cartId),
+);
 
 // Hourly: queue a reminder for each abandoned cart that is due. Only when CART_RECOVERY_AUTO=true; otherwise
 // reminders go out only when an admin presses the button.
-registry.register("cart.sweep", () => cartRecoveryService.queueDueReminders(), { maxAttempts: 2 });
-registry.schedule("cart-sweep", { everyMs: 60 * 60 * 1000, type: "cart.sweep", enabled: () => config.cartRecoveryAuto });
+registry.register('cart.sweep', () => cartRecoveryService.queueDueReminders(), {
+  maxAttempts: 2,
+});
+registry.schedule('cart-sweep', {
+  everyMs: 60 * 60 * 1000,
+  type: 'cart.sweep',
+  enabled: () => config.cartRecoveryAuto,
+});
 
 // Back-in-stock alerts (E3): one email per alert, and the sweep that finds alerts whose product is back.
-const stockAlertService = require("../services/stockAlertService");
-registry.register("stock.alert", ({ alertId }) => stockAlertService.notify(alertId));
-registry.register("stock.sweep", () => stockAlertService.sweep(), { maxAttempts: 2 });
-registry.schedule("stock-sweep", { everyMs: 10 * 60 * 1000, type: "stock.sweep" });
+const stockAlertService = require('../services/stockAlertService');
+registry.register('stock.alert', ({alertId}) =>
+  stockAlertService.notify(alertId),
+);
+registry.register('stock.sweep', () => stockAlertService.sweep(), {
+  maxAttempts: 2,
+});
+registry.schedule('stock-sweep', {
+  everyMs: 10 * 60 * 1000,
+  type: 'stock.sweep',
+});
 
 // Resume interrupted payment, cancellation, return and refund work after restarts.
-registry.register("commerce.recover", () => require("../services/commerceRecoveryService").sweep());
-registry.schedule("commerce-recovery", { everyMs: 60 * 1000, type: "commerce.recover" });
+registry.register('commerce.recover', () =>
+  require('../services/commerceRecoveryService').sweep(),
+);
+registry.schedule('commerce-recovery', {
+  everyMs: 60 * 1000,
+  type: 'commerce.recover',
+});

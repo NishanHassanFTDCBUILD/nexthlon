@@ -1,5 +1,5 @@
-const { MemoryStore } = require("express-rate-limit");
-const redis = require("../providers/redis");
+const {MemoryStore} = require('express-rate-limit');
+const redis = require('../providers/redis');
 
 // Where a rate limiter keeps its counts. With Redis (REDIS_URL) the counts are shared by every copy of
 // the store, so a visitor cannot get more tries by landing on another server. Without Redis, or while
@@ -17,7 +17,7 @@ return { hits, left }`;
 class SharedStore {
   // name: a fixed name per limiter, so every copy counts in the same place.
   // getClient: for tests; normally the shared Redis connection.
-  constructor(name, { getClient = redis.getClient } = {}) {
+  constructor(name, {getClient = redis.getClient} = {}) {
     this.prefix = `nexthlon:rl:${name}:`;
     this.getClient = getClient;
     this.memory = new MemoryStore();
@@ -42,8 +42,14 @@ class SharedStore {
     const client = await this.shared();
     if (client) {
       try {
-        const [hits, left] = await client.eval(HIT, { keys: [this.prefix + key], arguments: [String(this.windowMs)] });
-        return { totalHits: Number(hits), resetTime: new Date(Date.now() + Number(left)) };
+        const [hits, left] = await client.eval(HIT, {
+          keys: [this.prefix + key],
+          arguments: [String(this.windowMs)],
+        });
+        return {
+          totalHits: Number(hits),
+          resetTime: new Date(Date.now() + Number(left)),
+        };
       } catch {
         /* Redis failed this time: count in memory instead */
       }
@@ -77,4 +83,4 @@ class SharedStore {
   }
 }
 
-module.exports = { SharedStore, HIT };
+module.exports = {SharedStore, HIT};

@@ -3,24 +3,36 @@
 //
 // It runs inside the web server by default, so there is nothing extra to deploy. For a busy store it can
 // run on its own too: JOBS_ENABLED=false on the web copies and `npm run worker` somewhere else.
-const queue = require("./queue");
-const registry = require("./registry");
-const logger = require("../utils/logger");
+const queue = require('./queue');
+const registry = require('./registry');
+const logger = require('../utils/logger');
 
 const SCHEDULE_CHECK_MS = 30_000;
 
 // Runs one claimed job and records how it went. Never throws.
 async function runOne(job) {
   const entry = registry.handlerFor(job.type);
-  if (!entry) return queue.fail(job, Object.assign(new Error(`No handler is registered for "${job.type}"`), { permanent: true }));
+  if (!entry)
+    return queue.fail(
+      job,
+      Object.assign(new Error(`No handler is registered for "${job.type}"`), {
+        permanent: true,
+      }),
+    );
   // A job claimed again and again because every worker that took it died: stop feeding it workers.
   if (job.attempts > job.maxAttempts) {
-    return queue.fail(job, Object.assign(new Error("Gave up: workers kept stopping while running it"), { permanent: true }));
+    return queue.fail(
+      job,
+      Object.assign(
+        new Error('Gave up: workers kept stopping while running it'),
+        {permanent: true},
+      ),
+    );
   }
   try {
     await entry.handler(job.payload || {}, job);
     await queue.complete(job);
-    return "done";
+    return 'done';
   } catch (error) {
     return queue.fail(job, error);
   }
@@ -32,11 +44,14 @@ async function tickSchedules(now = new Date()) {
   for (const entry of registry.allSchedules()) {
     if (!entry.enabled()) continue;
     const slot = Math.floor(now.getTime() / entry.everyMs);
-    await queue.enqueue(entry.type, entry.payload, { dedupeKey: `schedule:${entry.name}:${slot}`, maxAttempts: 2 });
+    await queue.enqueue(entry.type, entry.payload, {
+      dedupeKey: `schedule:${entry.name}:${slot}`,
+      maxAttempts: 2,
+    });
   }
 }
 
-function createWorker({ concurrency = 2, pollMs = 1000 } = {}) {
+function createWorker({concurrency = 2, pollMs = 1000} = {}) {
   let running = false;
   let timer = null;
   let lastSchedule = 0;
@@ -57,7 +72,7 @@ function createWorker({ concurrency = 2, pollMs = 1000 } = {}) {
       }
     } catch (error) {
       // The database is away for a moment: the next round tries again.
-      logger.error("worker.loop_failed", { error });
+      logger.error('worker.loop_failed', {error});
     } finally {
       if (running) {
         timer = setTimeout(pump, active.size >= concurrency ? 250 : pollMs);
@@ -70,7 +85,7 @@ function createWorker({ concurrency = 2, pollMs = 1000 } = {}) {
     start() {
       if (running) return;
       running = true;
-      logger.info("worker.started", { concurrency, worker: queue.workerId });
+      logger.info('worker.started', {concurrency, worker: queue.workerId});
       pump();
     },
     // Stops taking new jobs and waits for the ones running (a deploy must not cut an email in half).
@@ -81,7 +96,7 @@ function createWorker({ concurrency = 2, pollMs = 1000 } = {}) {
     },
     isRunning: () => running,
     // Runs every job that is due, then returns how many it ran. For tests and scripts.
-    async drain({ maxJobs = 500 } = {}) {
+    async drain({maxJobs = 500} = {}) {
       let ran = 0;
       while (ran < maxJobs) {
         const job = await queue.claim();
@@ -90,8 +105,8 @@ function createWorker({ concurrency = 2, pollMs = 1000 } = {}) {
         ran += 1;
       }
       return ran;
-    }
+    },
   };
 }
 
-module.exports = { createWorker, runOne, tickSchedules };
+module.exports = {createWorker, runOne, tickSchedules};

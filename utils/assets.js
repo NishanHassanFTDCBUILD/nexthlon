@@ -2,12 +2,12 @@
 // The version is a short hash of the file's contents, so it only changes when the file does. Browsers
 // can then keep these files for a year (app.js marks them immutable) and still get every update the
 // moment it ships, because the page asks for a new URL.
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
-const PUBLIC_DIR = path.join(__dirname, "..", "public");
-const isProduction = process.env.NODE_ENV === "production";
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const isProduction = process.env.NODE_ENV === 'production';
 const cache = new Map();
 
 function assetUrl(urlPath) {
@@ -18,11 +18,15 @@ function assetUrl(urlPath) {
   // In production files never change while the server runs, so the first hash is kept.
   if (known && isProduction) return known.url;
   try {
-    const { mtimeMs } = fs.statSync(file);
+    const {mtimeMs} = fs.statSync(file);
     if (known && known.mtimeMs === mtimeMs) return known.url;
-    const hash = crypto.createHash("sha1").update(fs.readFileSync(file)).digest("hex").slice(0, 10);
+    const hash = crypto
+      .createHash('sha1')
+      .update(fs.readFileSync(file))
+      .digest('hex')
+      .slice(0, 10);
     const url = `${urlPath}?v=${hash}`;
-    cache.set(file, { mtimeMs, url });
+    cache.set(file, {mtimeMs, url});
     return url;
   } catch {
     return urlPath;
@@ -43,21 +47,33 @@ const bundles = new Map();
 // and strings mean exactly what they did. The file markers between stylesheets stay for debugging.
 function minifyCss(css) {
   return css
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\s+/g, " ")
-    .replace(/\s*([{};])\s*/g, "$1")
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([{};])\s*/g, '$1')
     .trim();
 }
 
 function readBundle(names) {
-  const key = names.join(",");
-  const files = names.map(name => path.join(PUBLIC_DIR, "css", `${name}.css`));
-  const stamp = files.map(file => fs.statSync(file).mtimeMs).join(",");
+  const key = names.join(',');
+  const files = names.map((name) =>
+    path.join(PUBLIC_DIR, 'css', `${name}.css`),
+  );
+  const stamp = files.map((file) => fs.statSync(file).mtimeMs).join(',');
   const known = bundles.get(key);
   if (known && (isProduction || known.stamp === stamp)) return known;
-  const css = files.map((file, i) => `/* ---- ${names[i]}.css ---- */\n${minifyCss(fs.readFileSync(file, "utf8"))}`).join("\n");
-  const hash = crypto.createHash("sha1").update(css).digest("hex").slice(0, 10);
-  const bundle = { css, hash, stamp, url: `/css/bundle.css?files=${key}&v=${hash}` };
+  const css = files
+    .map(
+      (file, i) =>
+        `/* ---- ${names[i]}.css ---- */\n${minifyCss(fs.readFileSync(file, 'utf8'))}`,
+    )
+    .join('\n');
+  const hash = crypto.createHash('sha1').update(css).digest('hex').slice(0, 10);
+  const bundle = {
+    css,
+    hash,
+    stamp,
+    url: `/css/bundle.css?files=${key}&v=${hash}`,
+  };
   // The site uses a dozen or so combinations; a cap stops made-up lists from filling memory.
   if (bundles.has(key) || bundles.size < 64) bundles.set(key, bundle);
   return bundle;
@@ -74,18 +90,31 @@ function styleBundleUrl(names) {
 
 // GET /css/bundle.css?files=a,b,c&v=hash
 function serveStyleBundle(req, res, next) {
-  const names = String(req.query.files || "").split(",").filter(Boolean);
-  if (!names.length || names.length > 12 || new Set(names).size !== names.length || !names.every(name => NAME.test(name))) return next();
+  const names = String(req.query.files || '')
+    .split(',')
+    .filter(Boolean);
+  if (
+    !names.length ||
+    names.length > 12 ||
+    new Set(names).size !== names.length ||
+    !names.every((name) => NAME.test(name))
+  )
+    return next();
   let bundle;
   try {
     bundle = readBundle(names);
   } catch {
     return next();
   }
-  res.type("text/css");
+  res.type('text/css');
   // A matching hash is the exact content: keep it for a year. Anything else is re-checked.
-  res.set("Cache-Control", req.query.v === bundle.hash ? "public, max-age=31536000, immutable" : "no-cache");
+  res.set(
+    'Cache-Control',
+    req.query.v === bundle.hash
+      ? 'public, max-age=31536000, immutable'
+      : 'no-cache',
+  );
   res.send(bundle.css);
 }
 
-module.exports = { assetUrl, styleBundleUrl, serveStyleBundle };
+module.exports = {assetUrl, styleBundleUrl, serveStyleBundle};

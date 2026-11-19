@@ -2,16 +2,16 @@
 // On a replica set (or Atlas) they run inside a MongoDB transaction: all of them happen, or none.
 // A single local server has no transactions, so each step registers how to undo itself
 // (undo(fn)); if a later step fails, the undo steps run in reverse order.
-const mongoose = require("mongoose");
-const logger = require("./logger");
+const mongoose = require('mongoose');
+const logger = require('./logger');
 
 let support = null;
 
 async function supportsTransactions() {
   if (support === null) {
     try {
-      const hello = await mongoose.connection.db.admin().command({ hello: 1 });
-      support = Boolean(hello.setName || hello.msg === "isdbgrid");
+      const hello = await mongoose.connection.db.admin().command({hello: 1});
+      support = Boolean(hello.setName || hello.msg === 'isdbgrid');
     } catch {
       support = false;
     }
@@ -35,17 +35,17 @@ async function inTransaction(work) {
   }
   const steps = [];
   try {
-    return await work(null, step => steps.push(step));
+    return await work(null, (step) => steps.push(step));
   } catch (error) {
     for (const step of steps.reverse()) {
       try {
         await step();
       } catch (undoError) {
-        logger.error("transaction.undo_failed", { error: undoError });
+        logger.error('transaction.undo_failed', {error: undoError});
       }
     }
     throw error;
   }
 }
 
-module.exports = { supportsTransactions, inTransaction };
+module.exports = {supportsTransactions, inTransaction};

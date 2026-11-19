@@ -5,8 +5,11 @@ let support = null;
 export function supportsWebGL() {
   if (support === null) {
     try {
-      const probe = document.createElement("canvas");
-      support = Boolean(window.WebGLRenderingContext && (probe.getContext("webgl") || probe.getContext("experimental-webgl")));
+      const probe = document.createElement('canvas');
+      support = Boolean(
+        window.WebGLRenderingContext &&
+        (probe.getContext('webgl') || probe.getContext('experimental-webgl')),
+      );
     } catch {
       support = false;
     }
@@ -15,8 +18,17 @@ export function supportsWebGL() {
 }
 
 export function createContext(canvas, options = {}) {
-  const settings = { alpha: true, antialias: true, premultipliedAlpha: true, powerPreference: "high-performance", ...options };
-  return canvas.getContext("webgl", settings) || canvas.getContext("experimental-webgl", settings);
+  const settings = {
+    alpha: true,
+    antialias: true,
+    premultipliedAlpha: true,
+    powerPreference: 'high-performance',
+    ...options,
+  };
+  return (
+    canvas.getContext('webgl', settings) ||
+    canvas.getContext('experimental-webgl', settings)
+  );
 }
 
 function compile(gl, type, source) {
@@ -37,21 +49,38 @@ export function createProgram(gl, vertexSource, fragmentSource) {
   gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, vertexSource));
   gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, fragmentSource));
   gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(`Program did not link: ${gl.getProgramInfoLog(program)}`);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+    throw new Error(`Program did not link: ${gl.getProgramInfoLog(program)}`);
   const attributes = {};
   const uniforms = {};
-  for (let i = 0; i < gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES); i += 1) {
+  for (
+    let i = 0;
+    i < gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    i += 1
+  ) {
     const info = gl.getActiveAttrib(program, i);
     attributes[info.name] = gl.getAttribLocation(program, info.name);
   }
-  for (let i = 0; i < gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS); i += 1) {
+  for (
+    let i = 0;
+    i < gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    i += 1
+  ) {
     const info = gl.getActiveUniform(program, i);
-    uniforms[info.name.replace(/\[0\]$/, "")] = gl.getUniformLocation(program, info.name);
+    uniforms[info.name.replace(/\[0\]$/, '')] = gl.getUniformLocation(
+      program,
+      info.name,
+    );
   }
-  return { program, attributes, uniforms };
+  return {program, attributes, uniforms};
 }
 
-export function createBuffer(gl, data, target = gl.ARRAY_BUFFER, usage = gl.STATIC_DRAW) {
+export function createBuffer(
+  gl,
+  data,
+  target = gl.ARRAY_BUFFER,
+  usage = gl.STATIC_DRAW,
+) {
   const buffer = gl.createBuffer();
   gl.bindBuffer(target, buffer);
   gl.bufferData(target, data, usage);
@@ -69,7 +98,7 @@ export function bindAttribute(gl, location, buffer, size) {
 // Sets a uniform from a plain value: number, [x, y], [x, y, z], [x, y, z, w] or a 4×4 matrix.
 export function setUniform(gl, location, value) {
   if (location === undefined || location === null) return;
-  if (typeof value === "number") gl.uniform1f(location, value);
+  if (typeof value === 'number') gl.uniform1f(location, value);
   else if (value.length === 2) gl.uniform2fv(location, value);
   else if (value.length === 3) gl.uniform3fv(location, value);
   else if (value.length === 4) gl.uniform4fv(location, value);
@@ -81,15 +110,32 @@ export function setUniform(gl, location, value) {
 export function loadTexture(gl, url) {
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
-  const ready = new Promise(resolve => {
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    1,
+    1,
+    0,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    new Uint8Array([0, 0, 0, 0]),
+  );
+  const ready = new Promise((resolve) => {
     const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.decoding = "async";
+    image.crossOrigin = 'anonymous';
+    image.decoding = 'async';
     image.onload = () => {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        image,
+      );
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -99,7 +145,7 @@ export function loadTexture(gl, url) {
     image.onerror = () => resolve(false);
     image.src = url;
   });
-  return { texture, ready };
+  return {texture, ready};
 }
 
 // Matches the drawing buffer to the canvas's CSS size × device pixel ratio (capped).

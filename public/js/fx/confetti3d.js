@@ -4,16 +4,21 @@
 // light as it faces you. One canvas, one shader, one draw call per frame.
 // confetti.js calls window.NxConfetti3d(canvas) and falls back to its 2D confetti when this returns
 // false (low-power device, no WebGL) or is missing. Reduced motion: no confetti at all (confetti.js).
-import { createContext, createProgram } from "../3d/gl.js";
-import { deviceTier, prefersReducedMotion } from "../3d/interaction.js";
+import {createContext, createProgram} from '../3d/gl.js';
+import {deviceTier, prefersReducedMotion} from '../3d/interaction.js';
 
 // ---------- The strips (plain numbers, no DOM: tested in Node) ----------
-const GRAVITY = 980;        // px per second squared
-const AIR = 1.4;            // drag: how fast a strip loses the speed it was fired with
-const FALL = 240;           // the most a fluttering strip falls per second
+const GRAVITY = 980; // px per second squared
+const AIR = 1.4; // drag: how fast a strip loses the speed it was fired with
+const FALL = 240; // the most a fluttering strip falls per second
 
 // count strips in a width × height screen: 40% from each bottom corner, 20% popping out of (popX, popY).
-export function makePieces(count, width, height, { popX = width / 2, popY = height * 0.32, colors = 6, rand = Math.random } = {}) {
+export function makePieces(
+  count,
+  width,
+  height,
+  {popX = width / 2, popY = height * 0.32, colors = 6, rand = Math.random} = {},
+) {
   const pieces = [];
   const between = (min, max) => min + rand() * (max - min);
   for (let i = 0; i < count; i += 1) {
@@ -36,7 +41,8 @@ export function makePieces(count, width, height, { popX = width / 2, popY = heig
       speed = between(180, 520);
     }
     pieces.push({
-      x, y,
+      x,
+      y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       size: between(9, 16),
@@ -47,7 +53,7 @@ export function makePieces(count, width, height, { popX = width / 2, popY = heig
       sway: between(30, 70),
       swayRate: between(2, 4),
       phase: between(0, Math.PI * 2),
-      color: Math.floor(rand() * colors)
+      color: Math.floor(rand() * colors),
     });
   }
   return pieces;
@@ -103,32 +109,59 @@ const shader = {
       float glint = pow(max(0.0, facing), 24.0) * 0.6;
       vec3 color = vColor * shade + glint;
       gl_FragColor = vec4(color * vShape.w, vShape.w);
-    }`
+    }`,
 };
 
 // The brand colours from tokens.css (each "r, g, b" in a --*-rgb token, or a hex colour), 0 to 1.
 function palette() {
   const style = getComputedStyle(document.documentElement);
-  const fallback = [[212, 255, 58], [236, 255, 158], [245, 245, 240], [52, 211, 153], [96, 165, 250], [255, 90, 31]];
-  return ["--volt", "--volt-light", "--ivory", "--success", "--info", "--deal"].map((name, i) => {
+  const fallback = [
+    [212, 255, 58],
+    [236, 255, 158],
+    [245, 245, 240],
+    [52, 211, 153],
+    [96, 165, 250],
+    [255, 90, 31],
+  ];
+  return [
+    '--volt',
+    '--volt-light',
+    '--ivory',
+    '--success',
+    '--info',
+    '--deal',
+  ].map((name, i) => {
     const value = style.getPropertyValue(name).trim();
     const hex = /^#([0-9a-f]{6})$/i.exec(value);
-    const rgb = hex ? [0, 2, 4].map(at => parseInt(hex[1].slice(at, at + 2), 16)) : fallback[i];
-    return rgb.map(n => n / 255);
+    const rgb = hex
+      ? [0, 2, 4].map((at) => parseInt(hex[1].slice(at, at + 2), 16))
+      : fallback[i];
+    return rgb.map((n) => n / 255);
   });
 }
 
 const DURATION = 3.6; // seconds, the last 0.9 of them fading out
 
-export function celebrate(canvas, { keep = false, popAt = null } = {}) {
+export function celebrate(canvas, {keep = false, popAt = null} = {}) {
   if (!canvas || prefersReducedMotion()) return false;
   const tier = deviceTier();
-  if (tier === "low") return false;
-  const gl = createContext(canvas, { antialias: false, premultipliedAlpha: true, powerPreference: "low-power" });
+  if (tier === 'low') return false;
+  const gl = createContext(canvas, {
+    antialias: false,
+    premultipliedAlpha: true,
+    powerPreference: 'low-power',
+  });
   if (!gl) return false;
-  const { program, attributes, uniforms } = createProgram(gl, shader.vertex, shader.fragment);
+  const {program, attributes, uniforms} = createProgram(
+    gl,
+    shader.vertex,
+    shader.fragment,
+  );
 
-  const ratio = Math.min(window.devicePixelRatio || 1, tier === "high" ? 2 : 1.5);
+  const ratio = Math.min(
+    window.devicePixelRatio || 1,
+    tier === 'high' ? 2 : 1.5,
+  );
   let width = 0;
   let height = 0;
   const fit = () => {
@@ -139,11 +172,15 @@ export function celebrate(canvas, { keep = false, popAt = null } = {}) {
     gl.viewport(0, 0, canvas.width, canvas.height);
   };
   fit();
-  window.addEventListener("resize", fit);
+  window.addEventListener('resize', fit);
 
   const colors = palette();
-  const count = Math.min(tier === "high" ? 240 : 150, Math.round(width / 3.5));
-  const pieces = makePieces(count, width, height, { popX: popAt ? popAt.x : width / 2, popY: popAt ? popAt.y : height * 0.32, colors: colors.length });
+  const count = Math.min(tier === 'high' ? 240 : 150, Math.round(width / 3.5));
+  const pieces = makePieces(count, width, height, {
+    popX: popAt ? popAt.x : width / 2,
+    popY: popAt ? popAt.y : height * 0.32,
+    colors: colors.length,
+  });
   const STRIDE = 9; // x, y, size, angle, flip, alpha, r, g, b
   const data = new Float32Array(count * STRIDE);
   const buffer = gl.createBuffer();
@@ -155,13 +192,13 @@ export function celebrate(canvas, { keep = false, popAt = null } = {}) {
   const finish = () => {
     if (stop) stop();
     stop = null;
-    window.removeEventListener("resize", fit);
+    window.removeEventListener('resize', fit);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     if (!keep) canvas.remove();
   };
 
-  const frame = dt => {
+  const frame = (dt) => {
     time += dt;
     stepPieces(pieces, dt, time);
     const alpha = Math.min(1, Math.max(0, (DURATION - time) / 0.9));
@@ -170,8 +207,15 @@ export function celebrate(canvas, { keep = false, popAt = null } = {}) {
       if (p.y > height + 40 && p.vy > 0) continue;
       const o = n * STRIDE;
       const color = colors[p.color];
-      data[o] = p.x; data[o + 1] = p.y; data[o + 2] = p.size; data[o + 3] = p.angle; data[o + 4] = p.flip;
-      data[o + 5] = alpha; data[o + 6] = color[0]; data[o + 7] = color[1]; data[o + 8] = color[2];
+      data[o] = p.x;
+      data[o + 1] = p.y;
+      data[o + 2] = p.size;
+      data[o + 3] = p.angle;
+      data[o + 4] = p.flip;
+      data[o + 5] = alpha;
+      data[o + 6] = color[0];
+      data[o + 7] = color[1];
+      data[o + 8] = color[2];
       n += 1;
     }
     gl.clearColor(0, 0, 0, 0);
@@ -184,9 +228,23 @@ export function celebrate(canvas, { keep = false, popAt = null } = {}) {
       gl.enableVertexAttribArray(attributes.aPos);
       gl.vertexAttribPointer(attributes.aPos, 2, gl.FLOAT, false, bytes, 0);
       gl.enableVertexAttribArray(attributes.aShape);
-      gl.vertexAttribPointer(attributes.aShape, 4, gl.FLOAT, false, bytes, 2 * 4);
+      gl.vertexAttribPointer(
+        attributes.aShape,
+        4,
+        gl.FLOAT,
+        false,
+        bytes,
+        2 * 4,
+      );
       gl.enableVertexAttribArray(attributes.aColor);
-      gl.vertexAttribPointer(attributes.aColor, 3, gl.FLOAT, false, bytes, 6 * 4);
+      gl.vertexAttribPointer(
+        attributes.aColor,
+        3,
+        gl.FLOAT,
+        false,
+        bytes,
+        6 * 4,
+      );
       gl.uniform2f(uniforms.uViewport, width, height);
       gl.uniform1f(uniforms.uRatio, ratio);
       gl.enable(gl.BLEND);
@@ -202,7 +260,7 @@ export function celebrate(canvas, { keep = false, popAt = null } = {}) {
   } else {
     let id = 0;
     let last = 0;
-    const loop = now => {
+    const loop = (now) => {
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
       last = now;
       frame(dt);
@@ -214,12 +272,12 @@ export function celebrate(canvas, { keep = false, popAt = null } = {}) {
   return true;
 }
 
-if (typeof window !== "undefined" && typeof document !== "undefined") {
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.NxConfetti3d = (canvas, options) => {
     try {
       return celebrate(canvas, options);
     } catch (error) {
-      if (window.console) console.warn("3D confetti skipped:", error.message);
+      if (window.console) console.warn('3D confetti skipped:', error.message);
       return false;
     }
   };

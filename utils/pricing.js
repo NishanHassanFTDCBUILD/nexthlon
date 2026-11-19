@@ -11,24 +11,32 @@
 // Orders
 //   subtotal (items at their offer prices) − coupon + delivery fee = payable
 //   payable − wallet = total, the amount still to pay (cash on delivery or online)
-const { STORE } = require("../config/store");
-const { formatPaise } = require("./money");
+const {STORE} = require('../config/store');
+const {formatPaise} = require('./money');
 
-function bestOfferFor({ offerPercent = 0, categoryOffer = 0 } = {}) {
+function bestOfferFor({offerPercent = 0, categoryOffer = 0} = {}) {
   const product = Number(offerPercent) || 0;
   const category = Number(categoryOffer) || 0;
-  if (!product && !category) return { percent: 0, source: null };
-  return product >= category ? { percent: product, source: "product" } : { percent: category, source: "category" };
+  if (!product && !category) return {percent: 0, source: null};
+  return product >= category
+    ? {percent: product, source: 'product'}
+    : {percent: category, source: 'category'};
 }
 
 // Half rounds up, written as floor(x + 0.5) so it matches PRICE_PIPELINE below.
-const roundHalfUp = value => Math.floor(value + 0.5);
+const roundHalfUp = (value) => Math.floor(value + 0.5);
 
-function priceFor({ basePrice, mrp, offerPercent = 0, categoryOffer = 0 }) {
-  const offer = bestOfferFor({ offerPercent, categoryOffer });
+function priceFor({basePrice, mrp, offerPercent = 0, categoryOffer = 0}) {
+  const offer = bestOfferFor({offerPercent, categoryOffer});
   const price = roundHalfUp((basePrice * (100 - offer.percent)) / 100);
-  const discountPercent = mrp > price ? roundHalfUp(((mrp - price) / mrp) * 100) : 0;
-  return { price, bestOffer: offer.percent, offerSource: offer.source, discountPercent };
+  const discountPercent =
+    mrp > price ? roundHalfUp(((mrp - price) / mrp) * 100) : 0;
+  return {
+    price,
+    bestOffer: offer.percent,
+    offerSource: offer.source,
+    discountPercent,
+  };
 }
 
 // Delivery is free from STORE.freeDeliveryMin (₹499) of items; below that a flat fee applies.
@@ -42,22 +50,34 @@ function deliveryFeeFor(subtotal) {
 // totals stay clean. Never more than its cap, and never more than the subtotal.
 function couponDiscountFor(coupon, subtotal) {
   if (!coupon || !(subtotal > 0)) return 0;
-  let amount = coupon.type === "percent" ? Math.floor((subtotal * coupon.value) / 10000) * 100 : coupon.value;
+  let amount =
+    coupon.type === 'percent'
+      ? Math.floor((subtotal * coupon.value) / 10000) * 100
+      : coupon.value;
   if (coupon.maxDiscount > 0) amount = Math.min(amount, coupon.maxDiscount);
   return Math.max(0, Math.min(amount, subtotal));
 }
 
 // Why this coupon cannot be used right now, or null if it can.
 // usedByUser is how many of this customer's orders already used it.
-function couponProblem(coupon, { subtotal = 0, usedByUser = 0, now = new Date() } = {}) {
-  if (!coupon || !coupon.isActive) return "This coupon code is not valid.";
-  if (coupon.startsAt && now < new Date(coupon.startsAt)) return "This coupon is not active yet.";
-  if (coupon.endsAt && now > new Date(coupon.endsAt)) return "This coupon has expired.";
-  if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return "This coupon has been fully used.";
+function couponProblem(
+  coupon,
+  {subtotal = 0, usedByUser = 0, now = new Date()} = {},
+) {
+  if (!coupon || !coupon.isActive) return 'This coupon code is not valid.';
+  if (coupon.startsAt && now < new Date(coupon.startsAt))
+    return 'This coupon is not active yet.';
+  if (coupon.endsAt && now > new Date(coupon.endsAt))
+    return 'This coupon has expired.';
+  if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit)
+    return 'This coupon has been fully used.';
   if (coupon.perUserLimit > 0 && usedByUser >= coupon.perUserLimit) {
-    return coupon.perUserLimit === 1 ? "You have already used this coupon." : `You can use this coupon ${coupon.perUserLimit} times, and you have.`;
+    return coupon.perUserLimit === 1
+      ? 'You have already used this coupon.'
+      : `You can use this coupon ${coupon.perUserLimit} times, and you have.`;
   }
-  if (subtotal < (coupon.minOrder || 0)) return `Add items worth ${formatPaise(coupon.minOrder - subtotal)} more to use this coupon.`;
+  if (subtotal < (coupon.minOrder || 0))
+    return `Add items worth ${formatPaise(coupon.minOrder - subtotal)} more to use this coupon.`;
   return null;
 }
 
@@ -72,40 +92,91 @@ function prepaidDiscountFor(prepaid, base) {
   return prepaid.max > 0 ? Math.min(amount, prepaid.max) : amount;
 }
 
-function orderTotals({ itemCount = 0, mrpTotal = 0, subtotal = 0, coupon = null, walletBalance = 0, useWallet = false, prepaid = null, payOnline = false }) {
+function orderTotals({
+  itemCount = 0,
+  mrpTotal = 0,
+  subtotal = 0,
+  coupon = null,
+  walletBalance = 0,
+  useWallet = false,
+  prepaid = null,
+  payOnline = false,
+}) {
   const couponDiscount = couponDiscountFor(coupon, subtotal);
   const deliveryFee = deliveryFeeFor(subtotal);
-  const prepaidDiscount = payOnline ? prepaidDiscountFor(prepaid, subtotal - couponDiscount) : 0;
+  const prepaidDiscount = payOnline
+    ? prepaidDiscountFor(prepaid, subtotal - couponDiscount)
+    : 0;
   const payable = subtotal - couponDiscount - prepaidDiscount + deliveryFee;
-  const walletUsed = useWallet ? Math.max(0, Math.min(walletBalance, payable)) : 0;
+  const walletUsed = useWallet
+    ? Math.max(0, Math.min(walletBalance, payable))
+    : 0;
   return {
     itemCount,
     mrpTotal,
     subtotal,
     discount: Math.max(0, mrpTotal - subtotal),
-    couponCode: couponDiscount > 0 ? coupon.code : "",
+    couponCode: couponDiscount > 0 ? coupon.code : '',
     couponDiscount,
     prepaidDiscount,
     deliveryFee,
     payable,
     walletUsed,
-    total: payable - walletUsed
+    total: payable - walletUsed,
   };
 }
 
 // The same sums as priceFor, written as a database update pipeline, for changing many products at
 // once (a category offer changed, or old products being upgraded).
-const halfUp = expr => ({ $floor: { $add: [expr, 0.5] } });
+const halfUp = (expr) => ({$floor: {$add: [expr, 0.5]}});
 const PRICE_PIPELINE = Object.freeze([
-  { $set: { bestOffer: { $max: [{ $ifNull: ["$offerPercent", 0] }, { $ifNull: ["$categoryOffer", 0] }] } } },
-  { $set: { price: halfUp({ $divide: [{ $multiply: ["$basePrice", { $subtract: [100, "$bestOffer"] }] }, 100] }) } },
+  {
+    $set: {
+      bestOffer: {
+        $max: [
+          {$ifNull: ['$offerPercent', 0]},
+          {$ifNull: ['$categoryOffer', 0]},
+        ],
+      },
+    },
+  },
+  {
+    $set: {
+      price: halfUp({
+        $divide: [
+          {$multiply: ['$basePrice', {$subtract: [100, '$bestOffer']}]},
+          100,
+        ],
+      }),
+    },
+  },
   {
     $set: {
       discountPercent: {
-        $cond: [{ $gt: ["$mrp", "$price"] }, halfUp({ $multiply: [{ $divide: [{ $subtract: ["$mrp", "$price"] }, "$mrp"] }, 100] }), 0]
-      }
-    }
-  }
+        $cond: [
+          {$gt: ['$mrp', '$price']},
+          halfUp({
+            $multiply: [
+              {$divide: [{$subtract: ['$mrp', '$price']}, '$mrp']},
+              100,
+            ],
+          }),
+          0,
+        ],
+      },
+    },
+  },
 ]);
 
-module.exports = { PRICE_PIPELINE, halfUp, bestOfferFor, priceFor, roundHalfUp, deliveryFeeFor, couponDiscountFor, couponProblem, orderTotals, prepaidDiscountFor };
+module.exports = {
+  PRICE_PIPELINE,
+  halfUp,
+  bestOfferFor,
+  priceFor,
+  roundHalfUp,
+  deliveryFeeFor,
+  couponDiscountFor,
+  couponProblem,
+  orderTotals,
+  prepaidDiscountFor,
+};

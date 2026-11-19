@@ -6,10 +6,10 @@
 // The loop runs only while something is subscribed (or queued) and the tab is visible.
 // Loaded as a classic script before everything else (window.NxTicker); Node tests require it.
 (function (root, factory) {
-  if (typeof module === "object" && module.exports) module.exports = factory;
+  if (typeof module === 'object' && module.exports) module.exports = factory;
   else root.NxTicker = factory(root);
-})(typeof self !== "undefined" ? self : this, function createTicker(env) {
-  "use strict";
+})(typeof self !== 'undefined' ? self : this, function createTicker(env) {
+  'use strict';
 
   const raf = env.requestAnimationFrame.bind(env);
   const caf = env.cancelAnimationFrame.bind(env);
@@ -22,7 +22,8 @@
   let elapsed = 0;
 
   const hidden = () => Boolean(doc && doc.hidden);
-  const busy = () => subscribers.size > 0 || reads.length > 0 || writes.length > 0;
+  const busy = () =>
+    subscribers.size > 0 || reads.length > 0 || writes.length > 0;
 
   function run(fn, ...args) {
     try {
@@ -38,12 +39,12 @@
     const dt = last ? Math.min(0.05, Math.max(0, (now - last) / 1000)) : 0;
     last = now;
     elapsed += dt;
-    const jobs = { reads, writes };
+    const jobs = {reads, writes};
     reads = [];
     writes = [];
-    jobs.reads.forEach(fn => run(fn));
-    subscribers.forEach(fn => run(fn, elapsed, dt));
-    jobs.writes.forEach(fn => run(fn));
+    jobs.reads.forEach((fn) => run(fn));
+    subscribers.forEach((fn) => run(fn, elapsed, dt));
+    jobs.writes.forEach((fn) => run(fn));
     schedule();
   }
 
@@ -59,7 +60,7 @@
   }
 
   if (doc && doc.addEventListener) {
-    doc.addEventListener("visibilitychange", () => {
+    doc.addEventListener('visibilitychange', () => {
       if (hidden()) pause();
       else schedule();
     });
@@ -87,6 +88,6 @@
     },
     get running() {
       return frame !== 0;
-    }
+    },
   };
 });

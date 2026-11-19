@@ -1,19 +1,19 @@
-const bcrypt = require("bcryptjs");
-const User = require("../models/User");
-const referralService = require("./referralService");
-const { HttpError } = require("../utils/http");
-const logger = require("../utils/logger");
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
+const referralService = require('./referralService');
+const {HttpError} = require('../utils/http');
+const logger = require('../utils/logger');
 
 const BCRYPT_ROUNDS = 12;
 // Compared against when the email does not exist, so a wrong email takes as long as a wrong password.
-const DUMMY_HASH = bcrypt.hashSync("nexthlon-timing-guard", BCRYPT_ROUNDS);
+const DUMMY_HASH = bcrypt.hashSync('nexthlon-timing-guard', BCRYPT_ROUNDS);
 
 // Creates a customer with their own referral code. With a friend's code, the invite is recorded; both
 // get the referral reward once the new customer's first order is delivered (referralService).
-async function registerCustomer({ name, email, password, referralCode = "" }) {
-  if (await User.exists({ email })) {
-    throw new HttpError(409, "An account with this email already exists.", {
-      email: "This email is already registered. Try signing in."
+async function registerCustomer({name, email, password, referralCode = ''}) {
+  if (await User.exists({email})) {
+    throw new HttpError(409, 'An account with this email already exists.', {
+      email: 'This email is already registered. Try signing in.',
     });
   }
   const referrer = await referralService.findReferrer(referralCode);
@@ -21,20 +21,33 @@ async function registerCustomer({ name, email, password, referralCode = "" }) {
   let user;
   for (let attempt = 0; !user; attempt += 1) {
     try {
-      user = await User.create({ name, email, passwordHash, role: "customer", referralCode: referralService.makeCode(name), referredBy: referrer ? referrer._id : null });
+      user = await User.create({
+        name,
+        email,
+        passwordHash,
+        role: 'customer',
+        referralCode: referralService.makeCode(name),
+        referredBy: referrer ? referrer._id : null,
+      });
     } catch (error) {
-      const codeTaken = error.code === 11000 && error.keyPattern && error.keyPattern.referralCode;
+      const codeTaken =
+        error.code === 11000 &&
+        error.keyPattern &&
+        error.keyPattern.referralCode;
       if (codeTaken && attempt < 4) continue;
-      if (error.code === 11000) throw new HttpError(409, "An account with this email already exists.");
+      if (error.code === 11000)
+        throw new HttpError(409, 'An account with this email already exists.');
       throw error;
     }
   }
   if (referrer) {
     // The account is made either way; a failed reward is logged, and can be credited again safely.
     try {
-      user.referralReward = (await referralService.rewardSignup(user, referrer)).reward;
+      user.referralReward = (
+        await referralService.rewardSignup(user, referrer)
+      ).reward;
     } catch (error) {
-      logger.error("referral.reward_failed", { user: String(user._id), error });
+      logger.error('referral.reward_failed', {user: String(user._id), error});
     }
   }
   return user;
@@ -42,20 +55,33 @@ async function registerCustomer({ name, email, password, referralCode = "" }) {
 
 // Checks the password, then the role, then the blocked flag.
 // touch: false leaves the "last signed in" time alone, for the admin sign-in that still needs its code.
-async function authenticate({ email, password }, expectedRole, { touch = true } = {}) {
-  const user = await User.findOne({ email }).select("+passwordHash");
-  const passwordMatches = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
+async function authenticate(
+  {email, password},
+  expectedRole,
+  {touch = true} = {},
+) {
+  const user = await User.findOne({email}).select('+passwordHash');
+  const passwordMatches = await bcrypt.compare(
+    password,
+    user ? user.passwordHash : DUMMY_HASH,
+  );
   // A deleted account answers exactly like a wrong password.
   if (!user || !passwordMatches || user.isDeleted) {
-    throw new HttpError(401, "Incorrect email or password.");
+    throw new HttpError(401, 'Incorrect email or password.');
   }
   if (user.role !== expectedRole) {
-    throw new HttpError(403, expectedRole === "admin"
-      ? "This account does not have admin access."
-      : "Administrators sign in from the admin login page.");
+    throw new HttpError(
+      403,
+      expectedRole === 'admin'
+        ? 'This account does not have admin access.'
+        : 'Administrators sign in from the admin login page.',
+    );
   }
   if (user.isBlocked) {
-    throw new HttpError(403, "Your account has been blocked. Please contact Nexthlon support.");
+    throw new HttpError(
+      403,
+      'Your account has been blocked. Please contact Nexthlon support.',
+    );
   }
   if (touch) await touchLogin(user);
   return user;
@@ -70,4 +96,10 @@ async function hashPassword(password) {
   return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
-module.exports = { registerCustomer, authenticate, touchLogin, hashPassword, BCRYPT_ROUNDS };
+module.exports = {
+  registerCustomer,
+  authenticate,
+  touchLogin,
+  hashPassword,
+  BCRYPT_ROUNDS,
+};

@@ -8,9 +8,9 @@ function toPublicUser(user) {
     role: user.role,
     isBlocked: user.isBlocked,
     emailVerified: Boolean(user.emailVerifiedAt),
-    referralCode: user.referralCode || "",
-    createdAt: user.createdAt
+    referralCode: user.referralCode || '',
+    createdAt: user.createdAt,
   };
 }
 
-module.exports = { toPublicUser };
+module.exports = {toPublicUser};

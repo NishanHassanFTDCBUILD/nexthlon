@@ -1,23 +1,37 @@
-const authService = require("../services/authService");
-const refreshTokenService = require("../services/refreshTokenService");
-const { startSession, endSession, readRefreshCookie, readSessionCookie, signToken, setAuthCookie } = require("../services/tokenService");
-const emailVerificationService = require("../services/emailVerificationService");
-const { siteUrlFor } = require("../utils/emailLayout");
-const { validateSignup, validateLogin, hasErrors } = require("../utils/validators");
-const { HttpError, asyncHandler } = require("../utils/http");
-const { formatPaise } = require("../utils/money");
-const accountService = require("../services/accountService");
-const logger = require("../utils/logger");
-const { toPublicUser } = require("../utils/publicUser");
-const cartService = require("../services/cartService");
-const { readGuestCart, clearGuestCart } = require("../middleware/guestCart");
+const authService = require('../services/authService');
+const refreshTokenService = require('../services/refreshTokenService');
+const {
+  startSession,
+  endSession,
+  readRefreshCookie,
+  readSessionCookie,
+  signToken,
+  setAuthCookie,
+} = require('../services/tokenService');
+const emailVerificationService = require('../services/emailVerificationService');
+const {siteUrlFor} = require('../utils/emailLayout');
+const {
+  validateSignup,
+  validateLogin,
+  hasErrors,
+} = require('../utils/validators');
+const {HttpError, asyncHandler} = require('../utils/http');
+const {formatPaise} = require('../utils/money');
+const accountService = require('../services/accountService');
+const logger = require('../utils/logger');
+const {toPublicUser} = require('../utils/publicUser');
+const cartService = require('../services/cartService');
+const {readGuestCart, clearGuestCart} = require('../middleware/guestCart');
 
 // Adds the sign-in to the account's login activity (browser and masked IP). Never blocks signing in.
 async function noteLogin(req, user) {
   try {
-    await accountService.recordLogin(user._id, { userAgent: req.get("user-agent"), ip: req.ip });
+    await accountService.recordLogin(user._id, {
+      userAgent: req.get('user-agent'),
+      ip: req.ip,
+    });
   } catch (error) {
-    logger.warn("login_activity.failed", { error });
+    logger.warn('login_activity.failed', {error});
   }
 }
 
@@ -26,14 +40,16 @@ async function noteLogin(req, user) {
 // Returns a sentence for the welcome message ("" when nothing moved).
 async function bringGuestCart(req, res, user) {
   const guest = readGuestCart(req);
-  if (!guest) return "";
+  if (!guest) return '';
   try {
-    const { moved } = await cartService.mergeGuestCart(user._id, guest);
+    const {moved} = await cartService.mergeGuestCart(user._id, guest);
     clearGuestCart(res);
-    return moved ? ` The ${moved === 1 ? "item" : "items"} in your cart ${moved === 1 ? "is" : "are"} saved to your account.` : "";
+    return moved
+      ? ` The ${moved === 1 ? 'item' : 'items'} in your cart ${moved === 1 ? 'is' : 'are'} saved to your account.`
+      : '';
   } catch (error) {
-    logger.warn("guest_cart.merge_failed", { error });
-    return "";
+    logger.warn('guest_cart.merge_failed', {error});
+    return '';
   }
 }
 
@@ -41,48 +57,71 @@ async function bringGuestCart(req, res, user) {
 // everything else is the store. Each kind has its own refresh cookie, so both can be signed in
 // in one browser without clashing.
 function scopeFrom(body) {
-  return body && body.scope === "admin" ? "admin" : "customer";
+  return body && body.scope === 'admin' ? 'admin' : 'customer';
 }
 
 // Issues a brand new pair: a short-lived access token (JWT) and a long-lived refresh token, each in
 // its own httpOnly cookie. The access token is also returned in the body for API tools like Postman.
 async function sendSignedIn(req, res, user, status, message) {
-  const { rawToken, familyId } = await refreshTokenService.issue(user, refreshTokenService.deviceFrom(req));
-  const token = startSession(res, { user, refreshToken: rawToken, familyId });
-  res.status(status).json({ message, user: toPublicUser(user), token });
+  const {rawToken, familyId} = await refreshTokenService.issue(
+    user,
+    refreshTokenService.deviceFrom(req),
+  );
+  const token = startSession(res, {user, refreshToken: rawToken, familyId});
+  res.status(status).json({message, user: toPublicUser(user), token});
 }
 
 // POST /api/signup
 const signup = asyncHandler(async (req, res) => {
-  const { errors, value } = validateSignup(req.body);
-  if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
+  const {errors, value} = validateSignup(req.body);
+  if (hasErrors(errors))
+    throw new HttpError(400, 'Please fix the highlighted fields.', errors);
   const user = await authService.registerCustomer(value);
   await noteLogin(req, user);
   // Ask them to confirm the address. In the background: they are signing up, not waiting for an email server.
-  emailVerificationService.sendInBackground(user, { baseUrl: siteUrlFor(req), ip: req.ip });
-  const bonus = user.referralReward ? ` You and your friend each get ${formatPaise(user.referralReward)} in your wallets when your first order is delivered.` : "";
+  emailVerificationService.sendInBackground(user, {
+    baseUrl: siteUrlFor(req),
+    ip: req.ip,
+  });
+  const bonus = user.referralReward
+    ? ` You and your friend each get ${formatPaise(user.referralReward)} in your wallets when your first order is delivered.`
+    : '';
   const carried = await bringGuestCart(req, res, user);
-  await sendSignedIn(req, res, user, 201, `Welcome to Nexthlon! Your account is ready.${bonus}${carried}`);
+  await sendSignedIn(
+    req,
+    res,
+    user,
+    201,
+    `Welcome to Nexthlon! Your account is ready.${bonus}${carried}`,
+  );
 });
 
 // POST /api/login
 const login = asyncHandler(async (req, res) => {
-  const { errors, value } = validateLogin(req.body);
-  if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
-  const user = await authService.authenticate(value, "customer");
+  const {errors, value} = validateLogin(req.body);
+  if (hasErrors(errors))
+    throw new HttpError(400, 'Please fix the highlighted fields.', errors);
+  const user = await authService.authenticate(value, 'customer');
   await noteLogin(req, user);
   const carried = await bringGuestCart(req, res, user);
-  await sendSignedIn(req, res, user, 200, `Welcome back, ${user.name.split(" ")[0]}!${carried}`);
+  await sendSignedIn(
+    req,
+    res,
+    user,
+    200,
+    `Welcome back, ${user.name.split(' ')[0]}!${carried}`,
+  );
 });
 
 // POST /api/admin/login
 const adminLogin = asyncHandler(async (req, res) => {
-  const { errors, value } = validateLogin(req.body);
-  if (hasErrors(errors)) throw new HttpError(400, "Please fix the highlighted fields.", errors);
-  const user = await authService.authenticate(value, "admin", { touch: false });
+  const {errors, value} = validateLogin(req.body);
+  if (hasErrors(errors))
+    throw new HttpError(400, 'Please fix the highlighted fields.', errors);
+  const user = await authService.authenticate(value, 'admin', {touch: false});
   await authService.touchLogin(user);
   await noteLogin(req, user);
-  return sendSignedIn(req, res, user, 200, "Signed in to the admin console.");
+  return sendSignedIn(req, res, user, 200, 'Signed in to the admin console.');
 });
 
 // POST /api/auth/refresh   body (optional): { scope: "admin" } or { refreshToken } for API tools
@@ -94,16 +133,23 @@ const refresh = asyncHandler(async (req, res) => {
   const body = req.body || {};
   const scope = scopeFrom(body);
   // The browser sends it in the cookie; Postman and mobile apps can send it in the body instead.
-  const fromBody = typeof body.refreshToken === "string" && body.refreshToken ? body.refreshToken : "";
+  const fromBody =
+    typeof body.refreshToken === 'string' && body.refreshToken
+      ? body.refreshToken
+      : '';
   const rawToken = fromBody || readRefreshCookie(req, scope);
 
-  const result = await refreshTokenService.rotate(rawToken, { role: scope, ...refreshTokenService.deviceFrom(req) });
+  const result = await refreshTokenService.rotate(rawToken, {
+    role: scope,
+    ...refreshTokenService.deviceFrom(req),
+  });
   if (!result.ok) {
     // Whatever went wrong, this browser is no longer signed in: wipe all three cookies.
     endSession(res, scope);
-    const message = result.reason === "reuse"
-      ? "For your safety we signed you out everywhere. Please sign in again."
-      : "Your session has ended. Please sign in again.";
+    const message =
+      result.reason === 'reuse'
+        ? 'For your safety we signed you out everywhere. Please sign in again.'
+        : 'Your session has ended. Please sign in again.';
     throw new HttpError(401, message);
   }
 
@@ -113,22 +159,31 @@ const refresh = asyncHandler(async (req, res) => {
   if (result.concurrent) {
     const token = signToken(result.user);
     setAuthCookie(res, token, scope);
-    return res.json({ message: "Session already renewed.", user: toPublicUser(result.user), token, concurrent: true });
+    return res.json({
+      message: 'Session already renewed.',
+      user: toPublicUser(result.user),
+      token,
+      concurrent: true,
+    });
   }
 
-  const token = startSession(res, { user: result.user, refreshToken: result.rawToken, familyId: result.familyId });
+  const token = startSession(res, {
+    user: result.user,
+    refreshToken: result.rawToken,
+    familyId: result.familyId,
+  });
   res.json({
-    message: "Session renewed.",
+    message: 'Session renewed.',
     user: toPublicUser(result.user),
     token,
     // Only handed back to a caller that sent the token in the body; a browser reads its cookie.
-    refreshToken: fromBody ? result.rawToken : undefined
+    refreshToken: fromBody ? result.rawToken : undefined,
   });
 });
 
 // GET /api/me
 function me(req, res) {
-  res.json({ user: toPublicUser(req.user) });
+  res.json({user: toPublicUser(req.user)});
 }
 
 // Signing out has two halves. The access token is stateless, so it is enough to delete its cookie.
@@ -138,22 +193,34 @@ function me(req, res) {
 // does send is the session label (nx_sid), which names the family, and revoking the family revokes
 // the refresh token inside it. API tools without cookies can send { refreshToken } in the body.
 async function signOut(req, res, kind) {
-  const rawToken = readRefreshCookie(req, kind) || (req.body && typeof req.body.refreshToken === "string" ? req.body.refreshToken : "");
-  if (rawToken) await refreshTokenService.revokeToken(rawToken, "logout");
-  await refreshTokenService.revokeFamily(readSessionCookie(req, kind), "logout", req.user ? req.user._id : null);
+  const rawToken =
+    readRefreshCookie(req, kind) ||
+    (req.body && typeof req.body.refreshToken === 'string'
+      ? req.body.refreshToken
+      : '');
+  if (rawToken) await refreshTokenService.revokeToken(rawToken, 'logout');
+  await refreshTokenService.revokeFamily(
+    readSessionCookie(req, kind),
+    'logout',
+    req.user ? req.user._id : null,
+  );
   endSession(res, kind);
 }
 
 // POST /api/logout
 const logout = asyncHandler(async (req, res) => {
-  await signOut(req, res, "customer");
-  res.json({ message: "You have been signed out." });
+  await signOut(req, res, 'customer');
+  res.json({message: 'You have been signed out.'});
 });
 
 // POST /api/admin/logout (only the admin session ends; a customer session in the same browser stays)
 const adminLogout = asyncHandler(async (req, res) => {
-  await signOut(req, res, "admin");
-  res.json({ message: "You have been signed out of the admin console." });
+  await signOut(req, res, 'admin');
+  // Tell the browser to drop every stored copy of this site's pages, so no admin screen can come
+  // back from its cache or the Back/Forward memory. Cookies and storage are left alone, so a
+  // customer signed in to the store in the same browser stays signed in.
+  res.set('Clear-Site-Data', '"cache"');
+  res.json({message: 'You have been signed out of the admin console.'});
 });
 
-module.exports = { signup, login, adminLogin, refresh, me, logout, adminLogout };
+module.exports = {signup, login, adminLogin, refresh, me, logout, adminLogout};

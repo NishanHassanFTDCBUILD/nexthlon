@@ -1,125 +1,218 @@
 // Design tokens: colours, text sizes, durations and layers come only from public/css/tokens.css.
 // Every other stylesheet uses var(--token). A translucent colour is written rgba(var(--white-rgb), 0.5):
 // the colour is a token, the opacity is the only number. These tests fail on any new one-off value.
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const fs = require("fs");
-const path = require("path");
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
 
-const DIR = path.join(__dirname, "..", "public", "css");
-const files = fs.readdirSync(DIR).filter(f => f.endsWith(".css") && f !== "tokens.css");
-const tokens = fs.readFileSync(path.join(DIR, "tokens.css"), "utf8");
+const DIR = path.join(__dirname, '..', 'public', 'css');
+const files = fs
+  .readdirSync(DIR)
+  .filter((f) => f.endsWith('.css') && f !== 'tokens.css');
+const tokens = fs.readFileSync(path.join(DIR, 'tokens.css'), 'utf8');
 
 // Each declaration with its file and line, comments removed.
 function declarations() {
   const out = [];
   for (const f of files) {
-    const src = fs.readFileSync(path.join(DIR, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, " "));
-    const re = /([-\w]+)\s*:\s*([^;{}]+)(?=[;}])/g; let m;
+    const src = fs
+      .readFileSync(path.join(DIR, f), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+    const re = /([-\w]+)\s*:\s*([^;{}]+)(?=[;}])/g;
+    let m;
     while ((m = re.exec(src))) {
-      const line = src.slice(0, m.index).split("\n").length;
-      out.push({ where: `${f}:${line}`, prop: m[1].toLowerCase(), value: m[2].trim() });
+      const line = src.slice(0, m.index).split('\n').length;
+      out.push({
+        where: `${f}:${line}`,
+        prop: m[1].toLowerCase(),
+        value: m[2].trim(),
+      });
     }
   }
   return out;
 }
 const decls = declarations();
-const report = list => list.map(d => `${d.where} ${d.prop}: ${d.value.slice(0, 80)}`).join("\n");
+const report = (list) =>
+  list.map((d) => `${d.where} ${d.prop}: ${d.value.slice(0, 80)}`).join('\n');
 
-test("colours outside tokens.css are tokens (no hex, no rgb() with numbers)", () => {
-  const bad = decls.filter(d => !/url\(/.test(d.value) && (/#[0-9a-f]{3,8}\b/i.test(d.value) || /rgba?\(\s*\d/.test(d.value)));
+test('colours outside tokens.css are tokens (no hex, no rgb() with numbers)', () => {
+  const bad = decls.filter(
+    (d) =>
+      !/url\(/.test(d.value) &&
+      (/#[0-9a-f]{3,8}\b/i.test(d.value) || /rgba?\(\s*\d/.test(d.value)),
+  );
   assert.equal(bad.length, 0, `One-off colours:\n${report(bad)}`);
 });
 
-test("font sizes outside tokens.css are tokens", () => {
-  const bad = decls.filter(d => (d.prop === "font-size" && /\d(px|rem|vw|vh)\b/.test(d.value.replace(/var\([^)]*\)/g, "")))
-    || (d.prop === "font" && /(^|\s)\d+(\.\d+)?(px|rem)/.test(d.value.replace(/var\([^)]*\)/g, ""))));
+test('font sizes outside tokens.css are tokens', () => {
+  const bad = decls.filter(
+    (d) =>
+      (d.prop === 'font-size' &&
+        /\d(px|rem|vw|vh)\b/.test(d.value.replace(/var\([^)]*\)/g, ''))) ||
+      (d.prop === 'font' &&
+        /(^|\s)\d+(\.\d+)?(px|rem)/.test(d.value.replace(/var\([^)]*\)/g, ''))),
+  );
   assert.equal(bad.length, 0, `One-off font sizes:\n${report(bad)}`);
 });
 
-test("durations outside tokens.css are tokens (zero and negative loop offsets allowed)", () => {
-  const bad = decls.filter(d => /^(transition|animation)(-duration|-delay)?$/.test(d.prop))
-    .filter(d => /(^|[\s,])\d*\.?\d+m?s\b/.test(d.value.replace(/var\([^)]*\)|calc\([^)]*\)/g, "").replace(/(^|[\s,])0m?s\b/g, "")));
+test('durations outside tokens.css are tokens (zero and negative loop offsets allowed)', () => {
+  const bad = decls
+    .filter((d) => /^(transition|animation)(-duration|-delay)?$/.test(d.prop))
+    .filter((d) =>
+      /(^|[\s,])\d*\.?\d+m?s\b/.test(
+        d.value
+          .replace(/var\([^)]*\)|calc\([^)]*\)/g, '')
+          .replace(/(^|[\s,])0m?s\b/g, ''),
+      ),
+    );
   assert.equal(bad.length, 0, `One-off durations:\n${report(bad)}`);
 });
 
-test("easing outside tokens.css is a token", () => {
-  const bad = decls.filter(d => /^(transition|animation)(-timing-function)?$/.test(d.prop))
-    .filter(d => /cubic-bezier|(^|[\s,])(ease|ease-in|ease-out|ease-in-out|linear)(?=$|[\s,])/.test(d.value.replace(/var\([^)]*\)/g, "")));
+test('easing outside tokens.css is a token', () => {
+  const bad = decls
+    .filter((d) => /^(transition|animation)(-timing-function)?$/.test(d.prop))
+    .filter((d) =>
+      /cubic-bezier|(^|[\s,])(ease|ease-in|ease-out|ease-in-out|linear)(?=$|[\s,])/.test(
+        d.value.replace(/var\([^)]*\)/g, ''),
+      ),
+    );
   assert.equal(bad.length, 0, `One-off easings:\n${report(bad)}`);
 });
 
-test("small spacing outside tokens.css is a token (C4)", () => {
+test('small spacing outside tokens.css is a token (C4)', () => {
   // Padding, margin and gap from 2px to 32px come from the spacing scale (--space-*), alone or added up in
   // calc(). Left alone on purpose: 1px hairline nudges, and geometry over 32px or below zero (centring a
   // decorative circle, room kept for an icon or button inside a field), which is layout, not rhythm.
-  const outside = value => {
+  const outside = (value) => {
     let depth = 0;
-    let top = "";
+    let top = '';
     for (const ch of value) {
-      if (ch === "(") depth += 1;
-      else if (ch === ")") depth -= 1;
+      if (ch === '(') depth += 1;
+      else if (ch === ')') depth -= 1;
       else if (depth === 0) top += ch;
     }
     return top;
   };
-  const bad = decls.filter(d => /^(padding|margin|gap|row-gap|column-gap)(-[a-z]+)?$/.test(d.prop))
-    .filter(d => [...outside(d.value).matchAll(/(^|[\s,])(\d+(\.\d+)?)px\b/g)].some(m => Number(m[2]) >= 2 && Number(m[2]) <= 32));
+  const bad = decls
+    .filter((d) =>
+      /^(padding|margin|gap|row-gap|column-gap)(-[a-z]+)?$/.test(d.prop),
+    )
+    .filter((d) =>
+      [...outside(d.value).matchAll(/(^|[\s,])(\d+(\.\d+)?)px\b/g)].some(
+        (m) => Number(m[2]) >= 2 && Number(m[2]) <= 32,
+      ),
+    );
   assert.equal(bad.length, 0, `One-off spacing:\n${report(bad)}`);
 });
 
-test("z-index outside tokens.css is a token", () => {
-  const bad = decls.filter(d => d.prop === "z-index" && /\d/.test(d.value.replace(/var\([^)]*\)/g, "")));
+test('z-index outside tokens.css is a token', () => {
+  const bad = decls.filter(
+    (d) =>
+      d.prop === 'z-index' && /\d/.test(d.value.replace(/var\([^)]*\)/g, '')),
+  );
   assert.equal(bad.length, 0, `One-off z-index values:\n${report(bad)}`);
 });
 
-test("every token a stylesheet uses is defined", () => {
-  const defined = new Set([...tokens.matchAll(/(--[\w-]+)\s*:/g)].map(m => m[1]));
+test('every token a stylesheet uses is defined', () => {
+  const defined = new Set(
+    [...tokens.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]),
+  );
   // Tokens a page sets for itself (inline styles, scripts, a component's own variables) are defined beside their use.
-  for (const f of files) for (const m of fs.readFileSync(path.join(DIR, f), "utf8").matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1]);
-  const viewsAndScripts = ["views", "public/js"].map(d => path.join(__dirname, "..", d));
-  const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
-  for (const file of viewsAndScripts.flatMap(walk)) for (const m of fs.readFileSync(file, "utf8").matchAll(/(--[\w-]+)\s*[:"']/g)) defined.add(m[1]);
+  for (const f of files)
+    for (const m of fs
+      .readFileSync(path.join(DIR, f), 'utf8')
+      .matchAll(/(--[\w-]+)\s*:/g))
+      defined.add(m[1]);
+  const viewsAndScripts = ['views', 'public/js'].map((d) =>
+    path.join(__dirname, '..', d),
+  );
+  const walk = (d) =>
+    fs
+      .readdirSync(d, {withFileTypes: true})
+      .flatMap((e) =>
+        e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)],
+      );
+  for (const file of viewsAndScripts.flatMap(walk))
+    for (const m of fs
+      .readFileSync(file, 'utf8')
+      .matchAll(/(--[\w-]+)\s*[:"']/g))
+      defined.add(m[1]);
   const missing = new Set();
-  for (const d of decls) for (const m of d.value.matchAll(/var\((--[\w-]+)(\s*,)?/g)) if (!defined.has(m[1]) && !m[2]) missing.add(`${m[1]} (${d.where})`);
-  assert.deepEqual([...missing], [], "Tokens used but never defined");
+  for (const d of decls)
+    for (const m of d.value.matchAll(/var\((--[\w-]+)(\s*,)?/g))
+      if (!defined.has(m[1]) && !m[2]) missing.add(`${m[1]} (${d.where})`);
+  assert.deepEqual([...missing], [], 'Tokens used but never defined');
 });
 
-test("no text is smaller than 12px: the smallest text token is 12px", () => {
+test('no text is smaller than 12px: the smallest text token is 12px', () => {
   const m = tokens.match(/--text-2xs:\s*([\d.]+)rem/);
-  assert.ok(m && parseFloat(m[1]) * 16 >= 12, "--text-2xs must be at least 0.75rem (12px)");
+  assert.ok(
+    m && parseFloat(m[1]) * 16 >= 12,
+    '--text-2xs must be at least 0.75rem (12px)',
+  );
 });
 
-test("interface durations stay between 150ms and 700ms", () => {
-  for (const name of ["fast", "quick", "", "medium", "slow", "long", "slower"]) {
-    const m = tokens.match(new RegExp(`--duration${name ? "-" + name : ""}:\\s*([\\d.]+)(m?s)`));
-    assert.ok(m, `--duration${name ? "-" + name : ""} is defined`);
-    const ms = m[2] === "s" ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
-    assert.ok(ms >= 150 && ms <= 700, `--duration${name ? "-" + name : ""} is ${ms}ms`);
+test('interface durations stay between 150ms and 700ms', () => {
+  for (const name of [
+    'fast',
+    'quick',
+    '',
+    'medium',
+    'slow',
+    'long',
+    'slower',
+  ]) {
+    const m = tokens.match(
+      new RegExp(`--duration${name ? '-' + name : ''}:\\s*([\\d.]+)(m?s)`),
+    );
+    assert.ok(m, `--duration${name ? '-' + name : ''} is defined`);
+    const ms = m[2] === 's' ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
+    assert.ok(
+      ms >= 150 && ms <= 700,
+      `--duration${name ? '-' + name : ''} is ${ms}ms`,
+    );
   }
 });
 
-test("transitions never animate layout (size or position): only transform, opacity and paint", () => {
-  const LAYOUT = /^(width|height|min-width|min-height|max-width|max-height|top|left|right|bottom|inset|margin[\w-]*|padding[\w-]*|border-width|font-size|letter-spacing|grid-template[\w-]*|flex[\w-]*|all)$/;
-  const bad = decls.filter(d => d.prop === "transition" || d.prop === "transition-property").filter(d => d.value.split(",").some(layer => LAYOUT.test(layer.trim().split(/\s+/)[0])));
-  assert.equal(bad.length, 0, `Transitions on layout properties:\n${report(bad)}`);
+test('transitions never animate layout (size or position): only transform, opacity and paint', () => {
+  const LAYOUT =
+    /^(width|height|min-width|min-height|max-width|max-height|top|left|right|bottom|inset|margin[\w-]*|padding[\w-]*|border-width|font-size|letter-spacing|grid-template[\w-]*|flex[\w-]*|all)$/;
+  const bad = decls
+    .filter((d) => d.prop === 'transition' || d.prop === 'transition-property')
+    .filter((d) =>
+      d.value
+        .split(',')
+        .some((layer) => LAYOUT.test(layer.trim().split(/\s+/)[0])),
+    );
+  assert.equal(
+    bad.length,
+    0,
+    `Transitions on layout properties:\n${report(bad)}`,
+  );
 });
 
-test("full-height and pinned sizes use svh or dvh (vh is only a fallback written just before them)", () => {
+test('full-height and pinned sizes use svh or dvh (vh is only a fallback written just before them)', () => {
   const bad = [];
   for (const f of files) {
-    const src = fs.readFileSync(path.join(DIR, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-    for (const m of src.matchAll(/([-\w]+)\s*:\s*([^;{}]*\d(?:\.\d+)?vh\b[^;{}]*);?\s*(?:\1\s*:\s*([^;{}]*))?/g)) {
-      if (/[ds]vh/.test(m[2]) || /\dsvh|\ddvh/.test(m[3] || "")) continue;
+    const src = fs
+      .readFileSync(path.join(DIR, f), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const m of src.matchAll(
+      /([-\w]+)\s*:\s*([^;{}]*\d(?:\.\d+)?vh\b[^;{}]*);?\s*(?:\1\s*:\s*([^;{}]*))?/g,
+    )) {
+      if (/[ds]vh/.test(m[2]) || /\dsvh|\ddvh/.test(m[3] || '')) continue;
       bad.push(`${f}: ${m[1]}: ${m[2].slice(0, 60)}`);
     }
   }
-  assert.deepEqual(bad, [], "vh without an svh/dvh line after it");
+  assert.deepEqual(bad, [], 'vh without an svh/dvh line after it');
 });
 
-test("every stylesheet closes its comments (an open /* at the end swallows the next file in the bundle)", () => {
-  for (const f of fs.readdirSync(DIR).filter(f => f.endsWith(".css"))) {
-    const src = fs.readFileSync(path.join(DIR, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-    assert.ok(!src.includes("/*"), `${f} has a comment that is never closed`);
+test('every stylesheet closes its comments (an open /* at the end swallows the next file in the bundle)', () => {
+  for (const f of fs.readdirSync(DIR).filter((f) => f.endsWith('.css'))) {
+    const src = fs
+      .readFileSync(path.join(DIR, f), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!src.includes('/*'), `${f} has a comment that is never closed`);
   }
 });

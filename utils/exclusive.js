@@ -9,8 +9,10 @@ function runExclusive(key, work) {
   const run = previous.catch(() => {}).then(work);
   const tail = run.catch(() => {});
   tails.set(key, tail);
-  tail.then(() => { if (tails.get(key) === tail) tails.delete(key); });
+  tail.then(() => {
+    if (tails.get(key) === tail) tails.delete(key);
+  });
   return run;
 }
 
-module.exports = { runExclusive };
+module.exports = {runExclusive};

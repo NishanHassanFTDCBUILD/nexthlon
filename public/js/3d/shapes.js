@@ -2,11 +2,11 @@
 // A shape is drawn on a hidden 2D canvas and turned into particle positions.
 
 // Points sampled from a shape drawn on a hidden 2D canvas, centred, `scale` world units wide.
-export function sampleShape(draw, count, { width, height, scale, depth }) {
-  const canvas = document.createElement("canvas");
+export function sampleShape(draw, count, {width, height, scale, depth}) {
+  const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const ctx = canvas.getContext('2d', {willReadFrequently: true});
   draw(ctx, width, height);
   const pixels = ctx.getImageData(0, 0, width, height).data;
   const filled = [];
@@ -36,7 +36,10 @@ export function spherePoints(count, radius) {
     const y = 1 - (i / (count - 1)) * 2;
     const r = Math.sqrt(1 - y * y);
     const rr = radius + (Math.random() - 0.5) * radius * 0.06;
-    out.set([Math.cos(golden * i) * r * rr, y * rr, Math.sin(golden * i) * r * rr], i * 3);
+    out.set(
+      [Math.cos(golden * i) * r * rr, y * rr, Math.sin(golden * i) * r * rr],
+      i * 3,
+    );
   }
   return out;
 }
@@ -45,33 +48,37 @@ export function spherePoints(count, radius) {
 // turn into one glowing block when drawn with dots.
 // The NEXTHLON wordmark: outlined letters (wide screens), or filled ones ({ fill: true }, phones,
 // where an outline only a few pixels thick breaks up into speckle).
-export function drawLogo(font, { fill = false } = {}) {
+export function drawLogo(font, {fill = false} = {}) {
   return (ctx, w, h) => {
-    ctx.strokeStyle = "#fff";
-    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = '#fff';
+    ctx.fillStyle = '#fff';
     ctx.lineWidth = Math.max(5, h * 0.04);
-    ctx.lineJoin = "round";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    if ("letterSpacing" in ctx) ctx.letterSpacing = `${Math.round(h * 0.05)}px`;
+    ctx.lineJoin = 'round';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = `${Math.round(h * 0.05)}px`;
     ctx.font = `800 100px ${font}`;
-    const size = Math.min(h * 0.78, (100 * w * 0.92) / Math.max(1, ctx.measureText("NEXTHLON").width));
+    const size = Math.min(
+      h * 0.78,
+      (100 * w * 0.92) / Math.max(1, ctx.measureText('NEXTHLON').width),
+    );
     ctx.font = `800 ${Math.round(size)}px ${font}`;
-    if (fill) ctx.fillText("NEXTHLON", w / 2, h / 2 + h * 0.03);
-    else ctx.strokeText("NEXTHLON", w / 2, h / 2 + h * 0.03);
+    if (fill) ctx.fillText('NEXTHLON', w / 2, h / 2 + h * 0.03);
+    else ctx.strokeText('NEXTHLON', w / 2, h / 2 + h * 0.03);
   };
 }
 
 function limbs(ctx) {
-  ctx.fillStyle = "#fff";
-  ctx.strokeStyle = "#fff";
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#fff';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   return (width, ...points) => {
     ctx.lineWidth = width;
     ctx.beginPath();
     ctx.moveTo(points[0], points[1]);
-    for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i], points[i + 1]);
+    for (let i = 2; i < points.length; i += 2)
+      ctx.lineTo(points[i], points[i + 1]);
     ctx.stroke();
   };
 }
@@ -94,12 +101,17 @@ export function drawAthlete(ctx) {
 // A football: the outline, a centre pentagon and the seams to the edge (400 × 320 canvas).
 export function drawFootball(ctx) {
   const limb = limbs(ctx);
-  const cx = 200, cy = 160, r = 132;
+  const cx = 200;
+  const cy = 160;
+  const r = 132;
   ctx.lineWidth = 12;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.stroke();
-  const corner = (i, radius) => [cx + Math.cos(-Math.PI / 2 + (i * Math.PI * 2) / 5) * radius, cy + Math.sin(-Math.PI / 2 + (i * Math.PI * 2) / 5) * radius];
+  const corner = (i, radius) => [
+    cx + Math.cos(-Math.PI / 2 + (i * Math.PI * 2) / 5) * radius,
+    cy + Math.sin(-Math.PI / 2 + (i * Math.PI * 2) / 5) * radius,
+  ];
   ctx.beginPath();
   for (let i = 0; i < 5; i += 1) ctx.lineTo(...corner(i, 46));
   ctx.closePath();
@@ -113,7 +125,7 @@ export function drawFootball(ctx) {
 
 // A dumbbell: two plates on each side of a bar (400 × 320 canvas).
 export function drawDumbbell(ctx) {
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = '#fff';
   const plate = (x, w, h) => {
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(x, 160 - h / 2, w, h, 10);
@@ -157,7 +169,7 @@ export const fogShader = {
       colour += volt * (glow * 0.16 + spot * 0.12);
       colour *= 1.0 - 0.45 * length(vUv - vec2(0.5, 0.55));
       gl_FragColor = vec4(colour, 1.0);
-    }`
+    }`,
 };
 
 // Soft round glowing dots (additive blending), coloured between two colours.

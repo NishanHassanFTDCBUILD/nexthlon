@@ -1,11 +1,14 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 // Named running numbers, e.g. { _id: "order-2026", seq: 123 } for order NX-2026-000123.
 // Read and increment them through services/counterService.js.
-const counterSchema = new mongoose.Schema({
-  _id: { type: String, required: true },
-  seq: { type: Number, default: 0 },
-  allocations: { type: Map, of: Number, default: {} }
-}, { versionKey: false });
+const counterSchema = new mongoose.Schema(
+  {
+    _id: {type: String, required: true},
+    seq: {type: Number, default: 0},
+    allocations: {type: Map, of: Number, default: {}},
+  },
+  {versionKey: false},
+);
 
-module.exports = mongoose.model("Counter", counterSchema);
+module.exports = mongoose.model('Counter', counterSchema);
