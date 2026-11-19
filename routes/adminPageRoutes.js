@@ -108,7 +108,6 @@ const needsPage = (permission) => (req, res, next) =>
         ),
       );
 router.get('/staff', needsPage('staff.manage'), staffPages.staffPage);
-router.get('/audit', needsPage('audit.read'), staffPages.auditPage);
 router.get(
   '/reviews',
   require('../controllers/adminReviewController').reviewsPage,
@@ -116,13 +115,7 @@ router.get(
 // Operations pages: webhooks and the job queue (owner or manager), the GST report (reports.read).
 const opsPages = require('../controllers/adminOpsController');
 router.get('/webhooks', needsPage('settings.write'), opsPages.webhooksPage);
-router.get('/jobs', needsPage('settings.write'), opsPages.jobsPage);
 router.get('/gst', needsPage('reports.read'), opsPages.gstPage);
-router.get(
-  '/sales-breakdown',
-  needsPage('reports.read'),
-  require('../controllers/adminBreakdownController').breakdownPage,
-);
 router.get(
   '/returns-report',
   needsPage('reports.read'),

@@ -1,7 +1,6 @@
-// Operations for the team: the webhook log, the job queue, and the GST report. Each has its page and
-// its API. Changes (re-running a payment event, retrying a job) are audit-logged.
+// Operations for the team: the webhook log and the GST report. Each has its page and its API.
+// Changes (re-running a payment event) are audit-logged.
 const webhookLogService = require('../services/webhookLogService');
-const jobMonitorService = require('../services/jobMonitorService');
 const gstReportService = require('../services/gstReportService');
 const paymentService = require('../services/paymentService');
 const auditService = require('../services/auditService');
@@ -41,41 +40,6 @@ const webhooksPage = asyncHandler(async (req, res) => {
   });
 });
 
-// ---------- Jobs ----------
-const listJobs = asyncHandler(async (req, res) => {
-  res.json({
-    summary: await jobMonitorService.summary(),
-    ...(await jobMonitorService.list(req.query)),
-  });
-});
-
-// POST /api/admin/jobs/:jobId/retry
-const retryJob = asyncHandler(async (req, res) => {
-  const result = await jobMonitorService.retry(req.params.jobId);
-  await auditService.record({
-    ...auditService.fromRequest(req),
-    action: 'job.retried',
-    target: `job:${req.params.jobId}`,
-    before: result.before,
-    after: result.after,
-  });
-  res.json({
-    message: `The ${result.type} job is queued to run again.`,
-    ...result,
-  });
-});
-
-const jobsPage = asyncHandler(async (req, res) => {
-  const data = await jobMonitorService.list(req.query);
-  const current = data.status === 'failed' ? {} : {status: data.status};
-  res.render('admin/jobs', {
-    title: 'Job queue | Nexthlon Admin',
-    summary: await jobMonitorService.summary(),
-    ...data,
-    link: linkBuilder(`${config.adminPath}/jobs`, current),
-  });
-});
-
 // ---------- GST ----------
 // GET /api/admin/reports/gst.csv?month=YYYY-MM
 const gstCsv = asyncHandler(async (req, res) => {
@@ -101,9 +65,6 @@ module.exports = {
   listWebhooks,
   rerunWebhook,
   webhooksPage,
-  listJobs,
-  retryJob,
-  jobsPage,
   gstCsv,
   gstPage,
 };

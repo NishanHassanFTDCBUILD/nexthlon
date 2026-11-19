@@ -28,12 +28,6 @@ const ADMIN_NAV = [
         perm: 'reports.read',
       },
       {
-        key: 'sales-breakdown',
-        label: 'Sales breakdown',
-        icon: 'pie',
-        perm: 'reports.read',
-      },
-      {
         key: 'returns-report',
         label: 'Return reasons',
         icon: 'rotate-ccw',
@@ -67,17 +61,10 @@ const ADMIN_NAV = [
     group: 'System',
     items: [
       {key: 'staff', label: 'Staff', icon: 'users', perm: 'staff.manage'},
-      {key: 'audit', label: 'Audit log', icon: 'history', perm: 'audit.read'},
       {
         key: 'webhooks',
         label: 'Webhooks',
         icon: 'bolt',
-        perm: 'settings.write',
-      },
-      {
-        key: 'jobs',
-        label: 'Job queue',
-        icon: 'monitor',
         perm: 'settings.write',
       },
       {key: 'settings', label: 'Settings', icon: 'settings'},

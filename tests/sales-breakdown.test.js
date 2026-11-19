@@ -24,11 +24,3 @@ test('CSV: categories then states, in rupees', () => {
   assert.match(csv, /"Running","3","1500\.00"/);
   assert.match(csv, /"Kerala","2","999\.50"/);
 });
-
-if (!process.env.TEST_MONGODB_URI) {
-  test(
-    'sales breakdown page (set TEST_MONGODB_URI to run it)',
-    {skip: true},
-    () => {},
-  );
-}

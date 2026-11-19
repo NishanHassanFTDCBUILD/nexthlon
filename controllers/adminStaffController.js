@@ -1,6 +1,5 @@
-// Staff accounts and the audit history: the admin API and the two pages (Settings > Staff, System > Audit log).
+// Staff accounts: the admin API and the staff page (Settings > Staff).
 // Every change to a staff account is written to the audit log with before and after values.
-const config = require('../config/env');
 const staffService = require('../services/staffService');
 const auditService = require('../services/auditService');
 const {
@@ -9,11 +8,8 @@ const {
   ROLE_HELP,
   PERMISSIONS,
 } = require('../utils/permissions');
-const {linkBuilder} = require('../utils/queryString');
 const {asyncHandler} = require('../utils/http');
 const {HttpError} = require('../utils/http');
-
-const base = (section) => `${config.adminPath}/${section}`;
 
 // GET /api/admin/staff
 const listStaff = asyncHandler(async (req, res) => {
@@ -91,11 +87,6 @@ const setStaffActive = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/admin/audit?actor=&action=&target=&page=
-const listAudit = asyncHandler(async (req, res) => {
-  res.json(await auditService.list(req.query));
-});
-
 // ---------- Pages ----------
 
 // GET <ADMIN_PATH>/staff
@@ -112,29 +103,10 @@ const staffPage = asyncHandler(async (req, res) => {
   });
 });
 
-// GET <ADMIN_PATH>/audit?actor=&action=&target=&page=
-const auditPage = asyncHandler(async (req, res) => {
-  const data = await auditService.list(req.query);
-  const current = {};
-  if (req.query.action) current.action = String(req.query.action);
-  if (req.query.target) current.target = String(req.query.target);
-  res.render('admin/audit', {
-    title: 'Audit log | Nexthlon Admin',
-    ...data,
-    filters: {
-      action: current.action || '',
-      target: current.target || '',
-    },
-    link: linkBuilder(base('audit'), current),
-  });
-});
-
 module.exports = {
   listStaff,
   createStaff,
   setStaffRole,
   setStaffActive,
-  listAudit,
   staffPage,
-  auditPage,
 };

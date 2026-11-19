@@ -48,9 +48,7 @@ const mongoose = require('mongoose');
 const app = require('../app');
 const User = require('../models/User');
 const Order = require('../models/Order');
-const Job = require('../models/Job');
 const WebhookEvent = require('../models/WebhookEvent');
-const AuditLog = require('../models/AuditLog');
 const {hashPassword} = require('../services/authService');
 const paymentService = require('../services/paymentService');
 
@@ -61,10 +59,7 @@ let server;
 let base;
 let ownerCookie;
 let packingCookie;
-let managerCookie;
 let owner;
-let failedJob;
-let doneJob;
 
 async function call(method, path, {body, cookie, raw, headers: extra} = {}) {
   const headers = {
@@ -174,21 +169,6 @@ test.before(async () => {
       invoiceDate: new Date('2026-11-10T06:00:00Z'),
     },
   });
-  failedJob = await Job.create({
-    type: 'event:order.placed:orderEmails',
-    payload: {},
-    status: 'failed',
-    attempts: 6,
-    maxAttempts: 6,
-    lastError: 'SMTP connection refused',
-  });
-  doneJob = await Job.create({
-    type: 'cart.sweep',
-    payload: {},
-    status: 'done',
-    attempts: 1,
-    finishedAt: new Date(),
-  });
   server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -200,11 +180,6 @@ test.before(async () => {
   packingCookie = (
     await call('POST', '/api/admin/login', {
       body: {email: 'packing@ops.test', password: 'AdminPass123'},
-    })
-  ).cookie;
-  managerCookie = (
-    await call('POST', '/api/admin/login', {
-      body: {email: 'manager@ops.test', password: 'AdminPass123'},
     })
   ).cookie;
 });
@@ -324,41 +299,4 @@ test('webhooks: the log lists with filters; only a good payment event can be run
   } finally {
     paymentService.handleWebhook = original;
   }
-});
-
-test('job queue: failed jobs show their error; a retry puts them back in the queue; done jobs cannot be retried', async () => {
-  const api = await call('GET', '/api/admin/jobs', {cookie: ownerCookie});
-  assert.equal(api.status, 200);
-  assert.equal(api.data.summary.failed, 1);
-  assert.equal(api.data.jobs[0].lastError, 'SMTP connection refused');
-  assert.equal(
-    (await call('GET', '/admin/jobs', {cookie: managerCookie})).status,
-    200,
-  );
-  assert.equal(
-    (await call('GET', '/admin/jobs', {cookie: packingCookie})).status,
-    403,
-  );
-
-  const done = await call('POST', `/api/admin/jobs/${doneJob._id}/retry`, {
-    cookie: ownerCookie,
-  });
-  assert.equal(done.status, 409);
-
-  const retried = await call('POST', `/api/admin/jobs/${failedJob._id}/retry`, {
-    cookie: managerCookie,
-  });
-  assert.equal(retried.status, 200, JSON.stringify(retried.data));
-  const after = await Job.findById(failedJob._id).lean();
-  assert.equal(after.status, 'queued');
-  assert.equal(after.attempts, 0);
-  assert.ok(await AuditLog.findOne({action: 'job.retried'}));
-  assert.equal(
-    (
-      await call('POST', `/api/admin/jobs/${failedJob._id}/retry`, {
-        cookie: packingCookie,
-      })
-    ).status,
-    403,
-  );
 });

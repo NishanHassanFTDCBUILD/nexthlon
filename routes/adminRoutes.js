@@ -286,7 +286,6 @@ router.patch(
   adminMoneyLimiter,
   staffApi.setStaffActive,
 );
-router.get('/audit', staffApi.listAudit);
 
 // Reviews moderation (reviews.write; see utils/permissions.js).
 const reviewApi = require('../controllers/adminReviewController');
@@ -299,13 +298,7 @@ router.post(
   adminMoneyLimiter,
   opsApi.rerunWebhook,
 );
-router.get('/jobs', opsApi.listJobs);
-router.post('/jobs/:jobId/retry', adminWriteLimiter, opsApi.retryJob);
 router.get('/reports/gst.csv', opsApi.gstCsv);
-// Sales by category and state (reports.read).
-const breakdownApi = require('../controllers/adminBreakdownController');
-router.get('/reports/breakdown', breakdownApi.breakdownApi);
-router.get('/reports/breakdown.csv', breakdownApi.breakdownCsv);
 // Monthly revenue goal and return reasons (reports.read; the goal can be changed by settings.write).
 const goalsApi = require('../controllers/adminGoalsController');
 router.get('/goals', goalsApi.goalApi);
