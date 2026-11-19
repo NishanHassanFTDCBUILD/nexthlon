@@ -4134,3 +4134,104 @@ body.admin-menu-open {
     color: var(--on-brand) !important;
   }
 }
+
+/* ---------- Support inbox, customer 360 and reviews ---------- */
+.support-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.support-thread {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.support-msg {
+  max-width: 78ch;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.support-msg-us {
+  margin-left: auto;
+  border-color: rgb(var(--brand-rgb), 0.35);
+  background: rgb(var(--brand-rgb), 0.06);
+}
+
+.support-msg header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: baseline;
+  margin-bottom: var(--space-half);
+  font-size: var(--text-sm);
+}
+
+.support-msg p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: var(--text-sm);
+}
+
+.support-reply {
+  position: sticky;
+  top: calc(var(--admin-topbar-h) + var(--space-2));
+}
+
+.customer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  align-items: start;
+}
+
+.customer-grid .admin-block:first-child {
+  grid-column: 1 / -1;
+}
+
+.customer-orders,
+.customer-addresses {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.customer-orders li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1h);
+  align-items: baseline;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.customer-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-half);
+  margin: var(--space-1) 0 0;
+}
+
+.review-body {
+  margin: var(--space-half) 0;
+  font-size: var(--text-sm);
+  max-width: 60ch;
+}
+
+@media (max-width: 960px) {
+  .support-layout,
+  .customer-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .support-reply {
+    position: static;
+  }
+}

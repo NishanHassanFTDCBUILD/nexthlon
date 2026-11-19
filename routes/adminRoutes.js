@@ -57,6 +57,10 @@ router.post(
   require('../controllers/adminWalletController').adjust,
 );
 router.patch('/customers/:userId/block', setCustomerBlocked);
+// Customer 360: profile JSON and the private note (customers.write for the note).
+const customerApi = require('../controllers/adminCustomerController');
+router.get('/customers/:userId/profile', customerApi.profileApi);
+router.patch('/customers/:userId/note', adminWriteLimiter, customerApi.noteApi);
 router.get('/settings', getSettings);
 router.patch('/settings/referral', updateReferral);
 router.patch('/settings/cod', updateCod);
@@ -278,6 +282,15 @@ router.patch(
   staffApi.setStaffActive,
 );
 router.get('/audit', staffApi.listAudit);
+
+// Reviews moderation (reviews.write; see utils/permissions.js).
+const reviewApi = require('../controllers/adminReviewController');
+router.get('/reviews', reviewApi.listReviews);
+router.patch(
+  '/reviews/:reviewId/hidden',
+  adminWriteLimiter,
+  reviewApi.setReviewHidden,
+);
 
 // System status.
 router.get('/system', catalog.systemStatus);

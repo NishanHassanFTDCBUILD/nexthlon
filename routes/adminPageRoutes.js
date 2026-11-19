@@ -72,6 +72,11 @@ router.get('/categories/:categoryId', catalog.category);
 
 // ---------- Customers ----------
 router.get('/customers', pages.adminUsers);
+// Customer 360: one customer's whole picture (the wallet page below has its own, longer address).
+router.get(
+  '/customers/:userId',
+  require('../controllers/adminCustomerController').customerPage,
+);
 router.get(
   '/customers/:userId/wallet',
   require('../controllers/adminWalletController').page,
@@ -104,5 +109,13 @@ const needsPage = (permission) => (req, res, next) =>
       );
 router.get('/staff', needsPage('staff.manage'), staffPages.staffPage);
 router.get('/audit', needsPage('audit.read'), staffPages.auditPage);
+router.get(
+  '/reviews',
+  require('../controllers/adminReviewController').reviewsPage,
+);
+// Support inbox: one page to read and answer customer requests (support.write for replying).
+const supportPages = require('../controllers/adminSupportController');
+router.get('/support', supportPages.inbox);
+router.get('/support/:ticketId', supportPages.ticket);
 
 module.exports = router;

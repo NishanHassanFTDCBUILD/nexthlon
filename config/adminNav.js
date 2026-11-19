@@ -36,6 +36,13 @@ const ADMIN_NAV = [
     items: [
       {key: 'customers', label: 'Customers', icon: 'users'},
       {key: 'questions', label: 'Questions', icon: 'headset'},
+      {key: 'reviews', label: 'Reviews', icon: 'star', perm: 'reviews.write'},
+      {
+        key: 'support',
+        label: 'Support inbox',
+        icon: 'mail',
+        perm: 'support.write',
+      },
     ],
   },
   {

@@ -312,7 +312,6 @@ test('admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
     'audit-log',
     'tickets',
     'analytics-soon',
-    'reviews',
   ]) {
     assert.doesNotMatch(full.data, new RegExp(`data-nav-link="${gone}"`));
   }
@@ -389,7 +388,6 @@ test('every section in the sidebar opens; anything else is a plain 404', async (
     'audit-log',
     'tickets',
     'profile',
-    'reviews',
     'not-a-section',
   ]) {
     assert.equal(

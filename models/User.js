@@ -40,6 +40,8 @@ const userSchema = new mongoose.Schema(
       default: '',
     },
     isBlocked: {type: Boolean, default: false, index: true},
+    // A private note the team keeps on a customer. Never shown to the customer.
+    adminNote: {type: String, default: '', maxlength: 1000},
     // Copied into every token. Changing the password adds 1, so all older tokens stop working.
     tokenVersion: {type: Number, default: 0},
     lastLoginAt: {type: Date, default: null},

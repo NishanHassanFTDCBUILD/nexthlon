@@ -527,7 +527,7 @@ test('inventory: a product with sizes is changed one size at a time, on the page
 
 // ======================= Removed: admin Reviews, and Q&A everywhere =======================
 
-test('Q&A is back (E3): on the product page and as the Questions section; there is still no Reviews section', async () => {
+test('Q&A is back (E3): on the product page and as the Questions section; reviews are moderated in the console', async () => {
   // The store: questions on the product page, next to the reviews.
   assert.equal(
     (await call('GET', `/api/products/${shoe._id}/questions`)).status,
@@ -545,16 +545,16 @@ test('Q&A is back (E3): on the product page and as the Questions section; there 
     (await call('GET', `${ADMIN}/questions`, {cookie: adminCookie})).status,
     200,
   );
+  // Reviews are back as a moderation page (see tests/customers-support-reviews.test.js).
   assert.equal(
     (await call('GET', `${ADMIN}/reviews`, {cookie: adminCookie})).status,
-    404,
-    'reviews page should be gone',
+    200,
   );
   const dashboard = await call('GET', `${ADMIN}/dashboard`, {
     cookie: adminCookie,
   });
   assert.match(dashboard.data, /data-nav-link="questions"/);
-  assert.doesNotMatch(dashboard.data, /data-nav-link="reviews"/);
+  assert.match(dashboard.data, /data-nav-link="reviews"/);
 });
 
 // ======================= Coupons =======================

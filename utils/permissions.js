@@ -76,6 +76,7 @@ const RULES = [
   [/^\/reports/, 'reports.read'],
   [/^\/tickets/, 'support.write'],
   [/^\/questions/, 'reviews.write'],
+  [/^\/reviews/, 'reviews.write'],
   [/^\/products/, 'products.write'],
   [/^\/categories/, 'categories.write'],
   [/^\/inventory/, 'inventory.write'],
