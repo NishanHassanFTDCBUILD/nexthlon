@@ -317,6 +317,13 @@ router.post(
   adminWriteLimiter,
   giftAdmin.disableApi,
 );
+// Size exchange: approve, decline or complete a customer's swap (orders.write; see utils/permissions.js).
+const exchangeAdmin = require('../controllers/exchangeController');
+router.post(
+  '/orders/:orderId/items/:itemId/exchange',
+  adminWriteLimiter,
+  exchangeAdmin.decide,
+);
 // Monthly revenue goal and return reasons (reports.read; the goal can be changed by settings.write).
 const goalsApi = require('../controllers/adminGoalsController');
 router.get('/goals', goalsApi.goalApi);

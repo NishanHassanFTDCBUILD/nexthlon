@@ -73,6 +73,18 @@
     <% } else { %><p class="muted">No saved addresses.</p><% } %>
   </section>
 
+  <section class="panel admin-block" aria-labelledby="c-risk">
+    <h2 id="c-risk" class="panel-title">Risk</h2>
+    <p><span class="pill <%= risk.level === 'high' ? 'pill-red' : risk.level === 'medium' ? 'pill-amber' : 'pill-green' %>"><%= risk.level === 'high' ? 'High' : risk.level === 'medium' ? 'Medium' : 'Low' %> · score <%= risk.score %></span></p>
+    <ul class="admin-reasons"><% risk.reasons.forEach(function (r) { %><li><%= r %></li><% }) %></ul>
+  </section>
+
+  <section class="panel admin-block" aria-labelledby="c-timeline">
+    <h2 id="c-timeline" class="panel-title">Timeline</h2>
+    <% if (!timeline.length) { %><p class="muted">Nothing recorded yet.</p><% } else { %>
+    <ol class="admin-timeline"><% timeline.forEach(function (t) { %><li><% if (t.at) { %><time datetime="<%= new Date(t.at).toISOString() %>"><%= formatDate(t.at) %></time> <% } %><span class="admin-timeline-kind"><%= t.kind %></span> <%= t.text %><% if (t.note) { %> · <span class="muted"><%= t.note %></span><% } %></li><% }) %></ol>
+    <% } %>
+  </section>
   <section class="panel admin-block" aria-labelledby="c-actions">
     <h2 id="c-actions" class="panel-title">Actions</h2>
     <p class="muted">Each action is logged in the audit trail.</p>

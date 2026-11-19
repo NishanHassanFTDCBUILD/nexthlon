@@ -9418,3 +9418,28 @@ html.is-pay-locked body {
     background: var(--surface-2);
   }
 }
+
+/* ---------- Customer risk and timeline (admin) ---------- */
+.admin-reasons,
+.admin-timeline {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.admin-timeline li + li {
+  margin-top: var(--space-xs);
+}
+
+.admin-timeline time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-timeline-kind {
+  display: inline-block;
+  min-width: 56px;
+  color: var(--ink-2);
+  font-weight: var(--weight-semibold);
+  text-transform: capitalize;
+}

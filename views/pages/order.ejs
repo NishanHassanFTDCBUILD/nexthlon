@@ -93,6 +93,13 @@
                 <% if (item.status === 'delivered') { %>
                   <button type="button" class="btn btn-ghost btn-xs" data-cart-add="<%= item.product %>"><%- icon('rotate-ccw', 'i-xs') %> Buy it again</button>
                 <% } %>
+                <% const swap = exchangeChoices[String(item._id)]; %>
+                <% if (swap && swap.options.length) { %>
+                  <button type="button" class="btn btn-ghost btn-xs" data-exchange-open="<%= item._id %>" data-options="<%= JSON.stringify(swap.options) %>" data-item-name="<%= item.name %>">Swap size</button>
+                <% } %>
+                <% if (item.exchange) { %>
+                  <span class="muted item-exchange">Size swap to <%= item.exchange.option %>: <%= { requested: 'waiting for confirmation', approved: 'confirmed, on its way', completed: 'done', declined: 'not approved' }[item.exchange.status] %></span>
+                <% } %>
                 <% if (['placed', 'confirmed'].includes(item.status) && activeItems.length > 1) { %>
                   <button type="button" class="link-btn cart-remove" data-open-dialog="cancel-dialog" data-cancel-scope="item" data-item-id="<%= item._id %>" data-item-name="<%= item.name %>">Cancel item</button>
                 <% } %>
@@ -158,6 +165,22 @@
   </form>
 </dialog>
 
+<dialog class="modal" id="exchange-dialog" aria-labelledby="exchange-title">
+  <form class="form" data-exchange-form data-order="<%= order.orderId %>" novalidate>
+    <h2 id="exchange-title">Swap size</h2>
+    <p class="muted" data-exchange-name></p>
+    <input type="hidden" name="itemId" value="">
+    <div class="form-alert" data-form-alert aria-live="assertive"></div>
+    <label class="field"><span>New size</span>
+      <select name="variantId" required></select>
+    </label>
+    <p class="hint">We confirm the swap before the new size is sent. Nothing is charged or refunded.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-ghost" data-exchange-close>Cancel</button>
+      <button type="submit" class="btn btn-primary" data-exchange-submit>Request swap</button>
+    </div>
+  </form>
+</dialog>
 <% if (canReturn) { %>
   <dialog class="modal" id="return-dialog" aria-labelledby="return-title">
     <form class="form" data-return-form novalidate>
@@ -196,4 +219,4 @@
 <% } %>
 
 <% if (canRetryPayment) { %><%- include('../partials/pay-overlay') %><% } %>
-<%- include('../partials/account-end', { scripts: canRetryPayment ? ['payment'] : [], razorpay: canRetryPayment }) %>
+<%- include('../partials/account-end', { scripts: (canRetryPayment ? ['payment'] : []).concat(['exchange']), razorpay: canRetryPayment }) %>

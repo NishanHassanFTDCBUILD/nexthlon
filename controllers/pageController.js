@@ -488,6 +488,9 @@ const orderDetail = asyncHandler(async (req, res) => {
       order.paymentMethod === 'razorpay' &&
       ['pending', 'failed'].includes(order.paymentStatus) &&
       order.orderStatus !== 'cancelled',
+    exchangeChoices: await require('../services/exchangeService').choicesFor(
+      order,
+    ),
     cancelReasons: orderRules.CANCEL_REASONS,
     returnReasons: orderRules.RETURN_REASONS,
   });

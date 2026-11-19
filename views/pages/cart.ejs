@@ -3,13 +3,13 @@
 
 <main id="main" class="container page">
   <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page">Your cart</span>
+    <a href="/">Home</a> <%- icon('chevron-right', 'i-xs') %> <span aria-current="page"><%= t('your_cart') %></span>
   </nav>
 
   <div class="cart-page" data-cart>
     <section class="cart-main" aria-labelledby="cart-title">
       <div class="cart-head">
-        <h1 id="cart-title">Your cart</h1>
+        <h1 id="cart-title"><%= t('your_cart') %></h1>
         <p class="muted" data-cart-heading-count aria-live="polite">
           <%= summary.count %> <%= summary.count === 1 ? 'item' : 'items' %>
         </p>
@@ -60,10 +60,10 @@
 
       <div class="empty-state" data-cart-empty <%= items.length ? 'hidden' : '' %>>
         <%- include('../partials/empty-art', { art: 'cart' }) %>
-        <h2>Your cart is empty</h2>
+        <h2><%= t('cart_empty') %></h2>
         <p>Find trail shoes, match balls, tents and more. Everything you add shows up here.</p>
         <div class="empty-actions">
-          <a class="btn btn-primary" href="/products">Continue shopping <%- icon('arrow-right', 'i-sm') %></a>
+          <a class="btn btn-primary" href="/products"><%= t('continue_shopping') %> <%- icon('arrow-right', 'i-sm') %></a>
           <a class="btn btn-ghost" href="/wishlist"><%- icon('heart', 'i-sm') %> View your wishlist</a>
         </div>
       </div>
@@ -74,8 +74,8 @@
       <dl class="summary-list">
         <div><dt>M.R.P. total (<span data-summary="itemCount"><%= summary.itemCount %></span> <span data-summary-items><%= summary.itemCount === 1 ? 'item' : 'items' %></span>)</dt><dd data-summary="mrpTotal"><%= formatPrice(summary.mrpTotal) %></dd></div>
         <div class="summary-savings"><dt>Discount on M.R.P.</dt><dd data-summary="savings">−<%= formatPrice(summary.savings) %></dd></div>
-        <div><dt>Delivery fee</dt><dd data-summary="deliveryFee"><%- summary.deliveryFee ? formatPrice(summary.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
-        <div class="summary-total"><dt>Grand total</dt><dd data-summary="grandTotal"><%= formatPrice(summary.grandTotal) %></dd></div>
+        <div><dt><%= t('delivery_fee') %></dt><dd data-summary="deliveryFee"><%- summary.deliveryFee ? formatPrice(summary.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
+        <div class="summary-total"><dt><%= t('grand_total') %></dt><dd data-summary="grandTotal"><%= formatPrice(summary.grandTotal) %></dd></div>
       </dl>
       <div class="free-box" data-free-note <%= summary.freeDeliveryGap ? '' : 'hidden' %>>
         <% const freePct = store.freeDeliveryMin ? Math.min(100, Math.round((summary.subtotal / store.freeDeliveryMin) * 100)) : 0; %>
@@ -84,12 +84,12 @@
       </div>
       <p class="saving summary-saving-note" data-summary-saving-note <%= summary.savings > 0 ? '' : 'hidden' %>>You save <span data-summary="savings-plain"><%= formatPrice(summary.savings) %></span> on this order.</p>
       <% if (typeof checkoutOpen !== 'undefined' && checkoutOpen) { %>
-        <a class="btn btn-primary btn-block btn-lg" href="/checkout" data-checkout-link <%- summary.itemCount ? '' : 'aria-disabled="true" tabindex="-1"' %>><%- icon('lock', 'i-sm') %> Proceed to checkout</a>
+        <a class="btn btn-primary btn-block btn-lg" href="/checkout" data-checkout-link <%- summary.itemCount ? '' : 'aria-disabled="true" tabindex="-1"' %>><%- icon('lock', 'i-sm') %> <%= t('checkout') %></a>
       <% } else { %>
-        <button class="btn btn-primary btn-block btn-lg" type="button" disabled aria-describedby="checkout-note"><%- icon('lock', 'i-sm') %> Proceed to checkout</button>
+        <button class="btn btn-primary btn-block btn-lg" type="button" disabled aria-describedby="checkout-note"><%- icon('lock', 'i-sm') %> <%= t('checkout') %></button>
         <p class="hint" id="checkout-note"><%- icon('info', 'i-xs') %> Checkout opens in the next Nexthlon update.</p>
       <% } %>
-      <a class="btn btn-ghost btn-block" href="/products">Continue shopping</a>
+      <a class="btn btn-ghost btn-block" href="/products"><%= t('continue_shopping') %></a>
     </aside>
   </div>
 

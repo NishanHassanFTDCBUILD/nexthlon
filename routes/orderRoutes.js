@@ -39,4 +39,13 @@ router.post(
   orders.requestReturn,
 );
 
+// Size exchange: swap a delivered item for another size (a signed-in customer; see services/exchangeService.js).
+const exchanges = require('../controllers/exchangeController');
+router.post(
+  '/orders/:orderId/exchange',
+  customer,
+  orderLimiter,
+  exchanges.requestExchange,
+);
+
 module.exports = router;

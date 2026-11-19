@@ -7,6 +7,8 @@ const Address = require('../models/Address');
 const auditService = require('./auditService');
 const {segmentsOf} = require('../utils/customerSegments');
 const {HttpError} = require('../utils/http');
+const WalletTransaction = require('../models/WalletTransaction');
+const AuditLog = require('../models/AuditLog');
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -81,6 +83,87 @@ async function profile(userId, now = new Date()) {
     returnedCount: summary.returned,
     blocked: Boolean(user.isBlocked),
   });
+  // Risk: courier-returned parcels weigh most, then cancellations and returns. Each reason is shown beside the score.
+  const rtoCount = await Order.countDocuments({
+    user: user._id,
+    'rto.stage': {$in: ['initiated', 'received']},
+  });
+  const cancelled = await Order.countDocuments({
+    user: user._id,
+    orderStatus: 'cancelled',
+  });
+  const points = rtoCount * 30 + cancelled * 5 + summary.returned * 10;
+  const reasons = [];
+  if (rtoCount)
+    reasons.push(
+      rtoCount +
+        (rtoCount === 1
+          ? ' parcel was sent back by the courier'
+          : ' parcels were sent back by the courier'),
+    );
+  if (cancelled)
+    reasons.push(
+      cancelled + (cancelled === 1 ? ' order cancelled' : ' orders cancelled'),
+    );
+  if (summary.returned)
+    reasons.push(
+      summary.returned + (summary.returned === 1 ? ' return' : ' returns'),
+    );
+  const level = points >= 50 ? 'high' : points >= 20 ? 'medium' : 'low';
+  const risk = {
+    level,
+    score: Math.min(100, points),
+    reasons: reasons.length ? reasons : ['Nothing to flag'],
+  };
+
+  // Timeline: order steps, wallet movements and staff actions on this customer, newest first.
+  const [walletRows, auditRows, orderRows] = await Promise.all([
+    WalletTransaction.find({user: user._id})
+      .sort({createdAt: -1})
+      .limit(20)
+      .lean(),
+    AuditLog.find({target: 'user:' + String(user._id)})
+      .sort({at: -1})
+      .limit(20)
+      .lean(),
+    Order.find({user: user._id})
+      .sort({createdAt: -1})
+      .limit(15)
+      .select('orderId statusHistory')
+      .lean(),
+  ]);
+  const timeline = [];
+  for (const o of orderRows) {
+    for (const step of o.statusHistory || []) {
+      timeline.push({
+        at: step.at,
+        kind: 'order',
+        text:
+          'Order ' + o.orderId + ': ' + String(step.status).replace(/_/g, ' '),
+        note: step.note || '',
+      });
+    }
+  }
+  for (const w of walletRows) {
+    timeline.push({
+      at: w.createdAt,
+      kind: 'wallet',
+      text:
+        (w.type === 'credit' ? 'Wallet credit ' : 'Wallet debit ') +
+        (w.reason || w.kind),
+      note: '',
+    });
+  }
+  for (const a of auditRows) {
+    timeline.push({
+      at: a.at,
+      kind: 'staff',
+      text: String(a.action).replace(/[._]/g, ' '),
+      note: a.actorName || '',
+    });
+  }
+  timeline.sort((x, y) => new Date(y.at) - new Date(x.at));
+
   return {
     customer: {
       id: String(user._id),
@@ -95,6 +178,8 @@ async function profile(userId, now = new Date()) {
       note: user.adminNote || '',
     },
     summary,
+    risk,
+    timeline: timeline.slice(0, 40),
     segments,
     recent: recent.map((o) => ({
       orderId: o.orderId,

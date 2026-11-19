@@ -161,7 +161,11 @@ test('events: one job per listener; the same key is queued once; a listener fail
   assert.equal(await Job.countDocuments({type: /^event:t\.happened:/}), 2);
   await createWorker().drain();
   assert.deepEqual(got, [['a', 7]]);
-  assert.equal(await events.emit('t.nobody-listens', {}), undefined);
+  assert.equal(
+    await events.emit('t.nobody-listens', {}),
+    true,
+    'nothing listening is not a failure',
+  );
 });
 
 test('schedules queue one job per time slot, however many times they are checked', async () => {

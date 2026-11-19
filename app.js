@@ -193,6 +193,8 @@ app.use(require('./routes/guideRoutes'));
 app.use('/api/addresses', require('./routes/addressRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+// Browsers ask for /favicon.ico by themselves; the page's own icon is the SVG.
+app.get('/favicon.ico', (req, res) => res.redirect(301, '/img/favicon.svg'));
 app.use('/api/account', require('./routes/accountRoutes'));
 app.use('/api/lists', require('./routes/listRoutes'));
 app.use('/api/support', require('./routes/supportRoutes'));

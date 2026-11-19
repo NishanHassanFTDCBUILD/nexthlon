@@ -26,6 +26,25 @@ const orderItemSchema = new mongoose.Schema({
   status: {type: String, enum: ORDER_STATUSES, default: 'placed'},
   cancelReason: {type: String, default: ''},
   returnReason: {type: String, default: ''},
+  // A size exchange on this delivered item: the size wanted instead, and where the request stands.
+  // The swap is held (stock taken) only when an admin approves; it is returned to stock on completion.
+  exchange: {
+    type: new mongoose.Schema(
+      {
+        variant: {type: mongoose.Schema.Types.ObjectId, default: null},
+        option: {type: String, default: ''},
+        status: {
+          type: String,
+          enum: ['requested', 'approved', 'completed', 'declined'],
+          required: true,
+        },
+        requestedAt: {type: Date, default: Date.now},
+        decidedAt: {type: Date, default: null},
+      },
+      {_id: false},
+    ),
+    default: null,
+  },
   // GST on this line as invoiced (services/gstService.js): value is what was paid after its share of
   // any coupon; taxable + cgst + sgst + igst = value. Missing on orders from before GST invoices.
   tax: {

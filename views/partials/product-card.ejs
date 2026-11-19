@@ -34,7 +34,7 @@
     </div>
     <div class="product-foot">
       <%- include('stock', { stock: p.stock }) %>
-      <% if (p.price >= store.freeDeliveryMin && p.stock > 0) { %><span class="product-delivery">Free delivery</span><% } %>
+      <% if (p.price >= store.freeDeliveryMin && p.stock > 0) { %><span class="product-delivery"><%= t('free_delivery') %></span><% } %>
     </div>
   </div>
 </article>
