@@ -64,6 +64,10 @@
       <label class="admin-field admin-field-sm"><span>Amount over ₹</span><input type="number" name="min" min="0" max="9999999" step="1" inputmode="numeric" value="<%= filters.min %>"></label>
       <label class="admin-field admin-field-sm"><span>Amount under ₹</span><input type="number" name="max" min="0" max="9999999" step="1" inputmode="numeric" value="<%= filters.max %>"></label>
       <label class="admin-field admin-field-wide"><span>City</span><input type="text" name="city" maxlength="40" value="<%= filters.city %>" placeholder="Any city"></label>
+      <div class="admin-more-actions">
+        <a class="link-btn" href="<%= link({ from: '', to: '', min: '', max: '', city: '', page: '' }) %>">Clear these</a>
+        <button class="btn btn-primary btn-sm" type="submit">Apply filters</button>
+      </div>
     </div>
   </details>
   <% if (filters.limit) { %><input type="hidden" name="limit" value="<%= filters.limit %>"><% } %>

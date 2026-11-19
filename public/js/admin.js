@@ -495,6 +495,19 @@
     true,
   );
 
+  // "More filters" panels close on Esc or a click outside, and return focus to their summary.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const open = document.querySelector('.admin-more-filters[open]');
+    if (!open) return;
+    open.open = false;
+    open.querySelector('summary').focus();
+  });
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('.admin-more-filters[open]').forEach((panel) => {
+      if (!panel.contains(event.target)) panel.open = false;
+    });
+  });
   document.addEventListener('change', (event) => {
     const select = event.target.closest('.admin-content [data-auto-submit]');
     if (select && select.form) select.form.requestSubmit();

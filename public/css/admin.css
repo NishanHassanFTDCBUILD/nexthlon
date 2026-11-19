@@ -3220,7 +3220,7 @@ body.admin-menu-open {
   border-radius: var(--radius-sm);
 }
 
-.admin-body .admin-filterbar .admin-field {
+.admin-body .admin-filterbar > .admin-field {
   flex-direction: row;
   align-items: center;
   gap: var(--space-1);
@@ -3298,9 +3298,20 @@ body.admin-menu-open {
   box-shadow: var(--shadow-lg, var(--shadow-sm));
 }
 
-.admin-more-panel .admin-field {
+.admin-body .admin-more-panel .admin-field {
   flex-direction: column;
   align-items: stretch;
+  gap: var(--space-half);
+}
+
+.admin-more-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-1);
+  padding-top: var(--space-1h);
+  border-top: 1px solid var(--line);
 }
 
 .admin-more-panel .admin-field-sm input {
@@ -3482,7 +3493,7 @@ body.admin-menu-open {
     align-items: flex-start;
   }
 
-  .admin-body .admin-filterbar .admin-field {
+  .admin-body .admin-filterbar > .admin-field {
     flex: 1 1 140px;
   }
 
