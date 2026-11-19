@@ -1,5 +1,7 @@
 // Sales by category and by state: the JSON and CSV for the reports, and the page. Read-only.
 const salesBreakdownService = require('../services/salesBreakdownService');
+const revenueGoalService = require('../services/revenueGoalService');
+const {roleOf, can} = require('../utils/permissions');
 const config = require('../config/env');
 const {linkBuilder} = require('../utils/queryString');
 const {asyncHandler} = require('../utils/http');
@@ -31,6 +33,8 @@ const breakdownPage = asyncHandler(async (req, res) => {
     }),
     maxState: Math.max(1, ...data.states.map((s) => s.revenue)),
     maxCategory: Math.max(1, ...data.categories.map((c) => c.revenue)),
+    goal: await revenueGoalService.progress(),
+    canSetGoal: can(roleOf(req.user), 'settings.write'),
   });
 });
 

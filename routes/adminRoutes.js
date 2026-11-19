@@ -306,6 +306,12 @@ router.get('/reports/gst.csv', opsApi.gstCsv);
 const breakdownApi = require('../controllers/adminBreakdownController');
 router.get('/reports/breakdown', breakdownApi.breakdownApi);
 router.get('/reports/breakdown.csv', breakdownApi.breakdownCsv);
+// Monthly revenue goal and return reasons (reports.read; the goal can be changed by settings.write).
+const goalsApi = require('../controllers/adminGoalsController');
+router.get('/goals', goalsApi.goalApi);
+router.patch('/goals/:month', adminMoneyLimiter, goalsApi.setGoalApi);
+router.get('/reports/returns', goalsApi.returnsApi);
+router.get('/reports/returns.csv', goalsApi.returnsCsv);
 
 // Saved list views: personal to each admin (any staff role may keep their own).
 const viewApi = require('../controllers/adminViewController');

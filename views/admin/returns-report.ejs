@@ -1,0 +1,37 @@
+<%#
+  Return reasons: why customers sent items back in a period, with the share and value of each reason.
+  Items are counted by the day their order was placed (India time).
+%>
+<%- include('../partials/admin-start', { section: 'returns-report', page: 'returns-report' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Return reasons</h1>
+    <p class="muted"><%= totals.items %> <%= totals.items === 1 ? 'item' : 'items' %> came back from <%= from %> to <%= to %>, worth <%= formatPrice(totals.value) %>.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-primary btn-sm" href="/api/admin/reports/returns.csv?from=<%= from %>&amp;to=<%= to %>" download data-full-load><%- icon('download', 'i-sm') %> Download CSV</a>
+  </div>
+</header>
+
+<form class="admin-filterbar" action="<%= adminPath %>/returns-report" method="get">
+  <label class="admin-field"><span>From</span><input type="date" name="from" value="<%= from %>" required></label>
+  <label class="admin-field"><span>To</span><input type="date" name="to" value="<%= to %>" required></label>
+  <button class="btn btn-secondary btn-sm" type="submit">Show period</button>
+</form>
+
+<section class="panel admin-block" aria-labelledby="reasons-title">
+  <h2 id="reasons-title" class="panel-title">By reason</h2>
+  <% if (reasons.length) { %>
+    <ul class="breakdown-list">
+      <% reasons.forEach(function (r) { %>
+        <li>
+          <span class="breakdown-name"><%= r.reason %> <small class="muted"><%= r.items %> <%= r.items === 1 ? 'item' : 'items' %> · <%= r.share %>%</small></span>
+          <span class="breakdown-bar" aria-hidden="true"><span style="width: <%= Math.max(2, Math.round(r.items / maxShare * 100)) %>%"></span></span>
+          <strong><%= formatPrice(r.value) %></strong>
+        </li>
+      <% }) %>
+    </ul>
+  <% } else { %><p class="muted">No returns with a reason in this period.</p><% } %>
+</section>
+<%- include('../partials/admin-end') %>

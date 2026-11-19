@@ -4533,3 +4533,57 @@ body.admin-menu-open {
     order: 3;
   }
 }
+
+/* ---------- Revenue goal ---------- */
+.goal-card {
+  display: grid;
+  gap: var(--space-1h);
+  margin-bottom: var(--space-2);
+}
+
+.goal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.goal-head .panel-title {
+  margin: 0;
+}
+
+.goal-numbers {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.goal-bar {
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.goal-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+}
+
+.goal-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+.goal-form input {
+  width: 180px;
+  min-height: 38px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+}

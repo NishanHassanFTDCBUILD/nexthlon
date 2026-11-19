@@ -1,0 +1,29 @@
+<%#
+  The month's revenue goal: how far paid sales have got, the pace needed for the rest of the month,
+  and a form to set or change the goal (settings.write). Script: public/js/admin-ops.js.
+%>
+<section class="panel goal-card" aria-labelledby="goal-title">
+  <div class="goal-head">
+    <h2 id="goal-title" class="panel-title">Goal for <%= goal.month %></h2>
+    <% if (goal.goal) { %>
+      <span class="pill <%= goal.reached ? 'pill-green' : 'pill-amber' %>"><%= goal.reached ? 'Reached' : goal.percent + '% of goal' %></span>
+    <% } else { %><span class="muted">No goal set</span><% } %>
+  </div>
+  <p class="goal-numbers"><strong><%= formatPrice(goal.revenue) %></strong> paid so far from <%= goal.orders %> <%= goal.orders === 1 ? 'order' : 'orders' %><%= goal.goal ? ' of ' + formatPrice(goal.goal) : '' %>.</p>
+  <% if (goal.goal) { %>
+    <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.min(100, goal.percent || 0) %>" aria-label="Goal progress">
+      <span style="width: <%= Math.min(100, goal.percent || 0) %>%"></span>
+    </div>
+    <% if (!goal.reached && goal.daysLeft) { %>
+      <p class="muted">About <%= formatPrice(goal.perDayNeeded) %> a day needed for the last <%= goal.daysLeft %> <%= goal.daysLeft === 1 ? 'day' : 'days' %>.</p>
+    <% } %>
+  <% } %>
+  <% if (canSet) { %>
+    <form class="goal-form" data-goal-form="<%= goal.month %>" novalidate>
+      <label class="admin-field"><span>Goal for the month (₹, 0 clears it)</span>
+        <input name="amount" type="number" inputmode="numeric" min="0" step="1" max="10000000" value="<%= goal.goal ? goal.goal / 100 : '' %>" required>
+      </label>
+      <button class="btn btn-secondary btn-sm" type="submit">Save goal</button>
+    </form>
+  <% } %>
+</section>

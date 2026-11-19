@@ -20,6 +20,8 @@
   <button class="btn btn-secondary btn-sm" type="submit">Show period</button>
 </form>
 
+<%- include('../partials/goal-card', { goal: goal, canSet: canSetGoal }) %>
+
 <div class="breakdown-grid">
   <section class="panel admin-block" aria-labelledby="by-category">
     <h2 id="by-category" class="panel-title">By category</h2>

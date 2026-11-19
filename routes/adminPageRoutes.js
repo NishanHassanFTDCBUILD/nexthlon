@@ -123,6 +123,11 @@ router.get(
   needsPage('reports.read'),
   require('../controllers/adminBreakdownController').breakdownPage,
 );
+router.get(
+  '/returns-report',
+  needsPage('reports.read'),
+  require('../controllers/adminGoalsController').returnsPage,
+);
 // Support inbox: one page to read and answer customer requests (support.write for replying).
 const supportPages = require('../controllers/adminSupportController');
 router.get('/support', supportPages.inbox);

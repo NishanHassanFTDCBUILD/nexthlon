@@ -52,4 +52,32 @@
       Nx.toast(error.message, 'error');
     }
   });
+
+  // ---------- Monthly revenue goal: save the target for the month ----------
+  document.addEventListener('submit', async (event) => {
+    const form = event.target.closest('[data-goal-form]');
+    if (!form) return;
+    event.preventDefault();
+    const button = form.querySelector('[type="submit"]');
+    Nx.busy(button, true, 'Saving…');
+    try {
+      const reply = await Nx.api(
+        '/api/admin/goals/' + encodeURIComponent(form.dataset.goalForm),
+        {
+          method: 'PATCH',
+          body: {
+            amount:
+              form.elements.amount.value === ''
+                ? 0
+                : Number(form.elements.amount.value),
+          },
+        },
+      );
+      Nx.flash(reply.message);
+      window.location.reload();
+    } catch (error) {
+      Nx.busy(button, false);
+      Nx.toast(error.message, 'error');
+    }
+  });
 })();

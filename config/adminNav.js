@@ -33,6 +33,12 @@ const ADMIN_NAV = [
         icon: 'pie',
         perm: 'reports.read',
       },
+      {
+        key: 'returns-report',
+        label: 'Return reasons',
+        icon: 'rotate-ccw',
+        perm: 'reports.read',
+      },
     ],
   },
   {

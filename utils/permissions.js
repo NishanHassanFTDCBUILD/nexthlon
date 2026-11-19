@@ -78,6 +78,7 @@ const RULES = [
   [/^\/questions/, 'reviews.write'],
   [/^\/reviews/, 'reviews.write'],
   [/^\/views/, 'read'],
+  [/^\/goals/, 'settings.write'],
   [/^\/webhooks/, 'settings.write'],
   [/^\/jobs/, 'settings.write'],
   [/^\/products/, 'products.write'],
@@ -98,6 +99,7 @@ const RULES = [
 
 // Pages and lists that are narrower than the console itself. Every other GET is "read".
 const READ_GATES = [
+  [/^\/goals/, 'reports.read'],
   [/^\/webhooks/, 'settings.write'],
   [/^\/jobs/, 'settings.write'],
   [/^\/staff/, 'staff.manage'],
