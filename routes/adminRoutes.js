@@ -108,6 +108,14 @@ router.post(
   productVideo.videoUpload,
   productVideo.upload,
 );
+// 360 view from uploaded photos, in turning order (see services/spinFrameService.js).
+const productSpin = require('../controllers/productSpinController');
+router.post(
+  '/products/:productId/spin',
+  adminWriteLimiter,
+  productSpin.framesUpload,
+  productSpin.upload,
+);
 router.patch('/products/:productId/listing', products.setListed);
 router.patch('/products/:productId/stock', products.restock);
 // Spreadsheet import: preview saves nothing; apply saves only a clean file.

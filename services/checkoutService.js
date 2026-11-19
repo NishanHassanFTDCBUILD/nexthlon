@@ -16,6 +16,7 @@ const User = require('../models/User');
 const {formatPaise} = require('../utils/money');
 const counterService = require('../services/counterService');
 const gstService = require('./gstService');
+const loyaltyService = require('./loyaltyService');
 
 // Placed here at once. Online payment (razorpay) goes through paymentService.
 // "wallet" is used when the wallet covers the whole amount.
@@ -68,10 +69,12 @@ async function buildQuote(
   userId,
   {useWallet = false, source = 'cart', payOnline = false} = {},
 ) {
-  const [cart, walletBalance] = await Promise.all([
+  const [cart, walletBalance, tier] = await Promise.all([
     itemsFor(userId, source),
     walletService.getBalance(userId),
+    loyaltyService.forUser(userId),
   ]);
+  const freeDelivery = tier.freeDelivery;
   const lines = cart.items.filter((item) => item.available);
   const problems = cart.items
     .filter((item) => !item.available)
@@ -106,6 +109,7 @@ async function buildQuote(
       useWallet: Boolean(useWallet),
       prepaid,
       payOnline: online,
+      freeDelivery,
     });
   let totals = sums(Boolean(payOnline));
   // The wallet covers it all: nothing is paid online, so there is no online discount.

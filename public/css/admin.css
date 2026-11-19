@@ -4725,3 +4725,33 @@ body.admin-menu-open {
   background: var(--surface-2);
   color: var(--ink);
 }
+
+/* ---------- Layout fixes found by the admin sweep (every section, phone and desktop) ---------- */
+
+/* The inventory adjust form fits its column, so the table fits a desktop screen. */
+.admin-body .inv-set {
+  min-width: 0;
+  max-width: 220px;
+}
+
+.admin-body .inv-set input[name='note'],
+.admin-body .inv-set select {
+  width: 100%;
+}
+
+/* Phone: the settings menu sits inside the page gutter and scrolls sideways, instead of overhanging it. */
+@media (max-width: 720px) {
+  .admin-body .settings-nav {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+
+/* Phone cards: buttons and their labels stay on one line instead of wrapping (order and product cards). */
+@media (max-width: 720px) {
+  .admin-body .table-stack td .btn,
+  .admin-body .table-stack td .pill,
+  .admin-body .table-stack td .link-btn {
+    white-space: nowrap;
+  }
+}

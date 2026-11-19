@@ -168,6 +168,13 @@
               <label for="p-spin">360 spin <span class="optional">(optional: one image link per line, up to 36, in turning order)</span></label>
               <textarea id="p-spin" name="spinFrames" rows="4" placeholder="https://…/shoe-001.jpg" aria-describedby="p-spin-error"><%= p.spinFrames || '' %></textarea>
               <p class="field-error" id="p-spin-error" data-error-for="spinFrames"></p>
+              <% if (p.id) { %>
+              <label class="admin-field"><span>Or upload the photos</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-spin-file data-upload-url="/api/admin/products/<%= p.id %>/spin" aria-describedby="p-spin-status"></label>
+              <p class="hint" id="p-spin-status" data-spin-status role="status">Choose the photos in turning order, 3 to 36, each 2 MB or smaller. They replace the 360 view on this product straight away.</p>
+              <% } else { %>
+              <p class="hint">Save the product first, then you can upload its 360 photos.</p>
+              <% } %>
             </div>
             <div class="field">
               <label class="check-label"><input type="checkbox" name="giftCard" value="on"<%= p.giftCard ? ' checked' : '' %>> <span>This is a gift card. Its price is the value each card carries.</span></label>

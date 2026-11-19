@@ -54,9 +54,10 @@ function priceFor({
 }
 
 // Delivery is free from STORE.freeDeliveryMin (₹499) of items; below that a flat fee applies.
-// It is measured on the items' subtotal, before any coupon.
-function deliveryFeeFor(subtotal) {
+// It is measured on the items' subtotal, before any coupon. Silver and Gold loyalty members always get it free.
+function deliveryFeeFor(subtotal, {freeDelivery = false} = {}) {
   if (subtotal <= 0) return 0;
+  if (freeDelivery) return 0;
   return subtotal >= STORE.freeDeliveryMin ? 0 : STORE.deliveryFee;
 }
 
@@ -115,9 +116,10 @@ function orderTotals({
   useWallet = false,
   prepaid = null,
   payOnline = false,
+  freeDelivery = false,
 }) {
   const couponDiscount = couponDiscountFor(coupon, subtotal);
-  const deliveryFee = deliveryFeeFor(subtotal);
+  const deliveryFee = deliveryFeeFor(subtotal, {freeDelivery});
   const prepaidDiscount = payOnline
     ? prepaidDiscountFor(prepaid, subtotal - couponDiscount)
     : 0;
