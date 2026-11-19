@@ -5,7 +5,8 @@
 //   basePrice     the price the admin sets (never above the M.R.P.)
 //   offerPercent  the product offer
 //   categoryOffer the offer on the product's category
-// The higher of the two offers applies (they never add up), and the discount shown to shoppers
+//   dealOffer     a Deal of the Day running on the product right now (services/dealService.js)
+// The highest of the offers applies (they never add up), and the discount shown to shoppers
 // is measured against the M.R.P.
 //
 // Orders
@@ -14,10 +15,17 @@
 const {STORE} = require('../config/store');
 const {formatPaise} = require('./money');
 
-function bestOfferFor({offerPercent = 0, categoryOffer = 0} = {}) {
+function bestOfferFor({
+  offerPercent = 0,
+  categoryOffer = 0,
+  dealOffer = 0,
+} = {}) {
   const product = Number(offerPercent) || 0;
   const category = Number(categoryOffer) || 0;
-  if (!product && !category) return {percent: 0, source: null};
+  const deal = Number(dealOffer) || 0;
+  if (!product && !category && !deal) return {percent: 0, source: null};
+  // On a tie the product offer wins, then the category offer: a deal only shows when it is better.
+  if (deal > product && deal > category) return {percent: deal, source: 'deal'};
   return product >= category
     ? {percent: product, source: 'product'}
     : {percent: category, source: 'category'};
@@ -26,8 +34,14 @@ function bestOfferFor({offerPercent = 0, categoryOffer = 0} = {}) {
 // Half rounds up, written as floor(x + 0.5) so it matches PRICE_PIPELINE below.
 const roundHalfUp = (value) => Math.floor(value + 0.5);
 
-function priceFor({basePrice, mrp, offerPercent = 0, categoryOffer = 0}) {
-  const offer = bestOfferFor({offerPercent, categoryOffer});
+function priceFor({
+  basePrice,
+  mrp,
+  offerPercent = 0,
+  categoryOffer = 0,
+  dealOffer = 0,
+}) {
+  const offer = bestOfferFor({offerPercent, categoryOffer, dealOffer});
   const price = roundHalfUp((basePrice * (100 - offer.percent)) / 100);
   const discountPercent =
     mrp > price ? roundHalfUp(((mrp - price) / mrp) * 100) : 0;
@@ -127,7 +141,7 @@ function orderTotals({
 }
 
 // The same sums as priceFor, written as a database update pipeline, for changing many products at
-// once (a category offer changed, or old products being upgraded).
+// once (a category offer changed, a deal started or ended, or old products being upgraded).
 const halfUp = (expr) => ({$floor: {$add: [expr, 0.5]}});
 const PRICE_PIPELINE = Object.freeze([
   {
@@ -136,6 +150,7 @@ const PRICE_PIPELINE = Object.freeze([
         $max: [
           {$ifNull: ['$offerPercent', 0]},
           {$ifNull: ['$categoryOffer', 0]},
+          {$ifNull: ['$dealOffer', 0]},
         ],
       },
     },

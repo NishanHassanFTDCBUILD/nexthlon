@@ -921,7 +921,102 @@ function validateStockChange(body = {}) {
   return {errors, value: {action, units, note, optionId}};
 }
 
+// A date and time from a datetime-local input ("2026-11-19T09:30"), read as Indian time.
+function readDateTime(value) {
+  const raw = text(value);
+  if (raw === '') return null;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) return NaN;
+  const at = new Date(`${raw}:00+05:30`);
+  return Number.isNaN(at.getTime()) ? NaN : at;
+}
+
+const MAX_DEAL_DAYS = 31;
+
+// The admin Deal of the Day form. The deal price is never typed: it is the product's base price
+// less this percent, worked out on the server (utils/pricing.js).
+function validateDeal(body = {}) {
+  const errors = {};
+  const product = text(body.product);
+  const percent = readPercent(body.percent, 90);
+  const startsAt = readDateTime(body.startsAt);
+  const endsAt = readDateTime(body.endsAt);
+  const sortOrder = readWhole(body.sortOrder, 3);
+  const note = text(body.note);
+
+  if (!OBJECT_ID.test(product)) errors.product = 'Choose a product.';
+  if (!Number.isInteger(percent) || percent < 1 || percent > 90)
+    errors.percent = 'Enter a whole percentage from 1 to 90.';
+  if (!startsAt || Number.isNaN(startsAt))
+    errors.startsAt = 'Choose when the deal starts.';
+  if (!endsAt || Number.isNaN(endsAt))
+    errors.endsAt = 'Choose when the deal ends.';
+  else if (!errors.startsAt && endsAt <= startsAt)
+    errors.endsAt = 'The deal must end after it starts.';
+  else if (
+    !errors.startsAt &&
+    endsAt - startsAt > MAX_DEAL_DAYS * 24 * 60 * 60 * 1000
+  )
+    errors.endsAt = `A deal can run for ${MAX_DEAL_DAYS} days at most.`;
+  if (!Number.isInteger(sortOrder))
+    errors.sortOrder = 'Enter a position from 0 to 999.';
+  if (note.length > 120) errors.note = 'Keep the note to 120 characters.';
+
+  return {
+    errors,
+    value: {
+      product,
+      percent,
+      startsAt,
+      endsAt,
+      sortOrder: Number.isInteger(sortOrder) ? sortOrder : 0,
+      note,
+      isActive: readFlag(body.isActive),
+    },
+  };
+}
+
+// The admin category form. The slug is optional: left empty, it is made from the name.
+function validateCategory(body = {}) {
+  const errors = {};
+  const name = text(body.name);
+  const slug = text(body.slug)
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  const description = text(body.description);
+  const offerPercent = readPercent(body.offerPercent, 90);
+  const sortOrder = readWhole(body.sortOrder, 3);
+
+  if (name.length < 2 || name.length > 40)
+    errors.name = 'Enter a name of 2 to 40 characters.';
+  else if (!/[a-z0-9]/i.test(name))
+    errors.name = 'The name needs at least one letter or number.';
+  if (slug.length > 60) errors.slug = 'Keep the link name to 60 characters.';
+  if (description.length > 300)
+    errors.description = 'Keep the description to 300 characters.';
+  if (!Number.isInteger(offerPercent) || offerPercent < 0 || offerPercent > 90)
+    errors.offerPercent = 'Enter a whole percentage from 0 to 90.';
+  if (!Number.isInteger(sortOrder))
+    errors.sortOrder = 'Enter a position from 0 to 999.';
+
+  return {
+    errors,
+    value: {
+      name,
+      slug,
+      description,
+      offerPercent: Number.isInteger(offerPercent) ? offerPercent : 0,
+      sortOrder: Number.isInteger(sortOrder) ? sortOrder : 0,
+      isListed: readFlag(body.isListed),
+      removeImage: readFlag(body.removeImage),
+    },
+  };
+}
+
 module.exports = {
+  validateDeal,
+  validateCategory,
   validateCoupon,
   validatePrepaidSetting,
   validateStockChange,

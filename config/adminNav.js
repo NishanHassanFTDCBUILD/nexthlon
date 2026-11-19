@@ -21,12 +21,14 @@ const ADMIN_NAV = [
       {key: 'refunds', label: 'Refunds', icon: 'wallet'},
       {key: 'abandoned-carts', label: 'Abandoned carts', icon: 'cart'},
       {key: 'coupons', label: 'Coupons', icon: 'ticket'},
+      {key: 'deals', label: 'Deals of the day', icon: 'bolt'},
     ],
   },
   {
     group: 'Catalog',
     items: [
       {key: 'products', label: 'Products', icon: 'box'},
+      {key: 'categories', label: 'Categories', icon: 'layers'},
       {key: 'inventory', label: 'Inventory', icon: 'archive'},
     ],
   },

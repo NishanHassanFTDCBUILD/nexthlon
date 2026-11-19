@@ -1,0 +1,104 @@
+<%#
+  Categories. Hiding a category hides every product in it; its offer is copied onto its products
+  and their prices are worked out again (services/adminCategoryService.js). Only an empty category
+  can be deleted.
+%>
+<%
+  const tabs = [['all', 'All'], ['listed', 'In the store'], ['hidden', 'Hidden']];
+  const filtered = filters.q || filters.status !== 'all';
+%>
+<%- include('../partials/admin-start', { section: 'categories' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Catalog</span>
+    <h1>Categories</h1>
+    <p class="muted">The sports and groups shoppers browse by. A category offer applies to every product in it, unless the product's own offer is bigger.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-primary btn-sm" href="<%= adminPath %>/categories/new"><%- icon('plus', 'i-sm') %> New category</a>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Category totals">
+  <div class="admin-total"><span>Categories</span><strong><%= totals.all %></strong><small class="muted">in total</small></div>
+  <div class="admin-total is-in"><span>In the store</span><strong><%= totals.listed %></strong><small class="muted">shoppers can see these</small></div>
+  <div class="admin-total"><span>Hidden</span><strong><%= totals.hidden %></strong><small class="muted">with all their products</small></div>
+</section>
+
+<nav class="segmented admin-tabs" aria-label="Category status">
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="page"' : '' %>><%= label %><% if (key !== 'all' && totals[key]) { %> <span class="admin-tab-count"><%= totals[key] %></span><% } %></a><% }) %>
+</nav>
+
+<form class="admin-filterbar" action="<%= adminPath %>/categories" method="get">
+  <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="cat-q">Search categories</label>
+    <input id="cat-q" type="search" name="q" value="<%= filters.q %>" maxlength="40" placeholder="Category name">
+  </div>
+  <label class="admin-field"><span>Sort</span>
+    <select name="sort" data-auto-submit>
+      <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
+    </select>
+  </label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Categories">
+  <% if (categories.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">Category</th>
+          <th scope="col" class="cell-num">Products</th>
+          <th scope="col" class="cell-num">Offer</th>
+          <th scope="col" class="cell-num">Order</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="cell-action">Actions</th>
+        </tr></thead>
+        <tbody>
+          <% categories.forEach(function (c) { %>
+            <tr data-category-row="<%= c.id %>" class="<%= c.isListed ? '' : 'is-unlisted' %>">
+              <td>
+                <div class="person product-person">
+                  <% if (c.image) { %>
+                    <img class="product-thumb" src="<%= sizedUrl(c.image, 200) %>" alt="" width="48" height="48" loading="lazy">
+                  <% } else { %>
+                    <span class="product-thumb category-thumb-empty" aria-hidden="true"><%- icon('image', 'i-sm') %></span>
+                  <% } %>
+                  <div><strong><a href="<%= adminPath %>/categories/<%= c.id %>/edit"><%= c.name %></a></strong><span>/products?category=<%= c.slug %></span></div>
+                </div>
+              </td>
+              <td data-label="Products" class="cell-num">
+                <% if (c.productCount) { %><a href="<%= adminPath %>/products?category=<%= c.id %>"><%= c.productCount %></a><% } else { %><span class="muted">0</span><% } %>
+              </td>
+              <td data-label="Offer" class="cell-num"><%= c.offerPercent ? c.offerPercent + '% off' : '—' %></td>
+              <td data-label="Order" class="cell-num"><%= c.sortOrder %></td>
+              <td data-label="Status"><span class="pill <%= c.isListed ? 'pill-green' : 'pill-grey' %>" data-category-status><%= c.isListed ? 'In the store' : 'Hidden' %></span></td>
+              <td class="cell-action"><div class="row-actions">
+                <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/categories/<%= c.id %>/edit" aria-label="Edit <%= c.name %>"><%- icon('edit', 'i-xs') %> Edit</a>
+                <button type="button" class="btn btn-sm <%= c.isListed ? 'btn-danger-soft' : 'btn-secondary' %>"
+                        data-category-toggle="<%= c.id %>" data-listed="<%= c.isListed %>" data-name="<%= c.name %>" data-count="<%= c.productCount %>"
+                        aria-label="<%= c.isListed ? 'Hide' : 'Show' %> <%= c.name %>"><%= c.isListed ? 'Hide' : 'Show' %></button>
+                <button type="button" class="btn btn-ghost btn-sm" data-category-delete="<%= c.id %>" data-name="<%= c.name %>" data-count="<%= c.productCount %>" aria-label="Delete <%= c.name %>"><%- icon('trash', 'i-xs') %></button>
+              </div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat">
+      <%- include('../partials/empty-art', { art: 'box' }) %>
+      <h2><%= filtered ? 'No categories match' : 'No categories yet' %></h2>
+      <p><%= filtered ? 'Try a different search or tab.' : 'Create one, then pick it when you add a product.' %></p>
+      <% if (filtered) { %>
+        <a class="btn btn-secondary" href="<%= adminPath %>/categories">Show all categories</a>
+      <% } else { %>
+        <a class="btn btn-primary" href="<%= adminPath %>/categories/new"><%- icon('plus', 'i-sm') %> New category</a>
+      <% } %>
+    </div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

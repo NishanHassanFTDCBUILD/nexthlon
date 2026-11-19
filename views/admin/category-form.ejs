@@ -1,0 +1,108 @@
+<%#
+  One page for creating and for editing a category. Sent as multipart (it can carry a photo).
+  Everything is checked again on the server (utils/validators.js validateCategory).
+%>
+<%
+  const isEdit = Boolean(category);
+  const c = category || { name: '', slug: '', description: '', offerPercent: 0, sortOrder: 0, isListed: true, image: '', productCount: 0 };
+%>
+<%- include('../partials/admin-start', { section: 'categories', page: 'category-form' }) %>
+<nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
+  <a href="<%= adminPath %>/categories">Categories</a> <%- icon('chevron-right', 'i-xs') %>
+  <span aria-current="page"><%= isEdit ? c.name : 'New category' %></span>
+</nav>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker"><%= isEdit ? 'Edit category' : 'New category' %></span>
+    <h1><%= isEdit ? c.name : 'Create a category' %></h1>
+    <p class="muted">
+      <% if (isEdit) { %>
+        <%= c.productCount %> <%= c.productCount === 1 ? 'product' : 'products' %> in this category<% if (c.productCount) { %> · <a href="<%= adminPath %>/products?category=<%= c.id %>">See them</a><% } %>
+      <% } else { %>
+        Shoppers see the name in menus and filters. Only the name is required.
+      <% } %>
+    </p>
+  </div>
+</header>
+
+<form class="form" data-category-form novalidate enctype="multipart/form-data"
+      data-endpoint="<%= isEdit ? '/api/admin/categories/' + c.id : '/api/admin/categories' %>"
+      data-method="<%= isEdit ? 'PATCH' : 'POST' %>"
+      data-done="<%= adminPath %>/categories">
+  <div class="form-alert" data-form-alert aria-live="assertive"></div>
+
+  <div class="product-form-grid">
+    <section class="panel" aria-labelledby="cat-about-title">
+      <h2 id="cat-about-title" class="panel-title">About the category</h2>
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="cat-name">Name</label>
+          <input id="cat-name" name="name" required minlength="2" maxlength="40" value="<%= c.name %>" placeholder="Running" aria-describedby="cat-name-error">
+          <p class="field-error" id="cat-name-error" data-error-for="name"></p>
+        </div>
+        <div class="field">
+          <label for="cat-slug">Link name <span class="optional">(optional)</span></label>
+          <input id="cat-slug" name="slug" maxlength="60" value="<%= c.slug %>" placeholder="running" autocomplete="off" spellcheck="false" aria-describedby="cat-slug-hint cat-slug-error">
+          <p class="hint" id="cat-slug-hint">Used in the address: /products?category=<strong data-slug-preview><%= c.slug || 'running' %></strong>. Empty means it is made from the name.</p>
+          <p class="field-error" id="cat-slug-error" data-error-for="slug"></p>
+        </div>
+        <div class="field field-wide">
+          <label for="cat-desc">Description <span class="optional">(optional)</span></label>
+          <textarea id="cat-desc" name="description" rows="3" maxlength="300" aria-describedby="cat-desc-error"><%= c.description %></textarea>
+          <p class="field-error" id="cat-desc-error" data-error-for="description"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="cat-sell-title">
+      <h2 id="cat-sell-title" class="panel-title">Offer and order</h2>
+      <div class="form-grid form-grid-2">
+        <div class="field">
+          <label for="cat-offer">Category offer (%)</label>
+          <input id="cat-offer" name="offerPercent" type="number" inputmode="numeric" min="0" max="90" step="1" value="<%= c.offerPercent || '' %>" placeholder="0" aria-describedby="cat-offer-hint cat-offer-error">
+          <p class="hint" id="cat-offer-hint">0 to 90. Each product gets the bigger of this and its own offer; they never add up.</p>
+          <p class="field-error" id="cat-offer-error" data-error-for="offerPercent"></p>
+        </div>
+        <div class="field">
+          <label for="cat-order">Menu position</label>
+          <input id="cat-order" name="sortOrder" type="number" inputmode="numeric" min="0" max="999" step="1" value="<%= c.sortOrder %>" aria-describedby="cat-order-hint cat-order-error">
+          <p class="hint" id="cat-order-hint">Lower numbers come first in menus.</p>
+          <p class="field-error" id="cat-order-error" data-error-for="sortOrder"></p>
+        </div>
+        <div class="field field-wide">
+          <label class="check">
+            <input type="checkbox" name="isListed" value="true" <%= c.isListed ? 'checked' : '' %>>
+            <span>Show in the store</span>
+          </label>
+          <p class="hint">Turn this off to hide the category and every product in it. Nothing is deleted.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="cat-photo-title">
+      <h2 id="cat-photo-title" class="panel-title">Photo</h2>
+      <div class="category-photo" data-category-photo>
+        <% if (c.image) { %>
+          <img class="category-photo-preview" src="<%= sizedUrl(c.image, 400) %>" alt="Current photo of <%= c.name %>" width="160" height="160" data-photo-preview>
+        <% } else { %>
+          <img class="category-photo-preview" alt="" width="160" height="160" data-photo-preview hidden>
+        <% } %>
+        <div class="field">
+          <label for="cat-image"><%= c.image ? 'Replace the photo' : 'Add a photo' %> <span class="optional">(optional)</span></label>
+          <input id="cat-image" name="image" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="cat-image-hint cat-image-error">
+          <p class="hint" id="cat-image-hint">JPG, PNG or WEBP, up to 2 MB. Shown on the home page and in menus.</p>
+          <p class="field-error" id="cat-image-error" data-error-for="image"></p>
+          <% if (c.image) { %>
+            <label class="check"><input type="checkbox" name="removeImage" value="true"> <span>Remove the photo</span></label>
+          <% } %>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="form-actions admin-status-actions">
+    <button class="btn btn-primary" type="submit"><%- icon('check', 'i-sm') %> <%= isEdit ? 'Save the category' : 'Create the category' %></button>
+    <a class="btn btn-ghost" href="<%= adminPath %>/categories">Cancel</a>
+  </div>
+</form>
+<%- include('../partials/admin-end') %>

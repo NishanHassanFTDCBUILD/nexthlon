@@ -51,12 +51,18 @@ router.get('/coupons', sales.coupons);
 router.get('/coupons/new', sales.couponNew);
 router.get('/coupons/:couponId/edit', sales.couponEdit);
 router.get('/coupons/:couponId', sales.coupon);
+router.get('/deals', sales.deals);
+router.get('/deals/new', sales.dealNew);
+router.get('/deals/:dealId/edit', sales.dealEdit);
 
 // ---------- Catalog ----------
 router.get('/products', pages.adminProducts);
 router.get('/products/new', pages.adminProductNew);
 router.get('/products/:productId/edit', pages.adminProductEdit);
 router.get('/inventory', catalog.inventory);
+router.get('/categories', catalog.categories);
+router.get('/categories/new', catalog.categoryNew);
+router.get('/categories/:categoryId/edit', catalog.categoryEdit);
 
 // ---------- Customers ----------
 router.get('/customers', pages.adminUsers);

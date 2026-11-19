@@ -3,6 +3,7 @@ const Product = require('../models/Product');
 const categoryService = require('./categoryService');
 const {HttpError} = require('../utils/http');
 const {bestOfferFor} = require('../utils/pricing');
+const dealService = require('./dealService');
 const {LISTED_PRODUCT} = require('../utils/queryFilters');
 const memo = require('../utils/memo');
 const {correctQuery, vocabularyFrom} = require('../utils/fuzzy');
@@ -446,12 +447,24 @@ function getSimilarProducts(product, limit = 8) {
   );
 }
 
+// Deals of the day: the deals an admin has running now (services/dealService.js), or, when there
+// are none, the products with the biggest discounts.
+async function homeDeals() {
+  const picked = await dealService.liveDealProducts();
+  if (picked.products.length) return picked;
+  const products = await Product.find({
+    ...LISTED_PRODUCT,
+    discountPercent: {$gt: 0},
+  })
+    .sort({discountPercent: -1, _id: 1})
+    .limit(10)
+    .lean();
+  return {products, endsAt: null};
+}
+
 async function getHomeSections() {
-  const [deals, newest, categories, brands] = await Promise.all([
-    Product.find({...LISTED_PRODUCT, discountPercent: {$gt: 0}})
-      .sort({discountPercent: -1, _id: 1})
-      .limit(10)
-      .lean(),
+  const [dealRow, newest, categories, brands] = await Promise.all([
+    homeDeals(),
     Product.find({...LISTED_PRODUCT})
       .sort({createdAt: -1, _id: -1})
       .limit(10)
@@ -459,6 +472,7 @@ async function getHomeSections() {
     getCategorySummaries(),
     Product.distinct('brand', {...LISTED_PRODUCT}),
   ]);
+  const deals = dealRow.products;
   // Best sellers: the best-rated in-stock items that are not already in the deals row
   // (highest price first while there are no ratings yet).
   const bestSellers = await Product.find({
@@ -471,6 +485,8 @@ async function getHomeSections() {
     .lean();
   return {
     deals,
+    // When the admin's first running deal ends (null: the usual midnight countdown).
+    adminDealEndsAt: dealRow.endsAt,
     newest,
     bestSellers,
     categories,
@@ -497,9 +513,11 @@ function offerLabel(product) {
     percent: offer.percent,
     source: offer.source,
     text:
-      offer.source === 'category' && name
-        ? `${offer.percent}% ${name} offer applied`
-        : `${offer.percent}% product offer applied`,
+      offer.source === 'deal'
+        ? `${offer.percent}% Deal of the Day applied`
+        : offer.source === 'category' && name
+          ? `${offer.percent}% ${name} offer applied`
+          : `${offer.percent}% product offer applied`,
   };
 }
 

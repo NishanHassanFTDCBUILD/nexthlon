@@ -62,7 +62,7 @@
 </div>
 
 <section class="panel panel-flush admin-table-panel" aria-label="Who used this coupon">
-  <div class="admin-table-tools"><h2 class="panel-title">Who used it</h2><span class="muted"><%= uses.length %> shown<%= totals.uses > uses.length ? ' of ' + totals.uses : '' %></span></div>
+  <div class="admin-table-tools"><h2 class="panel-title">Who used it</h2><span class="muted"><%= totals.uses %> <%= totals.uses === 1 ? 'use' : 'uses' %><%= pagination.pages > 1 ? ' · page ' + pagination.page + ' of ' + pagination.pages : '' %></span></div>
   <% if (uses.length) { %>
     <div class="table-wrap admin-table-scroll">
       <table class="table table-stack admin-table">
@@ -81,6 +81,7 @@
         </tbody>
       </table>
     </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
   <% } else { %>
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>Nobody has used it yet</h2><p>Uses appear here as soon as an order is placed with this code.</p></div>
   <% } %>

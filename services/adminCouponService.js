@@ -188,12 +188,15 @@ async function getCoupon(couponId) {
 }
 
 // The detail page: the coupon, who used it and on which order, and the total discount given.
-async function getCouponDetail(couponId) {
+// One page of uses at a time (?page=), newest first.
+async function getCouponDetail(couponId, query = {}) {
   const coupon = await findCoupon(couponId);
+  const page = toPositiveInt(query.page, 1);
   const [rows, totals] = await Promise.all([
     CouponRedemption.find({coupon: coupon._id})
       .sort({createdAt: -1})
-      .limit(100)
+      .skip((page - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
       .populate('user', 'name email')
       .lean(),
     CouponRedemption.aggregate([
@@ -233,6 +236,12 @@ async function getCouponDetail(couponId) {
       discountGiven: summary.discount,
       uses: summary.uses,
       customers: summary.customers.length,
+    },
+    pagination: {
+      page,
+      pages: Math.max(1, Math.ceil(summary.uses / PAGE_SIZE)),
+      total: summary.uses,
+      limit: PAGE_SIZE,
     },
   };
 }

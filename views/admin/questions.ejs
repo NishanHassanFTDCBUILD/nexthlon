@@ -40,11 +40,5 @@
     </article>
   <% }) %>
 </div>
-<% if (pagination.pages > 1) { %>
-  <nav class="admin-table-foot" aria-label="Pages">
-    <% if (pagination.page > 1) { %><a class="btn btn-ghost btn-sm" href="?status=<%= status %>&page=<%= pagination.page - 1 %>">Newer</a><% } %>
-    <span class="muted">Page <%= pagination.page %> of <%= pagination.pages %></span>
-    <% if (pagination.page < pagination.pages) { %><a class="btn btn-ghost btn-sm" href="?status=<%= status %>&page=<%= pagination.page + 1 %>">Older</a><% } %>
-  </nav>
-<% } %>
+<div class="admin-table-foot"><%- include('../partials/pagination') %></div>
 <%- include('../partials/admin-end') %>

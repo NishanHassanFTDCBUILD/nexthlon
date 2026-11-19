@@ -46,3 +46,15 @@ registry.schedule('commerce-recovery', {
   everyMs: 60 * 1000,
   type: 'commerce.recover',
 });
+
+// Deals of the Day: every minute, start the deals whose time has come and end the ones that are
+// over, so the price a shopper pays changes on time (services/dealService.js).
+registry.register(
+  'deal.sync',
+  () => require('../services/dealService').syncDealPrices(),
+  {maxAttempts: 2},
+);
+registry.schedule('deal-sync', {
+  everyMs: 60 * 1000,
+  type: 'deal.sync',
+});

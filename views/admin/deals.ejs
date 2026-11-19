@@ -1,0 +1,112 @@
+<%#
+  Deals of the Day. While a deal is live its percent is part of the product's price everywhere
+  (cart, checkout, payment): the best of the product, category and deal offers applies.
+  Prices start and end on time by themselves (services/dealService.js, a job every minute).
+%>
+<%
+  const tabs = [['all', 'All'], ['live', 'Live now'], ['scheduled', 'Starts later'], ['ended', 'Ended'], ['disabled', 'Turned off']];
+  const pill = { live: 'pill-green', scheduled: 'pill-blue', ended: 'pill-grey', disabled: 'pill-amber' };
+  const when = (d) => new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  const filtered = filters.q || filters.status !== 'all';
+%>
+<%- include('../partials/admin-start', { section: 'deals' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Deals of the day</h1>
+    <p class="muted">Pick a product, a discount and a time. Live deals lead the home page row and their price is charged at checkout. With no live deal, the home page shows the biggest discounts instead.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-primary btn-sm" href="<%= adminPath %>/deals/new"><%- icon('plus', 'i-sm') %> New deal</a>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Deal totals">
+  <div class="admin-total is-in"><span>Live now</span><strong><%= totals.live %></strong><small class="muted">on the home page</small></div>
+  <div class="admin-total"><span>Starts later</span><strong><%= totals.scheduled %></strong><small class="muted">start by themselves</small></div>
+  <div class="admin-total"><span>Ended</span><strong><%= totals.ended %></strong><small class="muted">usual prices are back</small></div>
+  <div class="admin-total"><span>Turned off</span><strong><%= totals.disabled %></strong><small class="muted">kept, not running</small></div>
+</section>
+
+<nav class="segmented admin-tabs" aria-label="Deal status">
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="page"' : '' %>><%= label %><% if (key !== 'all' && totals[key]) { %> <span class="admin-tab-count"><%= totals[key] %></span><% } %></a><% }) %>
+</nav>
+
+<form class="admin-filterbar" action="<%= adminPath %>/deals" method="get">
+  <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="deal-q">Search deals by product</label>
+    <input id="deal-q" type="search" name="q" value="<%= filters.q %>" maxlength="60" placeholder="Product name">
+  </div>
+  <label class="admin-field"><span>Sort</span>
+    <select name="sort" data-auto-submit>
+      <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
+    </select>
+  </label>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Deals">
+  <% if (deals.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">Product</th>
+          <th scope="col" class="cell-num">Deal</th>
+          <th scope="col" class="cell-num">Deal price</th>
+          <th scope="col">Runs</th>
+          <th scope="col" class="cell-num">Order</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="cell-action">Actions</th>
+        </tr></thead>
+        <tbody>
+          <% deals.forEach(function (d) { %>
+            <tr data-deal-row="<%= d.id %>">
+              <td>
+                <% if (d.product) { %>
+                  <div class="person product-person">
+                    <img class="product-thumb" src="<%= sizedUrl(d.product.image, 200) %>" alt="" width="48" height="48" loading="lazy">
+                    <div>
+                      <strong><a href="<%= adminPath %>/deals/<%= d.id %>/edit"><%= d.product.name %></a></strong>
+                      <span><%= d.product.isListed ? (d.product.stock > 0 ? d.product.stock + ' in stock' : 'Out of stock') : 'Product is unlisted' %><%= d.note ? ' · ' + d.note : '' %></span>
+                    </div>
+                  </div>
+                <% } else { %>
+                  <span class="muted">Product deleted</span>
+                <% } %>
+              </td>
+              <td data-label="Deal" class="cell-num"><strong><%= d.percent %>% off</strong></td>
+              <td data-label="Deal price" class="cell-num">
+                <% if (d.product) { %><strong><%= formatPrice(d.dealPrice) %></strong><small class="muted admin-sub">M.R.P. <%= formatPrice(d.product.mrp) %></small><% } else { %>—<% } %>
+              </td>
+              <td data-label="Runs"><%= when(d.startsAt) %> →<br><%= when(d.endsAt) %></td>
+              <td data-label="Order" class="cell-num"><%= d.sortOrder %></td>
+              <td data-label="Status"><span class="pill <%= pill[d.status] %>" data-deal-status><%= dealLabels[d.status] %></span></td>
+              <td class="cell-action"><div class="row-actions">
+                <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/deals/<%= d.id %>/edit" aria-label="Edit the deal on <%= d.product ? d.product.name : 'this product' %>"><%- icon('edit', 'i-xs') %> Edit</a>
+                <button type="button" class="btn btn-sm <%= d.isActive ? 'btn-danger-soft' : 'btn-secondary' %>"
+                        data-deal-toggle="<%= d.id %>" data-active="<%= d.isActive %>" data-name="<%= d.product ? d.product.name : 'this product' %>"
+                        aria-label="<%= d.isActive ? 'Turn off' : 'Turn on' %> the deal on <%= d.product ? d.product.name : 'this product' %>"><%= d.isActive ? 'Turn off' : 'Turn on' %></button>
+                <button type="button" class="btn btn-ghost btn-sm" data-deal-delete="<%= d.id %>" data-name="<%= d.product ? d.product.name : 'this product' %>" aria-label="Delete the deal on <%= d.product ? d.product.name : 'this product' %>"><%- icon('trash', 'i-xs') %></button>
+              </div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+  <% } else { %>
+    <div class="empty-state empty-state-flat">
+      <%- include('../partials/empty-art', { art: 'ticket' }) %>
+      <h2><%= filtered ? 'No deals match' : 'No deals yet' %></h2>
+      <p><%= filtered ? 'Try a different search or tab.' : 'Until you add one, the home page shows the products with the biggest discounts.' %></p>
+      <% if (filtered) { %>
+        <a class="btn btn-secondary" href="<%= adminPath %>/deals">Show all deals</a>
+      <% } else { %>
+        <a class="btn btn-primary" href="<%= adminPath %>/deals/new"><%- icon('plus', 'i-sm') %> New deal</a>
+      <% } %>
+    </div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

@@ -5,6 +5,7 @@ const adminOrderService = require('../services/adminOrderService');
 const ledgerService = require('../services/ledgerService');
 const cartRecoveryService = require('../services/cartRecoveryService');
 const adminCouponService = require('../services/adminCouponService');
+const dealService = require('../services/dealService');
 const rules = require('../utils/orderRules');
 const {linkBuilder} = require('../utils/queryString');
 const {asyncHandler} = require('../utils/http');
@@ -166,12 +167,59 @@ const couponEdit = asyncHandler(async (req, res) => {
 });
 
 const coupon = asyncHandler(async (req, res) => {
-  const data = await adminCouponService.getCouponDetail(req.params.couponId);
+  const data = await adminCouponService.getCouponDetail(
+    req.params.couponId,
+    req.query,
+  );
   res.render('admin/coupon', {
     title: `${data.coupon.code} | Nexthlon Admin`,
     ...data,
+    link: linkBuilder(base(`coupons/${data.coupon.id}`), {}),
     ...labels,
     statusLabels: adminCouponService.STATUS_LABELS,
+  });
+});
+
+// ---------- Deals of the day ----------
+const deals = asyncHandler(async (req, res) => {
+  const data = await dealService.listDeals(req.query);
+  const current = without(data.filters, {sort: 'starts'});
+  res.render('admin/deals', {
+    title: 'Deals of the day | Nexthlon Admin',
+    ...data,
+    sorts: dealService.SORTS,
+    dealLabels: dealService.STATUS_LABELS,
+    current,
+    link: linkBuilder(base('deals'), current),
+  });
+});
+
+// A new deal starts now and runs for a day, unless the admin changes it.
+const dealNew = asyncHandler(async (req, res) => {
+  const now = new Date();
+  now.setSeconds(0, 0);
+  res.render('admin/deal-form', {
+    title: 'New deal | Nexthlon Admin',
+    deal: null,
+    defaults: {
+      startsInput: dealService.toLocalInput(now),
+      endsInput: dealService.toLocalInput(
+        new Date(now.getTime() + 24 * 60 * 60 * 1000),
+      ),
+    },
+    products: await dealService.productChoices(),
+    picked: typeof req.query.product === 'string' ? req.query.product : '',
+  });
+});
+
+const dealEdit = asyncHandler(async (req, res) => {
+  const deal = await dealService.getDeal(req.params.dealId);
+  res.render('admin/deal-form', {
+    title: 'Edit deal | Nexthlon Admin',
+    deal,
+    defaults: {},
+    products: await dealService.productChoices(),
+    picked: deal.productId,
   });
 });
 
@@ -188,4 +236,7 @@ module.exports = {
   couponNew,
   couponEdit,
   coupon,
+  deals,
+  dealNew,
+  dealEdit,
 };

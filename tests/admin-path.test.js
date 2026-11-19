@@ -286,7 +286,9 @@ test('admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
     'refunds',
     'abandoned-carts',
     'coupons',
+    'deals',
     'products',
+    'categories',
     'inventory',
     'customers',
     'settings',
@@ -295,7 +297,6 @@ test('admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
     assert.match(full.data, new RegExp(`data-nav-link="${key}"`));
   }
   for (const gone of [
-    'categories',
     'brands',
     'segments',
     'offers',
@@ -367,7 +368,9 @@ test('every section in the sidebar opens; anything else is a plain 404', async (
     'refunds',
     'abandoned-carts',
     'coupons',
+    'deals',
     'products',
+    'categories',
     'inventory',
     'customers',
     'settings',
@@ -379,7 +382,6 @@ test('every section in the sidebar opens; anything else is a plain 404', async (
   }
   // Sections that were removed are ordinary 404s, like any unknown URL.
   for (const gone of [
-    'categories',
     'brands',
     'marketing',
     'offers',

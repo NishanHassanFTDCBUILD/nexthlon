@@ -74,21 +74,5 @@
       <% } %>
     </section>
 
-    <% if (pagination.pages > 1) { %>
-      <nav class="pagination" aria-label="Pages">
-        <% if (pagination.page > 1) { %>
-          <a class="page-step" href="<%= link({ page: pagination.page - 1 }) %>" rel="prev"><%- icon('chevron-left', 'i-sm') %> <span>Previous</span></a>
-        <% } %>
-        <% pageList.forEach(function (n) { %>
-          <% if (n === '…') { %>
-            <span class="page-gap" aria-hidden="true">…</span>
-          <% } else { %>
-            <a href="<%= link({ page: n === 1 ? '' : n }) %>" class="page-num <%= n === pagination.page ? 'is-current' : '' %>" <%- n === pagination.page ? 'aria-current="page"' : '' %> aria-label="Page <%= n %>"><%= n %></a>
-          <% } %>
-        <% }) %>
-        <% if (pagination.page < pagination.pages) { %>
-          <a class="page-step" href="<%= link({ page: pagination.page + 1 }) %>" rel="next"><span>Next</span> <%- icon('chevron-right', 'i-sm') %></a>
-        <% } %>
-      </nav>
-    <% } %>
+    <%- include('../partials/pagination') %>
 <%- include('../partials/admin-end') %>

@@ -99,4 +99,26 @@ function reviewPhotos(req, res, next) {
   });
 }
 
-module.exports = {productImages, returnPhotos, reviewPhotos};
+// One photo in the "image" field of the admin category form. A JSON request passes straight through.
+function categoryImage(req, res, next) {
+  upload.array('image', 1)(req, res, (error) => {
+    if (!error) return next();
+    if (error instanceof HttpError)
+      return next(new HttpError(400, error.message, {image: error.message}));
+    if (error instanceof multer.MulterError) {
+      const message =
+        error.code === 'LIMIT_FILE_SIZE'
+          ? 'The photo must be 2 MB or smaller.'
+          : 'Add one photo only.';
+      return next(new HttpError(400, message, {image: message}));
+    }
+    return next(error);
+  });
+}
+
+module.exports = {
+  categoryImage,
+  productImages,
+  returnPhotos,
+  reviewPhotos,
+};

@@ -59,6 +59,9 @@ const productSchema = new mongoose.Schema(
     // Copied from the category, so lists can filter and sort on the final price in one query.
     categoryOffer: {type: Number, default: 0, min: 0, max: 90},
     categoryListed: {type: Boolean, default: true},
+    // The Deal of the Day running on this product now (0: none). Set and cleared only by
+    // services/dealService.js syncDealPrices, never by a form.
+    dealOffer: {type: Number, default: 0, min: 0, max: 90},
     bestOffer: {type: Number, default: 0},
     price: {type: Number, required: true, min: 0},
     discountPercent: {type: Number, default: 0, min: 0, max: 100},

@@ -225,7 +225,16 @@ async function getHomePage(now = new Date()) {
     HOME_TTL_MS,
     buildHomeSections,
   );
-  return {...sections, dealEndsAt: dealEndsAt(now)};
+  // An admin's deal ends when the admin said; the automatic deals of the day end at midnight.
+  const adminEnds =
+    sections.adminDealEndsAt && new Date(sections.adminDealEndsAt) > now
+      ? new Date(sections.adminDealEndsAt)
+      : null;
+  return {
+    ...sections,
+    adminDealEndsAt: adminEnds,
+    dealEndsAt: adminEnds || dealEndsAt(now),
+  };
 }
 
 module.exports = {

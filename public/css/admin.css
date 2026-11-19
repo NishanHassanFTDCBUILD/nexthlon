@@ -2904,3 +2904,56 @@ body.admin-menu-open {
     width: 100%;
   }
 }
+
+/* ---------- Categories and Deals of the day ---------- */
+.category-thumb-empty {
+  display: inline-grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.admin-table tr.is-unlisted td {
+  background: var(--surface-2);
+}
+
+.admin-table tr.is-unlisted .product-thumb {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.category-photo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.category-photo-preview {
+  width: 160px;
+  height: 160px;
+  flex: none;
+  border-radius: var(--radius);
+  object-fit: cover;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+}
+
+.category-photo .field {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.field .label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.deal-preview {
+  margin: 0;
+  padding: var(--space-1h) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: var(--text-sm);
+}

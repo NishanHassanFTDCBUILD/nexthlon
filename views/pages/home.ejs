@@ -259,7 +259,7 @@
       <div class="section-box deal-box">
         <div class="section-head deal-head">
           <div>
-            <span class="section-kicker">Ends at midnight</span>
+            <span class="section-kicker"><%= adminDealEndsAt ? 'Ends ' + new Date(dealEndsAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : 'Ends at midnight' %></span>
             <h2 id="deals-title">Deals of the day</h2>
           </div>
           <div class="countdown flip-countdown" data-countdown data-left="<%= left %>" data-ends="<%= new Date(dealEndsAt).toISOString() %>" role="timer" aria-label="Time left on today's deals">

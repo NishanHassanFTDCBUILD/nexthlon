@@ -21,12 +21,14 @@ const reports = require('../controllers/adminReportController');
 const orders = require('../controllers/adminOrderController');
 const catalog = require('../controllers/adminCatalogController');
 const coupons = require('../controllers/adminCouponController');
+const categories = require('../controllers/adminCategoryController');
+const deals = require('../controllers/adminDealController');
 const {
   adminWriteLimiter,
   adminMoneyLimiter,
 } = require('../middleware/rateLimit');
 const {requireAuth, requireRole} = require('../middleware/auth');
-const {productImages} = require('../middleware/upload');
+const {productImages, categoryImage} = require('../middleware/upload');
 
 // Mounted at /api/admin. Admin login lives in authRoutes, so it is reached before this guard.
 router.use(requireAuth, requireRole('admin'));
@@ -193,6 +195,40 @@ router.get('/coupons/:couponId', coupons.getCoupon);
 router.patch('/coupons/:couponId/active', adminWriteLimiter, coupons.setActive);
 router.patch('/coupons/:couponId', adminMoneyLimiter, coupons.updateCoupon);
 router.delete('/coupons/:couponId', adminMoneyLimiter, coupons.deleteCoupon);
+
+// Categories. A photo upload is read only after the admin check above.
+router.get('/categories', categories.listCategories);
+router.post(
+  '/categories',
+  adminWriteLimiter,
+  categoryImage,
+  categories.createCategory,
+);
+router.get('/categories/:categoryId', categories.getCategory);
+router.patch(
+  '/categories/:categoryId/listing',
+  adminWriteLimiter,
+  categories.setListed,
+);
+router.patch(
+  '/categories/:categoryId',
+  adminWriteLimiter,
+  categoryImage,
+  categories.updateCategory,
+);
+router.delete(
+  '/categories/:categoryId',
+  adminWriteLimiter,
+  categories.deleteCategory,
+);
+
+// Deals of the Day. A deal changes what shoppers pay, so changes use the money limiter.
+router.get('/deals', deals.listDeals);
+router.post('/deals', adminMoneyLimiter, deals.createDeal);
+router.get('/deals/:dealId', deals.getDeal);
+router.patch('/deals/:dealId/active', adminMoneyLimiter, deals.setActive);
+router.patch('/deals/:dealId', adminMoneyLimiter, deals.updateDeal);
+router.delete('/deals/:dealId', adminMoneyLimiter, deals.deleteDeal);
 
 // System status.
 router.get('/system', catalog.systemStatus);

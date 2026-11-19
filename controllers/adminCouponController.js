@@ -30,9 +30,11 @@ const listCoupons = asyncHandler(async (req, res) => {
   res.json(await adminCouponService.listCoupons(req.query));
 });
 
-// GET /api/admin/coupons/:couponId
+// GET /api/admin/coupons/:couponId?page=
 const getCoupon = asyncHandler(async (req, res) => {
-  res.json(await adminCouponService.getCouponDetail(req.params.couponId));
+  res.json(
+    await adminCouponService.getCouponDetail(req.params.couponId, req.query),
+  );
 });
 
 // POST /api/admin/coupons
