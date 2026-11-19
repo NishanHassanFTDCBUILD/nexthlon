@@ -62,6 +62,7 @@ router.get('/inventory', catalog.inventory);
 router.get('/categories', catalog.categories);
 router.get('/categories/new', catalog.categoryNew);
 router.get('/categories/:categoryId/edit', catalog.categoryEdit);
+router.get('/categories/:categoryId', catalog.category);
 
 // ---------- Customers ----------
 router.get('/customers', pages.adminUsers);

@@ -1,0 +1,116 @@
+<%#
+  One category and its products. Tick products and move them to another category in one go:
+  each takes on its new category's offer and visibility, and its price is worked out again
+  (services/adminCategoryService.js moveProducts). Script: public/js/admin-categories.js.
+%>
+<%
+  const c = category;
+  const STATUS_LABELS = { active: 'Active', unlisted: 'Unlisted', out: 'Out of stock' };
+  const STATUS_PILLS = { active: 'pill-green', unlisted: 'pill-grey', out: 'pill-red' };
+%>
+<%- include('../partials/admin-start', { section: 'categories', page: 'category' }) %>
+<nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
+  <a href="<%= adminPath %>/categories">Categories</a> <%- icon('chevron-right', 'i-xs') %>
+  <span aria-current="page"><%= c.name %></span>
+</nav>
+<header class="admin-top">
+  <div class="category-head">
+    <% if (c.image) { %><img class="category-head-img" src="<%= sizedUrl(c.image, 200) %>" alt="" width="64" height="64"><% } %>
+    <div>
+      <span class="section-kicker">Category</span>
+      <h1><%= c.name %></h1>
+      <p class="muted">
+        <span class="pill <%= c.isListed ? 'pill-green' : 'pill-grey' %>"><%= c.isListed ? 'In the store' : 'Hidden' %></span>
+        <%= c.offerPercent ? ' · ' + c.offerPercent + '% category offer' : ' · No category offer' %>
+        · <a href="/products?category=<%= c.slug %>" target="_blank" rel="noopener">View in store</a>
+      </p>
+    </div>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/categories/<%= c.id %>/edit"><%- icon('edit', 'i-sm') %> Edit category</a>
+    <a class="btn btn-primary btn-sm" href="<%= adminPath %>/products/new?category=<%= c.id %>"><%- icon('plus', 'i-sm') %> Add a product here</a>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Category totals">
+  <div class="admin-total"><span>Products</span><strong><%= totals.products %></strong></div>
+  <div class="admin-total is-in"><span>Listed</span><strong><%= totals.listed %></strong></div>
+  <div class="admin-total <%= totals.out ? 'is-out' : '' %>"><span>Out of stock</span><strong><%= totals.out %></strong></div>
+  <div class="admin-total"><span>Units on the shelf</span><strong><%= totals.units.toLocaleString('en-IN') %></strong></div>
+</section>
+
+<form class="admin-filterbar" action="<%= adminPath %>/categories/<%= c.id %>" method="get">
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="catp-q">Search this category</label>
+    <input id="catp-q" type="search" name="q" value="<%= filters.q %>" maxlength="60" placeholder="Product name">
+  </div>
+  <label class="admin-field"><span>Sort</span>
+    <select name="sort" data-auto-submit>
+      <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
+    </select>
+  </label>
+  <% if (filters.limit) { %><input type="hidden" name="limit" value="<%= filters.limit %>"><% } %>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Products in <%= c.name %>" data-category-products="<%= c.id %>">
+  <div class="admin-table-tools">
+    <div class="admin-bulk" data-move-bar hidden>
+      <strong data-move-count>0 selected</strong>
+      <label class="sr-only" for="move-to">Move the selected products to</label>
+      <span class="select-wrap">
+        <select id="move-to" data-move-to>
+          <option value="">Move to…</option>
+          <% otherCategories.forEach(function (o) { %><option value="<%= o.id %>"><%= o.name %><%= o.isListed ? '' : ' (hidden)' %></option><% }) %>
+        </select>
+      </span>
+      <button type="button" class="btn btn-primary btn-sm" data-move-apply><%- icon('arrow-right', 'i-xs') %> Move</button>
+      <button type="button" class="link-btn" data-move-clear>Clear selection</button>
+    </div>
+  </div>
+  <% if (products.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col" class="cell-check"><input type="checkbox" data-move-all aria-label="Select every product on this page"></th>
+          <th scope="col">Product</th>
+          <th scope="col" class="cell-num">Price</th>
+          <th scope="col" class="cell-num">Discount</th>
+          <th scope="col" class="cell-num">Stock</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="cell-action"><span class="sr-only">Actions</span></th>
+        </tr></thead>
+        <tbody>
+          <% products.forEach(function (p) { %>
+            <tr data-row-href="<%= adminPath %>/products/<%= p.id %>/edit" class="<%= p.status === 'unlisted' ? 'is-unlisted' : '' %>">
+              <td class="cell-check"><input type="checkbox" data-move-pick="<%= p.id %>" aria-label="Select <%= p.name %>"></td>
+              <td>
+                <div class="person product-person">
+                  <img class="product-thumb" src="<%= sizedUrl(p.image, 200) %>" alt="" width="44" height="44" loading="lazy">
+                  <div><strong><%= p.name %></strong><span><%= p.brand %></span></div>
+                </div>
+              </td>
+              <td data-label="Price" class="cell-num"><strong><%= formatPrice(p.price) %></strong><small class="muted admin-sub">M.R.P. <%= formatPrice(p.mrp) %></small></td>
+              <td data-label="Discount" class="cell-num"><%= p.discountPercent ? p.discountPercent + '%' : '—' %></td>
+              <td data-label="Stock" class="cell-num"><%= p.stock %></td>
+              <td data-label="Status"><span class="pill <%= STATUS_PILLS[p.status] %>"><%= STATUS_LABELS[p.status] %></span></td>
+              <td class="cell-action"><div class="row-actions">
+                <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/products/<%= p.id %>/edit" aria-label="Edit <%= p.name %>"><%- icon('edit', 'i-xs') %> Edit</a>
+              </div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/admin-pager') %>
+  <% } else { %>
+    <div class="empty-state empty-state-flat">
+      <%- include('../partials/empty-art', { art: 'box' }) %>
+      <h2><%= filters.q ? 'No products match' : 'No products in this category yet' %></h2>
+      <p><%= filters.q ? 'Try a different name.' : 'Add one here, or move products in from another category.' %></p>
+      <a class="btn btn-primary" href="<%= adminPath %>/products/new?category=<%= c.id %>"><%- icon('plus', 'i-sm') %> Add a product here</a>
+    </div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

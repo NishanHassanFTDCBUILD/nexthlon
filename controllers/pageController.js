@@ -643,10 +643,15 @@ const adminProductNew = asyncHandler(async (req, res) => {
     .sort({sortOrder: 1, name: 1})
     .select('name isListed')
     .lean();
+  // "Add a product to this category" links pass ?category=<id>, which picks it in the form.
+  const wanted = String(req.query.category || '');
   res.render('admin/product-form', {
     title: 'Add product | Nexthlon Admin',
     product: null,
     categories,
+    presetCategory: categories.some((c) => String(c._id) === wanted)
+      ? wanted
+      : '',
   });
 });
 

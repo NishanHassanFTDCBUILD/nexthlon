@@ -437,10 +437,128 @@ test('deals: the admin list pages and counts by status', async () => {
   assert.match(page.data, /Deals of the day/);
   const form = await call('GET', '/admin/deals/new', {cookie: adminCookie});
   assert.equal(form.status, 200);
-  assert.match(form.data, /Deal Trail Shoe/);
+  assert.match(form.data, /data-pick-search/);
   // Shoppers never reach the deal API.
   assert.equal(
     (await call('GET', '/api/admin/deals', {cookie: shopperCookie})).status,
+    401,
+  );
+});
+
+// ======================= Smarter deal form =======================
+
+test('deals: product search, several products at once (all or none), run again', async () => {
+  const search = await call('GET', '/api/admin/deals/products?q=deal', {
+    cookie: adminCookie,
+  });
+  assert.equal(search.status, 200);
+  const names = search.data.products.map((p) => p.name);
+  assert.ok(names.includes('Deal Trail Shoe'));
+  assert.ok(search.data.products[0].image);
+
+  const body = {
+    products: [String(shoe._id), String(bottle._id)],
+    percent: '12',
+    startsAt: istInput(120),
+    endsAt: istInput(240),
+    isActive: true,
+  };
+  const made = await call('POST', '/api/admin/deals', {
+    cookie: adminCookie,
+    body,
+  });
+  assert.equal(made.status, 201, JSON.stringify(made.data));
+  assert.equal(made.data.deals.length, 2);
+  assert.match(made.data.message, /2 deals saved/);
+
+  // One of them clashes, so nothing in the batch is saved.
+  const before = await Deal.countDocuments();
+  const clash = await call('POST', '/api/admin/deals', {
+    cookie: adminCookie,
+    body: {...body, products: [String(shoe._id)], percent: '20'},
+  });
+  assert.equal(clash.status, 409);
+  assert.equal(await Deal.countDocuments(), before);
+
+  // Run again: the form comes back filled in from an ended deal.
+  const ended = await Deal.create({
+    product: bottle._id,
+    percent: 33,
+    note: 'Old flash sale',
+    startsAt: new Date(Date.now() - 5 * 3600000),
+    endsAt: new Date(Date.now() - 2 * 3600000),
+  });
+  const rerun = await call('GET', `/admin/deals/new?from=${ended._id}`, {
+    cookie: adminCookie,
+  });
+  assert.equal(rerun.status, 200);
+  assert.match(rerun.data, /Run it again/);
+  assert.match(rerun.data, /value="33"/);
+  assert.match(rerun.data, /Old flash sale/);
+  assert.match(rerun.data, /data-pick-id="[a-f0-9]{24}"/);
+  await Deal.deleteMany({});
+  await dealService.syncDealPrices();
+});
+
+// ======================= One category and bulk move =======================
+
+test('categories: the category page lists its products; products move in bulk', async () => {
+  const sale = await Category.create({
+    name: 'Clearance',
+    nameKey: 'clearance',
+    slug: 'clearance',
+    offerPercent: 40,
+    isListed: false,
+  });
+  const page = await call('GET', `/admin/categories/${running._id}`, {
+    cookie: adminCookie,
+  });
+  assert.equal(page.status, 200);
+  assert.match(page.data, /Deal Trail Shoe/);
+  assert.match(page.data, /Add a product here/);
+  assert.match(page.data, /<option value="[a-f0-9]{24}">Clearance \(hidden\)/);
+
+  // The "add a product here" link picks the category in the product form.
+  const form = await call('GET', `/admin/products/new?category=${sale._id}`, {
+    cookie: adminCookie,
+  });
+  assert.match(form.data, new RegExp(`value="${sale._id}" selected`));
+
+  assert.equal(
+    (
+      await call('POST', '/api/admin/categories/move-products', {
+        cookie: adminCookie,
+        body: {productIds: ['nope'], categoryId: String(sale._id)},
+      })
+    ).status,
+    400,
+  );
+  const moved = await call('POST', '/api/admin/categories/move-products', {
+    cookie: adminCookie,
+    body: {productIds: [String(bottle._id)], categoryId: String(sale._id)},
+  });
+  assert.equal(moved.status, 200, JSON.stringify(moved.data));
+  assert.equal(moved.data.moved, 1);
+  const after = await Product.findById(bottle._id).lean();
+  assert.equal(String(after.category), String(sale._id));
+  assert.equal(after.categoryOffer, 40);
+  assert.equal(after.categoryListed, false);
+  assert.equal(after.price, 30000); // 50000 less the 40% category offer
+  assert.ok(await AuditLog.findOne({action: 'category.products_moved'}).lean());
+
+  // And back again.
+  await call('POST', '/api/admin/categories/move-products', {
+    cookie: adminCookie,
+    body: {productIds: [String(bottle._id)], categoryId: String(running._id)},
+  });
+  assert.equal((await Product.findById(bottle._id).lean()).price, 50000);
+  assert.equal(
+    (
+      await call('POST', '/api/admin/categories/move-products', {
+        cookie: shopperCookie,
+        body: {productIds: [String(bottle._id)], categoryId: String(sale._id)},
+      })
+    ).status,
     401,
   );
 });

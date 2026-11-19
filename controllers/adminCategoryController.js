@@ -103,6 +103,27 @@ const deleteCategory = asyncHandler(async (req, res) => {
   res.json({message: `${category.name} has been deleted.`, category});
 });
 
+// POST /api/admin/categories/move-products   body: { productIds: [...], categoryId }
+// Moves products into another category; their offer, visibility and price follow it.
+const moveProducts = asyncHandler(async (req, res) => {
+  const {productIds, categoryId} = req.body || {};
+  const result = await adminCategoryService.moveProducts(
+    productIds,
+    categoryId,
+  );
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: 'category.products_moved',
+    target: `category:${result.to.id}`,
+    before: {from: result.from},
+    after: {to: result.to.name, products: productIds},
+  });
+  res.json({
+    message: `${result.moved} ${result.moved === 1 ? 'product' : 'products'} moved to ${result.to.name}.`,
+    ...result,
+  });
+});
+
 module.exports = {
   listCategories,
   getCategory,
@@ -110,4 +131,5 @@ module.exports = {
   updateCategory,
   setListed,
   deleteCategory,
+  moveProducts,
 };

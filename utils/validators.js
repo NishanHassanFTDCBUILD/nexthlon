@@ -931,19 +931,32 @@ function readDateTime(value) {
 }
 
 const MAX_DEAL_DAYS = 31;
+const MAX_DEAL_PRODUCTS = 20;
 
 // The admin Deal of the Day form. The deal price is never typed: it is the product's base price
 // less this percent, worked out on the server (utils/pricing.js).
 function validateDeal(body = {}) {
   const errors = {};
-  const product = text(body.product);
+  // One product (editing a deal) or several (creating the same deal for many products at once).
+  const listed = Array.isArray(body.products)
+    ? body.products
+    : typeof body.products === 'string'
+      ? body.products.split(',')
+      : [];
+  const products = [
+    ...new Set((listed.length ? listed : [body.product]).map((id) => text(id))),
+  ].filter(Boolean);
+  const product = products[0] || '';
   const percent = readPercent(body.percent, 90);
   const startsAt = readDateTime(body.startsAt);
   const endsAt = readDateTime(body.endsAt);
   const sortOrder = readWhole(body.sortOrder, 3);
   const note = text(body.note);
 
-  if (!OBJECT_ID.test(product)) errors.product = 'Choose a product.';
+  if (!products.length || !products.every((id) => OBJECT_ID.test(id)))
+    errors.product = 'Choose a product.';
+  else if (products.length > MAX_DEAL_PRODUCTS)
+    errors.product = `Choose up to ${MAX_DEAL_PRODUCTS} products at a time.`;
   if (!Number.isInteger(percent) || percent < 1 || percent > 90)
     errors.percent = 'Enter a whole percentage from 1 to 90.';
   if (!startsAt || Number.isNaN(startsAt))
@@ -965,6 +978,7 @@ function validateDeal(body = {}) {
     errors,
     value: {
       product,
+      products,
       percent,
       startsAt,
       endsAt,

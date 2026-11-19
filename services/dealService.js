@@ -163,58 +163,114 @@ async function getDeal(dealId) {
   return toAdminDeal((await findDeal(dealId)).toObject());
 }
 
-// The products an admin can pick in the form, by name.
-function productChoices() {
-  return Product.find({})
-    .sort({name: 1})
-    .limit(1000)
-    .select('name basePrice mrp isListed')
-    .lean()
-    .then((rows) =>
-      rows.map((p) => ({
-        id: String(p._id),
-        name: p.name,
-        basePrice: p.basePrice,
-        mrp: p.mrp,
-        isListed: p.isListed !== false,
-      })),
-    );
+const PICK_FIELDS = 'name slug image basePrice mrp price stock isListed';
+const toPick = (p) => ({
+  id: String(p._id),
+  name: p.name,
+  image: p.image,
+  basePrice: p.basePrice,
+  mrp: p.mrp,
+  price: p.price,
+  stock: p.stock || 0,
+  isListed: p.isListed !== false,
+});
+
+// The product picker in the deal form: up to 12 products whose name matches what the admin types
+// (the newest first when nothing is typed), each with its photo, price and stock.
+async function searchProducts(q = '', limit = 12) {
+  const typed = typeof q === 'string' ? q.trim().slice(0, 60) : '';
+  const filter = typed ? {name: new RegExp(escapeRegex(typed), 'i')} : {};
+  const rows = await Product.find(filter)
+    .sort(typed ? {isListed: -1, name: 1} : {createdAt: -1})
+    .limit(Math.min(Math.max(Number(limit) || 12, 1), 30))
+    .select(PICK_FIELDS)
+    .lean();
+  return rows.map(toPick);
 }
 
-// The product must exist, and it may not have two switched-on deals at the same moment:
-// the shopper would never know which one they got.
+// The products already chosen (editing a deal, or "Run again"), for the picker to show.
+async function pickedProducts(ids = []) {
+  const valid = ids.filter((id) => mongoose.isValidObjectId(id));
+  if (!valid.length) return [];
+  const rows = await Product.find({_id: {$in: valid}})
+    .select(PICK_FIELDS)
+    .lean();
+  return rows.map(toPick);
+}
+
+// The products must exist, and none may have two switched-on deals at the same moment:
+// the shopper would never know which one they got. Every product is checked before anything
+// is saved, so a batch is created whole or not at all.
 async function checkDeal(value, exceptId = null) {
-  const product = await Product.exists({_id: value.product});
-  if (!product)
+  const ids =
+    value.products && value.products.length ? value.products : [value.product];
+  const found = await Product.find({_id: {$in: ids}})
+    .select('name')
+    .lean();
+  if (found.length !== ids.length)
     throw new HttpError(400, 'Choose a product.', {
       product: 'Choose a product.',
     });
   if (!value.isActive) return;
-  const clash = await Deal.exists({
-    product: value.product,
+  const clashes = await Deal.find({
+    product: {$in: ids},
     isActive: true,
     startsAt: {$lt: value.endsAt},
     endsAt: {$gt: value.startsAt},
     ...(exceptId ? {_id: {$ne: exceptId}} : {}),
-  });
-  if (clash) {
+  })
+    .select('product')
+    .lean();
+  if (clashes.length) {
+    const nameOf = new Map(found.map((p) => [String(p._id), p.name]));
+    const names = [
+      ...new Set(clashes.map((c) => nameOf.get(String(c.product)))),
+    ];
     const message =
-      'This product already has a deal during these times. Change the times or turn the other deal off.';
+      ids.length === 1
+        ? 'This product already has a deal during these times. Change the times or turn the other deal off.'
+        : `Already on a deal during these times: ${names.join(', ')}. Remove them or change the times.`;
     throw new HttpError(409, message, {startsAt: message});
   }
 }
 
+// Creates the same deal for each chosen product (one deal per product, so each can be
+// changed or turned off on its own later).
 async function createDeal(value) {
   await checkDeal(value);
-  const deal = await Deal.create(value);
+  const ids =
+    value.products && value.products.length ? value.products : [value.product];
+  const {products, ...fields} = value;
+  const created = await Deal.insertMany(
+    ids.map((product) => ({...fields, product})),
+  );
   await syncDealPrices();
-  return getDeal(deal._id);
+  const deals = await Promise.all(created.map((deal) => getDeal(deal._id)));
+  return {deal: deals[0], deals};
+}
+
+// "Run again": a new deal with an ended deal's product, percent, note and position, starting
+// now and running for as long as the old one did.
+async function copyForRerun(dealId, now = new Date()) {
+  const old = await findDeal(dealId);
+  const length = Math.max(old.endsAt - old.startsAt, 60 * 60 * 1000);
+  const startsAt = new Date(now);
+  startsAt.setSeconds(0, 0);
+  return {
+    productIds: [String(old.product._id || old.product)],
+    percent: old.percent,
+    note: old.note || '',
+    sortOrder: old.sortOrder || 0,
+    startsInput: toLocalInput(startsAt),
+    endsInput: toLocalInput(new Date(startsAt.getTime() + length)),
+  };
 }
 
 async function updateDeal(dealId, value) {
   const deal = await findDeal(dealId);
-  await checkDeal(value, deal._id);
-  Object.assign(deal, value);
+  const {products, ...fields} = value;
+  await checkDeal({...fields, products: [fields.product]}, deal._id);
+  Object.assign(deal, fields);
   await deal.save();
   await syncDealPrices();
   return getDeal(deal._id);
@@ -320,7 +376,9 @@ module.exports = {
   toLocalInput,
   listDeals,
   getDeal,
-  productChoices,
+  searchProducts,
+  pickedProducts,
+  copyForRerun,
   createDeal,
   updateDeal,
   setActive,

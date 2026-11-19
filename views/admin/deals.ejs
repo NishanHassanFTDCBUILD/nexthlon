@@ -17,7 +17,7 @@
     <p class="muted">Pick a product, a discount and a time. Live deals lead the home page row and their price is charged at checkout. With no live deal, the home page shows the biggest discounts instead.</p>
   </div>
   <div class="admin-top-actions">
-    <a class="btn btn-primary btn-sm" href="<%= adminPath %>/deals/new"><%- icon('plus', 'i-sm') %> New deal</a>
+    <a class="btn btn-primary btn-sm" href="<%= adminPath %>/deals/new"><%- icon('plus', 'i-sm') %> New deals</a>
   </div>
 </header>
 
@@ -84,6 +84,7 @@
               <td data-label="Order" class="cell-num"><%= d.sortOrder %></td>
               <td data-label="Status"><span class="pill <%= pill[d.status] %>" data-deal-status><%= dealLabels[d.status] %></span></td>
               <td class="cell-action"><div class="row-actions">
+                <% if (d.status === 'ended') { %><a class="btn btn-secondary btn-sm" href="<%= adminPath %>/deals/new?from=<%= d.id %>" aria-label="Run the deal on <%= d.product ? d.product.name : 'this product' %> again"><%- icon('rotate-cw', 'i-xs') %> Run again</a><% } %>
                 <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/deals/<%= d.id %>/edit" aria-label="Edit the deal on <%= d.product ? d.product.name : 'this product' %>"><%- icon('edit', 'i-xs') %> Edit</a>
                 <button type="button" class="btn btn-sm <%= d.isActive ? 'btn-danger-soft' : 'btn-secondary' %>"
                         data-deal-toggle="<%= d.id %>" data-active="<%= d.isActive %>" data-name="<%= d.product ? d.product.name : 'this product' %>"

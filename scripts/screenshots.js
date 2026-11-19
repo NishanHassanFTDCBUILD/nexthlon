@@ -281,8 +281,9 @@ async function main() {
         `Promise.all([
         fetch("/api/admin/products", { headers: { Accept: "application/json" } }).then(r => r.json()),
         fetch("/api/admin/coupons", { headers: { Accept: "application/json" } }).then(r => r.json()),
-        fetch("/api/admin/orders", { headers: { Accept: "application/json" } }).then(r => r.json())
-      ]).then(([p, c, o]) => ({ product: p.products && p.products[0] && p.products[0].id, coupon: c.coupons && c.coupons[0] && (c.coupons[0].id || c.coupons[0]._id), order: o.orders && o.orders[0] && o.orders[0].orderId }))`,
+        fetch("/api/admin/orders", { headers: { Accept: "application/json" } }).then(r => r.json()),
+        fetch("/api/admin/categories", { headers: { Accept: "application/json" } }).then(r => r.json())
+      ]).then(([p, c, o, k]) => ({ product: p.products && p.products[0] && p.products[0].id, coupon: c.coupons && c.coupons[0] && (c.coupons[0].id || c.coupons[0]._id), order: o.orders && o.orders[0] && o.orders[0].orderId, category: k.categories && k.categories[0] && k.categories[0].id }))`,
       );
       const a = adminPath;
       await capture(
@@ -327,6 +328,15 @@ async function main() {
             : []),
           ['admin-categories', 'Categories', `${a}/categories`],
           ['admin-category-new', 'New category', `${a}/categories/new`],
+          ...(ids.category
+            ? [
+                [
+                  'admin-category',
+                  'One category',
+                  `${a}/categories/${ids.category}`,
+                ],
+              ]
+            : []),
           ['admin-inventory', 'Inventory', `${a}/inventory`],
           ['admin-customers', 'Customers', `${a}/customers`],
           ['admin-questions', 'Questions', `${a}/questions`],

@@ -9,6 +9,8 @@ const categoryService = require('./categoryService');
 const imageService = require('./imageService');
 const {HttpError} = require('../utils/http');
 const {pageSize} = require('../utils/paging');
+const {PRICE_PIPELINE} = require('../utils/pricing');
+const mongoose = require('mongoose');
 
 const PAGE_SIZE = 20;
 const STATUSES = ['all', 'listed', 'hidden'];
@@ -230,6 +232,140 @@ async function deleteCategory(categoryId) {
   return before;
 }
 
+// ---------- One category and its products ----------
+
+const PRODUCT_SORTS = {
+  name: {label: 'Name: A to Z', order: {name: 1}},
+  newest: {label: 'Newest first', order: {createdAt: -1}},
+  price_desc: {label: 'Price: high to low', order: {price: -1}},
+  stock_asc: {label: 'Lowest stock first', order: {stock: 1}},
+};
+const MOVE_LIMIT = 200;
+
+const productStatus = (p) =>
+  p.isListed === false ? 'unlisted' : (p.stock || 0) <= 0 ? 'out' : 'active';
+
+// The category page: its details, and one page of its products with search and sort.
+async function categoryProducts(categoryId, query = {}) {
+  const category = await getCategory(categoryId);
+  const size = pageSize(query, PAGE_SIZE);
+  const filters = {
+    q: typeof query.q === 'string' ? query.q.trim().slice(0, 60) : '',
+    sort: Object.hasOwn(PRODUCT_SORTS, query.sort) ? query.sort : 'name',
+    page: toPage(query.page),
+    limit: size === PAGE_SIZE ? '' : size,
+  };
+  const filter = {category: category.id};
+  if (filters.q) filter.name = new RegExp(escapeRegex(filters.q), 'i');
+  const [rows, total, others, stats] = await Promise.all([
+    Product.find(filter)
+      .sort(PRODUCT_SORTS[filters.sort].order)
+      .skip((filters.page - 1) * size)
+      .limit(size)
+      .select('name slug image brand price mrp stock isListed discountPercent')
+      .lean(),
+    Product.countDocuments(filter),
+    Category.find({_id: {$ne: category.id}})
+      .sort({sortOrder: 1, name: 1})
+      .select('name isListed')
+      .lean(),
+    Product.aggregate([
+      {$match: {category: new mongoose.Types.ObjectId(category.id)}},
+      {
+        $group: {
+          _id: null,
+          listed: {$sum: {$cond: [{$ne: ['$isListed', false]}, 1, 0]}},
+          out: {$sum: {$cond: [{$lte: ['$stock', 0]}, 1, 0]}},
+          units: {$sum: '$stock'},
+        },
+      },
+    ]),
+  ]);
+  const totals = stats[0] || {listed: 0, out: 0, units: 0};
+  return {
+    category,
+    products: rows.map((p) => ({
+      id: String(p._id),
+      name: p.name,
+      slug: p.slug,
+      image: p.image,
+      brand: p.brand || '',
+      price: p.price,
+      mrp: p.mrp,
+      stock: p.stock || 0,
+      discountPercent: p.discountPercent || 0,
+      status: productStatus(p),
+    })),
+    otherCategories: others.map((c) => ({
+      id: String(c._id),
+      name: c.name,
+      isListed: c.isListed !== false,
+    })),
+    totals: {
+      products: category.productCount,
+      listed: totals.listed,
+      out: totals.out,
+      units: totals.units,
+    },
+    filters,
+    sorts: PRODUCT_SORTS,
+    pagination: {
+      page: filters.page,
+      pages: Math.max(1, Math.ceil(total / size)),
+      total,
+      limit: size,
+    },
+  };
+}
+
+// Moves products into another category in one update. Each product takes on its new
+// category's offer and visibility, and its price is worked out again.
+async function moveProducts(productIds, categoryId) {
+  const ids = [
+    ...new Set((Array.isArray(productIds) ? productIds : []).map(String)),
+  ];
+  if (!ids.length || !ids.every((id) => mongoose.isValidObjectId(id)))
+    throw new HttpError(400, 'Choose the products to move.');
+  if (ids.length > MOVE_LIMIT)
+    throw new HttpError(400, `Move up to ${MOVE_LIMIT} products at a time.`);
+  if (!mongoose.isValidObjectId(categoryId))
+    throw new HttpError(400, 'Choose the category to move them to.', {
+      categoryId: 'Choose the category to move them to.',
+    });
+  const target = await Category.findById(categoryId);
+  if (!target)
+    throw new HttpError(404, 'That category no longer exists.', {
+      categoryId: 'That category no longer exists.',
+    });
+  const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+  const from = await Product.aggregate([
+    {$match: {_id: {$in: objectIds}}},
+    {$group: {_id: '$category', count: {$sum: 1}}},
+  ]);
+  const found = from.reduce((sum, row) => sum + row.count, 0);
+  if (found !== ids.length)
+    throw new HttpError(
+      404,
+      'Some of these products no longer exist. Reload the page.',
+    );
+  const result = await Product.updateMany({_id: {$in: objectIds}}, [
+    {
+      $set: {
+        category: target._id,
+        categoryOffer: target.offerPercent || 0,
+        categoryListed: target.isListed !== false,
+      },
+    },
+    ...PRICE_PIPELINE,
+  ]);
+  categoryService.invalidate();
+  return {
+    moved: result.modifiedCount || 0,
+    to: {id: String(target._id), name: target.name},
+    from: from.map((row) => ({id: String(row._id), count: row.count})),
+  };
+}
+
 module.exports = {
   PAGE_SIZE,
   STATUSES,
@@ -240,4 +376,7 @@ module.exports = {
   updateCategory,
   setListed,
   deleteCategory,
+  categoryProducts,
+  moveProducts,
+  MOVE_LIMIT,
 };

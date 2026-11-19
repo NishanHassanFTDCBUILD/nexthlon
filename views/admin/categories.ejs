@@ -58,7 +58,7 @@
         </tr></thead>
         <tbody>
           <% categories.forEach(function (c) { %>
-            <tr data-category-row="<%= c.id %>" class="<%= c.isListed ? '' : 'is-unlisted' %>">
+            <tr data-category-row="<%= c.id %>" data-row-href="<%= adminPath %>/categories/<%= c.id %>" class="<%= c.isListed ? '' : 'is-unlisted' %>">
               <td>
                 <div class="person product-person">
                   <% if (c.image) { %>
@@ -66,11 +66,11 @@
                   <% } else { %>
                     <span class="product-thumb category-thumb-empty" aria-hidden="true"><%- icon('image', 'i-sm') %></span>
                   <% } %>
-                  <div><strong><a href="<%= adminPath %>/categories/<%= c.id %>/edit"><%= c.name %></a></strong><span>/products?category=<%= c.slug %></span></div>
+                  <div><strong><a href="<%= adminPath %>/categories/<%= c.id %>"><%= c.name %></a></strong><span>/products?category=<%= c.slug %></span></div>
                 </div>
               </td>
               <td data-label="Products" class="cell-num">
-                <% if (c.productCount) { %><a href="<%= adminPath %>/products?category=<%= c.id %>"><%= c.productCount %></a><% } else { %><span class="muted">0</span><% } %>
+                <% if (c.productCount) { %><a href="<%= adminPath %>/categories/<%= c.id %>"><%= c.productCount %></a><% } else { %><span class="muted">0</span><% } %>
               </td>
               <td data-label="Offer" class="cell-num"><%= c.offerPercent ? c.offerPercent + '% off' : '—' %></td>
               <td data-label="Order" class="cell-num"><%= c.sortOrder %></td>

@@ -67,6 +67,21 @@ const categoryEdit = asyncHandler(async (req, res) => {
   });
 });
 
+// GET <ADMIN_PATH>/categories/:categoryId   One category and its products (move them in bulk).
+const category = asyncHandler(async (req, res) => {
+  const data = await adminCategoryService.categoryProducts(
+    req.params.categoryId,
+    req.query,
+  );
+  const current = without(data.filters, {sort: 'name'});
+  res.render('admin/category', {
+    title: `${data.category.name} | Nexthlon Admin`,
+    ...data,
+    current,
+    link: linkBuilder(base(`categories/${data.category.id}`), current),
+  });
+});
+
 // GET <ADMIN_PATH>/questions?status=waiting|all|hidden   Product Q&A (E3).
 const questions = asyncHandler(async (req, res) => {
   const data = await questionService.adminList({
@@ -96,6 +111,7 @@ module.exports = {
   categories,
   categoryNew,
   categoryEdit,
+  category,
   questions,
   inventory,
   system,

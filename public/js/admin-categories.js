@@ -167,4 +167,93 @@
       {signal},
     );
   });
+  // ---------- One category: move products in bulk ----------
+  Pages.define('admin-category', (root, signal) => {
+    const panel = root.querySelector('[data-category-products]');
+    if (!panel) return;
+    const bar = root.querySelector('[data-move-bar]');
+    const countLabel = root.querySelector('[data-move-count]');
+    const target = root.querySelector('[data-move-to]');
+    const all = root.querySelector('[data-move-all]');
+    const boxes = () => [...root.querySelectorAll('[data-move-pick]')];
+    const chosen = () =>
+      boxes()
+        .filter((box) => box.checked)
+        .map((box) => box.dataset.movePick);
+
+    function update() {
+      const n = chosen().length;
+      bar.hidden = n === 0;
+      countLabel.textContent = `${n} selected`;
+      boxes().forEach((box) =>
+        box.closest('tr').classList.toggle('is-selected', box.checked),
+      );
+      if (all) {
+        all.checked = n > 0 && n === boxes().length;
+        all.indeterminate = n > 0 && n < boxes().length;
+      }
+    }
+
+    root.addEventListener(
+      'change',
+      (event) => {
+        if (event.target === all)
+          boxes().forEach((box) => {
+            box.checked = all.checked;
+          });
+        if (event.target === all || event.target.matches('[data-move-pick]'))
+          update();
+      },
+      {signal},
+    );
+
+    root.addEventListener(
+      'click',
+      async (event) => {
+        if (event.target.closest('[data-move-clear]')) {
+          boxes().forEach((box) => {
+            box.checked = false;
+          });
+          update();
+          return;
+        }
+        const button = event.target.closest('[data-move-apply]');
+        if (!button) return;
+        const ids = chosen();
+        if (!target.value) {
+          Nx.toast('Choose the category to move them to.', 'error');
+          target.focus();
+          return;
+        }
+        const name = target.selectedOptions[0].textContent;
+        const ok = await Nx.confirm({
+          title: `Move ${plural(ids.length, 'product')} to ${name}?`,
+          message:
+            'They take on the offer and visibility of that category, so their prices may change at once.',
+          confirmLabel: 'Move them',
+          tone: 'primary',
+        });
+        if (!ok) return;
+        Nx.busy(button, true, 'Moving…');
+        try {
+          const reply = await Nx.api('/api/admin/categories/move-products', {
+            method: 'POST',
+            body: {productIds: ids, categoryId: target.value},
+          });
+          if (window.NxNav && window.NxNav.reload) {
+            await window.NxNav.reload();
+            Nx.toast(reply.message);
+          } else {
+            Nx.flash(reply.message);
+            window.location.reload();
+          }
+        } catch (error) {
+          Nx.busy(button, false);
+          Nx.toast(error.message, 'error');
+        }
+      },
+      {signal},
+    );
+    update();
+  });
 })();

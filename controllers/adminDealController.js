@@ -33,18 +33,32 @@ const getDeal = asyncHandler(async (req, res) => {
   res.json({deal: await dealService.getDeal(req.params.dealId)});
 });
 
-// POST /api/admin/deals   body: product, percent, startsAt, endsAt, sortOrder, note, isActive
+// GET /api/admin/deals/products?q=   The product picker in the deal form.
+const searchProducts = asyncHandler(async (req, res) => {
+  res.json({products: await dealService.searchProducts(req.query.q)});
+});
+
+// POST /api/admin/deals   body: product or products[], percent, startsAt, endsAt, sortOrder, note, isActive
+// Several products get the same deal, one deal each, all saved or none.
 const createDeal = asyncHandler(async (req, res) => {
-  const deal = await dealService.createDeal(checked(req.body));
-  await auditService.record({
-    ...auditService.fromRequest(req),
-    action: 'deal.created',
-    target: `deal:${deal.id}`,
-    after: snapshot(deal),
-  });
+  const {deal, deals} = await dealService.createDeal(checked(req.body));
+  await Promise.all(
+    deals.map((one) =>
+      auditService.record({
+        ...auditService.fromRequest(req),
+        action: 'deal.created',
+        target: `deal:${one.id}`,
+        after: snapshot(one),
+      }),
+    ),
+  );
   res.status(201).json({
-    message: `Deal saved: ${deal.percent}% off ${nameOf(deal)}.`,
+    message:
+      deals.length === 1
+        ? `Deal saved: ${deal.percent}% off ${nameOf(deal)}.`
+        : `${deals.length} deals saved: ${deal.percent}% off each product.`,
     deal,
+    deals,
   });
 });
 
@@ -99,6 +113,7 @@ const deleteDeal = asyncHandler(async (req, res) => {
 
 module.exports = {
   listDeals,
+  searchProducts,
   getDeal,
   createDeal,
   updateDeal,

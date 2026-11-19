@@ -177,20 +177,30 @@ const deals = asyncHandler(async (req, res) => {
 });
 
 // A new deal starts now and runs for a day, unless the admin changes it.
+// New deal: starts now and runs a day, unless "Run again" (?from=<dealId>) copies an old deal,
+// or a product link (?product=<id>) picks the product.
 const dealNew = asyncHandler(async (req, res) => {
   const now = new Date();
   now.setSeconds(0, 0);
+  let defaults = {
+    productIds:
+      typeof req.query.product === 'string' ? [req.query.product] : [],
+    percent: '',
+    note: '',
+    sortOrder: 0,
+    startsInput: dealService.toLocalInput(now),
+    endsInput: dealService.toLocalInput(
+      new Date(now.getTime() + 24 * 60 * 60 * 1000),
+    ),
+  };
+  if (typeof req.query.from === 'string')
+    defaults = await dealService.copyForRerun(req.query.from, now);
   res.render('admin/deal-form', {
     title: 'New deal | Nexthlon Admin',
     deal: null,
-    defaults: {
-      startsInput: dealService.toLocalInput(now),
-      endsInput: dealService.toLocalInput(
-        new Date(now.getTime() + 24 * 60 * 60 * 1000),
-      ),
-    },
-    products: await dealService.productChoices(),
-    picked: typeof req.query.product === 'string' ? req.query.product : '',
+    defaults,
+    rerun: typeof req.query.from === 'string',
+    picked: await dealService.pickedProducts(defaults.productIds),
   });
 });
 
@@ -200,8 +210,8 @@ const dealEdit = asyncHandler(async (req, res) => {
     title: 'Edit deal | Nexthlon Admin',
     deal,
     defaults: {},
-    products: await dealService.productChoices(),
-    picked: deal.productId,
+    rerun: false,
+    picked: await dealService.pickedProducts([deal.productId]),
   });
 });
 

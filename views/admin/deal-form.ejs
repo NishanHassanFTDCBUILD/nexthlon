@@ -1,98 +1,121 @@
 <%#
   One page for creating and for editing a Deal of the Day. Times are Indian time.
-  The deal price is shown as a preview only; the server works it out (utils/pricing.js).
+  Creating: search and pick up to 20 products; each gets the same deal (one deal each).
+  Editing: one product, which can be swapped for another.
+  Deal prices on screen are a preview only; the server works them out (utils/pricing.js).
+  Script: public/js/admin-deals.js.
 %>
 <%
   const isEdit = Boolean(deal);
-  const d = deal || { percent: '', startsInput: defaults.startsInput, endsInput: defaults.endsInput, sortOrder: 0, note: '', isActive: true, status: 'scheduled' };
+  const d = deal || defaults;
+  const startsInput = isEdit ? deal.startsInput : defaults.startsInput;
+  const endsInput = isEdit ? deal.endsInput : defaults.endsInput;
+  const isActive = isEdit ? deal.isActive : true;
 %>
 <%- include('../partials/admin-start', { section: 'deals', page: 'deal-form' }) %>
 <nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
   <a href="<%= adminPath %>/deals">Deals of the day</a> <%- icon('chevron-right', 'i-xs') %>
-  <span aria-current="page"><%= isEdit ? 'Edit deal' : 'New deal' %></span>
+  <span aria-current="page"><%= isEdit ? 'Edit deal' : rerun ? 'Run again' : 'New deal' %></span>
 </nav>
 <header class="admin-top">
   <div>
-    <span class="section-kicker"><%= isEdit ? 'Edit deal' : 'New deal' %></span>
-    <h1><%= isEdit && d.product ? d.product.name : 'Create a deal' %></h1>
-    <p class="muted">The shopper pays the best of the product offer, the category offer and this deal. They never add up.</p>
+    <span class="section-kicker"><%= isEdit ? 'Edit deal' : rerun ? 'Run a deal again' : 'New deal' %></span>
+    <h1><%= isEdit && deal.product ? deal.product.name : rerun ? 'Run it again' : 'Create deals' %></h1>
+    <p class="muted"><%= isEdit ? 'Change the discount or times, or swap the product.' : 'Pick one or more products: each gets the same discount and times. The shopper pays the best of the product offer, the category offer and this deal.' %></p>
   </div>
 </header>
 
 <form class="form" data-deal-form novalidate
-      data-endpoint="<%= isEdit ? '/api/admin/deals/' + d.id : '/api/admin/deals' %>"
+      data-endpoint="<%= isEdit ? '/api/admin/deals/' + deal.id : '/api/admin/deals' %>"
       data-method="<%= isEdit ? 'PATCH' : 'POST' %>"
+      data-mode="<%= isEdit ? 'single' : 'multi' %>"
       data-done="<%= adminPath %>/deals">
   <div class="form-alert" data-form-alert aria-live="assertive"></div>
 
   <div class="product-form-grid">
-    <section class="panel" aria-labelledby="deal-what-title">
-      <h2 id="deal-what-title" class="panel-title">The deal</h2>
-      <div class="form-grid form-grid-2">
-        <div class="field field-wide">
-          <label for="deal-product">Product</label>
-          <div class="select-wrap select-field">
-            <select id="deal-product" name="product" required data-deal-product aria-describedby="deal-product-error">
-              <option value="">Choose a product</option>
-              <% products.forEach(function (p) { %>
-                <option value="<%= p.id %>" data-base="<%= p.basePrice %>" data-mrp="<%= p.mrp %>" <%= picked === p.id ? 'selected' : '' %>><%= p.name %><%= p.isListed ? '' : ' (unlisted)' %></option>
-              <% }) %>
-            </select>
-          </div>
-          <p class="field-error" id="deal-product-error" data-error-for="product"></p>
+    <section class="panel" aria-labelledby="deal-products-title">
+      <h2 id="deal-products-title" class="panel-title"><%= isEdit ? 'Product' : 'Products' %></h2>
+
+      <div class="field deal-pick">
+        <label for="deal-search"><%= isEdit ? 'Swap the product' : 'Find products' %></label>
+        <div class="admin-filter-search">
+          <%- icon('search', 'i-sm') %>
+          <input id="deal-search" type="search" autocomplete="off" maxlength="60" placeholder="Type a product name"
+                 data-pick-search aria-controls="deal-results" aria-describedby="deal-product-hint deal-product-error">
         </div>
-        <div class="field">
-          <label for="deal-percent">Deal discount (%)</label>
-          <input id="deal-percent" name="percent" type="number" inputmode="numeric" required min="1" max="90" step="1" value="<%= d.percent %>" data-deal-percent aria-describedby="deal-percent-hint deal-percent-error">
-          <p class="hint" id="deal-percent-hint">Off the product's base price, 1 to 90.</p>
-          <p class="field-error" id="deal-percent-error" data-error-for="percent"></p>
-        </div>
-        <div class="field">
-          <span class="label">Deal price</span>
-          <p class="deal-preview" data-deal-preview aria-live="polite">Choose a product and a discount.</p>
-        </div>
+        <p class="hint" id="deal-product-hint"><%= isEdit ? 'Pick another product to move this deal to it.' : 'Up to 20 products. Click a result to add it; click it again to remove it.' %></p>
+        <ul class="deal-results" id="deal-results" data-pick-results aria-label="Matching products" aria-live="polite"></ul>
+        <p class="field-error" id="deal-product-error" data-error-for="product"></p>
       </div>
+
+      <h3 class="deal-picked-title"><span data-picked-count><%= picked.length %></span> chosen</h3>
+      <ul class="deal-picked" data-picked aria-label="Chosen products">
+        <% picked.forEach(function (p) { %>
+          <li class="deal-chip" data-pick-id="<%= p.id %>" data-base="<%= p.basePrice %>" data-mrp="<%= p.mrp %>">
+            <img src="<%= sizedUrl(p.image, 200) %>" alt="" width="40" height="40" loading="lazy">
+            <span class="deal-chip-text">
+              <strong><%= p.name %></strong>
+              <small class="muted"><span data-chip-price><%= formatPrice(p.basePrice) %></span> · <%= p.stock ? p.stock + ' in stock' : 'Out of stock' %><%= p.isListed ? '' : ' · unlisted' %></small>
+            </span>
+            <button type="button" class="btn btn-ghost btn-sm btn-square" data-pick-remove aria-label="Remove <%= p.name %>"><%- icon('x', 'i-xs') %></button>
+          </li>
+        <% }) %>
+      </ul>
+      <p class="muted deal-picked-empty" data-picked-empty <%= picked.length ? 'hidden' : '' %>>No product chosen yet.</p>
     </section>
 
     <section class="panel" aria-labelledby="deal-when-title">
-      <h2 id="deal-when-title" class="panel-title">When it runs</h2>
+      <h2 id="deal-when-title" class="panel-title">Discount and time</h2>
       <div class="form-grid form-grid-2">
         <div class="field">
-          <label for="deal-starts">Starts</label>
-          <input id="deal-starts" name="startsAt" type="datetime-local" required value="<%= d.startsInput %>" aria-describedby="deal-starts-error">
-          <p class="field-error" id="deal-starts-error" data-error-for="startsAt"></p>
-        </div>
-        <div class="field">
-          <label for="deal-ends">Ends</label>
-          <input id="deal-ends" name="endsAt" type="datetime-local" required value="<%= d.endsInput %>" aria-describedby="deal-ends-hint deal-ends-error">
-          <p class="hint" id="deal-ends-hint">Indian time. Up to 31 days. The home page countdown runs to the first live deal's end.</p>
-          <p class="field-error" id="deal-ends-error" data-error-for="endsAt"></p>
+          <label for="deal-percent">Deal discount (%)</label>
+          <input id="deal-percent" name="percent" type="number" inputmode="numeric" required min="1" max="90" step="1" value="<%= d.percent %>" data-deal-percent aria-describedby="deal-percent-hint deal-percent-error">
+          <p class="hint" id="deal-percent-hint">Off each product's base price, 1 to 90. The deal price shows on each chosen product.</p>
+          <p class="field-error" id="deal-percent-error" data-error-for="percent"></p>
         </div>
         <div class="field">
           <label for="deal-order">Home page position</label>
-          <input id="deal-order" name="sortOrder" type="number" inputmode="numeric" min="0" max="999" step="1" value="<%= d.sortOrder %>" aria-describedby="deal-order-hint deal-order-error">
+          <input id="deal-order" name="sortOrder" type="number" inputmode="numeric" min="0" max="999" step="1" value="<%= d.sortOrder || 0 %>" aria-describedby="deal-order-hint deal-order-error">
           <p class="hint" id="deal-order-hint">Lower numbers show first.</p>
           <p class="field-error" id="deal-order-error" data-error-for="sortOrder"></p>
         </div>
         <div class="field">
+          <label for="deal-starts">Starts</label>
+          <input id="deal-starts" name="startsAt" type="datetime-local" required value="<%= startsInput %>" aria-describedby="deal-starts-error">
+          <p class="field-error" id="deal-starts-error" data-error-for="startsAt"></p>
+        </div>
+        <div class="field">
+          <label for="deal-ends">Ends</label>
+          <input id="deal-ends" name="endsAt" type="datetime-local" required value="<%= endsInput %>" aria-describedby="deal-ends-hint deal-ends-error">
+          <p class="hint" id="deal-ends-hint">Indian time, up to 31 days.</p>
+          <p class="field-error" id="deal-ends-error" data-error-for="endsAt"></p>
+        </div>
+        <div class="field field-wide" role="group" aria-labelledby="deal-quick-label">
+          <span class="label" id="deal-quick-label">Quick length (from the start time)</span>
+          <div class="deal-quick-btns">
+            <% [[3, '3 hours'], [6, '6 hours'], [24, '1 day'], [72, '3 days'], [168, '1 week']].forEach(function ([hours, label]) { %>
+              <button type="button" class="btn btn-ghost btn-sm" data-deal-length="<%= hours %>"><%= label %></button>
+            <% }) %>
+          </div>
+        </div>
+        <div class="field field-wide">
           <label for="deal-note">Note <span class="optional">(optional)</span></label>
-          <input id="deal-note" name="note" maxlength="120" value="<%= d.note %>" placeholder="Weekend flash sale" aria-describedby="deal-note-error">
+          <input id="deal-note" name="note" maxlength="120" value="<%= d.note || '' %>" placeholder="Weekend flash sale" aria-describedby="deal-note-error">
           <p class="field-error" id="deal-note-error" data-error-for="note"></p>
         </div>
         <div class="field field-wide">
           <label class="check">
-            <input type="checkbox" name="isActive" value="true" <%= d.isActive ? 'checked' : '' %>>
-            <span>Switched on — runs between these times</span>
+            <input type="checkbox" name="isActive" value="true" <%= isActive ? 'checked' : '' %>>
+            <span>Switched on: runs between these times</span>
           </label>
-          <p class="hint">Turn this off to stop the deal at once without deleting it. The usual price comes back.</p>
         </div>
       </div>
     </section>
   </div>
 
   <div class="form-actions admin-status-actions admin-save-bar">
-    <button class="btn btn-primary" type="submit"><%- icon('check', 'i-sm') %> <%= isEdit ? 'Save the deal' : 'Create the deal' %></button>
     <a class="btn btn-ghost" href="<%= adminPath %>/deals">Cancel</a>
+    <button class="btn btn-primary" type="submit"><%- icon('check', 'i-sm') %> <span data-deal-submit-label><%= isEdit ? 'Save the deal' : 'Create the deals' %></span></button>
   </div>
 </form>
 <%- include('../partials/admin-end') %>

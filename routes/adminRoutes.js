@@ -203,6 +203,11 @@ router.post(
   categoryImage,
   categories.createCategory,
 );
+router.post(
+  '/categories/move-products',
+  adminWriteLimiter,
+  categories.moveProducts,
+);
 router.get('/categories/:categoryId', categories.getCategory);
 router.patch(
   '/categories/:categoryId/listing',
@@ -224,6 +229,7 @@ router.delete(
 // Deals of the Day. A deal changes what shoppers pay, so changes use the money limiter.
 router.get('/deals', deals.listDeals);
 router.post('/deals', adminMoneyLimiter, deals.createDeal);
+router.get('/deals/products', deals.searchProducts);
 router.get('/deals/:dealId', deals.getDeal);
 router.patch('/deals/:dealId/active', adminMoneyLimiter, deals.setActive);
 router.patch('/deals/:dealId', adminMoneyLimiter, deals.updateDeal);

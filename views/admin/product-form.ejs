@@ -1,7 +1,7 @@
 
 <%
   const isEdit = Boolean(product);
-  const p = product || { name: '', description: '', category: '', brand: '', basePriceRupees: '', mrpRupees: '', offerPercent: 0, stock: '', images: [], isListed: true };
+  const p = product || { name: '', description: '', category: typeof presetCategory !== 'undefined' ? presetCategory : '', brand: '', basePriceRupees: '', mrpRupees: '', offerPercent: 0, stock: '', images: [], isListed: true };
 %>
 <%- include('../partials/admin-start', { section: 'products', page: 'product-form' }) %>
     <nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
