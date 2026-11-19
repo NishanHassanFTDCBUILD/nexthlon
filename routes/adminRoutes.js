@@ -100,6 +100,14 @@ router.post('/products', productImages, products.createProduct);
 router.get('/products/export.csv', productImport.exportProducts);
 router.get('/products/:productId', products.getProduct);
 router.patch('/products/:productId', productImages, products.updateProduct);
+// Product video upload (an MP4 or WebM file; see services/videoService.js).
+const productVideo = require('../controllers/productVideoController');
+router.post(
+  '/products/:productId/video',
+  adminWriteLimiter,
+  productVideo.videoUpload,
+  productVideo.upload,
+);
 router.patch('/products/:productId/listing', products.setListed);
 router.patch('/products/:productId/stock', products.restock);
 // Spreadsheet import: preview saves nothing; apply saves only a clean file.

@@ -156,6 +156,13 @@
               <label for="p-video">Video link <span class="optional">(optional: an https link to an MP4 or WebM)</span></label>
               <input id="p-video" name="videoUrl" type="url" maxlength="500" value="<%= p.videoUrl || '' %>" placeholder="https://…/shoe-spin.mp4" aria-describedby="p-video-error">
               <p class="field-error" id="p-video-error" data-error-for="videoUrl"></p>
+              <% if (isEdit) { %>
+              <label class="admin-field"><span>Or upload a video</span>
+                <input type="file" accept="video/mp4,video/webm" data-video-file data-upload-url="/api/admin/products/<%= p.id %>/video" aria-describedby="p-video-status"></label>
+              <p class="hint" id="p-video-status" data-video-status role="status">MP4 or WebM, up to 25 MB. It is set on this product straight away.</p>
+              <% } else { %>
+              <p class="hint">Save the product first, then you can upload a video file for it.</p>
+              <% } %>
             </div>
             <div class="field">
               <label for="p-spin">360 spin <span class="optional">(optional: one image link per line, up to 36, in turning order)</span></label>
