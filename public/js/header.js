@@ -58,30 +58,54 @@
   document.body.append(scrim);
   scrim.addEventListener('click', () => close());
   // ---------- Voice search: only where the browser can listen (Chrome, Edge, Safari) ----------
+  // Tap the mic to listen: it shows it is listening and a second tap turns it off.
   const voice = form.querySelector('[data-voice-search]');
   const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (voice && Speech) {
     voice.hidden = false;
+    let listener = null;
+
+    const setListening = (on) => {
+      voice.setAttribute('aria-pressed', String(on));
+      voice.classList.toggle('is-listening', on);
+      voice.title = on ? 'Listening… tap to stop' : 'Search by voice';
+      voice.setAttribute(
+        'aria-label',
+        on ? 'Stop listening' : 'Search by voice',
+      );
+    };
+
     voice.addEventListener('click', () => {
-      const listener = new Speech();
+      if (listener) {
+        listener.stop();
+        return;
+      }
+      listener = new Speech();
       listener.lang =
         document.documentElement.lang === 'hi' ? 'hi-IN' : 'en-IN';
       listener.interimResults = false;
       listener.maxAlternatives = 1;
-      voice.setAttribute('aria-pressed', 'true');
       listener.onresult = (event) => {
         const words = event.results[0][0].transcript.trim().slice(0, 80);
         form.elements.q.value = words;
         form.requestSubmit();
       };
-      listener.onerror = () => {
-        if (window.Nx)
+      listener.onerror = (event) => {
+        if (
+          event.error !== 'aborted' &&
+          event.error !== 'no-speech' &&
+          window.Nx
+        )
           Nx.toast(
             'We could not hear that. Try again, or type your search.',
             'error',
           );
       };
-      listener.onend = () => voice.setAttribute('aria-pressed', 'false');
+      listener.onend = () => {
+        listener = null;
+        setListening(false);
+      };
+      setListening(true);
       listener.start();
     });
   }

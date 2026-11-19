@@ -23,25 +23,6 @@ router.get('/offline', publicCache, (req, res) => res.render('pages/offline'));
 router.get('/about', publicCache, pages.infoPage('about'));
 router.get('/contact', publicCache, pages.infoPage('contact'));
 router.get('/track', publicCache, pages.infoPage('track'));
-// Language switch: /lang/en or /lang/hi sets the nx_lang cookie, then returns to the page it came from.
-router.get('/lang/:code', (req, res) => {
-  const {langFrom} = require('../config/strings');
-  const config = require('../config/env');
-  res.cookie('nx_lang', langFrom(req.params.code), {
-    maxAge: 365 * 24 * 60 * 60 * 1000,
-    sameSite: 'lax',
-    secure: config.cookieSecure,
-    path: '/',
-  });
-  let back = '/';
-  try {
-    const from = new URL(req.get('referer') || '');
-    if (from.host === req.get('host')) back = from.pathname + from.search;
-  } catch {
-    back = '/';
-  }
-  res.redirect(back);
-});
 router.get('/account/gift-card', accountPage, (req, res) =>
   res.render('account/gift-card', {title: 'Gift card | Nexthlon'}),
 );

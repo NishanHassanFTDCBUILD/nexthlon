@@ -28,7 +28,6 @@
         <span class="brand-word">NEXTHLON <small>Performance gear</small></span><span class="sr-only">, home</span>
       </a>
 
-      <a class="lang-switch" href="/lang/<%= lang === 'hi' ? 'en' : 'hi' %>" hreflang="<%= lang === 'hi' ? 'en' : 'hi' %>"><%= t('switch_language') %></a>
       <form class="search" action="/products" method="get" role="search" aria-label="Search the store" data-search>
         <%# Phones: search opens as a full-screen sheet; this closes it (header.js). Hidden on wider screens. %>
         <button type="button" class="search-back" data-search-back aria-label="Close search"><%- icon('chevron-left') %></button>

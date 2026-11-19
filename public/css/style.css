@@ -9265,6 +9265,7 @@ html.is-pay-locked body {
 
 /* Voice search: a quiet icon beside the search button. It is hidden where the browser cannot listen. */
 .search-voice {
+  position: relative;
   display: inline-grid;
   place-items: center;
   flex: none;
@@ -9282,8 +9283,39 @@ html.is-pay-locked body {
   display: none;
 }
 
-.search-voice[aria-pressed='true'] {
-  color: var(--ink);
+/* Listening: the mic turns volt and a soft ring pulses. Tap it again to stop. */
+.search-voice.is-listening {
+  color: var(--brand-ink);
+}
+
+.search-voice.is-listening::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  border: 2px solid var(--brand);
+  opacity: 0;
+  pointer-events: none;
+  animation: nx-voice-ring var(--duration-slower) var(--ease-out) infinite;
+}
+
+@keyframes nx-voice-ring {
+  from {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-voice.is-listening::after {
+    animation: none;
+    opacity: 0.6;
+  }
 }
 
 @media (hover: hover) {
@@ -9397,26 +9429,6 @@ html.is-pay-locked body {
   background: var(--surface);
   color: var(--ink-2);
   font-size: var(--text-xs);
-}
-
-/* ---------- Language switch (header) ---------- */
-.lang-switch {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap);
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-pill);
-  color: var(--ink-2);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  text-decoration: none;
-}
-
-@media (hover: hover) {
-  .lang-switch:hover {
-    color: var(--ink);
-    background: var(--surface-2);
-  }
 }
 
 /* ---------- Customer risk and timeline (admin) ---------- */
