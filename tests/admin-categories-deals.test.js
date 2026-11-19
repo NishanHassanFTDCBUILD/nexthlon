@@ -562,3 +562,22 @@ test('categories: the category page lists its products; products move in bulk', 
     401,
   );
 });
+
+test('table footer: hidden when everything fits on one page, shown when there are more pages', async () => {
+  // Two products in Running: one page, so no "Showing 1-2 of 2" footer.
+  const short = await call('GET', `/admin/categories/${running._id}`, {
+    cookie: adminCookie,
+  });
+  assert.equal(short.status, 200);
+  assert.doesNotMatch(short.data, /class="admin-pager"/);
+  // 23 categories at 20 per page: two pages, so the footer is there.
+  for (let n = 0; n < 22; n += 1)
+    await Category.create({
+      name: `Pager ${n}`,
+      nameKey: `pager ${n}`,
+      slug: `pager-${n}`,
+    });
+  const long = await call('GET', '/admin/categories', {cookie: adminCookie});
+  assert.match(long.data, /class="admin-pager"/);
+  await Category.deleteMany({slug: /^pager-/});
+});

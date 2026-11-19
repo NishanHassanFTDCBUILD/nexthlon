@@ -2,6 +2,7 @@
   The footer of every admin table: "Showing 21–40 of 132", rows per page, and page links.
   Needs pagination { page, pages, total, limit } and link(overrides) from the page.
   Rows per page is a plain GET form, so it works without JavaScript too.
+  A short list that fits on one page (20 rows or fewer) shows no footer at all.
 %>
 <%
   const pg = pagination;
@@ -16,7 +17,7 @@
   // The current address without page and limit, as hidden fields for the rows-per-page form.
   const keep = new URL(link({ page: '', limit: '' }), 'http://x').searchParams;
 %>
-<% if (pg.total > 0) { %>
+<% if (pg.pages > 1 || pg.total > 20) { %>
   <div class="admin-pager">
     <p class="admin-pager-count" aria-live="polite">Showing <strong><%= first.toLocaleString('en-IN') %>–<%= last.toLocaleString('en-IN') %></strong> of <strong><%= pg.total.toLocaleString('en-IN') %></strong></p>
 
