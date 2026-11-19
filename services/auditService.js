@@ -68,10 +68,12 @@ async function record({
   }
 }
 
-async function list({actor = '', action = '', page = 1} = {}) {
+// Filters: who (actor id), what (action), and the record it touched (target, e.g. product:<id>).
+async function list({actor = '', action = '', target = '', page = 1} = {}) {
   const filter = {};
   if (mongoose.isValidObjectId(actor)) filter.actor = actor;
   if (/^[a-z_.]{2,60}$/.test(action)) filter.action = action;
+  if (/^[a-z]{2,20}:[a-f0-9]{24}$/.test(target)) filter.target = target;
   const current = Math.max(1, Number.parseInt(page, 10) || 1);
   const [entries, total] = await Promise.all([
     AuditLog.find(filter)

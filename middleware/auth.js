@@ -156,11 +156,30 @@ function adminGuestOnly(req, res, next) {
   return res.redirect(`${config.adminPath}/dashboard`);
 }
 
+// Admin API: each request must be allowed by the signed-in admin's role (utils/permissions.js).
+// Refused requests say which permission is missing, so the screen can explain it.
+function requireAdminPermission(req, res, next) {
+  const {permissionFor, roleOf, can} = require('../utils/permissions');
+  const role = roleOf(req.user);
+  const needed = permissionFor(req.method, req.path);
+  if (role && can(role, needed)) return next();
+  return next(
+    new HttpError(
+      403,
+      needed
+        ? 'Your role does not allow this. Ask the store owner for access.'
+        : 'Only the store owner can do this.',
+      {permission: needed || 'owner'},
+    ),
+  );
+}
+
 module.exports = {
   scopeOf,
   attachUser,
   requireAuth,
   requireRole,
+  requireAdminPermission,
   customerPage,
   adminPage,
   guestOnly,

@@ -11,7 +11,7 @@ const config = require('../config/env');
 const pages = require('../controllers/pageController');
 const sales = require('../controllers/adminSalesPageController');
 const catalog = require('../controllers/adminCatalogPageController');
-const {ADMIN_NAV} = require('../config/adminNav');
+const {ADMIN_NAV, navFor} = require('../config/adminNav');
 const {adminPage, adminGuestOnly} = require('../middleware/auth');
 const {adminShell} = require('../middleware/shell');
 
@@ -20,7 +20,9 @@ const {adminShell} = require('../middleware/shell');
 // any other 404.
 function adminLocals(req, res, next) {
   res.locals.adminPath = config.adminPath;
-  res.locals.adminNav = ADMIN_NAV;
+  res.locals.adminNav = req.user
+    ? navFor(require('../utils/permissions').roleOf(req.user))
+    : ADMIN_NAV;
   res.locals.noindex = true;
   res.set('X-Robots-Tag', 'noindex, nofollow');
   next();
@@ -83,5 +85,20 @@ router.get('/users', (req, res) => {
 // ---------- System ----------
 router.get('/settings', pages.adminSettings);
 router.get('/system', catalog.system);
+
+// Staff and the audit log: only the roles that may see them (utils/permissions.js).
+const staffPages = require('../controllers/adminStaffController');
+const {roleOf, can} = require('../utils/permissions');
+const needsPage = (permission) => (req, res, next) =>
+  can(roleOf(req.user), permission)
+    ? next()
+    : next(
+        new (require('../utils/http').HttpError)(
+          403,
+          'Your role does not allow this page.',
+        ),
+      );
+router.get('/staff', needsPage('staff.manage'), staffPages.staffPage);
+router.get('/audit', needsPage('audit.read'), staffPages.auditPage);
 
 module.exports = router;

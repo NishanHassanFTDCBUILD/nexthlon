@@ -101,7 +101,7 @@ test.after(async () => {
 });
 
 const lastEntry = (action) =>
-  AuditLog.findOne({action}).sort({createdAt: -1}).lean();
+  AuditLog.findOne({action}).sort({at: -1, _id: -1}).lean();
 
 test('audit: product listing and unlisting record the change', async () => {
   const off = await call('PATCH', `/api/admin/products/${shoe._id}/listing`, {

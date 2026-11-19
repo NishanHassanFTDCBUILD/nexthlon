@@ -25,6 +25,20 @@ const userSchema = new mongoose.Schema(
       default: 'customer',
       index: true,
     },
+    // Admin accounts only: what this admin may do (utils/permissions.js). Empty means owner.
+    adminRole: {
+      type: String,
+      enum: [
+        'owner',
+        'manager',
+        'catalogue',
+        'packing',
+        'support',
+        'finance',
+        '',
+      ],
+      default: '',
+    },
     isBlocked: {type: Boolean, default: false, index: true},
     // Copied into every token. Changing the password adds 1, so all older tokens stop working.
     tokenVersion: {type: Number, default: 0},

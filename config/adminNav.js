@@ -41,6 +41,8 @@ const ADMIN_NAV = [
   {
     group: 'System',
     items: [
+      {key: 'staff', label: 'Staff', icon: 'users', perm: 'staff.manage'},
+      {key: 'audit', label: 'Audit log', icon: 'history', perm: 'audit.read'},
       {key: 'settings', label: 'Settings', icon: 'settings'},
       {key: 'system', label: 'System status', icon: 'monitor'},
     ],
@@ -51,4 +53,13 @@ const ALL_ITEMS = ADMIN_NAV.flatMap((group) =>
   group.items.map((item) => ({...item, group: group.group})),
 );
 
-module.exports = {ADMIN_NAV, ALL_ITEMS};
+// The sections one role may open: an item with perm needs that permission (utils/permissions.js).
+function navFor(role) {
+  const {can} = require('../utils/permissions');
+  return ADMIN_NAV.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.perm || can(role, item.perm)),
+  })).filter((group) => group.items.length);
+}
+
+module.exports = {ADMIN_NAV, ALL_ITEMS, navFor};

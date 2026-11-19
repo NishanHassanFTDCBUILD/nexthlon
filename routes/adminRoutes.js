@@ -28,11 +28,15 @@ const {
   adminWriteLimiter,
   adminMoneyLimiter,
 } = require('../middleware/rateLimit');
-const {requireAuth, requireRole} = require('../middleware/auth');
+const {
+  requireAuth,
+  requireRole,
+  requireAdminPermission,
+} = require('../middleware/auth');
 const {productImages, categoryImage} = require('../middleware/upload');
 
 // Mounted at /api/admin. Admin login lives in authRoutes, so it is reached before this guard.
-router.use(requireAuth, requireRole('admin'));
+router.use(requireAuth, requireRole('admin'), requireAdminPermission);
 
 router.get('/dashboard', dashboard);
 router.get('/search', search);
@@ -246,6 +250,18 @@ router.get('/deals/:dealId', deals.getDeal);
 router.patch('/deals/:dealId/active', adminMoneyLimiter, deals.setActive);
 router.patch('/deals/:dealId', adminMoneyLimiter, deals.updateDeal);
 router.delete('/deals/:dealId', adminMoneyLimiter, deals.deleteDeal);
+
+// Staff accounts and the audit history (owner or manager; see utils/permissions.js).
+const staffApi = require('../controllers/adminStaffController');
+router.get('/staff', staffApi.listStaff);
+router.post('/staff', adminMoneyLimiter, staffApi.createStaff);
+router.patch('/staff/:staffId/role', adminMoneyLimiter, staffApi.setStaffRole);
+router.patch(
+  '/staff/:staffId/active',
+  adminMoneyLimiter,
+  staffApi.setStaffActive,
+);
+router.get('/audit', staffApi.listAudit);
 
 // System status.
 router.get('/system', catalog.systemStatus);

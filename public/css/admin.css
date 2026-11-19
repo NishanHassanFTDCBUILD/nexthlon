@@ -3849,3 +3849,61 @@ body.admin-menu-open {
 .deal-pick .admin-filter-search {
   flex: none;
 }
+
+/* ---------- Staff and audit ---------- */
+.staff-add {
+  margin-bottom: var(--space-3);
+}
+
+.staff-form .form-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.staff-once {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgb(var(--brand-rgb), 0.35);
+  background: rgb(var(--brand-rgb), 0.06);
+}
+
+.staff-once p {
+  margin: 0 0 var(--space-1);
+}
+
+.staff-password code {
+  padding: var(--space-half) var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--surface-2);
+  font-size: var(--text-base);
+  letter-spacing: 0.04em;
+}
+
+.staff-roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-1h);
+}
+
+.staff-role {
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.staff-role h3 {
+  margin: 0 0 var(--space-half);
+  font-size: var(--text-base);
+}
+
+.staff-role p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 720px) {
+  .staff-form .form-grid-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

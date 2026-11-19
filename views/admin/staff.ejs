@@ -1,0 +1,108 @@
+<%#
+  Staff: who can sign in to this console, and what each role may do. Changes are audit-logged.
+  Script: public/js/admin-staff.js.
+%>
+<%
+  const roleLabel = {};
+  roles.forEach(function (r) { roleLabel[r.key] = r.label; });
+  const active = staff.filter(function (s) { return s.active; }).length;
+%>
+<%- include('../partials/admin-start', { section: 'staff' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">System</span>
+    <h1>Staff</h1>
+    <p class="muted"><%= staff.length %> <%= staff.length === 1 ? 'account' : 'accounts' %>, <%= active %> active. Each role sees only the parts of the console it needs.</p>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/audit"><%- icon('history', 'i-sm') %> Audit log</a>
+  </div>
+</header>
+
+<section class="panel staff-add" aria-labelledby="staff-add-title">
+  <h2 id="staff-add-title" class="panel-title">Add a staff member</h2>
+  <form class="form staff-form" data-staff-form novalidate>
+    <div class="form-alert" data-form-alert aria-live="assertive"></div>
+    <div class="form-grid form-grid-3">
+      <div class="field">
+        <label for="staff-name">Name</label>
+        <input id="staff-name" name="name" required minlength="2" maxlength="60" autocomplete="off" aria-describedby="staff-name-error">
+        <p class="field-error" id="staff-name-error" data-error-for="name"></p>
+      </div>
+      <div class="field">
+        <label for="staff-email">Work email</label>
+        <input id="staff-email" name="email" type="email" required maxlength="254" autocomplete="off" aria-describedby="staff-email-error">
+        <p class="field-error" id="staff-email-error" data-error-for="email"></p>
+      </div>
+      <div class="field">
+        <label for="staff-role">Role</label>
+        <span class="select-wrap">
+          <select id="staff-role" name="role" required aria-describedby="staff-role-hint staff-role-error">
+            <% roles.forEach(function (r) { %><option value="<%= r.key %>" <%= r.key === 'packing' ? 'selected' : '' %>><%= r.label %></option><% }) %>
+          </select>
+        </span>
+        <p class="hint" id="staff-role-hint" data-role-help><%= (roles.find(function (r) { return r.key === 'packing'; }) || {}).help || '' %></p>
+        <p class="field-error" id="staff-role-error" data-error-for="role"></p>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary btn-sm" type="submit"><%- icon('plus', 'i-sm') %> Create account</button>
+    </div>
+  </form>
+  <div class="staff-once" data-staff-once hidden role="status">
+    <p><strong data-once-name></strong> is set up. Give them this temporary password now. It is shown only once.</p>
+    <p class="staff-password"><code data-once-password></code> <button type="button" class="btn btn-ghost btn-sm" data-once-copy><%- icon('copy', 'i-xs') %> Copy</button></p>
+    <p class="muted">They should change it after their first sign-in.</p>
+  </div>
+</section>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Staff accounts">
+  <div class="table-wrap">
+    <table class="table table-stack admin-table">
+      <thead><tr>
+        <th scope="col">Person</th>
+        <th scope="col">Role</th>
+        <th scope="col">Last sign-in</th>
+        <th scope="col">Access</th>
+        <th scope="col" class="cell-action"><span class="sr-only">Actions</span></th>
+      </tr></thead>
+      <tbody>
+        <% staff.forEach(function (s) { %>
+          <tr data-staff-row="<%= s.id %>" class="<%= s.active ? '' : 'is-unlisted' %>">
+            <td>
+              <div class="person">
+                <span class="avatar avatar-sm" aria-hidden="true"><%= s.name.charAt(0).toUpperCase() %></span>
+                <div><strong><%= s.name %></strong><span><%= s.email %></span></div>
+              </div>
+            </td>
+            <td data-label="Role">
+              <span class="select-wrap">
+                <select aria-label="Role of <%= s.name %>" data-staff-role="<%= s.id %>" data-name="<%= s.name %>" data-before="<%= s.role %>">
+                  <% roles.forEach(function (r) { %><option value="<%= r.key %>" <%= s.role === r.key ? 'selected' : '' %>><%= r.label %></option><% }) %>
+                </select>
+              </span>
+            </td>
+            <td data-label="Last sign-in"><%= s.lastSignInAt ? formatDate(s.lastSignInAt) : 'Never' %></td>
+            <td data-label="Access"><span class="pill <%= s.active ? 'pill-green' : 'pill-red' %>" data-staff-state><%= s.active ? 'Active' : 'Signed out' %></span></td>
+            <td class="cell-action"><div class="row-actions">
+              <button type="button" class="btn btn-sm <%= s.active ? 'btn-danger-soft' : 'btn-secondary' %>" data-staff-toggle="<%= s.id %>" data-active="<%= s.active %>" data-name="<%= s.name %>" aria-label="<%= s.active ? 'Turn off access for' : 'Turn on access for' %> <%= s.name %>"><%= s.active ? 'Turn off' : 'Turn on' %></button>
+            </div></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel staff-roles" aria-labelledby="roles-title">
+  <h2 id="roles-title" class="panel-title">What each role can do</h2>
+  <div class="staff-roles-grid">
+    <% roles.forEach(function (r) { %>
+      <article class="staff-role" data-role-key="<%= r.key %>">
+        <h3><%= r.label %></h3>
+        <p class="muted"><%= r.help %></p>
+      </article>
+    <% }) %>
+  </div>
+</section>
+<%- include('../partials/admin-end') %>

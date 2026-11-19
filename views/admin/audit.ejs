@@ -1,0 +1,89 @@
+<%#
+  Audit log: every change made in the console, who made it, to which record, and what changed.
+  Filter by action or by one record (its target, e.g. product:<id>). Read-only.
+%>
+<%
+  const actionLabels = {
+    'product.created': 'Product added', 'product.updated': 'Product edited', 'product.listed': 'Product listed',
+    'product.unlisted': 'Product unlisted', 'customer.blocked': 'Customer blocked', 'customer.unblocked': 'Customer unblocked',
+    'staff.created': 'Staff added', 'staff.role_changed': 'Staff role changed', 'staff.disabled': 'Staff turned off',
+    'staff.enabled': 'Staff turned on', 'settings.updated': 'Settings changed', 'inventory.stock_changed': 'Stock changed',
+    'coupon.created': 'Coupon created', 'coupon.updated': 'Coupon edited', 'coupon.disabled': 'Coupon disabled',
+    'coupon.enabled': 'Coupon enabled', 'coupon.deleted': 'Coupon deleted', 'deal.created': 'Deal created',
+    'deal.updated': 'Deal edited', 'deal.disabled': 'Deal turned off', 'deal.enabled': 'Deal turned on', 'deal.deleted': 'Deal deleted',
+    'category.created': 'Category created', 'category.updated': 'Category edited', 'category.hidden': 'Category hidden',
+    'category.shown': 'Category shown', 'category.deleted': 'Category deleted', 'category.products_moved': 'Products moved'
+  };
+  const label = function (action) { return actionLabels[action] || action; };
+  const who = function (entry) {
+    if (!entry.actor) return entry.actorRole === 'system' ? 'System' : 'Unknown';
+    return entry.actor.name || entry.actor.email || 'Staff';
+  };
+  const summary = function (entry) {
+    const parts = [];
+    const before = entry.before || {};
+    const after = entry.after || {};
+    Object.keys(after).forEach(function (key) {
+      if (key === 'password' || key === 'token') return;
+      const from = before[key] === undefined ? '' : String(before[key]);
+      parts.push(key + ': ' + (from !== '' ? from + ' → ' : '') + String(after[key]));
+    });
+    return parts.slice(0, 3).join(' · ');
+  };
+%>
+<%- include('../partials/admin-start', { section: 'audit' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">System</span>
+    <h1>Audit log</h1>
+    <p class="muted"><%= pagination.total.toLocaleString('en-IN') %> <%= pagination.total === 1 ? 'change' : 'changes' %><%= filters.target ? ' to this record' : '' %>. Nothing here can be edited or deleted.</p>
+  </div>
+</header>
+
+<form class="admin-filterbar" action="<%= adminPath %>/audit" method="get">
+  <label class="admin-field"><span>Action</span>
+    <select name="action" data-auto-submit>
+      <option value="">Any action</option>
+      <% Object.keys(actionLabels).forEach(function (key) { %><option value="<%= key %>" <%= filters.action === key ? 'selected' : '' %>><%= actionLabels[key] %></option><% }) %>
+    </select>
+  </label>
+  <% if (filters.target) { %><input type="hidden" name="target" value="<%= filters.target %>"><% } %>
+  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+</form>
+
+<% if (filters.target) { %>
+  <div class="admin-chips" aria-label="Active filters">
+    <a class="admin-chip" href="<%= link({ target: '', page: '' }) %>">Record: <%= filters.target %> <%- icon('x', 'i-xs') %><span class="sr-only"> (remove filter)</span></a>
+  </div>
+<% } %>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Audit entries">
+  <% if (entries.length) { %>
+    <div class="table-wrap">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">When</th>
+          <th scope="col">Who</th>
+          <th scope="col">What</th>
+          <th scope="col">Record</th>
+          <th scope="col">Change</th>
+        </tr></thead>
+        <tbody>
+          <% entries.forEach(function (e) { %>
+            <tr>
+              <td data-label="When"><%= formatDate(e.at) %><small class="muted admin-sub"><%= new Date(e.at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit' }) %></small></td>
+              <td data-label="Who"><%= who(e) %><small class="muted admin-sub"><%= e.actorRole === 'system' ? 'automatic' : (e.actor && e.actor.role ? e.actor.role : 'admin') %></small></td>
+              <td data-label="What"><span class="pill pill-grey"><%= label(e.action) %></span></td>
+              <td data-label="Record"><% if (e.target) { %><a href="<%= link({ target: e.target, page: '' }) %>"><code class="admin-code"><%= e.target %></code></a><% } else { %>—<% } %></td>
+              <td data-label="Change"><span class="muted"><%= summary(e) || '—' %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/admin-pager') %>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No changes match</h2><p>Try another action, or clear the record filter.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>
