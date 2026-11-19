@@ -23,6 +23,14 @@ router.get('/offline', publicCache, (req, res) => res.render('pages/offline'));
 router.get('/about', publicCache, pages.infoPage('about'));
 router.get('/contact', publicCache, pages.infoPage('contact'));
 router.get('/track', publicCache, pages.infoPage('track'));
+// Styleguide: the design tokens and components, for the team (rendered from the live stylesheets).
+router.get('/styleguide', publicCache, (req, res) =>
+  res.render('pages/styleguide', {
+    title: 'Styleguide | Nexthlon',
+    pageKey: 'styleguide',
+    topics: [],
+  }),
+);
 router.get('/account/gift-card', accountPage, (req, res) =>
   res.render('account/gift-card', {title: 'Gift card | Nexthlon'}),
 );

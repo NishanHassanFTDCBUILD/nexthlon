@@ -9455,3 +9455,75 @@ html.is-pay-locked body {
   font-weight: var(--weight-semibold);
   text-transform: capitalize;
 }
+
+/* ---------- Styleguide page ---------- */
+.sg-section {
+  margin-bottom: var(--space-3);
+}
+
+.sg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-1) 0;
+}
+
+.sg-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.sg-swatches li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sg-swatch {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+
+.sg-display {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-black);
+  text-transform: uppercase;
+}
+
+.sg-body {
+  font-size: var(--text-base);
+}
+
+.sg-space {
+  display: inline-block;
+  background: var(--brand);
+  border-radius: var(--radius-xs);
+}
+
+.sg-radius {
+  display: inline-grid;
+  place-items: center;
+  width: 96px;
+  height: 56px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+}
+
+/* Touch: the quantity buttons are at least 44px wide as well as tall (the mobile checklist). */
+@media (pointer: coarse) {
+  .qty-btn {
+    min-width: var(--tap);
+  }
+}
