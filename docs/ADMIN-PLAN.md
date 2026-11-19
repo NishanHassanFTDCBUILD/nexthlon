@@ -14,6 +14,15 @@ Size: S = under an hour of work, M = a few hours, L = a day or more.
 
 ---
 
+## Progress (updated 2026-11-19)
+
+- Step 1 (filter panel and chips): done on Orders and the shared toolbar pages (commit 4759e56, d90765c).
+- Step 2 (list engine, shared toolbar, sortable headers): done in utils/listQuery.js and partials (4759e56).
+- Step 3 (Inventory): filters, stock table and CSV import done (4759e56). Stock history, reasons and bulk restock still to do.
+- Step 4 (roles, staff, history): done in 3aa553e. Roles in utils/permissions.js; staff at Settings > Staff; audit at System > Audit log; per-record history via ?target=. Not done: invite by email (staff get a temporary password shown once), two-step sign-in.
+- Audit gaps: product create/edit/unlist and customer block are now logged (856abf1).
+- Steps 5 to 9: not started.
+
 ## Part A · Architecture (the foundation everything else stands on)
 
 | #   | What                                                                                                                                                                                                                                                                                                                                                 | Status                         | Size |
