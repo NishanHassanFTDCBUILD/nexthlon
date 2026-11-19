@@ -1,0 +1,8 @@
+<% if (chips.length) { %>
+  <div class="admin-chips" aria-label="Active filters">
+    <% chips.forEach(function (chip) { %>
+      <a class="admin-chip" href="<%= chip.href %>"><%= chip.label %> <%- icon('x', 'i-xs') %><span class="sr-only"> (remove filter)</span></a>
+    <% }) %>
+    <a class="link-btn" href="<%= clearHref %>">Clear all</a>
+  </div>
+<% } %>

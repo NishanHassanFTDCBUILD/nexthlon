@@ -9,9 +9,9 @@ const orderService = require('./orderService');
 const refundService = require('./refundService');
 const rules = require('../utils/orderRules');
 const {HttpError} = require('../utils/http');
-const {escapeRegex, toPositiveInt} = require('./productService');
+const {escapeRegex} = require('./productService');
 const settlementService = require('./settlementService');
-const {pageSize} = require('../utils/paging');
+const {readListQuery} = require('../utils/listQuery');
 
 const PAGE_SIZE = 20;
 const EXPORT_LIMIT = 20000;
@@ -47,22 +47,45 @@ const cleanText = (value, max) =>
     : '';
 
 // Every list filter, read safely from the query string (unknown values fall back to "any").
+function readOrderList(query = {}) {
+  return readListQuery(query, {
+    pageSize: PAGE_SIZE,
+    defaultSort: 'newest',
+    sorts: ORDER_SORTS,
+    searchMax: 60,
+    cleanSearch: (value) => cleanText(value, 60),
+    fields: {
+      status: {values: rules.ORDER_STATUSES, default: 'all', label: 'Status'},
+      method: {values: METHODS, default: 'all', label: 'Method'},
+      payment: {
+        values: rules.PAYMENT_STATUSES,
+        default: 'all',
+        label: 'Payment',
+      },
+      from: {validate: istDay, label: 'From'},
+      to: {validate: istDay, label: 'To'},
+      min: {
+        validate: (value) => rupeesToPaise(value) !== null,
+        clean: (value) => String(Number(value)),
+        label: 'Minimum amount',
+      },
+      max: {
+        validate: (value) => rupeesToPaise(value) !== null,
+        clean: (value) => String(Number(value)),
+        label: 'Maximum amount',
+      },
+      city: {
+        maxLength: 40,
+        clean: (value) => cleanText(value, 40),
+        label: 'City',
+      },
+    },
+  });
+}
+
 function readOrderFilters(query = {}) {
-  return {
-    status: rules.ORDER_STATUSES.includes(query.status) ? query.status : 'all',
-    method: METHODS.includes(query.method) ? query.method : 'all',
-    payment: rules.PAYMENT_STATUSES.includes(query.payment)
-      ? query.payment
-      : 'all',
-    from: istDay(query.from) ? query.from : '',
-    to: istDay(query.to) ? query.to : '',
-    min: rupeesToPaise(query.min) !== null ? String(Number(query.min)) : '',
-    max: rupeesToPaise(query.max) !== null ? String(Number(query.max)) : '',
-    city: cleanText(query.city, 40),
-    q: cleanText(query.q, 60),
-    sort: Object.hasOwn(ORDER_SORTS, query.sort) ? query.sort : 'newest',
-    page: toPositiveInt(query.page, 1),
-  };
+  const {limit: _limit, ...filters} = readOrderList(query).filters;
+  return filters;
 }
 
 // Customers whose name, email or phone matches (for searching orders by customer).
@@ -137,14 +160,13 @@ function toListRow(order) {
 }
 
 async function listOrders(query = {}) {
-  const size = pageSize(query, PAGE_SIZE);
-  const filters = readOrderFilters(query);
-  filters.limit = size === PAGE_SIZE ? '' : size;
+  const list = readOrderList(query);
+  const {filters, size} = list;
   const filter = await buildOrderFilter(filters);
   const [orders, total, statusCounts] = await Promise.all([
     Order.find(filter)
-      .sort(ORDER_SORTS[filters.sort].order)
-      .skip((filters.page - 1) * size)
+      .sort(list.order)
+      .skip(list.skip)
       .limit(size)
       .select(LIST_FIELDS)
       .lean(),
@@ -155,12 +177,9 @@ async function listOrders(query = {}) {
     orders: orders.map(toListRow),
     filters,
     counts: Object.fromEntries(statusCounts.map((row) => [row._id, row.count])),
-    pagination: {
-      page: filters.page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
-    },
+    chips: list.chips,
+    sorts: list.sorts,
+    pagination: list.pagination(total),
   };
 }
 
@@ -385,18 +404,34 @@ async function manualRefund(orderId, {amount, method, reason, key}) {
 }
 
 // ---------- Returns ----------
+const RETURN_SORTS = {
+  updated: {label: 'Recently changed', order: {updatedAt: -1}},
+  oldest: {label: 'Oldest change', order: {updatedAt: 1}},
+};
+function readReturnList(query = {}) {
+  return readListQuery(query, {
+    pageSize: PAGE_SIZE,
+    searchMax: 60,
+    cleanSearch: (value) => cleanText(value, 60),
+    defaultSort: 'updated',
+    sorts: RETURN_SORTS,
+    fields: {
+      status: {values: RETURN_FILTERS, default: 'requested', label: 'Status'},
+    },
+  });
+}
 function readReturnFilters(query = {}) {
-  return {
-    status: RETURN_FILTERS.includes(query.status) ? query.status : 'requested',
-    q: cleanText(query.q, 60),
-    page: toPositiveInt(query.page, 1),
-  };
+  const {
+    sort: _sort,
+    limit: _limit,
+    ...filters
+  } = readReturnList(query).filters;
+  return filters;
 }
 
 async function listReturns(query = {}) {
-  const size = pageSize(query, PAGE_SIZE);
-  const filters = readReturnFilters(query);
-  filters.limit = size === PAGE_SIZE ? '' : size;
+  const list = readReturnList(query);
+  const {filters, size} = list;
   const byStatus = {
     requested: {orderStatus: 'return_requested'},
     approved: {'returnDecision.status': 'approved'},
@@ -412,8 +447,8 @@ async function listReturns(query = {}) {
   }
   const [orders, total, counts] = await Promise.all([
     Order.find(filter)
-      .sort({updatedAt: -1})
-      .skip((filters.page - 1) * size)
+      .sort(list.order)
+      .skip(list.skip)
       .limit(size)
       .select(
         'orderId items total walletUsed paymentMethod paymentStatus orderStatus returnReason returnNote returnPhotos returnDecision updatedAt deliveredAt address.fullName address.city',
@@ -460,12 +495,9 @@ async function listReturns(query = {}) {
     }),
     filters,
     counts: {requested: counts[0], approved: counts[1], rejected: counts[2]},
-    pagination: {
-      page: filters.page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
-    },
+    chips: list.chips,
+    sorts: list.sorts,
+    pagination: list.pagination(total),
   };
 }
 

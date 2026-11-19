@@ -15,7 +15,7 @@ const {PRICE_PIPELINE} = require('../utils/pricing');
 const {LISTED_PRODUCT} = require('../utils/queryFilters');
 const {HttpError} = require('../utils/http');
 const logger = require('../utils/logger');
-const {pageSize} = require('../utils/paging');
+const {runList} = require('../utils/listQuery');
 
 const PAGE_SIZE = 20;
 const STATUSES = ['all', 'live', 'scheduled', 'ended', 'disabled'];
@@ -33,10 +33,6 @@ const SORTS = {
   percent: {label: 'Biggest discount', order: {percent: -1, startsAt: 1}},
 };
 
-const toPage = (value) => {
-  const n = Number.parseInt(value, 10);
-  return Number.isInteger(n) && n > 0 && n < 100000 ? n : 1;
-};
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // The one word an admin cares about, in the order the store decides it.
@@ -100,54 +96,50 @@ function toAdminDeal(deal, now = new Date()) {
   };
 }
 
-function readFilters(query = {}) {
-  return {
-    q: typeof query.q === 'string' ? query.q.trim().slice(0, 60) : '',
-    status: STATUSES.includes(query.status) ? query.status : 'all',
-    sort: Object.hasOwn(SORTS, query.sort) ? query.sort : 'starts',
-    page: toPage(query.page),
-  };
-}
-
 const PRODUCT_FIELDS = 'name slug image basePrice mrp price stock isListed';
 
 // GET the admin list: filters, totals per status, and one page of deals.
 async function listDeals(query = {}, now = new Date()) {
-  const size = pageSize(query, PAGE_SIZE);
-  const filters = readFilters(query);
-  filters.limit = size === PAGE_SIZE ? '' : size;
-  const filter = statusFilter(filters.status, now);
-  if (filters.q) {
-    const ids = await Product.find({
-      name: new RegExp(escapeRegex(filters.q), 'i'),
-    }).distinct('_id');
-    filter.product = {$in: ids};
-  }
-  const [rows, total, counts] = await Promise.all([
-    Deal.find(filter)
-      .sort(SORTS[filters.sort].order)
-      .skip((filters.page - 1) * size)
-      .limit(size)
-      .populate('product', PRODUCT_FIELDS)
-      .lean(),
-    Deal.countDocuments(filter),
+  const [result, counts] = await Promise.all([
+    runList(
+      Deal,
+      query,
+      {
+        pageSize: PAGE_SIZE,
+        searchMax: 60,
+        defaultSort: 'starts',
+        sorts: SORTS,
+        fields: {
+          status: {
+            values: STATUSES,
+            default: 'all',
+            label: 'Status',
+            labels: STATUS_LABELS,
+            match: (value) => statusFilter(value, now),
+          },
+        },
+        resolveFilter: async (filters) => {
+          if (!filters.q) return {};
+          const ids = await Product.find({
+            name: new RegExp(escapeRegex(filters.q), 'i'),
+          }).distinct('_id');
+          return {product: {$in: ids}};
+        },
+      },
+      {populate: {path: 'product', select: PRODUCT_FIELDS}},
+    ),
     Promise.all(
       ['live', 'scheduled', 'ended', 'disabled'].map((status) =>
         Deal.countDocuments(statusFilter(status, now)),
       ),
     ),
   ]);
+  const {rows, ...list} = result;
   const [live, scheduled, ended, disabled] = counts;
   return {
     deals: rows.map((deal) => toAdminDeal(deal, now)),
-    filters,
+    ...list,
     totals: {live, scheduled, ended, disabled},
-    pagination: {
-      page: filters.page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
-    },
   };
 }
 

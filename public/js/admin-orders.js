@@ -17,54 +17,10 @@
     window.location.reload();
     return Promise.resolve();
   };
-  const store = {
-    get(key, fallback) {
-      try {
-        const v = localStorage.getItem(key);
-        return v === null ? fallback : JSON.parse(v);
-      } catch {
-        return fallback;
-      }
-    },
-    set(key, value) {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-      } catch {
-        /* storage blocked */
-      }
-    },
-  };
 
   // ---------- Orders ----------
   Pages.define('admin-orders', (root, signal) => {
-    const table = root.querySelector("[data-table='orders']");
     const bar = root.querySelector('[data-bulk-bar]');
-
-    // Column picker, remembered in this browser.
-    const COLS_KEY = 'nx-admin-cols-orders';
-    const hidden = new Set(store.get(COLS_KEY, []));
-    const applyColumns = () => {
-      root.querySelectorAll('[data-col-toggle]').forEach((box) => {
-        box.checked = !hidden.has(box.dataset.colToggle);
-      });
-      if (table)
-        table.querySelectorAll('[data-col]').forEach((cell) => {
-          cell.hidden = hidden.has(cell.dataset.col);
-        });
-    };
-    root.addEventListener(
-      'change',
-      (event) => {
-        const box = event.target.closest('[data-col-toggle]');
-        if (!box) return;
-        if (box.checked) hidden.delete(box.dataset.colToggle);
-        else hidden.add(box.dataset.colToggle);
-        store.set(COLS_KEY, [...hidden]);
-        applyColumns();
-      },
-      {signal},
-    );
-    applyColumns();
 
     // Bulk select.
     const boxes = () => [...root.querySelectorAll('[data-select]')];

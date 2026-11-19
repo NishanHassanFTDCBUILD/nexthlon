@@ -4,7 +4,7 @@
   Names, prices and photos are edited in Products. Script: public/js/admin-catalog.js.
 %>
 <%
-  const tabs = [['all', 'All'], ['low', 'Low stock'], ['out', 'Out of stock']];
+  const tabs = Object.entries(statusLabels);
   const pill = { out: 'pill-red', low: 'pill-amber', healthy: 'pill-green' };
   const label = { out: 'Out of stock', low: 'Low', healthy: 'In stock' };
 %>
@@ -31,28 +31,33 @@
   <nav class="segmented admin-tabs" aria-label="Stock state">
     <% tabs.forEach(function ([key, text]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>"><%= text %></a><% }) %>
   </nav>
-  <form action="<%= adminPath %>/inventory" method="get" role="search">
-    <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
-    <label class="sr-only" for="inv-q">Search products</label>
-    <input class="inv-input inv-search" id="inv-q" type="search" name="q" value="<%= filters.q %>" maxlength="80" placeholder="Search products">
-  </form>
+  <%- include('../partials/admin-list-toolbar', { section: 'inventory', searchMax: 80, searchHint: 'Product or brand', sorts, fields: [
+    { key: 'category', label: 'Category', options: [['', 'All categories'], ...categories.map(function (c) { return [String(c._id), c.name]; })] },
+    { key: 'status', label: 'Status', options: [['', 'Any status'], ...tabs.filter(function (t) { return t[0] !== 'all'; })] }
+  ] }) %>
 </div>
 
+<%- include('../partials/admin-inventory-import') %>
 <section class="panel panel-flush admin-table-panel" aria-label="Stock levels">
   <% if (products.length) { %>
-    <ul class="inv-list">
+    <div class="table-wrap admin-table-scroll"><table class="table table-stack admin-table"><thead><tr><th scope="col"><input type="checkbox" data-inventory-select-all aria-label="Select restockable products on this page"></th><%- include('../partials/admin-sort-header', { label: 'Product', asc: 'name_asc', desc: '' }) %><%- include('../partials/admin-sort-header', { label: 'Stock', asc: 'stock_asc', desc: 'stock_desc' }) %><%- include('../partials/admin-sort-header', { label: 'Stock value', asc: '', desc: 'value_desc' }) %><th scope="col">Waiting for alerts</th><%- include('../partials/admin-sort-header', { label: 'Last changed', asc: '', desc: 'updated' }) %><th scope="col">Adjust stock</th></tr></thead><tbody>
       <% products.forEach(function (p) { %>
-        <li class="inv-row<%= p.isListed ? '' : ' is-unlisted' %><%= p.options.length ? ' has-sizes' : '' %>" data-inv-row="<%= p.id %>">
-          <img src="<%= sizedUrl(p.image, 200) %>" alt="" width="44" height="44" loading="lazy" decoding="async">
+        <tr data-inv-row="<%= p.id %>"><td data-label="Select"><input type="checkbox" data-inventory-select="<%= p.id %>" aria-label="Select <%= p.name %> for restock" <%= p.options.length ? 'disabled' : '' %>></td><td data-label="Product">
           <div class="inv-info">
             <a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a>
             <span class="muted"><%= p.category || 'No category' %><%= p.isListed ? '' : ' · unlisted' %></span>
           </div>
-          <div class="inv-level">
+          </td><td data-label="Stock">
             <strong data-inv-stock><%= p.stock %></strong>
             <span class="pill <%= pill[p.state] %>" data-inv-state><%= label[p.state] %></span>
-          </div>
-          <form class="inv-set" data-inv-form="<%= p.id %>" novalidate>
+          </td>
+          <td data-label="Stock value"><span data-inv-value><%= formatPrice(p.stockValue) %></span></td>
+          <td data-label="Waiting for alerts"><%= p.waiting %></td>
+          <td data-label="Last changed"><%= formatDate(p.updatedAt) %>
+            <details data-stock-history="<%= p.id %>"><summary>Adjustment history</summary><div data-history-content role="status">Open to load recent adjustments.</div></details>
+          </td>
+          <td data-label="Adjust stock"><form class="inv-set" data-inv-form="<%= p.id %>" >
+            <label class="admin-field"><span>Action</span><select name="action" data-inv-action><option value="count">Set count</option><option value="add">Add units</option><option value="remove">Remove units</option></select></label>
             <% if (p.options.length) { %>
               <% p.options.forEach(function (o) { %>
                 <label class="inv-size"><span><%= o.label %></span><input class="inv-input" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= o.stock %>" data-stock="<%= o.stock %>" data-option-id="<%= o.id %>" data-inv-field aria-label="Stock of <%= p.name %>, <%= o.label %>"></label>
@@ -61,11 +66,13 @@
               <label class="sr-only" for="inv-<%= p.id %>">Stock of <%= p.name %></label>
               <input class="inv-input" id="inv-<%= p.id %>" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= p.stock %>" data-stock="<%= p.stock %>" data-inv-field>
             <% } %>
+            <label class="admin-field"><span>Reason</span><select name="reason" required><option value="">Choose a reason</option><option value="restock">Restock</option><option value="damage">Damage</option><option value="return">Returned units</option><option value="stock_count">Physical count</option><option value="sale_correction">Sales correction</option><option value="other">Other</option></select></label>
+            <label class="admin-field"><span>Note</span><input name="note" maxlength="120" placeholder="Optional explanation"></label>
             <button class="btn btn-secondary btn-sm" type="submit">Save</button>
-          </form>
-        </li>
+          </form></td>
+        </tr>
       <% }) %>
-    </ul>
+    </tbody></table></div>
     <%- include('../partials/admin-pager') %>
   <% } else { %>
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No products match</h2><p>Try another tab or search.</p></div>

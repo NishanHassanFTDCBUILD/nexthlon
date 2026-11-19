@@ -185,6 +185,18 @@ router.get('/refunds', orders.listRefunds);
 // Inventory: stock corrections are one atomic update each, and all of them are audit-logged.
 router.get('/inventory', catalog.listInventory);
 router.get('/inventory/export.csv', catalog.exportInventory);
+router.get('/inventory/restock-template.csv', catalog.restockTemplate);
+router.post(
+  '/inventory/restock/preview',
+  adminWriteLimiter,
+  catalog.previewRestock,
+);
+router.post(
+  '/inventory/restock/:batchId/apply',
+  adminWriteLimiter,
+  catalog.applyRestock,
+);
+router.get('/inventory/:productId/history', catalog.stockHistory);
 router.patch('/inventory/:productId', adminWriteLimiter, catalog.adjustStock);
 
 // Coupons. Creating and changing one is money, so these use the stricter limiter.

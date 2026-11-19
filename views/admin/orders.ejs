@@ -11,8 +11,6 @@
     city: function (v) { return 'City: ' + v; }, q: function (v) { return '"' + v + '"'; }
   };
   const chips = Object.keys(chipLabels).filter(function (key) { return filters[key] && filters[key] !== 'all'; });
-  const sortLink = function (asc, desc) { return link({ sort: filters.sort === desc ? asc : desc, page: '' }); };
-  const sortMark = function (asc, desc) { return filters.sort === desc ? '↓' : filters.sort === asc ? '↑' : ''; };
   const moreCount = ['from', 'to', 'min', 'max', 'city'].filter(function (key) { return filters[key]; }).length;
   const bulkTargets = [['confirmed', 'Confirmed'], ['shipped', 'Shipped'], ['out_for_delivery', 'Out for delivery'], ['delivered', 'Delivered']];
 %>
@@ -26,14 +24,6 @@
   <div class="admin-top-actions">
     <a class="btn btn-ghost btn-sm" href="/api/admin/orders/export.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> CSV</a>
     <a class="btn btn-ghost btn-sm" href="/api/admin/orders/export.xlsx?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Excel</a>
-    <div class="admin-columns" data-menu>
-      <button type="button" class="btn btn-ghost btn-sm" data-menu-toggle aria-expanded="false" aria-controls="orders-columns"><%- icon('sliders', 'i-sm') %> Columns</button>
-      <div class="menu admin-columns-menu" id="orders-columns" data-menu-panel tabindex="-1" hidden>
-        <% [['customer', 'Customer'], ['items', 'Items'], ['placed', 'Placed'], ['amount', 'Amount'], ['payment', 'Payment'], ['status', 'Status']].forEach(function ([key, label]) { %>
-          <label class="admin-col-toggle"><input type="checkbox" data-col-toggle="<%= key %>" checked> <%= label %></label>
-        <% }) %>
-      </div>
-    </div>
   </div>
 </header>
 
@@ -74,14 +64,10 @@
   <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
 </form>
 
-<% if (chips.length) { %>
-  <div class="admin-chips" aria-label="Active filters">
-    <% chips.forEach(function (key) { const remove = {}; remove[key] = ''; remove.page = ''; %>
-      <a class="admin-chip" href="<%= link(remove) %>"><%= chipLabels[key](filters[key]) %> <%- icon('x', 'i-xs') %><span class="sr-only"> (remove filter)</span></a>
-    <% }) %>
-    <a class="link-btn" href="<%= adminPath %>/orders<%= filters.status !== 'all' ? '?status=' + filters.status : '' %>">Clear all</a>
-  </div>
-<% } %>
+<%- include('../partials/admin-filter-chips', {
+  chips: chips.map(function (key) { return { label: chipLabels[key](filters[key]), href: link({ [key]: '', page: '' }) }; }),
+  clearHref: link({ q: '', method: '', payment: '', from: '', to: '', min: '', max: '', city: '', page: '' })
+}) %>
 
 <section class="panel panel-flush admin-table-panel" aria-label="Orders" data-orders>
   <div class="admin-table-tools">
@@ -105,8 +91,8 @@
             <th scope="col">Order</th>
             <th scope="col" data-col="customer">Customer</th>
             <th scope="col" data-col="items">Items</th>
-            <th scope="col" data-col="placed"><a href="<%= sortLink('oldest', 'newest') %>">Placed <%= sortMark('oldest', 'newest') %></a></th>
-            <th scope="col" data-col="amount"><a href="<%= sortLink('amount_asc', 'amount_desc') %>">Amount <%= sortMark('amount_asc', 'amount_desc') %></a></th>
+            <%- include('../partials/admin-sort-header', { label: 'Placed', asc: 'oldest', desc: 'newest' }) %>
+            <%- include('../partials/admin-sort-header', { label: 'Amount', asc: 'amount_asc', desc: 'amount_desc' }) %>
             <th scope="col" data-col="payment">Payment</th>
             <th scope="col" data-col="status">Status</th>
           </tr>

@@ -607,6 +607,7 @@ const adminUsers = asyncHandler(async (req, res) => {
   const link = linkBuilder(`${config.adminPath}/customers`, {
     q: data.filters.q,
     status: data.filters.status === 'all' ? '' : data.filters.status,
+    sort: data.filters.sort === 'newest' ? '' : data.filters.sort,
     limit: data.filters.limit,
   });
   res.render('admin/users', {

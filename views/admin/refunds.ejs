@@ -31,11 +31,17 @@
   <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>"><%= label %></a><% }) %>
 </nav>
 
+<%- include('../partials/admin-list-toolbar', { section: 'refunds', searchMax: 60, searchHint: 'Order number, payment id or customer', sorts, fields: [
+{ key: 'status', label: 'Status', options: [['', 'Any status'], ['pending', 'Pending'], ['processed', 'Processed'], ['failed', 'Failed']] },
+{ key: 'method', label: 'Method', options: [['', 'Any method'], ['original', 'Card/UPI'], ['wallet', 'Wallet']] },
+{ key: 'from', label: 'From', type: 'date' }, { key: 'to', label: 'To', type: 'date' }
+] }) %>
+
 <section class="panel panel-flush admin-table-panel" aria-label="Refunds">
   <% if (refunds.length) { %>
     <div class="table-wrap admin-table-scroll">
       <table class="table table-stack admin-table">
-        <thead><tr><th scope="col">Date</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col" class="cell-num">Amount</th><th scope="col">To</th><th scope="col">Status</th><th scope="col">Reason</th></tr></thead>
+        <thead><tr><%- include('../partials/admin-sort-header', { label: 'Date', asc: 'oldest', desc: 'newest' }) %><th scope="col">Order</th><th scope="col">Customer</th><%- include('../partials/admin-sort-header', { label: 'Amount', asc: 'amount_asc', desc: 'amount_desc' }) %><th scope="col">To</th><th scope="col">Status</th><th scope="col">Reason</th></tr></thead>
         <tbody>
           <% refunds.forEach(function (r) { %>
             <tr data-row-href="<%= adminPath %>/transactions/<%= r.id %>">

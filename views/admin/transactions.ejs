@@ -25,22 +25,20 @@
   <div class="admin-total is-other"><span>Not counted</span><strong><%= formatPrice(totals.other) %></strong><small class="muted">Coupons, wallet spends, pending and failed</small></div>
 </section>
 
-<form class="admin-filterbar" action="<%= adminPath %>/transactions" method="get" data-filter-form>
-  <div class="admin-filter-search"><%- icon('search', 'i-sm') %><label class="sr-only" for="tx-q">Search</label><input id="tx-q" type="search" name="q" value="<%= filters.q %>" maxlength="60" placeholder="Order number, payment id or customer"></div>
-  <label class="admin-field"><span>Type</span><select name="type" data-auto-submit><option value="">Any type</option><% types.forEach(function (t) { %><option value="<%= t %>" <%= filters.type === t ? 'selected' : '' %>><%= typeLabels[t] %></option><% }) %></select></label>
-  <label class="admin-field"><span>Status</span><select name="status" data-auto-submit><option value="">Any status</option><% txStatuses.forEach(function (s) { %><option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= s.charAt(0).toUpperCase() + s.slice(1) %></option><% }) %></select></label>
-  <label class="admin-field"><span>Method</span><select name="method" data-auto-submit><option value="">Any method</option><% txMethods.forEach(function (m) { %><option value="<%= m %>" <%= filters.method === m ? 'selected' : '' %>><%= methodName(m) %></option><% }) %></select></label>
-  <label class="admin-field"><span>From</span><input type="date" name="from" value="<%= filters.from %>"></label>
-  <label class="admin-field"><span>To</span><input type="date" name="to" value="<%= filters.to %>"></label>
-  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
-  <% if (filtered) { %><a class="link-btn" href="<%= adminPath %>/transactions">Clear</a><% } %>
-</form>
+<%- include('../partials/admin-list-toolbar', { section: 'transactions', searchMax: 60, searchHint: 'Order number, payment id or customer', sorts, fields: [
+{ key: 'type', label: 'Type', options: [['', 'Any type'], ...types.map(function (t) { return [t, typeLabels[t]]; })] },
+{ key: 'status', label: 'Status', options: [['', 'Any status'], ...txStatuses.map(function (s) { return [s, s]; })] },
+{ key: 'method', label: 'Method', options: [['', 'Any method'], ...txMethods.map(function (m) { return [m, methodName(m)]; })] },
+{ key: 'from', label: 'From', type: 'date' }, { key: 'to', label: 'To', type: 'date' }
+] }) %>
+
+
 
 <section class="panel panel-flush admin-table-panel" aria-label="Transactions">
   <% if (transactions.length) { %>
     <div class="table-wrap admin-table-scroll">
       <table class="table table-stack admin-table">
-        <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Method</th><th scope="col" class="cell-num">Amount</th><th scope="col">Status</th><th scope="col">Reference</th></tr></thead>
+        <thead><tr><%- include('../partials/admin-sort-header', { label: 'Date', asc: 'oldest', desc: 'newest' }) %><th scope="col">Type</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Method</th><%- include('../partials/admin-sort-header', { label: 'Amount', asc: 'amount_asc', desc: 'amount_desc' }) %><th scope="col">Status</th><th scope="col">Reference</th></tr></thead>
         <tbody>
           <% transactions.forEach(function (t) { %>
             <tr data-row-href="<%= adminPath %>/transactions/<%= t.id %>">

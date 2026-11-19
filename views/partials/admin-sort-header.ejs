@@ -1,0 +1,8 @@
+<%
+  const up = typeof asc === 'string' ? asc : '';
+  const down = typeof desc === 'string' ? desc : '';
+  const direction = filters.sort === up ? 'ascending' : filters.sort === down ? 'descending' : 'none';
+  const target = direction === 'ascending' && down ? down : up || down;
+  const nextDirection = target === up ? 'ascending' : 'descending';
+%>
+<th scope="col" aria-sort="<%= direction %>" data-column-label="<%= label %>"><a href="<%= link({ sort: target, page: '' }) %>" aria-label="Sort <%= label %>, <%= nextDirection %>"><%= label %> <span aria-hidden="true"><%= direction === 'ascending' ? '↑' : direction === 'descending' ? '↓' : '↕' %></span></a></th>

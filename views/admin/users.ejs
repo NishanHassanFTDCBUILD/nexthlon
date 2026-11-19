@@ -15,34 +15,14 @@
       </div>
     </header>
 
-    <div class="toolbar">
-      <form class="toolbar-search" action="<%= adminPath %>/customers" method="get" role="search" aria-label="Search customers">
-        <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
-        <label class="sr-only" for="user-search">Search customers</label>
-        <%- icon('search', 'i-sm') %>
-        <input id="user-search" type="search" name="q" value="<%= filters.q %>" placeholder="Search by name, email or phone" maxlength="80">
-        <% if (filters.q) { %>
-          <a class="icon-btn icon-btn-sm" href="<%= link({ q: '', page: '' }) %>" aria-label="Clear search"><%- icon('x', 'i-sm') %></a>
-        <% } %>
-        <button class="btn btn-primary btn-sm" type="submit">Search</button>
-      </form>
-      <nav class="segmented" aria-label="Filter by status">
-        <a href="<%= link({ status: '', page: '' }) %>" class="<%= filters.status === 'all' ? 'is-active' : '' %>" <%- filters.status === 'all' ? 'aria-current="page"' : '' %>>All</a>
-        <a href="<%= link({ status: 'active', page: '' }) %>" class="<%= filters.status === 'active' ? 'is-active' : '' %>" <%- filters.status === 'active' ? 'aria-current="page"' : '' %>><span class="dot dot-ok"></span> Active</a>
-        <a href="<%= link({ status: 'blocked', page: '' }) %>" class="<%= filters.status === 'blocked' ? 'is-active' : '' %>" <%- filters.status === 'blocked' ? 'aria-current="page"' : '' %>><span class="dot dot-out"></span> Blocked</a>
-      </nav>
-    </div>
-
-    <% if (filters.q) { %>
-      <p class="filter-note">Showing results for <strong>"<%= filters.q %>"</strong> · <a href="<%= link({ q: '', page: '' }) %>">Clear search</a></p>
-    <% } %>
+<%- include('../partials/admin-list-toolbar', { section: 'customers', searchMax: 80, searchHint: 'Name, email or phone', sorts, fields: [{ key: 'status', label: 'Status', options: [['', 'Any status'], ['active', 'Active'], ['blocked', 'Blocked']] }] }) %>
 
     <section class="panel panel-flush admin-table-panel" aria-label="Customer list">
       <% if (customers.length) { %>
         <div class="table-wrap">
           <table class="table table-stack admin-table">
             <thead>
-              <tr><th scope="col">Customer</th><th scope="col">Phone</th><th scope="col">Joined</th><th scope="col">Last sign-in</th><th scope="col">Status</th><th scope="col">Wallet</th><th scope="col"><span class="sr-only">Action</span></th></tr>
+              <tr><%- include('../partials/admin-sort-header', { label: 'Customer', asc: 'name_asc', desc: '' }) %><th scope="col">Phone</th><%- include('../partials/admin-sort-header', { label: 'Joined', asc: 'oldest', desc: 'newest' }) %><%- include('../partials/admin-sort-header', { label: 'Last sign-in', asc: '', desc: 'last_login' }) %><th scope="col">Status</th><th scope="col">Wallet</th><th scope="col"><span class="sr-only">Action</span></th></tr>
             </thead>
             <tbody>
               <% customers.forEach(function (c) { %>

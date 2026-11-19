@@ -1,0 +1,49 @@
+<%
+  const activeFields = fields.filter(function (field) { return filters[field.key] && filters[field.key] !== 'all'; });
+  const activeChips = activeFields.map(function (field) {
+    const value = filters[field.key];
+    const option = (field.options || []).find(function (item) { return String(item[0]) === String(value); });
+    return { label: field.label + ': ' + (option ? option[1] : value), href: link({ [field.key]: field.clearValue || '', page: '' }) };
+  });
+  if (filters.q) activeChips.unshift({ label: 'Search: ' + filters.q, href: link({ q: '', page: '' }) });
+  const clearFields = { page: '' };
+  fields.forEach(function (field) { clearFields[field.key] = field.clearValue || ''; });
+%>
+<form class="admin-filterbar" action="<%= adminPath %>/<%= section %>" method="get" data-filter-form>
+  <div class="admin-filter-search">
+    <%- icon('search', 'i-sm') %>
+    <label class="sr-only" for="<%= section %>-q">Search <%= section %></label>
+    <input id="<%= section %>-q" type="search" name="q" value="<%= filters.q || '' %>" maxlength="<%= searchMax %>" placeholder="<%= searchHint %>">
+  </div>
+  <% if (typeof sorts !== 'undefined' && sorts) { %>
+    <label class="admin-field"><span>Sort</span>
+      <select name="sort" data-auto-submit>
+        <% Object.entries(sorts).forEach(function ([key, option]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= option.label %></option><% }) %>
+      </select>
+    </label>
+  <% } %>
+  <details class="admin-more-filters" <%= activeFields.length ? 'open' : '' %>>
+    <summary><%- icon('filter', 'i-sm') %> More filters<% if (activeFields.length) { %> <span class="admin-more-count"><%= activeFields.length %></span><% } %></summary>
+    <div class="admin-more-panel">
+      <% fields.forEach(function (field) { %>
+        <label class="admin-field"><span><%= field.label %></span>
+          <% if (field.options) { %>
+            <select name="<%= field.key %>">
+              <% const selectedValue = filters[field.key] === 'all' && field.options.some(function (option) { return option[0] === ''; }) ? '' : filters[field.key]; %>
+              <% field.options.forEach(function ([value, label]) { %><option value="<%= value %>" <%= String(selectedValue) === String(value) ? 'selected' : '' %>><%= label %></option><% }) %>
+            </select>
+          <% } else { %>
+            <input type="<%= field.type || 'text' %>" name="<%= field.key %>" value="<%= filters[field.key] || '' %>">
+          <% } %>
+        </label>
+      <% }) %>
+      <div class="admin-more-actions">
+        <a class="link-btn" href="<%= link(clearFields) %>">Clear these</a>
+        <button class="btn btn-primary btn-sm" type="submit">Apply filters</button>
+      </div>
+    </div>
+  </details>
+  <% if (filters.limit) { %><input type="hidden" name="limit" value="<%= filters.limit %>"><% } %>
+  <button class="btn btn-secondary btn-sm" type="submit">Search</button>
+</form>
+<%- include('admin-filter-chips', { chips: activeChips, clearHref: link({ ...clearFields, q: '' }) }) %>

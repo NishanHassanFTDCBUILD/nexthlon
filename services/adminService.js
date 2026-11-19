@@ -5,10 +5,10 @@ const Product = require('../models/Product');
 const Order = require('../models/Order');
 const {RULES} = require('../config/catalog');
 const {HttpError} = require('../utils/http');
-const {escapeRegex, toPositiveInt} = require('./productService');
+const {escapeRegex} = require('./productService');
 const refreshTokenService = require('./refreshTokenService');
 const {LISTED_PRODUCT} = require('../utils/queryFilters');
-const {pageSize} = require('../utils/paging');
+const {runList} = require('../utils/listQuery');
 
 const PAGE_SIZE = 15;
 
@@ -69,41 +69,30 @@ function publicCustomer(user) {
 }
 
 async function listCustomers(query = {}) {
-  const size = pageSize(query, PAGE_SIZE);
-  const page = toPositiveInt(query.page, 1);
-  const q = typeof query.q === 'string' ? query.q.trim().slice(0, 80) : '';
-  const status = ['active', 'blocked'].includes(query.status)
-    ? query.status
-    : 'all';
-
-  const filter = {role: 'customer'};
-  if (q) {
-    const pattern = new RegExp(escapeRegex(q), 'i');
-    filter.$or = [{name: pattern}, {email: pattern}, {phone: pattern}];
-  }
-  if (status !== 'all') filter.isBlocked = status === 'blocked';
-
-  const [users, total] = await Promise.all([
-    User.find(filter)
-      .sort({createdAt: -1})
-      .skip((page - 1) * size)
-      .limit(size)
-      .lean(),
-    User.countDocuments(filter),
-  ]);
-
-  return {
-    customers: await customersWithWallets(users),
-    pagination: {
-      page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
+  const result = await runList(User, query, {
+    pageSize: PAGE_SIZE,
+    defaultSort: 'newest',
+    sorts: {
+      newest: {label: 'Newest first', order: {createdAt: -1}},
+      oldest: {label: 'Oldest first', order: {createdAt: 1}},
+      name_asc: {label: 'Name: A to Z', order: {name: 1}},
+      last_login: {label: 'Recently signed in', order: {lastLoginAt: -1}},
     },
-    filters: {q, status, limit: size === PAGE_SIZE ? '' : size},
-  };
+    searchMax: 80,
+    searchFields: ['name', 'email', 'phone'],
+    baseFilter: {role: 'customer'},
+    fields: {
+      status: {
+        values: ['active', 'blocked'],
+        default: 'all',
+        label: 'Status',
+        match: (value) => ({isBlocked: value === 'blocked'}),
+      },
+    },
+  });
+  const {rows, ...list} = result;
+  return {...list, customers: await customersWithWallets(rows)};
 }
-
 async function customersWithWallets(users) {
   const wallets = await Wallet.find({
     user: {$in: users.map((user) => user._id)},

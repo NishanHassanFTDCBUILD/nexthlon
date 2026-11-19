@@ -17,17 +17,15 @@
   <% }) %>
 </nav>
 
-<form class="admin-filterbar" action="<%= adminPath %>/returns" method="get">
-  <input type="hidden" name="status" value="<%= filters.status %>">
-  <div class="admin-filter-search"><%- icon('search', 'i-sm') %><label class="sr-only" for="returns-q">Search returns</label><input id="returns-q" type="search" name="q" value="<%= filters.q %>" maxlength="60" placeholder="Order number or customer"></div>
-  <button class="btn btn-secondary btn-sm" type="submit">Search</button>
-</form>
+<%- include('../partials/admin-list-toolbar', { section: 'returns', searchMax: 60, searchHint: 'Order number or customer', sorts, fields: [{ key: 'status', label: 'Status', clearValue: 'all', options: [['all', 'All'], ['requested', 'Waiting'], ['approved', 'Approved'], ['rejected', 'Rejected']] }] }) %>
+
+
 
 <section class="panel panel-flush admin-table-panel" aria-label="Returns">
   <% if (returns.length) { %>
     <div class="table-wrap admin-table-scroll">
       <table class="table table-stack admin-table">
-        <thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Items</th><th scope="col">Reason</th><th scope="col">Value</th><th scope="col">Status</th></tr></thead>
+        <thead><tr><%- include('../partials/admin-sort-header', { label: 'Order / last change', asc: 'oldest', desc: 'updated' }) %><th scope="col">Customer</th><th scope="col">Items</th><th scope="col">Reason</th><th scope="col">Value</th><th scope="col">Status</th></tr></thead>
         <tbody>
           <% returns.forEach(function (r) { %>
             <tr data-row-href="<%= adminPath %>/orders/<%= r.orderId %>#return">

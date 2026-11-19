@@ -9,6 +9,7 @@ const categoryService = require('./categoryService');
 const imageService = require('./imageService');
 const {HttpError} = require('../utils/http');
 const {pageSize} = require('../utils/paging');
+const {runList} = require('../utils/listQuery');
 const {PRICE_PIPELINE} = require('../utils/pricing');
 const mongoose = require('mongoose');
 
@@ -59,44 +60,34 @@ async function countProducts(ids) {
   return new Map(rows.map((row) => [String(row._id), row.count]));
 }
 
-function readFilters(query = {}) {
-  return {
-    q: typeof query.q === 'string' ? query.q.trim().slice(0, 40) : '',
-    status: STATUSES.includes(query.status) ? query.status : 'all',
-    sort: Object.hasOwn(SORTS, query.sort) ? query.sort : 'order',
-    page: toPage(query.page),
-  };
-}
-
 async function listCategories(query = {}) {
-  const size = pageSize(query, PAGE_SIZE);
-  const filters = readFilters(query);
-  filters.limit = size === PAGE_SIZE ? '' : size;
-  const filter = statusFilter(filters.status);
-  if (filters.q) filter.name = new RegExp(escapeRegex(filters.q), 'i');
-  const [rows, total, listed, hidden] = await Promise.all([
-    Category.find(filter)
-      .sort(SORTS[filters.sort].order)
-      .skip((filters.page - 1) * size)
-      .limit(size)
-      .lean(),
-    Category.countDocuments(filter),
+  const [result, listed, hidden] = await Promise.all([
+    runList(Category, query, {
+      pageSize: PAGE_SIZE,
+      searchMax: 40,
+      searchFields: ['name'],
+      defaultSort: 'order',
+      sorts: SORTS,
+      fields: {
+        status: {
+          values: STATUSES,
+          default: 'all',
+          label: 'Status',
+          match: statusFilter,
+        },
+      },
+    }),
     Category.countDocuments({isListed: true}),
     Category.countDocuments({isListed: false}),
   ]);
+  const {rows, ...list} = result;
   const counts = await countProducts(rows.map((row) => row._id));
   return {
+    ...list,
     categories: rows.map((row) =>
       toAdminCategory(row, counts.get(String(row._id)) || 0),
     ),
-    filters,
     totals: {all: listed + hidden, listed, hidden},
-    pagination: {
-      page: filters.page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
-    },
   };
 }
 

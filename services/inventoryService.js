@@ -6,11 +6,12 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const StockAlert = require('../models/StockAlert');
+const AuditLog = require('../models/AuditLog');
 const {RULES} = require('../config/catalog');
 const {HttpError} = require('../utils/http');
-const {escapeRegex, toPositiveInt} = require('./productService');
 const {optionLabel} = require('../utils/options');
-const {pageSize} = require('../utils/paging');
+const {readListQuery} = require('../utils/listQuery');
 
 const PAGE_SIZE = 20;
 const MAX_STOCK = 100000;
@@ -49,32 +50,39 @@ function stateOf(product) {
   return product.stock <= RULES.lowStockLimit ? 'low' : 'healthy';
 }
 
+function readInventoryList(query = {}) {
+  return readListQuery(query, {
+    pageSize: PAGE_SIZE,
+    searchMax: 80,
+    searchFields: ['name', 'brand'],
+    defaultSort: 'stock_asc',
+    sorts: SORTS,
+    fields: {
+      category: {
+        validate: mongoose.isValidObjectId,
+        label: 'Category',
+        match: (value) => ({category: new mongoose.Types.ObjectId(value)}),
+      },
+      status: {
+        values: STATUSES,
+        default: 'all',
+        label: 'Status',
+        labels: STATUS_LABELS,
+        match: (value) => {
+          if (value === 'unlisted') return {isListed: false};
+          return BANDS[value] ? {isListed: true, ...BANDS[value]} : {};
+        },
+      },
+    },
+  });
+}
 function readFilters(query = {}) {
-  return {
-    q: typeof query.q === 'string' ? query.q.trim().slice(0, 80) : '',
-    category:
-      typeof query.category === 'string' &&
-      mongoose.isValidObjectId(query.category)
-        ? query.category
-        : '',
-    status: STATUSES.includes(query.status) ? query.status : 'all',
-    sort: Object.hasOwn(SORTS, query.sort) ? query.sort : 'stock_asc',
-    page: toPositiveInt(query.page, 1),
-  };
+  const {limit: _limit, ...filters} = readInventoryList(query).filters;
+  return filters;
 }
 
 function filterFrom(filters) {
-  const filter = {};
-  if (filters.q)
-    filter.$or = [
-      {name: new RegExp(escapeRegex(filters.q), 'i')},
-      {brand: new RegExp(escapeRegex(filters.q), 'i')},
-    ];
-  if (filters.category) filter.category = filters.category;
-  if (filters.status === 'unlisted') filter.isListed = false;
-  else if (BANDS[filters.status])
-    Object.assign(filter, {isListed: true}, BANDS[filters.status]);
-  return filter;
+  return readInventoryList(filters).mongo;
 }
 
 function toRow(product) {
@@ -154,16 +162,15 @@ async function totals() {
 }
 
 async function listInventory(query = {}) {
-  const size = pageSize(query, PAGE_SIZE);
-  const filters = readFilters(query);
-  filters.limit = size === PAGE_SIZE ? '' : size;
-  const filter = filterFrom(filters);
+  const list = readInventoryList(query);
+  const {filters, size} = list;
+  const filter = list.mongo;
   // stockValue is worked out in the query, so sorting by it stays a database job.
   const pipeline = [
     {$match: filter},
     {$addFields: {stockValue: {$multiply: ['$stock', '$price']}}},
-    {$sort: SORTS[filters.sort].order},
-    {$skip: (filters.page - 1) * size},
+    {$sort: list.order},
+    {$skip: list.skip},
     {$limit: size},
     {
       $lookup: {
@@ -182,19 +189,25 @@ async function listInventory(query = {}) {
     totals(),
     Category.find().sort({sortOrder: 1, name: 1}).select('name').lean(),
   ]);
+  const waiting = await StockAlert.aggregate([
+    {$match: {product: {$in: rows.map((row) => row._id)}, notifiedAt: null}},
+    {$group: {_id: '$product', count: {$sum: 1}}},
+  ]);
+  const waitingCounts = new Map(
+    waiting.map((row) => [String(row._id), row.count]),
+  );
   return {
-    products: rows.map(toRow),
+    products: rows.map((row) => ({
+      ...toRow(row),
+      waiting: waitingCounts.get(String(row._id)) || 0,
+    })),
     filters,
     totals: sums,
     categories,
     sorts: SORTS,
     statusLabels: STATUS_LABELS,
-    pagination: {
-      page: filters.page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
-    },
+    chips: list.chips,
+    pagination: list.pagination(total),
   };
 }
 
@@ -320,11 +333,11 @@ async function adjustStock(
   let filter = {_id: productId, 'variants.0': {$exists: false}};
   let update;
   if (action === 'add') {
-    filter = {_id: productId, stock: {$lte: MAX_STOCK - units}};
+    filter = {...filter, stock: {$lte: MAX_STOCK - units}};
     update = {$inc: {stock: units}};
   } else if (action === 'remove') {
     // Only takes units that are really there, so stock can never go negative.
-    filter = {_id: productId, stock: {$gte: units}};
+    filter = {...filter, stock: {$gte: units}};
     update = {$inc: {stock: -units}};
   } else {
     update = {$set: {stock: units}};
@@ -368,7 +381,35 @@ function cursorFor(query = {}) {
   };
 }
 
+async function stockHistory(productId) {
+  if (
+    !mongoose.isValidObjectId(productId) ||
+    !(await Product.exists({_id: productId}))
+  )
+    throw new HttpError(404, 'Product not found.');
+  const rows = await AuditLog.find({
+    target: `product:${productId}`,
+    action: 'inventory.stock_changed',
+  })
+    .sort({at: -1, _id: -1})
+    .limit(50)
+    .populate('actor', 'name')
+    .lean();
+  return rows.map((row) => ({
+    id: String(row._id),
+    at: row.at,
+    actor: row.actor?.name || 'System',
+    before: row.before?.stock,
+    after: row.after?.stock,
+    action: row.after?.action || '',
+    reason: row.after?.reason || 'Stock correction',
+    note: row.after?.note || '',
+    option: row.after?.option || '',
+  }));
+}
+
 module.exports = {
+  stockHistory,
   PAGE_SIZE,
   MAX_STOCK,
   STATUSES,

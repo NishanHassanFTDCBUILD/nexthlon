@@ -9,9 +9,9 @@ const Coupon = require('../models/Coupon');
 const CouponRedemption = require('../models/CouponRedemption');
 const Order = require('../models/Order');
 const {HttpError} = require('../utils/http');
-const {escapeRegex, toPositiveInt} = require('./productService');
+const {toPositiveInt} = require('./productService');
 const {describe} = require('./couponService');
-const {pageSize} = require('../utils/paging');
+const {runList} = require('../utils/listQuery');
 
 const PAGE_SIZE = 20;
 const STATUSES = [
@@ -122,24 +122,24 @@ function statusFilter(status, now) {
 }
 
 async function listCoupons(query = {}, now = new Date()) {
-  const size = pageSize(query, PAGE_SIZE);
-  const filters = readFilters(query);
-  filters.limit = size === PAGE_SIZE ? '' : size;
-  const filter = {...LIVE, ...statusFilter(filters.status, now)};
-  if (filters.q) {
-    const pattern = new RegExp(escapeRegex(filters.q), 'i');
-    filter.$and = [
-      ...(filter.$and || []),
-      {$or: [{code: pattern}, {description: pattern}]},
-    ];
-  }
-  const [rows, total, counts, given] = await Promise.all([
-    Coupon.find(filter)
-      .sort(SORTS[filters.sort].order)
-      .skip((filters.page - 1) * size)
-      .limit(size)
-      .lean(),
-    Coupon.countDocuments(filter),
+  const [result, counts, given] = await Promise.all([
+    runList(Coupon, query, {
+      pageSize: PAGE_SIZE,
+      searchMax: 40,
+      searchFields: ['code', 'description'],
+      defaultSort: 'newest',
+      sorts: SORTS,
+      baseFilter: LIVE,
+      fields: {
+        status: {
+          values: STATUSES,
+          default: 'all',
+          label: 'Status',
+          labels: STATUS_LABELS,
+          match: (value) => statusFilter(value, now),
+        },
+      },
+    }),
     Coupon.find(LIVE)
       .select('isActive startsAt endsAt usageLimit usedCount')
       .lean(),
@@ -148,6 +148,7 @@ async function listCoupons(query = {}, now = new Date()) {
       {$group: {_id: null, discount: {$sum: '$discount'}, uses: {$sum: 1}}},
     ]),
   ]);
+  const {rows, ...list} = result;
   const tally = {
     all: counts.length,
     active: 0,
@@ -161,19 +162,13 @@ async function listCoupons(query = {}, now = new Date()) {
   });
   return {
     coupons: rows.map((coupon) => toAdminCoupon(coupon, now)),
-    filters,
+    ...list,
     sorts: SORTS,
     statusLabels: STATUS_LABELS,
     totals: {
       ...tally,
       discountGiven: given[0] ? given[0].discount : 0,
       uses: given[0] ? given[0].uses : 0,
-    },
-    pagination: {
-      page: filters.page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
     },
   };
 }

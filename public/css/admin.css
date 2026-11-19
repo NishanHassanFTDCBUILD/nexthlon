@@ -3309,6 +3309,7 @@ body.admin-menu-open {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-1);
   padding-top: var(--space-1h);
   border-top: 1px solid var(--line);
@@ -3322,7 +3323,37 @@ body.admin-menu-open {
   grid-column: 1 / -1;
 }
 
+.admin-body .admin-chips {
+  min-width: 0;
+}
+
+.admin-body .admin-chip {
+  min-height: var(--tap);
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.admin-body .admin-more-panel .admin-field select {
+  width: 100%;
+  max-width: none;
+  min-height: var(--tap);
+}
+
+.admin-body .inv-set .admin-field {
+  flex: 1 1 100%;
+}
+
+.admin-body .inv-set input,
+.admin-body .inv-set select {
+  max-width: 100%;
+  min-width: 0;
+}
+
 /* ---------- The table ---------- */
+.admin-body .admin-table [hidden] {
+  display: none;
+}
+
 .admin-body .admin-table-panel {
   border-radius: var(--radius);
 }
@@ -3506,6 +3537,11 @@ body.admin-menu-open {
     grid-template-columns: minmax(0, 1fr);
     width: 100%;
     margin-top: var(--space-1);
+  }
+
+  .admin-more-filters[open] {
+    flex-basis: 100%;
+    min-width: 0;
   }
 
   .admin-pager-pages {

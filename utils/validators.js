@@ -908,6 +908,18 @@ function validateStockChange(body = {}) {
     typeof body.units === 'number' ? String(body.units) : text(body.units);
   const units = /^\d{1,6}$/.test(raw) ? Number(raw) : NaN;
   const note = text(body.note).slice(0, 120);
+  const reasons = [
+    'restock',
+    'damage',
+    'return',
+    'stock_count',
+    'sale_correction',
+    'other',
+  ];
+  const reason =
+    text(body.reason) || (action === 'count' ? 'stock_count' : 'other');
+  if (!reasons.includes(reason))
+    errors.reason = 'Choose a stock change reason.';
   if (!['add', 'remove', 'count'].includes(action))
     errors.action = 'Choose add, remove or set.';
   if (!Number.isInteger(units) || units > 100000)
@@ -918,7 +930,7 @@ function validateStockChange(body = {}) {
   const optionId = OBJECT_ID.test(text(body.optionId))
     ? text(body.optionId)
     : null;
-  return {errors, value: {action, units, note, optionId}};
+  return {errors, value: {action, units, note, reason, optionId}};
 }
 
 // A date and time from a datetime-local input ("2026-11-19T09:30"), read as Indian time.

@@ -16,53 +16,14 @@
       </div>
     </header>
 
-    <form class="toolbar admin-filters" action="<%= adminPath %>/products" method="get" data-admin-filters>
-      <div class="toolbar-search">
-        <label class="sr-only" for="product-search">Search products by name</label>
-        <%- icon('search', 'i-sm') %>
-        <input id="product-search" type="search" name="q" value="<%= filters.q %>" placeholder="Search by product name" maxlength="80">
-        <% if (filters.q) { %>
-          <a class="icon-btn icon-btn-sm" href="<%= link({ q: '', page: '' }) %>" aria-label="Clear search"><%- icon('x', 'i-sm') %></a>
-        <% } %>
-        <button class="btn btn-primary btn-sm" type="submit">Search</button>
-      </div>
-      <div class="admin-filter-selects">
-        <label class="select-wrap">
-          <span class="sr-only">Category</span>
-          <select name="category" data-auto-submit-field>
-            <option value="">All categories</option>
-            <% categories.forEach(function (c) { %>
-              <option value="<%= c._id %>" <%= filters.category === String(c._id) ? 'selected' : '' %>><%= c.name %></option>
-            <% }) %>
-          </select>
-          <%- icon('chevron-down', 'i-xs') %>
-        </label>
-        <label class="select-wrap">
-          <span class="sr-only">Status</span>
-          <select name="status" data-auto-submit-field>
-            <option value="" <%= filters.status === 'all' ? 'selected' : '' %>>Any status</option>
-            <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
-            <option value="low" <%= filters.status === 'low' ? 'selected' : '' %>>Low stock</option>
-            <option value="unlisted" <%= filters.status === 'unlisted' ? 'selected' : '' %>>Unlisted</option>
-            <option value="out" <%= filters.status === 'out' ? 'selected' : '' %>>Out of stock</option>
-          </select>
-          <%- icon('chevron-down', 'i-xs') %>
-        </label>
-        <label class="select-wrap">
-          <span class="sr-only">Sort by</span>
-          <select name="sort" data-auto-submit-field>
-            <% Object.entries(sorts).forEach(function ([key, option]) { %>
-              <option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= option.label %></option>
-            <% }) %>
-          </select>
-          <%- icon('chevron-down', 'i-xs') %>
-        </label>
-      </div>
-    </form>
+    <%- include('../partials/admin-list-toolbar', { section: 'products', searchMax: 80, searchHint: 'Search by product name', sorts, fields: [
+{ key: 'category', label: 'Category', options: [['', 'All categories'], ...categories.map(function (c) { return [String(c._id), c.name]; })] },
+{ key: 'status', label: 'Status', options: [['', 'Any status'], ['active', 'Active'], ['low', 'Low stock'], ['unlisted', 'Unlisted'], ['out', 'Out of stock']] }
+] }) %>
 
-    <% if (filtered) { %>
-      <p class="filter-note">Filters are on · <a href="<%= adminPath %>/products">Show all products</a></p>
-    <% } %>
+
+
+
 
     <section class="panel panel-flush admin-table-panel" aria-label="Product list" data-results>
       <span class="loading-bar" aria-hidden="true"></span>
@@ -71,8 +32,8 @@
           <table class="table table-stack admin-table product-table">
             <thead>
               <tr>
-                <th scope="col">Product</th><th scope="col">Price</th><th scope="col">M.R.P.</th>
-                <th scope="col">Discount</th><th scope="col">Stock</th><th scope="col">Status</th>
+                <%- include('../partials/admin-sort-header', { label: 'Product', asc: 'name_asc', desc: '' }) %><%- include('../partials/admin-sort-header', { label: 'Price', asc: 'price_asc', desc: 'price_desc' }) %><th scope="col">M.R.P.</th>
+                <th scope="col">Discount</th><%- include('../partials/admin-sort-header', { label: 'Stock', asc: 'stock_asc', desc: '' }) %><th scope="col">Status</th>
                 <th scope="col"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>

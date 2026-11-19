@@ -17,8 +17,8 @@ const User = require('../models/User');
 const WalletTransaction = require('../models/WalletTransaction');
 const {PAID_STATUSES} = require('../utils/orderRules');
 const {HttpError} = require('../utils/http');
-const {escapeRegex, toPositiveInt} = require('./productService');
-const {pageSize} = require('../utils/paging');
+const {escapeRegex} = require('./productService');
+const {readListQuery} = require('../utils/listQuery');
 
 const PAGE_SIZE = 25;
 const IST_MS = 330 * 60 * 1000;
@@ -242,16 +242,35 @@ function unionPipeline(sourceId = null, onlyTypes = null) {
 }
 
 // ---------- Filters ----------
+const SORTS = {
+  newest: {label: 'Newest first', order: {at: -1, id: -1}},
+  oldest: {label: 'Oldest first', order: {at: 1, id: 1}},
+  amount_desc: {label: 'Amount: high to low', order: {amount: -1, at: -1}},
+  amount_asc: {label: 'Amount: low to high', order: {amount: 1, at: -1}},
+};
+function readLedgerList(query = {}) {
+  return readListQuery(query, {
+    pageSize: PAGE_SIZE,
+    searchMax: 60,
+    defaultSort: 'newest',
+    sorts: SORTS,
+    stableKey: 'id',
+    fields: {
+      type: {values: TYPES, default: 'all', label: 'Type', labels: TYPE_LABELS},
+      status: {values: STATUSES, default: 'all', label: 'Status'},
+      method: {values: METHODS, default: 'all', label: 'Method'},
+      from: {validate: istDay, label: 'From'},
+      to: {validate: istDay, label: 'To'},
+    },
+  });
+}
 function readFilters(query = {}) {
-  return {
-    type: TYPES.includes(query.type) ? query.type : 'all',
-    status: STATUSES.includes(query.status) ? query.status : 'all',
-    method: METHODS.includes(query.method) ? query.method : 'all',
-    from: istDay(query.from) ? query.from : '',
-    to: istDay(query.to) ? query.to : '',
-    q: typeof query.q === 'string' ? query.q.trim().slice(0, 60) : '',
-    page: toPositiveInt(query.page, 1),
-  };
+  const {
+    limit: _limit,
+    sort: _sort,
+    ...filters
+  } = readLedgerList(query).filters;
+  return filters;
 }
 
 async function matchStage(filters) {
@@ -293,9 +312,8 @@ const withCustomer = [
 ];
 
 async function listTransactions(query = {}) {
-  const size = pageSize(query, PAGE_SIZE);
-  const filters = readFilters(query);
-  filters.limit = size === PAGE_SIZE ? '' : size;
+  const list = readLedgerList(query);
+  const {filters, size} = list;
   const onlyTypes = filters.type === 'all' ? null : [filters.type];
   const [result] = await Order.aggregate([
     ...unionPipeline(null, onlyTypes),
@@ -303,8 +321,8 @@ async function listTransactions(query = {}) {
     {
       $facet: {
         rows: [
-          {$sort: {at: -1, id: -1}},
-          {$skip: (filters.page - 1) * size},
+          {$sort: list.order},
+          {$skip: list.skip},
           {$limit: size},
           ...withCustomer,
         ],
@@ -333,12 +351,9 @@ async function listTransactions(query = {}) {
       other: sum('none'),
     },
     filters,
-    pagination: {
-      page: filters.page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
-    },
+    chips: list.chips,
+    sorts: list.sorts,
+    pagination: list.pagination(total),
   };
 }
 
@@ -416,9 +431,8 @@ async function getTransaction(id) {
 
 // ---------- Refunds ----------
 async function listRefunds(query = {}) {
-  const size = pageSize(query, PAGE_SIZE);
-  const filters = readFilters({...query, type: 'refund'});
-  filters.limit = size === PAGE_SIZE ? '' : size;
+  const list = readLedgerList({...query, type: 'refund'});
+  const {filters, size} = list;
   const statuses = ['pending', 'processed', 'failed'];
   const status = statuses.includes(query.status) ? query.status : 'all';
   const match = await matchStage({...filters, status: 'all'});
@@ -429,8 +443,8 @@ async function listRefunds(query = {}) {
     {
       $facet: {
         rows: [
-          {$sort: {at: -1, id: -1}},
-          {$skip: (filters.page - 1) * size},
+          {$sort: list.order},
+          {$skip: list.skip},
           {$limit: size},
           ...withCustomer,
         ],
@@ -457,12 +471,9 @@ async function listRefunds(query = {}) {
       ]),
     ),
     filters: {...filters, status},
-    pagination: {
-      page: filters.page,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
-    },
+    chips: list.chips,
+    sorts: list.sorts,
+    pagination: list.pagination(total),
   };
 }
 

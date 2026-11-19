@@ -1,5 +1,9 @@
 # Nexthlon Admin: the complete plan (marketplace-grade console)
 
+Scope update (2026-11-19): the user removed the Columns chooser and Row height
+controls. Omit B4 and B9 from implementation; keep every column visible and use
+the standard row height. Sorting and filtering remain in scope.
+
 Goal: an admin panel at the level of a big marketplace's seller console. Every list is fast and
 filterable, every record has a full page and a history, bulk work takes one click, staff have
 roles, and every number can be exported. Built on the stack we already have (Express, EJS,

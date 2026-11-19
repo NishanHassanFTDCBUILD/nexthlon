@@ -30,30 +30,19 @@
   <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>"><%= label %><% if (key !== 'all' && totals[key]) { %> <span class="admin-tab-count"><%= totals[key] %></span><% } %></a><% }) %>
 </nav>
 
-<form class="admin-filterbar" action="<%= adminPath %>/coupons" method="get">
-  <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
-  <div class="admin-filter-search">
-    <%- icon('search', 'i-sm') %>
-    <label class="sr-only" for="cp-q">Search coupons</label>
-    <input id="cp-q" type="search" name="q" value="<%= filters.q %>" maxlength="40" placeholder="Code or description">
-  </div>
-  <label class="admin-field"><span>Sort</span>
-    <select name="sort" data-auto-submit>
-      <% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %>
-    </select>
-  </label>
-  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
-</form>
+<%- include('../partials/admin-list-toolbar', { section: 'coupons', searchMax: 40, searchHint: 'Code or description', sorts, fields: [{ key: 'status', label: 'Status', options: [['', 'Any status'], ...tabs.filter(function (t) { return t[0] !== 'all'; })] }] }) %>
+
+
 
 <section class="panel panel-flush admin-table-panel" aria-label="Coupons">
   <% if (coupons.length) { %>
     <div class="table-wrap admin-table-scroll">
       <table class="table table-stack admin-table">
         <thead><tr>
-          <th scope="col">Code</th><th scope="col">Discount</th>
+          <%- include('../partials/admin-sort-header', { label: 'Code', asc: 'code_asc', desc: '' }) %><th scope="col">Discount</th>
           <th scope="col" class="cell-num">Minimum order</th><th scope="col" class="cell-num">Cap</th>
-          <th scope="col">Runs</th><th scope="col">Limits</th>
-          <th scope="col" class="cell-num">Used</th><th scope="col">Status</th>
+          <%- include('../partials/admin-sort-header', { label: 'Runs', asc: 'ending', desc: '' }) %><th scope="col">Limits</th>
+          <%- include('../partials/admin-sort-header', { label: 'Used', asc: '', desc: 'used_desc' }) %><th scope="col">Status</th>
           <th scope="col" class="cell-action">Actions</th>
         </tr></thead>
         <tbody>

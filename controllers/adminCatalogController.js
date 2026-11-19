@@ -1,6 +1,7 @@
 // The admin API for the Catalog group: inventory corrections, plus the System status check.
 // Every change is written to the audit log, so there is always a record of who changed what.
 const inventoryService = require('../services/inventoryService');
+const inventoryImportService = require('../services/inventoryImportService');
 const systemService = require('../services/systemService');
 const auditService = require('../services/auditService');
 const stockAlertService = require('../services/stockAlertService');
@@ -43,6 +44,7 @@ async function applyChange(req, productId, value) {
       action: value.action,
       units: value.units,
       note: value.note,
+      reason: value.reason,
       ...(result.option
         ? {option: result.option.label, optionId: result.option.id}
         : {}),
@@ -76,6 +78,49 @@ const adjustStock = asyncHandler(async (req, res) => {
   });
 });
 
+const stockHistory = asyncHandler(async (req, res) => {
+  res.json({
+    entries: await inventoryService.stockHistory(req.params.productId),
+  });
+});
+
+const previewRestock = asyncHandler(async (req, res) => {
+  const result = await inventoryImportService.preview(req.body, req.user._id);
+  if (result.batchId)
+    await auditService.record({
+      ...auditService.fromRequest(req),
+      action: 'inventory.import_prepared',
+      target: `inventory_batch:${result.batchId}`,
+      after: {rows: result.rows.length},
+    });
+  res.json(result);
+});
+
+const applyRestock = asyncHandler(async (req, res) => {
+  const result = await inventoryImportService.apply(
+    req.params.batchId,
+    req.user._id,
+    (productId, value) => applyChange(req, productId, value),
+  );
+  await auditService.record({
+    ...auditService.fromRequest(req),
+    action: 'inventory.import_completed',
+    target: `inventory_batch:${req.params.batchId}`,
+    after: {
+      applied: result.results.filter((row) => row.status === 'applied').length,
+      review: result.results.filter((row) => row.status !== 'applied').length,
+    },
+  });
+  res.json(result);
+});
+
+const restockTemplate = (req, res) => {
+  res
+    .type('text/csv')
+    .attachment('nexthlon-restock-template.csv')
+    .send(row(inventoryImportService.COLUMNS));
+};
+
 // GET /api/admin/inventory/export.csv?...   One line per product that matches the filters.
 const exportInventory = asyncHandler(async (req, res) => {
   const {cursor} = inventoryService.cursorFor(req.query);
@@ -98,6 +143,8 @@ const exportInventory = asyncHandler(async (req, res) => {
       'Selling price (Rs)',
       'Stock value (Rs)',
       'Last changed',
+      'productId',
+      'optionId',
     ]),
   );
   for await (const product of cursor) {
@@ -115,6 +162,8 @@ const exportInventory = asyncHandler(async (req, res) => {
         rupees(product.price),
         rupees(item.stock * product.price),
         product.updatedAt ? new Date(product.updatedAt).toISOString() : '',
+        String(product._id),
+        item === product ? '' : String(item._id),
       ]);
     const options = product.variants || [];
     res.write(line(options.length ? 'All' : '', product));
@@ -131,6 +180,10 @@ const systemStatus = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  previewRestock,
+  applyRestock,
+  restockTemplate,
+  stockHistory,
   listInventory,
   adjustStock,
   exportInventory,
