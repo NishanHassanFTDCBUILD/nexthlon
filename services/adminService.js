@@ -8,6 +8,7 @@ const {HttpError} = require('../utils/http');
 const {escapeRegex, toPositiveInt} = require('./productService');
 const refreshTokenService = require('./refreshTokenService');
 const {LISTED_PRODUCT} = require('../utils/queryFilters');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 15;
 
@@ -68,6 +69,7 @@ function publicCustomer(user) {
 }
 
 async function listCustomers(query = {}) {
+  const size = pageSize(query, PAGE_SIZE);
   const page = toPositiveInt(query.page, 1);
   const q = typeof query.q === 'string' ? query.q.trim().slice(0, 80) : '';
   const status = ['active', 'blocked'].includes(query.status)
@@ -84,8 +86,8 @@ async function listCustomers(query = {}) {
   const [users, total] = await Promise.all([
     User.find(filter)
       .sort({createdAt: -1})
-      .skip((page - 1) * PAGE_SIZE)
-      .limit(PAGE_SIZE)
+      .skip((page - 1) * size)
+      .limit(size)
       .lean(),
     User.countDocuments(filter),
   ]);
@@ -94,11 +96,11 @@ async function listCustomers(query = {}) {
     customers: await customersWithWallets(users),
     pagination: {
       page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
-    filters: {q, status},
+    filters: {q, status, limit: size === PAGE_SIZE ? '' : size},
   };
 }
 

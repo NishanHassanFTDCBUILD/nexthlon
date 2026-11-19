@@ -15,6 +15,7 @@ const {PRICE_PIPELINE} = require('../utils/pricing');
 const {LISTED_PRODUCT} = require('../utils/queryFilters');
 const {HttpError} = require('../utils/http');
 const logger = require('../utils/logger');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 20;
 const STATUSES = ['all', 'live', 'scheduled', 'ended', 'disabled'];
@@ -112,7 +113,9 @@ const PRODUCT_FIELDS = 'name slug image basePrice mrp price stock isListed';
 
 // GET the admin list: filters, totals per status, and one page of deals.
 async function listDeals(query = {}, now = new Date()) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readFilters(query);
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const filter = statusFilter(filters.status, now);
   if (filters.q) {
     const ids = await Product.find({
@@ -123,8 +126,8 @@ async function listDeals(query = {}, now = new Date()) {
   const [rows, total, counts] = await Promise.all([
     Deal.find(filter)
       .sort(SORTS[filters.sort].order)
-      .skip((filters.page - 1) * PAGE_SIZE)
-      .limit(PAGE_SIZE)
+      .skip((filters.page - 1) * size)
+      .limit(size)
       .populate('product', PRODUCT_FIELDS)
       .lean(),
     Deal.countDocuments(filter),
@@ -141,9 +144,9 @@ async function listDeals(query = {}, now = new Date()) {
     totals: {live, scheduled, ended, disabled},
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }

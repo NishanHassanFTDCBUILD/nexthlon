@@ -315,7 +315,22 @@ test('categories: the list pages and filters', async () => {
   const page = await call('GET', '/admin/categories?page=2&sort=name', {
     cookie: adminCookie,
   });
-  assert.match(page.data, /class="pagination"/);
+  assert.match(page.data, /class="admin-pager"/);
+  assert.match(
+    page.data,
+    /Showing <strong>21–23<\/strong> of <strong>23<\/strong>/,
+  );
+  // Rows per page: 50 fits every category on one page.
+  const wide = await call('GET', '/api/admin/categories?limit=50', {
+    cookie: adminCookie,
+  });
+  assert.equal(wide.data.categories.length, 23);
+  assert.equal(wide.data.pagination.limit, 50);
+  // Anything other than 20, 50 or 100 falls back to the usual size.
+  const odd = await call('GET', '/api/admin/categories?limit=5000', {
+    cookie: adminCookie,
+  });
+  assert.equal(odd.data.pagination.limit, 20);
   await Category.deleteMany({slug: /^sport-/});
 });
 

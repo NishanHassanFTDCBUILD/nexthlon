@@ -18,6 +18,7 @@ const WalletTransaction = require('../models/WalletTransaction');
 const {PAID_STATUSES} = require('../utils/orderRules');
 const {HttpError} = require('../utils/http');
 const {escapeRegex, toPositiveInt} = require('./productService');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 25;
 const IST_MS = 330 * 60 * 1000;
@@ -292,7 +293,9 @@ const withCustomer = [
 ];
 
 async function listTransactions(query = {}) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readFilters(query);
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const onlyTypes = filters.type === 'all' ? null : [filters.type];
   const [result] = await Order.aggregate([
     ...unionPipeline(null, onlyTypes),
@@ -301,8 +304,8 @@ async function listTransactions(query = {}) {
       $facet: {
         rows: [
           {$sort: {at: -1, id: -1}},
-          {$skip: (filters.page - 1) * PAGE_SIZE},
-          {$limit: PAGE_SIZE},
+          {$skip: (filters.page - 1) * size},
+          {$limit: size},
           ...withCustomer,
         ],
         totals: [
@@ -332,9 +335,9 @@ async function listTransactions(query = {}) {
     filters,
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }
@@ -413,7 +416,9 @@ async function getTransaction(id) {
 
 // ---------- Refunds ----------
 async function listRefunds(query = {}) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readFilters({...query, type: 'refund'});
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const statuses = ['pending', 'processed', 'failed'];
   const status = statuses.includes(query.status) ? query.status : 'all';
   const match = await matchStage({...filters, status: 'all'});
@@ -425,8 +430,8 @@ async function listRefunds(query = {}) {
       $facet: {
         rows: [
           {$sort: {at: -1, id: -1}},
-          {$skip: (filters.page - 1) * PAGE_SIZE},
-          {$limit: PAGE_SIZE},
+          {$skip: (filters.page - 1) * size},
+          {$limit: size},
           ...withCustomer,
         ],
         byStatus: [
@@ -454,9 +459,9 @@ async function listRefunds(query = {}) {
     filters: {...filters, status},
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }

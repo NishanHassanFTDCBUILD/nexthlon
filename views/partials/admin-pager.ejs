@@ -1,0 +1,56 @@
+<%#
+  The footer of every admin table: "Showing 21–40 of 132", rows per page, and page links.
+  Needs pagination { page, pages, total, limit } and link(overrides) from the page.
+  Rows per page is a plain GET form, so it works without JavaScript too.
+%>
+<%
+  const pg = pagination;
+  const size = pg.limit || 20;
+  const first = pg.total ? (pg.page - 1) * size + 1 : 0;
+  const last = Math.min(pg.page * size, pg.total);
+  const pageList = [];
+  for (let n = 1; n <= pg.pages; n++) {
+    if (n === 1 || n === pg.pages || Math.abs(n - pg.page) <= 1) pageList.push(n);
+    else if (pageList[pageList.length - 1] !== '…') pageList.push('…');
+  }
+  // The current address without page and limit, as hidden fields for the rows-per-page form.
+  const keep = new URL(link({ page: '', limit: '' }), 'http://x').searchParams;
+%>
+<% if (pg.total > 0) { %>
+  <div class="admin-pager">
+    <p class="admin-pager-count" aria-live="polite">Showing <strong><%= first.toLocaleString('en-IN') %>–<%= last.toLocaleString('en-IN') %></strong> of <strong><%= pg.total.toLocaleString('en-IN') %></strong></p>
+
+    <form class="admin-pager-size" method="get" action="<%= link({ page: '', limit: '' }).split('?')[0] %>">
+      <% keep.forEach(function (value, key) { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% }) %>
+      <label for="pager-size-<%= pg.page %>-<%= pg.total %>">Rows</label>
+      <span class="select-wrap">
+        <select id="pager-size-<%= pg.page %>-<%= pg.total %>" name="limit" data-auto-submit>
+          <% [20, 50, 100].forEach(function (n) { %><option value="<%= n %>" <%= n === size ? 'selected' : '' %>><%= n %></option><% }) %>
+        </select>
+      </span>
+      <noscript><button class="btn btn-ghost btn-sm" type="submit">Go</button></noscript>
+    </form>
+
+    <% if (pg.pages > 1) { %>
+      <nav class="admin-pager-pages" aria-label="Pages">
+        <% if (pg.page > 1) { %>
+          <a class="admin-pager-step" href="<%= link({ page: pg.page - 1 }) %>" rel="prev" aria-label="Previous page"><%- icon('chevron-left', 'i-sm') %></a>
+        <% } else { %>
+          <span class="admin-pager-step is-disabled" aria-hidden="true"><%- icon('chevron-left', 'i-sm') %></span>
+        <% } %>
+        <% pageList.forEach(function (n) { %>
+          <% if (n === '…') { %>
+            <span class="admin-pager-gap" aria-hidden="true">…</span>
+          <% } else { %>
+            <a href="<%= link({ page: n === 1 ? '' : n }) %>" class="admin-pager-num<%= n === pg.page ? ' is-current' : '' %>" <%- n === pg.page ? 'aria-current="page"' : '' %> aria-label="Page <%= n %>"><%= n %></a>
+          <% } %>
+        <% }) %>
+        <% if (pg.page < pg.pages) { %>
+          <a class="admin-pager-step" href="<%= link({ page: pg.page + 1 }) %>" rel="next" aria-label="Next page"><%- icon('chevron-right', 'i-sm') %></a>
+        <% } else { %>
+          <span class="admin-pager-step is-disabled" aria-hidden="true"><%- icon('chevron-right', 'i-sm') %></span>
+        <% } %>
+      </nav>
+    <% } %>
+  </div>
+<% } %>

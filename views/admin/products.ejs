@@ -64,11 +64,11 @@
       <p class="filter-note">Filters are on · <a href="<%= adminPath %>/products">Show all products</a></p>
     <% } %>
 
-    <section class="panel panel-flush" aria-label="Product list" data-results>
+    <section class="panel panel-flush admin-table-panel" aria-label="Product list" data-results>
       <span class="loading-bar" aria-hidden="true"></span>
       <% if (products.length) { %>
         <div class="table-wrap">
-          <table class="table table-stack product-table">
+          <table class="table table-stack admin-table product-table">
             <thead>
               <tr>
                 <th scope="col">Product</th><th scope="col">Price</th><th scope="col">M.R.P.</th>
@@ -113,7 +113,6 @@
           <% } %>
         </div>
       <% } %>
+      <%- include('../partials/admin-pager') %>
     </section>
-
-    <%- include('../partials/pagination', { pagination: pagination, link: link }) %>
 <%- include('../partials/admin-end') %>

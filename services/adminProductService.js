@@ -8,6 +8,7 @@ const {slugify} = require('../utils/slug');
 const {suggestTax} = require('../utils/gst');
 const {escapeRegex, toPositiveInt} = require('./productService');
 const imageService = require('./imageService');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 10;
 const STATUSES = ['all', 'active', 'low', 'unlisted', 'out'];
@@ -112,7 +113,9 @@ function readAdminFilters(query = {}) {
 }
 
 async function listAdminProducts(query) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readAdminFilters(query);
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const filter = {};
   if (filters.q) filter.name = new RegExp(escapeRegex(filters.q), 'i');
   if (filters.category) filter.category = filters.category;
@@ -130,8 +133,8 @@ async function listAdminProducts(query) {
   const [products, total] = await Promise.all([
     Product.find(filter)
       .sort(ADMIN_SORTS[filters.sort].order)
-      .skip((filters.page - 1) * PAGE_SIZE)
-      .limit(PAGE_SIZE)
+      .skip((filters.page - 1) * size)
+      .limit(size)
       .populate('category', 'name')
       .lean(),
     Product.countDocuments(filter),
@@ -142,9 +145,9 @@ async function listAdminProducts(query) {
     filters,
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }

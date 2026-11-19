@@ -9,8 +9,8 @@
 <%- include('../partials/admin-start', { section: 'customers' }) %>
     <header class="admin-top">
       <div>
-        <span class="section-kicker">Customers</span>
-        <h1>Users</h1>
+        <span class="section-kicker">People</span>
+        <h1>Customers</h1>
         <p class="muted"><%= pagination.total %> <%= pagination.total === 1 ? 'customer' : 'customers' %> found. Blocked customers cannot sign in or use their account.</p>
       </div>
     </header>
@@ -37,10 +37,10 @@
       <p class="filter-note">Showing results for <strong>"<%= filters.q %>"</strong> · <a href="<%= link({ q: '', page: '' }) %>">Clear search</a></p>
     <% } %>
 
-    <section class="panel panel-flush" aria-label="Customer list">
+    <section class="panel panel-flush admin-table-panel" aria-label="Customer list">
       <% if (customers.length) { %>
         <div class="table-wrap">
-          <table class="table table-stack">
+          <table class="table table-stack admin-table">
             <thead>
               <tr><th scope="col">Customer</th><th scope="col">Phone</th><th scope="col">Joined</th><th scope="col">Last sign-in</th><th scope="col">Status</th><th scope="col">Wallet</th><th scope="col"><span class="sr-only">Action</span></th></tr>
             </thead>
@@ -54,7 +54,7 @@
                   <td data-label="Status"><span class="pill <%= c.isBlocked ? 'pill-red' : 'pill-green' %>" data-status><%= c.isBlocked ? 'Blocked' : 'Active' %></span></td>
                   <td data-label="Wallet"><%= formatPrice(c.walletBalance) %></td>
                   <td class="cell-action">
-                    <a class="btn btn-secondary btn-sm" href="<%= adminPath %>/customers/<%= c.id %>/wallet">Manage wallet</a>
+                    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/customers/<%= c.id %>/wallet" aria-label="Wallet of <%= c.name %>"><%- icon('wallet', 'i-xs') %> Wallet</a>
                     <button type="button" class="btn btn-sm <%= c.isBlocked ? 'btn-secondary' : 'btn-danger-soft' %>"
                             data-block-user="<%= c.id %>" data-blocked="<%= c.isBlocked %>" data-name="<%= c.name %>"
                             aria-label="<%= c.isBlocked ? 'Unblock' : 'Block' %> <%= c.name %>"><%= c.isBlocked ? 'Unblock' : 'Block' %></button>
@@ -72,7 +72,6 @@
           <% if (filters.q || filters.status !== 'all') { %><a class="btn btn-secondary" href="<%= adminPath %>/customers">Show all customers</a><% } %>
         </div>
       <% } %>
+      <%- include('../partials/admin-pager') %>
     </section>
-
-    <%- include('../partials/pagination') %>
 <%- include('../partials/admin-end') %>

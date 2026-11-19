@@ -51,7 +51,7 @@
         </tbody>
       </table>
     </div>
-    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+    <%- include('../partials/admin-pager') %>
   <% } else { %>
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'wallet' }) %><h2>No refunds here</h2><p>Refunds appear when orders are cancelled, returns are approved or you refund an order.</p></div>
   <% } %>

@@ -425,17 +425,28 @@
 
   // ================= Shared section behaviour =================
 
-  // Rows that open a record when clicked anywhere (used by several tables).
-  Pages.define('admin-rows', (root, signal) => {
-    root.addEventListener(
-      'click',
-      (event) => {
-        const row = event.target.closest('tr[data-row-href]');
-        if (!row || event.target.closest('a, button, input, label')) return;
-        go(row.dataset.rowHref);
-      },
-      {signal},
-    );
+  // Every admin table: a row with data-row-href opens its record when clicked anywhere that is
+  // not a control, and a select marked data-auto-submit applies its form as soon as it changes
+  // (filters, sort, rows per page). Bound once on the document, so sections loaded without a
+  // reload get it too.
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    const row = event.target.closest('.admin-content tr[data-row-href]');
+    if (
+      !row ||
+      event.target.closest('a, button, input, select, label, textarea') ||
+      String(window.getSelection && window.getSelection()).length
+    )
+      return;
+    if (event.ctrlKey || event.metaKey) {
+      window.open(row.dataset.rowHref, '_blank', 'noopener');
+      return;
+    }
+    go(row.dataset.rowHref);
+  });
+  document.addEventListener('change', (event) => {
+    const select = event.target.closest('.admin-content [data-auto-submit]');
+    if (select && select.form) select.form.requestSubmit();
   });
 
   // ---------- Customers: block and unblock without reloading ----------

@@ -11,6 +11,7 @@ const events = require('../events');
 const {hasReceived, shortName} = require('./reviewService');
 const {LISTED_PRODUCT} = require('../utils/queryFilters');
 const {HttpError} = require('../utils/http');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 5;
 const MAX_OPEN_PER_PRODUCT = 5;
@@ -148,7 +149,8 @@ async function answer(user, questionId, value) {
   return publicQuestion(updated, user._id);
 }
 
-async function adminList({status = 'waiting', page = 1} = {}) {
+async function adminList({status = 'waiting', page = 1, limit} = {}) {
+  const size = pageSize({limit}, ADMIN_PAGE_SIZE);
   const current = Math.max(1, Number.parseInt(page, 10) || 1);
   const filter =
     status === 'all'
@@ -159,8 +161,8 @@ async function adminList({status = 'waiting', page = 1} = {}) {
   const [rows, total] = await Promise.all([
     Question.find(filter)
       .sort({createdAt: -1})
-      .skip((current - 1) * ADMIN_PAGE_SIZE)
-      .limit(ADMIN_PAGE_SIZE)
+      .skip((current - 1) * size)
+      .limit(size)
       .populate('product', 'name slug image')
       .lean(),
     Question.countDocuments(filter),
@@ -180,7 +182,8 @@ async function adminList({status = 'waiting', page = 1} = {}) {
     })),
     pagination: {
       page: current,
-      pages: Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
+      limit: size,
       total,
     },
   };

@@ -607,6 +607,7 @@ const adminUsers = asyncHandler(async (req, res) => {
   const link = linkBuilder(`${config.adminPath}/customers`, {
     q: data.filters.q,
     status: data.filters.status === 'all' ? '' : data.filters.status,
+    limit: data.filters.limit,
   });
   res.render('admin/users', {
     title: 'Customers | Nexthlon Admin',
@@ -617,12 +618,13 @@ const adminUsers = asyncHandler(async (req, res) => {
 
 const adminProducts = asyncHandler(async (req, res) => {
   const data = await adminProductService.listAdminProducts(req.query);
-  const {q, category, status, sort} = data.filters;
+  const {q, category, status, sort, limit} = data.filters;
   const link = linkBuilder(`${config.adminPath}/products`, {
     q,
     category,
     status: status === 'all' ? '' : status,
     sort: sort === 'newest' ? '' : sort,
+    limit,
   });
   res.render('admin/products', {
     title: 'Products | Nexthlon Admin',

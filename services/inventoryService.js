@@ -10,6 +10,7 @@ const {RULES} = require('../config/catalog');
 const {HttpError} = require('../utils/http');
 const {escapeRegex, toPositiveInt} = require('./productService');
 const {optionLabel} = require('../utils/options');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 20;
 const MAX_STOCK = 100000;
@@ -153,15 +154,17 @@ async function totals() {
 }
 
 async function listInventory(query = {}) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readFilters(query);
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const filter = filterFrom(filters);
   // stockValue is worked out in the query, so sorting by it stays a database job.
   const pipeline = [
     {$match: filter},
     {$addFields: {stockValue: {$multiply: ['$stock', '$price']}}},
     {$sort: SORTS[filters.sort].order},
-    {$skip: (filters.page - 1) * PAGE_SIZE},
-    {$limit: PAGE_SIZE},
+    {$skip: (filters.page - 1) * size},
+    {$limit: size},
     {
       $lookup: {
         from: 'categories',
@@ -188,9 +191,9 @@ async function listInventory(query = {}) {
     statusLabels: STATUS_LABELS,
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }

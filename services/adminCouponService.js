@@ -11,6 +11,7 @@ const Order = require('../models/Order');
 const {HttpError} = require('../utils/http');
 const {escapeRegex, toPositiveInt} = require('./productService');
 const {describe} = require('./couponService');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 20;
 const STATUSES = [
@@ -121,7 +122,9 @@ function statusFilter(status, now) {
 }
 
 async function listCoupons(query = {}, now = new Date()) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readFilters(query);
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const filter = {...LIVE, ...statusFilter(filters.status, now)};
   if (filters.q) {
     const pattern = new RegExp(escapeRegex(filters.q), 'i');
@@ -133,8 +136,8 @@ async function listCoupons(query = {}, now = new Date()) {
   const [rows, total, counts, given] = await Promise.all([
     Coupon.find(filter)
       .sort(SORTS[filters.sort].order)
-      .skip((filters.page - 1) * PAGE_SIZE)
-      .limit(PAGE_SIZE)
+      .skip((filters.page - 1) * size)
+      .limit(size)
       .lean(),
     Coupon.countDocuments(filter),
     Coupon.find(LIVE)
@@ -168,9 +171,9 @@ async function listCoupons(query = {}, now = new Date()) {
     },
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }

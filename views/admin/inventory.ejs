@@ -38,7 +38,7 @@
   </form>
 </div>
 
-<section class="panel panel-flush" aria-label="Stock levels">
+<section class="panel panel-flush admin-table-panel" aria-label="Stock levels">
   <% if (products.length) { %>
     <ul class="inv-list">
       <% products.forEach(function (p) { %>
@@ -66,7 +66,7 @@
         </li>
       <% }) %>
     </ul>
-    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+    <%- include('../partials/admin-pager') %>
   <% } else { %>
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No products match</h2><p>Try another tab or search.</p></div>
   <% } %>

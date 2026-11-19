@@ -35,34 +35,8 @@
     },
   };
 
-  // Shared: a whole table row opens its page; filter selects apply as soon as they change.
-  function tableBasics(root, signal) {
-    root.addEventListener(
-      'click',
-      (event) => {
-        const row = event.target.closest('tr[data-row-href]');
-        if (
-          !row ||
-          event.target.closest('a, button, input, select, label, textarea')
-        )
-          return;
-        go(row.dataset.rowHref);
-      },
-      {signal},
-    );
-    root.addEventListener(
-      'change',
-      (event) => {
-        const select = event.target.closest('[data-auto-submit]');
-        if (select && select.form) select.form.requestSubmit();
-      },
-      {signal},
-    );
-  }
-
   // ---------- Orders ----------
   Pages.define('admin-orders', (root, signal) => {
-    tableBasics(root, signal);
     const table = root.querySelector("[data-table='orders']");
     const bar = root.querySelector('[data-bulk-bar]');
 
@@ -361,15 +335,9 @@
   });
 
   // ---------- Lists ----------
-  [
-    'admin-returns',
-    'admin-transactions',
-    'admin-transaction',
-    'admin-reconciliation',
-  ].forEach((name) => Pages.define(name, tableBasics));
+  // Returns, transactions and reconciliation need nothing beyond the shared table behaviour (admin.js).
 
   Pages.define('admin-refunds', (root, signal) => {
-    tableBasics(root, signal);
     root.addEventListener(
       'submit',
       (event) => {

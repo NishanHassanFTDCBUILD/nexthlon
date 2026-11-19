@@ -82,14 +82,14 @@
                 <button type="button" class="btn btn-sm <%= c.isActive ? 'btn-danger-soft' : 'btn-secondary' %>"
                         data-coupon-toggle="<%= c.id %>" data-active="<%= c.isActive %>" data-code="<%= c.code %>"
                         aria-label="<%= c.isActive ? 'Disable' : 'Enable' %> <%= c.code %>"><%= c.isActive ? 'Disable' : 'Enable' %></button>
-                <button type="button" class="btn btn-ghost btn-sm" data-coupon-delete="<%= c.id %>" data-code="<%= c.code %>" aria-label="Delete <%= c.code %>"><%- icon('trash', 'i-xs') %></button>
+                <button type="button" class="btn btn-ghost btn-sm btn-square" data-coupon-delete="<%= c.id %>" data-code="<%= c.code %>" aria-label="Delete <%= c.code %>"><%- icon('trash', 'i-xs') %></button>
               </div></td>
             </tr>
           <% }) %>
         </tbody>
       </table>
     </div>
-    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+    <%- include('../partials/admin-pager') %>
   <% } else { %>
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>No coupons match</h2><p>Create one and it appears at checkout for every customer who qualifies.</p><a class="btn btn-primary" href="<%= adminPath %>/coupons/new"><%- icon('plus', 'i-sm') %> New coupon</a></div>
   <% } %>

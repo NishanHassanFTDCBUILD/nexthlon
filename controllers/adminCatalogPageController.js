@@ -72,14 +72,15 @@ const questions = asyncHandler(async (req, res) => {
   const data = await questionService.adminList({
     status: String(req.query.status || 'waiting'),
     page: req.query.page,
+    limit: req.query.limit,
   });
   res.render('admin/questions', {
     title: 'Questions | Nexthlon Admin',
     ...data,
-    link: linkBuilder(
-      base('questions'),
-      data.status === 'waiting' ? {} : {status: data.status},
-    ),
+    link: linkBuilder(base('questions'), {
+      status: data.status === 'waiting' ? '' : data.status,
+      limit: data.pagination.limit === 20 ? '' : data.pagination.limit,
+    }),
   });
 });
 

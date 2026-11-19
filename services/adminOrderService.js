@@ -11,6 +11,7 @@ const rules = require('../utils/orderRules');
 const {HttpError} = require('../utils/http');
 const {escapeRegex, toPositiveInt} = require('./productService');
 const settlementService = require('./settlementService');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 20;
 const EXPORT_LIMIT = 20000;
@@ -136,13 +137,15 @@ function toListRow(order) {
 }
 
 async function listOrders(query = {}) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readOrderFilters(query);
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const filter = await buildOrderFilter(filters);
   const [orders, total, statusCounts] = await Promise.all([
     Order.find(filter)
       .sort(ORDER_SORTS[filters.sort].order)
-      .skip((filters.page - 1) * PAGE_SIZE)
-      .limit(PAGE_SIZE)
+      .skip((filters.page - 1) * size)
+      .limit(size)
       .select(LIST_FIELDS)
       .lean(),
     Order.countDocuments(filter),
@@ -154,9 +157,9 @@ async function listOrders(query = {}) {
     counts: Object.fromEntries(statusCounts.map((row) => [row._id, row.count])),
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }
@@ -391,7 +394,9 @@ function readReturnFilters(query = {}) {
 }
 
 async function listReturns(query = {}) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readReturnFilters(query);
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const byStatus = {
     requested: {orderStatus: 'return_requested'},
     approved: {'returnDecision.status': 'approved'},
@@ -408,8 +413,8 @@ async function listReturns(query = {}) {
   const [orders, total, counts] = await Promise.all([
     Order.find(filter)
       .sort({updatedAt: -1})
-      .skip((filters.page - 1) * PAGE_SIZE)
-      .limit(PAGE_SIZE)
+      .skip((filters.page - 1) * size)
+      .limit(size)
       .select(
         'orderId items total walletUsed paymentMethod paymentStatus orderStatus returnReason returnNote returnPhotos returnDecision updatedAt deliveredAt address.fullName address.city',
       )
@@ -457,9 +462,9 @@ async function listReturns(query = {}) {
     counts: {requested: counts[0], approved: counts[1], rejected: counts[2]},
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }

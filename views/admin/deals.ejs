@@ -80,7 +80,7 @@
               <td data-label="Deal price" class="cell-num">
                 <% if (d.product) { %><strong><%= formatPrice(d.dealPrice) %></strong><small class="muted admin-sub">M.R.P. <%= formatPrice(d.product.mrp) %></small><% } else { %>—<% } %>
               </td>
-              <td data-label="Runs"><%= when(d.startsAt) %> →<br><%= when(d.endsAt) %></td>
+              <td data-label="Runs" class="cell-when"><span><%= when(d.startsAt) %></span><span class="muted">to <%= when(d.endsAt) %></span></td>
               <td data-label="Order" class="cell-num"><%= d.sortOrder %></td>
               <td data-label="Status"><span class="pill <%= pill[d.status] %>" data-deal-status><%= dealLabels[d.status] %></span></td>
               <td class="cell-action"><div class="row-actions">
@@ -88,14 +88,14 @@
                 <button type="button" class="btn btn-sm <%= d.isActive ? 'btn-danger-soft' : 'btn-secondary' %>"
                         data-deal-toggle="<%= d.id %>" data-active="<%= d.isActive %>" data-name="<%= d.product ? d.product.name : 'this product' %>"
                         aria-label="<%= d.isActive ? 'Turn off' : 'Turn on' %> the deal on <%= d.product ? d.product.name : 'this product' %>"><%= d.isActive ? 'Turn off' : 'Turn on' %></button>
-                <button type="button" class="btn btn-ghost btn-sm" data-deal-delete="<%= d.id %>" data-name="<%= d.product ? d.product.name : 'this product' %>" aria-label="Delete the deal on <%= d.product ? d.product.name : 'this product' %>"><%- icon('trash', 'i-xs') %></button>
+                <button type="button" class="btn btn-ghost btn-sm btn-square" data-deal-delete="<%= d.id %>" data-name="<%= d.product ? d.product.name : 'this product' %>" aria-label="Delete the deal on <%= d.product ? d.product.name : 'this product' %>"><%- icon('trash', 'i-xs') %></button>
               </div></td>
             </tr>
           <% }) %>
         </tbody>
       </table>
     </div>
-    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+    <%- include('../partials/admin-pager') %>
   <% } else { %>
     <div class="empty-state empty-state-flat">
       <%- include('../partials/empty-art', { art: 'ticket' }) %>

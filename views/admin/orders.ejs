@@ -13,6 +13,7 @@
   const chips = Object.keys(chipLabels).filter(function (key) { return filters[key] && filters[key] !== 'all'; });
   const sortLink = function (asc, desc) { return link({ sort: filters.sort === desc ? asc : desc, page: '' }); };
   const sortMark = function (asc, desc) { return filters.sort === desc ? '↓' : filters.sort === asc ? '↑' : ''; };
+  const moreCount = ['from', 'to', 'min', 'max', 'city'].filter(function (key) { return filters[key]; }).length;
   const bulkTargets = [['confirmed', 'Confirmed'], ['shipped', 'Shipped'], ['out_for_delivery', 'Out for delivery'], ['delivered', 'Delivered']];
 %>
 <%- include('../partials/admin-start', { section: 'orders' }) %>
@@ -25,6 +26,14 @@
   <div class="admin-top-actions">
     <a class="btn btn-ghost btn-sm" href="/api/admin/orders/export.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> CSV</a>
     <a class="btn btn-ghost btn-sm" href="/api/admin/orders/export.xlsx?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Excel</a>
+    <div class="admin-columns" data-menu>
+      <button type="button" class="btn btn-ghost btn-sm" data-menu-toggle aria-expanded="false" aria-controls="orders-columns"><%- icon('sliders', 'i-sm') %> Columns</button>
+      <div class="menu admin-columns-menu" id="orders-columns" data-menu-panel tabindex="-1" hidden>
+        <% [['customer', 'Customer'], ['items', 'Items'], ['placed', 'Placed'], ['amount', 'Amount'], ['payment', 'Payment'], ['status', 'Status']].forEach(function ([key, label]) { %>
+          <label class="admin-col-toggle"><input type="checkbox" data-col-toggle="<%= key %>" checked> <%= label %></label>
+        <% }) %>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -45,13 +54,19 @@
     <select name="method" data-auto-submit><option value="">Any</option><% methods.forEach(function (m) { %><option value="<%= m %>" <%= filters.method === m ? 'selected' : '' %>><%= methodLabels[m] %></option><% }) %></select></label>
   <label class="admin-field"><span>Payment</span>
     <select name="payment" data-auto-submit><option value="">Any</option><% paymentStatuses.forEach(function (p) { %><option value="<%= p %>" <%= filters.payment === p ? 'selected' : '' %>><%= paymentLabels[p] %></option><% }) %></select></label>
-  <label class="admin-field"><span>From</span><input type="date" name="from" value="<%= filters.from %>"></label>
-  <label class="admin-field"><span>To</span><input type="date" name="to" value="<%= filters.to %>"></label>
-  <label class="admin-field admin-field-sm"><span>Min ₹</span><input type="number" name="min" min="0" max="9999999" step="1" inputmode="numeric" value="<%= filters.min %>"></label>
-  <label class="admin-field admin-field-sm"><span>Max ₹</span><input type="number" name="max" min="0" max="9999999" step="1" inputmode="numeric" value="<%= filters.max %>"></label>
-  <label class="admin-field"><span>City</span><input type="text" name="city" maxlength="40" value="<%= filters.city %>" placeholder="Any city"></label>
   <label class="admin-field"><span>Sort</span>
     <select name="sort" data-auto-submit><% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %></select></label>
+  <details class="admin-more-filters" <%= moreCount ? 'open' : '' %>>
+    <summary><%- icon('filter', 'i-sm') %> More filters<% if (moreCount) { %> <span class="admin-more-count"><%= moreCount %></span><% } %></summary>
+    <div class="admin-more-panel">
+      <label class="admin-field"><span>Placed from</span><input type="date" name="from" value="<%= filters.from %>"></label>
+      <label class="admin-field"><span>Placed to</span><input type="date" name="to" value="<%= filters.to %>"></label>
+      <label class="admin-field admin-field-sm"><span>Amount over ₹</span><input type="number" name="min" min="0" max="9999999" step="1" inputmode="numeric" value="<%= filters.min %>"></label>
+      <label class="admin-field admin-field-sm"><span>Amount under ₹</span><input type="number" name="max" min="0" max="9999999" step="1" inputmode="numeric" value="<%= filters.max %>"></label>
+      <label class="admin-field admin-field-wide"><span>City</span><input type="text" name="city" maxlength="40" value="<%= filters.city %>" placeholder="Any city"></label>
+    </div>
+  </details>
+  <% if (filters.limit) { %><input type="hidden" name="limit" value="<%= filters.limit %>"><% } %>
   <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
 </form>
 
@@ -76,14 +91,6 @@
       <button type="button" class="btn btn-primary btn-sm" data-bulk-apply>Apply</button>
       <button type="button" class="link-btn" data-bulk-clear>Clear selection</button>
     </div>
-    <div class="admin-columns" data-menu>
-      <button type="button" class="btn btn-ghost btn-sm" data-menu-toggle aria-expanded="false" aria-controls="orders-columns"><%- icon('sliders', 'i-sm') %> Columns</button>
-      <div class="menu admin-columns-menu" id="orders-columns" data-menu-panel tabindex="-1" hidden>
-        <% [['customer', 'Customer'], ['items', 'Items'], ['placed', 'Placed'], ['amount', 'Amount'], ['payment', 'Payment'], ['status', 'Status']].forEach(function ([key, label]) { %>
-          <label class="admin-col-toggle"><input type="checkbox" data-col-toggle="<%= key %>" checked> <%= label %></label>
-        <% }) %>
-      </div>
-    </div>
   </div>
   <% if (orders.length) { %>
     <div class="table-wrap admin-table-scroll">
@@ -106,7 +113,7 @@
               <td class="cell-check"><input type="checkbox" data-select="<%= o.orderId %>" aria-label="Select <%= o.orderId %>"></td>
               <td data-label="Order"><a href="<%= adminPath %>/orders/<%= o.orderId %>"><strong><%= o.orderId %></strong></a><% if (o.shipped) { %> <span class="admin-flag" title="Shipment added"><%- icon('truck', 'i-xs') %></span><% } %></td>
               <td data-label="Customer" data-col="customer"><%= o.customer %><small class="muted admin-sub"><%= o.city %><%= o.state ? ', ' + o.state : '' %></small></td>
-              <td data-label="Items" data-col="items"><%= o.items %> <small class="muted admin-sub"><%= o.firstItem.length > 28 ? o.firstItem.slice(0, 27) + '…' : o.firstItem %></small></td>
+              <td data-label="Items" data-col="items"><span class="admin-items-name"><strong><%= o.firstItem.length > 28 ? o.firstItem.slice(0, 27) + '…' : o.firstItem %></strong><small class="muted admin-sub"><%= o.items %> <%= o.items === 1 ? 'item' : 'items' %></small></span></td>
               <td data-label="Placed" data-col="placed"><%= formatDate(o.createdAt) %><small class="muted admin-sub"><%= new Date(o.createdAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) %></small></td>
               <td data-label="Amount" data-col="amount"><strong><%= formatPrice(o.charged) %></strong><% if (o.refunded) { %><small class="muted admin-sub">−<%= formatPrice(o.refunded) %> refunded</small><% } %></td>
               <td data-label="Payment" data-col="payment"><span class="pill <%= paymentPill[o.payment] %>"><%= paymentLabels[o.payment] %></span><small class="muted admin-sub"><%= methodLabels[o.method] %></small></td>
@@ -116,7 +123,7 @@
         </tbody>
       </table>
     </div>
-    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+    <%- include('../partials/admin-pager') %>
   <% } else { %>
     <div class="empty-state empty-state-flat">
       <%- include('../partials/empty-art', { art: 'package-check' }) %>

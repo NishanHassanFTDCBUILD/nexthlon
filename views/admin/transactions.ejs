@@ -57,7 +57,7 @@
         </tbody>
       </table>
     </div>
-    <div class="admin-table-foot"><%- include('../partials/pagination') %></div>
+    <%- include('../partials/admin-pager') %>
   <% } else { %>
     <div class="empty-state empty-state-flat">
       <%- include('../partials/empty-art', { art: 'wallet' }) %>

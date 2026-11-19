@@ -8,6 +8,7 @@ const Product = require('../models/Product');
 const categoryService = require('./categoryService');
 const imageService = require('./imageService');
 const {HttpError} = require('../utils/http');
+const {pageSize} = require('../utils/paging');
 
 const PAGE_SIZE = 20;
 const STATUSES = ['all', 'listed', 'hidden'];
@@ -66,14 +67,16 @@ function readFilters(query = {}) {
 }
 
 async function listCategories(query = {}) {
+  const size = pageSize(query, PAGE_SIZE);
   const filters = readFilters(query);
+  filters.limit = size === PAGE_SIZE ? '' : size;
   const filter = statusFilter(filters.status);
   if (filters.q) filter.name = new RegExp(escapeRegex(filters.q), 'i');
   const [rows, total, listed, hidden] = await Promise.all([
     Category.find(filter)
       .sort(SORTS[filters.sort].order)
-      .skip((filters.page - 1) * PAGE_SIZE)
-      .limit(PAGE_SIZE)
+      .skip((filters.page - 1) * size)
+      .limit(size)
       .lean(),
     Category.countDocuments(filter),
     Category.countDocuments({isListed: true}),
@@ -88,9 +91,9 @@ async function listCategories(query = {}) {
     totals: {all: listed + hidden, listed, hidden},
     pagination: {
       page: filters.page,
-      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      pages: Math.max(1, Math.ceil(total / size)),
       total,
-      limit: PAGE_SIZE,
+      limit: size,
     },
   };
 }

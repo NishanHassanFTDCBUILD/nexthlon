@@ -303,6 +303,8 @@ async function main() {
           ['admin-refunds', 'Refunds', `${a}/refunds`],
           ['admin-coupons', 'Coupons', `${a}/coupons`],
           ['admin-coupon-new', 'New coupon', `${a}/coupons/new`],
+          ['admin-deals', 'Deals of the day', `${a}/deals`],
+          ['admin-deal-new', 'New deal', `${a}/deals/new`],
           ...(ids.coupon
             ? [
                 [
@@ -323,8 +325,11 @@ async function main() {
                 ],
               ]
             : []),
+          ['admin-categories', 'Categories', `${a}/categories`],
+          ['admin-category-new', 'New category', `${a}/categories/new`],
           ['admin-inventory', 'Inventory', `${a}/inventory`],
           ['admin-customers', 'Customers', `${a}/customers`],
+          ['admin-questions', 'Questions', `${a}/questions`],
           ['admin-settings', 'Settings', `${a}/settings`],
           ['admin-system', 'System status', `${a}/system`],
         ].map(([key, title, url]) => ({group: 'Admin', key, title, url})),
