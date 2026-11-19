@@ -12,7 +12,7 @@
   <span class="avatar avatar-lg acct-hello-avatar" aria-hidden="true"><%= currentUser.name.charAt(0).toUpperCase() %></span>
   <div class="acct-hello-text">
     <h1 id="acct-hello">Hello, <%= firstName(currentUser.name) %></h1>
-    <p class="muted">Member since <%= formatDate(currentUser.createdAt) %> · <span class="acct-badge"><%- icon('award', 'i-xs') %> Nexthlon <%= memberTier %></span></p>
+    <p class="muted">Member since <%= formatDate(currentUser.createdAt) %> · <span class="acct-badge"><%- icon('award', 'i-xs') %> Nexthlon <%= loyalty.name %></span><% if (loyalty.nextName) { %> <span class="muted">· <%= formatPrice(loyalty.toNextPaise) %> more in the last 12 months for <%= loyalty.nextName %></span><% } %></p>
   </div>
 </section>
 

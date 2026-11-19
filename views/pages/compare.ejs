@@ -1,0 +1,40 @@
+<%# Compare 2 to 4 products side by side. Read only. Script: public/js/compare.js (the tray). %>
+<%- include('../partials/info-start', { heading: 'Compare products', lead: 'Price, rating, weight, sizes and specs side by side. Pick up to four from any shop page.' }) %>
+<% if (products.length < 2) { %>
+<section class="section-box compare-empty">
+  <p><%= products.length ? 'Pick one more product to compare.' : 'Nothing to compare yet.' %> Use the <strong>Compare</strong> button on any product, then open the tray at the bottom of the page.</p>
+  <p><a class="btn btn-primary" href="/products">Browse products</a></p>
+</section>
+<% } else { %>
+<div class="compare-scroll section-box" tabindex="0" aria-label="Comparison table, scroll sideways on a phone">
+  <table class="compare-table">
+    <caption class="sr-only">Comparison of <%= products.length %> products</caption>
+    <thead>
+      <tr>
+        <th scope="col"><span class="sr-only">Detail</span></th>
+        <% products.forEach(function (p) { const others = products.filter(function (x) { return x.slug !== p.slug; }).map(function (x) { return x.slug; }).join(','); %>
+        <th scope="col" class="compare-col">
+          <img src="<%= p.image %>" alt="" width="120" height="120" loading="lazy" decoding="async">
+          <a href="/products/<%= p.slug %>"><%= p.name %></a>
+          <span class="muted"><%= p.brand %></span>
+          <% if (others) { %><a class="compare-remove" href="/compare?items=<%= encodeURIComponent(others) %>">Remove</a><% } %>
+        </th>
+        <% }) %>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">Price</th><% products.forEach(function (p) { %><td><strong class="compare-price"><%= formatPrice(p.price) %></strong><% if (p.mrp > p.price) { %> <s class="muted"><%= formatPrice(p.mrp) %></s><% } %></td><% }) %></tr>
+      <tr><th scope="row">You save</th><% products.forEach(function (p) { %><td><%= p.discountPercent ? p.discountPercent + '% off' : 'No offer' %></td><% }) %></tr>
+      <tr><th scope="row">Rating</th><% products.forEach(function (p) { %><td><%= p.ratingCount ? p.ratingAverage.toFixed(1) + ' out of 5 (' + p.ratingCount + ')' : 'No reviews yet' %></td><% }) %></tr>
+      <tr><th scope="row">Packed weight</th><% products.forEach(function (p) { %><td><%= p.weightGrams ? p.weightGrams + ' g' : 'Not listed' %></td><% }) %></tr>
+      <tr><th scope="row">Sizes</th><% products.forEach(function (p) { %><td><%= p.sizes.length ? p.sizes.join(', ') : 'One size' %></td><% }) %></tr>
+      <tr><th scope="row">Stock</th><% products.forEach(function (p) { %><td><%= p.inStock ? 'In stock' : 'Out of stock' %></td><% }) %></tr>
+      <tr><th scope="row">Highlights</th><% products.forEach(function (p) { %><td><% if (p.highlights.length) { %><ul class="compare-list"><% p.highlights.forEach(function (h) { %><li><%= h %></li><% }) %></ul><% } else { %><span class="muted">None listed</span><% } %></td><% }) %></tr>
+      <% specKeys.forEach(function (key) { %>
+      <tr><th scope="row"><%= key %></th><% products.forEach(function (p) { %><td><%= p.specs[key] || '—' %></td><% }) %></tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } %>
+<%- include('../partials/info-end') %>

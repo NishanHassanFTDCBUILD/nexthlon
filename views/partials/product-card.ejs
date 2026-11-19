@@ -34,6 +34,7 @@
     </div>
     <div class="product-foot">
       <%- include('stock', { stock: p.stock }) %>
+      <button type="button" class="compare-toggle" data-compare-toggle="<%= p.slug %>" aria-pressed="false">Compare</button>
       <% if (p.price >= store.freeDeliveryMin && p.stock > 0) { %><span class="product-delivery">Free delivery</span><% } %>
     </div>
   </div>

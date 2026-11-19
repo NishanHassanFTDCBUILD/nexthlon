@@ -23,6 +23,14 @@ router.get('/offline', publicCache, (req, res) => res.render('pages/offline'));
 router.get('/about', publicCache, pages.infoPage('about'));
 router.get('/contact', publicCache, pages.infoPage('contact'));
 router.get('/track', publicCache, pages.infoPage('track'));
+// Compare 2 to 4 products (read only, not cached: the list depends on the query).
+router.get('/compare', require('../controllers/compareController').compare);
+// Find my shoe size (a plain form on the server; no script).
+router.get(
+  '/find-my-size',
+  publicCache,
+  require('../controllers/sizeFinderController').sizeFinder,
+);
 router.get('/privacy', publicCache, pages.infoPage('privacy'));
 router.get('/terms', publicCache, pages.infoPage('terms'));
 router.get('/refund-policy', publicCache, pages.infoPage('refund'));

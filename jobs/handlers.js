@@ -20,6 +20,19 @@ registry.schedule('stock-sweep', {
   type: 'stock.sweep',
 });
 
+// Price-drop alerts: one email per drop, and a sweep every 30 minutes that finds drops.
+const priceAlertService = require('../services/priceAlertService');
+registry.register('price.drop', ({watchId}) =>
+  priceAlertService.notify(watchId),
+);
+registry.register('price.sweep', () => priceAlertService.sweep(), {
+  maxAttempts: 2,
+});
+registry.schedule('price-sweep', {
+  everyMs: 30 * 60 * 1000,
+  type: 'price.sweep',
+});
+
 // Resume interrupted payment, cancellation, return and refund work after restarts.
 registry.register('commerce.recover', () =>
   require('../services/commerceRecoveryService').sweep(),

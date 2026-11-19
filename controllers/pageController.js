@@ -306,6 +306,12 @@ const productDetail = asyncHandler(async (req, res) => {
       ),
     canonical: url,
     ogType: 'product',
+    priceWatching: customer
+      ? await require('../services/priceAlertService').isWatching(
+          customer._id,
+          product._id,
+        )
+      : false,
     ogTitle: `${product.name} · ${priceText}`,
     ogImage: photo,
     ogImageSize: null,

@@ -34,6 +34,8 @@
 <script src="<%= asset('/js/app.js') %>" defer></script>
 <script src="<%= asset('/js/header.js') %>" defer></script>
 <script src="<%= asset('/js/store.js') %>" defer></script>
+<script src="<%= asset('/js/compare.js') %>" defer></script>
+<script src="<%= asset('/js/price-watch.js') %>" defer></script>
 <% if (consentOn) { %><script src="<%= asset('/js/consent.js') %>" defer data-provider="<%= analytics.provider %>" data-id="<%= analytics.id %>" data-host="<%= analytics.host %>" data-meta-pixel="<%= metaPixel && metaPixel.enabled ? metaPixel.id : '' %>"></script><% } %>
 <%# The installable app (E5): the service worker and the install button. Not on admin pages. %>
 <% if (!(typeof consent !== 'undefined' && consent === false)) { %><script src="<%= asset('/js/pwa.js') %>" defer></script><% } %>

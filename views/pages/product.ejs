@@ -231,6 +231,7 @@
           <% const soldOptions = options.filter(function (o) { return o.stock <= 0; }).map(function (o) { return { id: o.id, label: [o.size ? 'Size ' + o.size : '', o.colour].filter(Boolean).join(' · ') }; }); %>
           <% if (shopper && site.stockAlertsOn && product.stock > 0 && soldOptions.length) { %>
             <%- include('../partials/stock-alert', { product: product, soldOptions: soldOptions, waiting: alertWaiting || [], signedIn: Boolean(currentUser) }) %>
+<% if (currentUser && currentUser.role === 'customer') { %><button type="button" class="pdx-watch" data-price-watch data-price-watch-id="<%= product._id %>" aria-pressed="<%= priceWatching ? 'true' : 'false' %>"><%= priceWatching ? 'Price alert on: we will email you if it drops' : 'Tell me if the price drops' %></button><% } %>
           <% } %>
 
           <%# ---------- Seller facts, Amazon-style ---------- %>
