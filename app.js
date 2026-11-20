@@ -186,6 +186,7 @@ app.get('/api/health', (req, res) =>
 app.use('/api', originCheck);
 app.use('/api', require('./routes/authRoutes'));
 app.use('/api', require('./routes/productRoutes'));
+app.use('/api/assistant', require('./routes/assistantRoutes'));
 app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/push', require('./routes/pushRoutes'));
 app.use('/api', require('./routes/bundleRoutes'));

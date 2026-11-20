@@ -33,6 +33,9 @@ function viewLocals(req, res, next) {
   res.locals.googleSignIn = Boolean(
     config.google.clientId && config.google.clientSecret && config.siteUrl,
   );
+  res.locals.facebookSignIn = Boolean(
+    config.facebook.appId && config.facebook.appSecret && config.siteUrl,
+  );
   // The storefront language (the nx_lang cookie) and its strings (config/strings.js).
   const strings = require('../config/strings');
   res.locals.lang = strings.langFrom(req.cookies && req.cookies.nx_lang);

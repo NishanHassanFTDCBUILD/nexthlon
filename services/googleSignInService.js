@@ -6,11 +6,8 @@
 //   signInWith(code)    trades the code for the verified email, then finds or creates the customer account
 //
 // Only a verified Google email is accepted. A staff or blocked account is never signed in this way.
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const config = require('../config/env');
-const User = require('../models/User');
-const referralService = require('./referralService');
+const {accountForEmail} = require('./socialAccountService');
 const {HttpError} = require('../utils/http');
 
 const TIMEOUT_MS = 8000;
@@ -73,32 +70,7 @@ async function profileFrom(code) {
 }
 
 async function signInWith(code) {
-  const {email, name} = await profileFrom(code);
-  const existing = await User.findOne({email});
-  if (existing) {
-    if (existing.role !== 'customer')
-      throw new HttpError(403, 'This account cannot sign in to the store.');
-    if (existing.isBlocked)
-      throw new HttpError(403, 'Your account has been blocked.');
-    if (!existing.emailVerifiedAt) {
-      existing.emailVerifiedAt = new Date();
-      await existing.save();
-    }
-    return existing;
-  }
-  // A new account with no password: a long random one nobody knows, so only Google can sign in.
-  const passwordHash = await bcrypt.hash(
-    crypto.randomBytes(32).toString('hex'),
-    10,
-  );
-  return User.create({
-    name,
-    email,
-    passwordHash,
-    role: 'customer',
-    emailVerifiedAt: new Date(),
-    referralCode: referralService.makeCode(name),
-  });
+  return accountForEmail(await profileFrom(code));
 }
 
 module.exports = {enabled, authUrl, signInWith};

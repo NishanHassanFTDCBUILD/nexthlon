@@ -122,4 +122,6 @@
     </div>
   </div>
 </footer>
+<%- include('assistant') %>
+<%- include('mini-cart') %>
 <%- include('scripts', { razorpay: typeof razorpay !== 'undefined' && razorpay, modules: typeof modules !== 'undefined' ? modules : [] }) %>

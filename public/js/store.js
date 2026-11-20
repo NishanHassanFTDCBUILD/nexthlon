@@ -395,11 +395,9 @@
     button,
     href = '',
   } = {}) {
-    if (role === 'guest') {
-      Nx.signInFirst();
+    // Guests add to a cart kept in their browser; it moves to their account when they sign in.
+    if (role !== 'customer' && role !== 'guest')
       return {ok: false, error: null};
-    }
-    if (role !== 'customer') return {ok: false, error: null};
     if (!productId || (button && inFlight.has(button)))
       return {ok: false, error: null};
     if (button) {

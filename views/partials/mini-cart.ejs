@@ -1,0 +1,18 @@
+<%# Mini cart: a panel that slides in from the right when the header cart is pressed. Its items come from /api/cart. Script: public/js/mini-cart.js %>
+<div class="mini-cart-scrim" data-mini-cart-close hidden></div>
+<aside class="mini-cart" id="mini-cart" role="dialog" aria-modal="true" aria-labelledby="mini-cart-title" tabindex="-1" hidden>
+  <header class="mini-cart-head">
+    <h2 id="mini-cart-title">Your cart</h2>
+    <button type="button" class="icon-btn" data-mini-cart-close aria-label="Close your cart"><%- icon('x') %></button>
+  </header>
+  <div class="mini-cart-bar" data-mini-cart-bar role="status" aria-live="polite"></div>
+  <div class="mini-cart-body" data-mini-cart-body>
+    <p class="muted" data-mini-cart-status>Loading your cart…</p>
+  </div>
+  <footer class="mini-cart-foot">
+    <div class="mini-cart-subtotal"><span>Subtotal</span><strong data-mini-cart-subtotal>₹0</strong></div>
+    <a class="btn btn-primary btn-lg" href="/checkout" data-mini-cart-checkout>Checkout</a>
+    <a class="link-btn" href="/cart">View and change your cart</a>
+  </footer>
+</aside>
+<script src="<%= asset('/js/mini-cart.js') %>" defer></script>

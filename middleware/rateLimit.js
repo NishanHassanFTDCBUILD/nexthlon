@@ -157,6 +157,18 @@ const forgotLimiter = limiter('forgot', {
   },
 });
 
+// Texting a sign-in or sign-up code: 6 per 15 minutes per visitor address, sent or not. Each text costs
+// money, and any number can now ask for one (phone sign-up), so this stops one visitor texting many numbers.
+const phoneCodeLimiter = limiter('phoneCode', {
+  windowMs: 15 * 60 * 1000,
+  limit: 6,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    message: 'Too many codes asked for. Please wait 15 minutes and try again.',
+  },
+});
+
 // Using a reset or confirmation link: 15 per 15 minutes per visitor address (a real person needs one or two).
 const linkLimiter = limiter('link', {
   windowMs: 15 * 60 * 1000,
@@ -238,6 +250,7 @@ module.exports = {
   cartLimiter,
   pincodeLimiter,
   forgotLimiter,
+  phoneCodeLimiter,
   linkLimiter,
   authLimiter,
   adminLoginLimiter,

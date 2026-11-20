@@ -174,6 +174,15 @@ function requireAdminPermission(req, res, next) {
   );
 }
 
+// The cart page: customers see their cart; guests see the cart kept in their browser. Signed-in admins and
+// expired or blocked sessions go to the usual sign-in page (checkout still asks guests to sign in).
+function shopperPage(req, res, next) {
+  if (req.user)
+    return req.user.role === 'customer' ? next() : customerPage(req, res, next);
+  if (req.authProblem) return customerPage(req, res, next);
+  return next();
+}
+
 module.exports = {
   scopeOf,
   attachUser,
@@ -181,6 +190,7 @@ module.exports = {
   requireRole,
   requireAdminPermission,
   customerPage,
+  shopperPage,
   adminPage,
   guestOnly,
   adminGuestOnly,

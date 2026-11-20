@@ -14,10 +14,10 @@ const customer = [requireAuth, requireRole('customer')];
 router.use(cartLimiter);
 router.get('/', cartOwner, cart.getCart);
 router.get('/count', cartOwner, cart.countItems);
-router.delete('/', customer, cartOwner, cart.clearCart);
-router.post('/items', customer, cartOwner, cart.addItem);
-router.patch('/items/:productId', customer, cartOwner, cart.updateItem);
-router.delete('/items/:productId', customer, cartOwner, cart.removeItem);
+router.delete('/', cartOwner, cart.clearCart);
+router.post('/items', cartOwner, cart.addItem);
+router.patch('/items/:productId', cartOwner, cart.updateItem);
+router.delete('/items/:productId', cartOwner, cart.removeItem);
 // "Save for later" moves the item to the wishlist, which belongs to an account.
 router.post('/items/:productId/save-for-later', customer, saveForLater);
 

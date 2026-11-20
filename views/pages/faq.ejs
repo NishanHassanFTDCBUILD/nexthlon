@@ -1,0 +1,21 @@
+<%# Frequently asked questions: a search box and questions that open to their answers. Script: public/js/faq.js %>
+<%- include('../partials/info-start', { heading: 'Frequently asked questions', lead: 'Quick answers. Search for a word, or open a question.', pageKey: 'faq' }) %>
+<div class="faq">
+  <div class="faq-search">
+    <label class="sr-only" for="faq-search">Search questions</label>
+    <input id="faq-search" type="search" placeholder="Search, for example: delivery or size" autocomplete="off" data-faq-search>
+  </div>
+  <div class="faq-list" data-faq-list>
+    <% faqs.forEach(function (item) { %>
+      <details class="faq-item" data-faq-item>
+        <summary><%= item.q %></summary>
+        <div class="faq-answer">
+          <p><%= item.a %></p>
+          <a class="link-btn" href="<%= item.href %>"><%= item.link %></a>
+        </div>
+      </details>
+    <% }) %>
+  </div>
+  <p class="faq-empty muted" data-faq-empty hidden>No question matches that word. <a href="/contact">Contact us</a> and we will help.</p>
+</div>
+<%- include('../partials/info-end', { scripts: ['faq'] }) %>

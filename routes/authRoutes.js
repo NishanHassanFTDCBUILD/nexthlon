@@ -16,21 +16,28 @@ const {
   adminLoginLimiter,
   refreshLimiter,
   forgotLimiter,
+  phoneCodeLimiter,
   linkLimiter,
 } = require('../middleware/rateLimit');
 
 // Mounted at /api
 router.post('/signup', authLimiter, signup);
 router.post('/login', authLimiter, accountLoginLimiter, login);
-// Sign in with a code to your phone (accounts that have a mobile number). Each step is rate limited by address.
+// Sign in or sign up with a code to your phone. Each step is rate limited by address, and texting a
+// code has its own tighter limit (each text costs money).
 const phoneSignIn = require('../controllers/phoneSignInController');
-router.post('/auth/phone/request', authLimiter, phoneSignIn.requestCode);
+router.post('/auth/phone/request', phoneCodeLimiter, phoneSignIn.requestCode);
 router.post('/auth/phone/verify', authLimiter, phoneSignIn.verifyCode);
+router.post('/auth/phone/signup', authLimiter, phoneSignIn.createAccount);
 // Continue with Google (only when configured; see services/googleSignInService.js). The callback path
 // must match the redirect address registered with Google (googleSignInService redirectUri).
 const googleSignIn = require('../controllers/googleSignInController');
 router.get('/auth/google', authLimiter, googleSignIn.start);
 router.get('/auth/google/callback', authLimiter, googleSignIn.callback);
+// Continue with Facebook (only when configured; see services/facebookSignInService.js).
+const facebookSignIn = require('../controllers/facebookSignInController');
+router.get('/auth/facebook', authLimiter, facebookSignIn.start);
+router.get('/auth/facebook/callback', authLimiter, facebookSignIn.callback);
 router.post('/admin/login', adminLoginLimiter, accountLoginLimiter, adminLogin);
 router.post(
   '/admin/login/2fa',

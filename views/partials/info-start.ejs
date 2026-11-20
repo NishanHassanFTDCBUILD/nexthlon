@@ -5,6 +5,7 @@
 <%
   const infoLinks = [
     { key: 'about', href: '/about', label: 'About us', icon: 'award' },
+    { key: 'faq', href: '/faq', label: 'FAQ', icon: 'info' },
     { key: 'contact', href: '/contact', label: 'Contact us', icon: 'headset' },
     { key: 'shipping', href: '/shipping-policy', label: 'Shipping and delivery', icon: 'truck' },
     { key: 'refund', href: '/refund-policy', label: 'Cancellation and refunds', icon: 'rotate-ccw' },
@@ -20,7 +21,7 @@
   <div class="info-layout">
     <nav class="info-nav" aria-label="Help and policies">
       <% infoLinks.forEach(function (link) { %>
-        <a href="<%= link.href %>" class="<%= pageKey === link.key ? 'is-active' : '' %>" <%- pageKey === link.key ? 'aria-current="page"' : '' %>><%- icon(link.icon, 'i-sm') %> <%= link.label %></a>
+        <a href="<%= link.href %>" class="<%= (typeof pageKey !== 'undefined' && pageKey) === link.key ? 'is-active' : '' %>" <%- (typeof pageKey !== 'undefined' && pageKey) === link.key ? 'aria-current="page"' : '' %>><%- icon(link.icon, 'i-sm') %> <%= link.label %></a>
       <% }) %>
     </nav>
     <div class="info-main">

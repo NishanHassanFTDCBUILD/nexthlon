@@ -4811,3 +4811,53 @@ body.admin-menu-open {
 .admin-body .product-form [id^='sec-'] {
   scroll-margin-top: calc(var(--admin-topbar-h) + 72px);
 }
+
+/* Touch screens: links and small text buttons get a larger invisible tap area (about 40px tall),
+   without changing how they look. Mouse users see no difference. */
+@media (pointer: coarse) {
+  .admin-body a:not([class*='btn']),
+  .admin-body .link-btn {
+    position: relative;
+  }
+
+  .admin-body a:not([class*='btn'])::before,
+  .admin-body .link-btn::before {
+    content: '';
+    position: absolute;
+    inset: -10px -6px;
+  }
+}
+
+/* Desktop tap targets: sidebar group headers, small text buttons and table links are taller to click.
+   The look stays the same; only the clickable area grows. */
+.admin-body .admin-group-btn {
+  min-height: 36px;
+}
+
+.admin-body .link-btn {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  min-width: 32px;
+  padding-inline: var(--space-half);
+}
+
+.admin-body .table a:not([class*='btn']),
+.admin-body .admin-table a:not([class*='btn']) {
+  display: inline-block;
+  padding-block: var(--space-1);
+}
+
+/* Dashboard: the KPI titles and card links get a larger tap area; the look is unchanged. */
+.admin-body .dash-kpi-link,
+.admin-body .dash .panel a:not([class*='btn']) {
+  display: inline-block;
+  padding-block: var(--space-xs);
+}
+
+/* Short text buttons (Edit, View, Remove) are at least 32px wide and tall to click. */
+
+.admin-body .admin-kbd {
+  min-height: 32px;
+  min-width: 32px;
+}
