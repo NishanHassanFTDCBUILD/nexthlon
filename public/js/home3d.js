@@ -1,5 +1,5 @@
 // Home page 3D (ES module, built on public/js/3d):
-//   1. Hero: thousands of glowing particles form a sphere, then the NEXTHLON logo, then a running
+//   1. Hero: thousands of glowing particles form a floating dumbbell, then form the NEXTHLON logo, then a running
 //      athlete as you scroll, over an animated obsidian and volt fog. The mouse moves the camera.
 //      This is the page's only WebGL canvas.
 //   2. The zero-gravity showroom lives in its own module, showroom3d.js.
@@ -16,14 +16,14 @@ import {
   finePointer,
   deviceTier,
 } from './3d/interaction.js';
-import {clamp, damp} from './3d/math.js';
+import {clamp, damp, smoothstep} from './3d/math.js';
+import {sampleShape, drawLogo, drawAthlete, fogShader} from './3d/shapes.js';
 import {
-  sampleShape,
-  spherePoints,
-  drawLogo,
-  drawAthlete,
-  fogShader,
-} from './3d/shapes.js';
+  dumbbellPoints,
+  dumbbellGeometry,
+  dumbbellShader,
+} from './3d/dumbbell.js';
+import {heroLayout, heroQuality, heroMorph} from './3d/hero-layout.js';
 
 const reduced = prefersReducedMotion();
 
@@ -51,7 +51,6 @@ if (showroomSection) {
 }
 
 // ---------- 1. Hero particles ----------
-const PARTICLES = {high: 9000, medium: 5000, low: 2400};
 
 const particleShader = {
   vertex: `
@@ -71,73 +70,61 @@ const particleShader = {
       float transit = sin(clamp(uMorph, 0.0, 2.0) * 3.14159);
       // While the logo holds, the dots barely drift, so its thin letter strokes stay sharp.
       float logo = m1 * (1.0 - m2);
-      p += vec3(sin(t), cos(t * 1.3), sin(t * 0.7)) * (0.025 * (1.0 - 0.75 * logo) + 0.32 * transit) * aRandom.x;
+      p += vec3(sin(t), cos(t * 1.3), sin(t * 0.7)) * (0.025 * (1.0 - 0.75 * logo) + 0.32 * transit) * aRandom.x * m1;
       vec4 mv = uView * uModel * vec4(p, 1.0);
       gl_Position = uProjection * mv;
-      gl_PointSize = uSize * (0.55 + aRandom.x) * uRatio / -mv.z;
+      float pointSize = mix(0.9 + 0.15 * aRandom.x, 0.55 + aRandom.x, m1);
+      gl_PointSize = uSize * pointSize * uRatio / -mv.z;
       vMix = aRandom.z;
-      vAlpha = 0.55 + 0.45 * aRandom.x;
+      vAlpha = mix(0.85, 0.55 + 0.45 * aRandom.x, m1);
     }`,
   // Each dot has a sharp bright core and a soft halo: shapes read as crisp lines of light instead of
   // a grainy haze, without needing more glow (which blurred the logo on phones).
   fragment: `
     precision mediump float;
     uniform vec3 uColorA, uColorB;
+    uniform float uParticleAlpha, uCrisp;
     varying float vMix;
     varying float vAlpha;
     void main() {
       float d = length(gl_PointCoord - 0.5);
       if (d > 0.5) discard;
-      float core = smoothstep(0.24, 0.04, d);
+      // Phones (uCrisp 1): a wider sharp core and a lighter halo, so small dots stay bright and crisp.
+      float core = smoothstep(mix(0.24, 0.34, uCrisp), 0.04, d);
       float halo = smoothstep(0.5, 0.0, d);
-      float light = core * 0.85 + halo * halo * 0.5;
-      gl_FragColor = vec4(mix(uColorA, uColorB, vMix) * light, light * vAlpha);
+      float light = core * mix(0.85, 1.0, uCrisp) + halo * halo * mix(0.5, 0.3, uCrisp);
+      float alpha = vAlpha * mix(1.0, 1.25, uCrisp);
+      gl_FragColor = vec4(mix(uColorA, uColorB, vMix) * light, light * alpha * uParticleAlpha);
     }`,
 };
 
-// Scroll progress (0 to 1) → shape (0 sphere, 1 logo, 2 athlete), holding each shape still so it can
-// be seen: sphere until 8%, logo from 30% to 48%, athlete from 70% to the end. (The athlete used to
+// Scroll progress (0 to 1) → shape (0 dumbbell, 1 logo, 2 athlete), holding each shape still so it can
+// be seen. Desktop holds the logo from 30% to 48%, then the athlete from 70% onward. (The athlete used to
 // finish at 84%, so on phones it was only fully formed as the hero scrolled away.)
-function morphFor(progress) {
-  if (progress < 0.08) return 0;
-  if (progress < 0.3) return (progress - 0.08) / 0.22;
-  if (progress < 0.48) return 1;
-  if (progress < 0.7) return 1 + (progress - 0.48) / 0.22;
-  return 2;
-}
 
-// Phones (a canvas taller than it is wide): enough particles for clean shapes on a small screen,
-// chosen by how capable the phone is, slightly smaller dots, and a little less glow on the dense logo.
-const PHONE_PARTICLES = {high: 6000, medium: 4200, low: 2400};
-const PHONE_DOT_SIZE = 0.9; // dot size compared with desktop
-const PHONE_GLOW = 0.95; // brightness compared with desktop
-const PHONE_LOGO_GLOW = 0.9; // a little less while the dots form the NEXTHLON logo
-// Shape sizes in scene units at scale 1 (spherePoints radius, and the sampleShape sizes below).
-const SHAPES = {
-  sphere: [3.7, 3.7],
-  logo: [4.9, (4.9 * 240) / 900],
-  athlete: [4.2, (4.2 * 320) / 400],
-};
 const COLOR_A = [0.83, 1.0, 0.23];
 const COLOR_B = [0.96, 1.0, 0.82];
-const FOV_TAN = Math.tan((45 * Math.PI) / 360);
 
 function buildHero(canvas, {tier}) {
-  const phoneAtStart = canvas.clientWidth < canvas.clientHeight;
-  // Phones draw at up to 1.5x pixels (not 2-3x): the dots are soft anyway, and it is about half the work.
+  const initialQuality = heroQuality(
+    canvas.clientWidth,
+    canvas.clientHeight,
+    tier,
+  );
+  // Phones draw at up to 2.25x pixels so the dots stay sharp; laptops at 2x.
   const scene = new Scene(canvas, {
-    maxRatio: tier === 'low' ? 1.25 : phoneAtStart ? 1.5 : 2,
+    maxRatio: initialQuality.ratio,
     camera: {fov: 45, position: [0, 0, 7]},
   });
   const gl = scene.gl;
-  const count = phoneAtStart
-    ? PHONE_PARTICLES[tier] || PHONE_PARTICLES.medium
-    : PARTICLES[tier] || PARTICLES.medium;
-  const sphere = {positions: spherePoints(count, 1.85)};
+  const count = initialQuality.capacity;
+  const dumbbell = dumbbellPoints(count);
+  // Coprime permutation keeps a shorter draw evenly spread over the whole shape.
+  const indices = Array.from({length: count}, (_, i) => (i * 7919) % count);
   const random = new Float32Array(count * 3);
   for (let i = 0; i < count * 3; i += 1) random[i] = Math.random();
   const logoSize = {width: 900, height: 240, scale: 4.9, depth: 0.05};
-  // The logo and athlete shapes only show once you scroll, so they start as the sphere and are drawn
+  // The logo and athlete shapes only show once you scroll, so they start as the dumbbell and are drawn
   // in their own short tasks after the first frame. Drawn all at once, they held the page busy for
   // most of a second on a mid-range phone. (The logo used to be drawn twice: once in a fallback font,
   // then again in the brand font.)
@@ -145,23 +132,39 @@ function buildHero(canvas, {tier}) {
   const fog = scene.add(
     new Mesh(gl, geometry.plane(1, 1), {...fogShader, depthTest: false}),
   );
-  const dots = scene.add(
-    new Mesh(gl, sphere, {
-      ...particleShader,
-      blending: 'additive',
-      depthTest: false,
-      attributes: {
-        aLogo: {data: sphere.positions, size: 3},
-        aAthlete: {data: sphere.positions, size: 3},
-        aRandom: {data: random, size: 3},
-      },
-      uniforms: {
-        uSize: 26,
-        uRatio: 1,
-        uColorA: COLOR_A.slice(),
-        uColorB: COLOR_B.slice(),
-      },
+  const solidGeometry = dumbbellGeometry(tier === 'low' ? 32 : 64);
+  const solid = scene.add(
+    new Mesh(gl, solidGeometry, {
+      ...dumbbellShader,
+      blending: 'alpha',
+      attributes: {aMaterial: {data: solidGeometry.materials, size: 1}},
+      uniforms: {uOpacity: 1, uEye: [0, 0, 7]},
     }),
+  );
+  const dots = scene.add(
+    new Mesh(
+      gl,
+      {positions: dumbbell.positions, indices},
+      {
+        ...particleShader,
+        mode: gl.POINTS,
+        blending: 'additive',
+        depthTest: false,
+        attributes: {
+          aLogo: {data: dumbbell.positions, size: 3},
+          aAthlete: {data: dumbbell.positions, size: 3},
+          aRandom: {data: random, size: 3},
+        },
+        uniforms: {
+          uSize: 26,
+          uParticleAlpha: 0,
+          uCrisp: 0,
+          uRatio: 1,
+          uColorA: COLOR_A.slice(),
+          uColorB: COLOR_B.slice(),
+        },
+      },
+    ),
   );
   fog.uniforms = {uMouse: [0, 0], uMorph: 0};
 
@@ -184,7 +187,9 @@ function buildHero(canvas, {tier}) {
           'aLogo',
           sampleShape(
             drawLogo('"Barlow Condensed", "Arial Black", sans-serif', {
-              fill: phoneAtStart,
+              fill: false,
+              // A thicker outline on phones, so the letters do not break up into speckle.
+              stroke: canvas.clientWidth <= 720 ? 0.06 : 0.04,
             }),
             count,
             logoSize,
@@ -212,11 +217,12 @@ function buildHero(canvas, {tier}) {
   let morph = 0;
   let stage = -1;
 
-  // Phones: the free space above the headline, in canvas pixels. The shapes are centred in it and
-  // sized to fit, so they never sit behind the text. Measured on resize (the text does not move
-  // while the hero is pinned), and again once the entrance animation has settled.
+  // Measure the visual slot on layout changes, never in the animation loop.
   const kicker = hero.querySelector('.hero3d-kicker');
+  const content = hero.querySelector('.hero3d-content');
+  const header = document.querySelector('.site-header');
   let space = null;
+  let redrawStatic = null;
   const measure = () => {
     if (!kicker) return;
     const box = canvas.getBoundingClientRect();
@@ -225,70 +231,99 @@ function buildHero(canvas, {tier}) {
     space = {
       width: box.width,
       height: box.height,
-      top: 18,
-      bottom: Math.max(120, textTop - 22),
+      contentTop: textTop,
+      textRight: Math.max(
+        ...[
+          ...hero.querySelectorAll(
+            '.hero3d-title .word, .hero3d-text, .hero3d-actions .btn',
+          ),
+        ].map((element) => element.getBoundingClientRect().right - box.left),
+      ),
+      headerHeight: header
+        ? clamp(
+            header.getBoundingClientRect().bottom - box.top,
+            0,
+            header.offsetHeight,
+          )
+        : 0,
     };
+    if (reduced && redrawStatic) redrawStatic();
   };
   measure();
   window.addEventListener('resize', measure, {passive: true});
+  // Reclaim the space when the phone header tucks away while scrolling.
+  // Only these two rectangles change; the text layout remains cached.
+  let headerFrame = 0;
+  const measureHeader = () => {
+    if (headerFrame) return;
+    headerFrame = requestAnimationFrame(() => {
+      headerFrame = 0;
+      if (!space || !header) return;
+      space.headerHeight = clamp(
+        header.getBoundingClientRect().bottom -
+          canvas.getBoundingClientRect().top,
+        0,
+        header.offsetHeight,
+      );
+    });
+  };
+  window.addEventListener('scroll', measureHeader, {passive: true});
+  if (header) header.addEventListener('transitionend', measureHeader);
+  if ('ResizeObserver' in window) {
+    const layoutWatch = new ResizeObserver(measure);
+    layoutWatch.observe(canvas);
+    if (content) layoutWatch.observe(content);
+    if (header) layoutWatch.observe(header);
+  }
+  if (document.fonts) document.fonts.ready.then(measure);
   setTimeout(measure, 1600);
-  const lerp = (a, b, t) => a + (b - a) * clamp(t, 0, 1);
 
-  scene.onUpdate((time, dt) => {
+  const updateHero = (time, dt) => {
     const {x, y} = parallax.update(dt);
-    const target = morphFor(scrollProgress(hero));
+    const target = heroMorph(scrollProgress(hero), canvas.clientWidth < 1000);
     morph = damp(morph, target, 5, dt);
-    // Keep the logo inside the screen on narrow phones by stepping the camera back.
-    const aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
-    const distance = Math.max(6.6, 7.9 / Math.max(aspect, 0.3));
-    scene.camera.position[0] = x * 0.7;
-    scene.camera.position[1] = -y * 0.45 + 0.35;
+    if (!space) return;
+    const layout = heroLayout({...space, morph});
+    const quality = heroQuality(space.width, space.height, tier);
+    const distance = layout.distance;
+    scene.maxRatio = quality.ratio;
+    dots.indexCount = quality.count;
+    const parallaxWeight = reduced ? 0 : 0.35 + clamp(morph, 0, 1) * 0.65;
+    scene.camera.position[0] = x * 0.7 * parallaxWeight;
+    scene.camera.position[1] = -y * 0.45 * parallaxWeight + 0.35;
     scene.camera.position[2] = distance;
     scene.camera.target[1] = 0.35;
+    const opening = 1 - smoothstep(0, 1, morph);
+    const float = reduced ? 0 : Math.sin(time * 0.7) * 0.045 * opening;
     dots.rotation[1] =
-      Math.sin(time * 0.22) * 0.65 * (1 - clamp(morph, 0, 1)) + x * 0.12;
-    dots.rotation[0] = y * 0.08;
-    // On wide screens the shapes sit to the right of the headline; on tall screens, above it.
-    dots.position[0] =
-      aspect > 1.25 ? Math.min(1.8, 0.8 + (aspect - 1.25) * 2) : 0;
-    dots.position[1] = aspect > 1.25 ? 0.3 : clamp(distance * 0.21, 0.75, 3.8);
-    let dotSize = 1;
-    let glow = 1;
-    let scale = 1;
-    const phone = aspect < 1;
-    if (phone && space) {
-      // Centre the shape in the free space above the text, and size it to fit (a margin at the
-      // sides, a little air above and below). The size follows the shape as it morphs.
-      const unitsPerPixel =
-        (2 * distance * FOV_TAN) / Math.max(1, space.height);
-      const freeHeight = space.bottom - space.top;
-      const fit = ([w, h]) =>
-        Math.min(
-          (space.width * 0.84 * unitsPerPixel) / w,
-          (freeHeight * 0.88 * unitsPerPixel) / h,
-        );
-      scale = Math.min(
-        1,
-        morph <= 1
-          ? lerp(fit(SHAPES.sphere), fit(SHAPES.logo), morph)
-          : lerp(fit(SHAPES.logo), fit(SHAPES.athlete), morph - 1),
-      );
-      dots.position[1] =
-        0.35 +
-        (space.height / 2 - (space.top + space.bottom) / 2) * unitsPerPixel;
-      dotSize = PHONE_DOT_SIZE;
-      glow = PHONE_GLOW * lerp(1, PHONE_LOGO_GLOW, 1 - Math.abs(morph - 1));
-    }
+      x * 0.12 * parallaxWeight +
+      (reduced ? 0 : Math.sin(time * 0.35) * 0.05 * opening);
+    dots.rotation[0] = y * 0.08 * parallaxWeight;
+    dots.position[0] = layout.x;
+    dots.position[1] = layout.y;
+    const scale = layout.scale;
+    // Full brightness on phones and laptops; portrait tablets stay a touch softer.
+    const glow = space.width > 720 && space.width < 1000 ? 0.9 : 1;
     dots.scale[0] = scale;
     dots.scale[1] = scale;
     dots.scale[2] = scale;
+    dots.position[1] += float;
+    solid.position = dots.position.slice();
+    solid.rotation = dots.rotation.slice();
+    solid.scale = dots.scale.slice();
+    solid.uniforms.uOpacity = 1 - smoothstep(0.08, 0.7, morph);
+    solid.uniforms.uEye = Array.from(scene.camera.position);
+    solid.visible = solid.uniforms.uOpacity > 0.001;
+    dots.uniforms.uParticleAlpha = smoothstep(0.02, 0.4, morph);
     dots.uniforms.uColorA = COLOR_A.map((c) => c * glow);
     dots.uniforms.uColorB = COLOR_B.map((c) => c * glow);
     dots.uniforms.uMorph = morph;
-    dots.uniforms.uRatio =
-      Math.min(window.devicePixelRatio || 1, scene.maxRatio) *
-      (distance / 7) *
-      dotSize;
+    dots.uniforms.uSize = quality.dotPixels * distance;
+    dots.uniforms.uCrisp = quality.crisp;
+    dots.uniforms.uRatio = Math.min(
+      window.devicePixelRatio || 1,
+      scene.maxRatio,
+    );
     fog.uniforms.uMouse = [x, y];
     fog.uniforms.uMorph = morph;
     const next = morph < 0.5 ? 0 : morph < 1.5 ? 1 : 2;
@@ -296,7 +331,14 @@ function buildHero(canvas, {tier}) {
       stage = next;
       hero.dataset.stage = String(stage);
     }
-  });
+  };
+  scene.onUpdate(updateHero);
+  updateHero(0, 0);
+  redrawStatic = () => {
+    updateHero(0, 0);
+    scene.render(0);
+  };
+  if (reduced) ready.then(measure);
   dots.uniforms.uMorph = 0;
   return {scene, ready};
 }
