@@ -1,5 +1,7 @@
 // 360 frame uploads: the count is checked, every frame must be a real JPG, PNG or WebP, and each is size-limited.
 // These checks run before anything is stored, so no database or storage is needed.
+// Test settings (no .env needed, as in CI).
+require('./helpers');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const sharp = require('sharp');

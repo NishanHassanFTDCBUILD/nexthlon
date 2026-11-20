@@ -1,4 +1,6 @@
 // Continue with Google: the pieces that need no Google account (no network, no keys needed).
+// Test settings (no .env needed, as in CI).
+require('./helpers');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const googleSignIn = require('../services/googleSignInService');

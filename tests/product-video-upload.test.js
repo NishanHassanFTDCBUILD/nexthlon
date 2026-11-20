@@ -1,5 +1,7 @@
 // Product video uploads: the file's real signature decides, and oversized or wrong files are refused before anything
 // is stored (no database and no files written).
+// Test settings (no .env needed, as in CI).
+require('./helpers');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {

@@ -1,3 +1,5 @@
+// Test settings (no .env needed, as in CI).
+require('./helpers');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Category = require('../models/Category');
