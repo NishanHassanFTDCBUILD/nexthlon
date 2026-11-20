@@ -303,7 +303,6 @@
 }
 
 .au-flip-inner {
-  position: relative;
   display: grid;
   align-items: start;
   transform-style: preserve-3d;
@@ -1727,369 +1726,396 @@
   }
 }
 
-/* ==========================================================================
-   Sign in with: E-mail / Phone number tabs, the phone code steps, the small social
-   buttons and the "better when signed in" list.
-   ========================================================================== */
-.au-method {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  margin-top: var(--space-2);
-  border-bottom: 3px solid var(--line);
-}
-
-.au-method button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  min-height: 48px;
-  padding: 0 var(--space-1);
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  cursor: pointer;
-  transition: color var(--duration) var(--ease);
-}
-
-.au-method button[aria-selected='true'] {
-  color: var(--ink);
-  font-weight: var(--weight-bold);
-}
-
-@media (hover: hover) {
-  .au-method button:hover {
-    color: var(--ink);
-  }
-}
-
-.au-method button:focus-visible {
-  outline: none;
-  border-radius: var(--radius-sm);
-  box-shadow: var(--ring-brand);
-}
-
-/* The bar under the chosen tab slides across. */
-.au-method-bar {
-  position: absolute;
-  left: 0;
-  bottom: -3px;
-  width: 50%;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--brand);
-  transition: transform var(--duration-long) var(--ease-spring);
-}
-
-.au-method[data-method='phone'] .au-method-bar {
-  transform: translateX(100%);
-}
-
-/* The side facing away does not set the card's height, so a short sign-in side leaves no gap under it. */
-.au.is-enhanced[data-mode='login'] .au-face-signup,
-.au.is-enhanced[data-mode='signup'] .au-face-login {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-}
-
-/* Without JavaScript both panes show, so the tabs are not needed. */
-.au:not(.is-enhanced) .au-method {
-  display: none;
-}
-
-.au:not(.is-enhanced) .au-pane[hidden] {
-  display: block;
-}
-
-.au-pane[hidden],
-.au-form[data-phone-step][hidden] {
-  display: none;
-}
-
-/* ---------- Phone: number with +91 ---------- */
-.au-field-tel .au-cc {
-  position: absolute;
-  z-index: var(--layer-1);
-  left: 16px;
-  top: 0;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  padding-right: var(--space-1);
-  border-right: 1px solid var(--line-strong);
-  color: var(--ink);
-  font-weight: var(--weight-bold);
-  font-size: var(--text-base);
-  pointer-events: none;
-}
-
-.au-field.au-field-tel input {
-  padding-left: 66px;
-  letter-spacing: 0.06em;
-  font-variant-numeric: tabular-nums;
-}
-
-.au-field-tel label {
-  left: 66px;
-}
-
-.au-sent-to {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin: 0;
-  color: var(--ink-2);
-  font-size: var(--text-sm);
-}
-
-.au-sent-to > span {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.au-sent-to .i {
-  flex: none;
-  color: var(--success, var(--brand));
-}
-
-.au-sent-to .link-btn {
-  min-height: 32px;
-  font-weight: var(--weight-semibold);
-}
-
-/* ---------- Phone: the 6-digit code as six boxes over one real input ---------- */
-.au-otp {
-  position: relative;
-}
-
-.au-otp input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  font-size: var(--text-field); /* 16px or more: no zoom on iPhone */
-  caret-color: transparent;
-  cursor: text;
-}
-
-.au-otp-boxes {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: clamp(6px, 2vw, 10px);
-}
-
-.au-otp-boxes span {
-  display: grid;
-  place-items: center;
-  height: 56px;
-  border: 1px solid var(--line-strong);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--ink);
-  font: var(--weight-bold) var(--text-xl) / 1 var(--display, inherit);
-  font-variant-numeric: tabular-nums;
-  transition:
-    border-color var(--duration) var(--ease),
-    box-shadow var(--duration) var(--ease),
-    transform var(--duration) var(--ease);
-}
-
-.au-otp-boxes span.is-filled {
-  border-color: rgb(var(--brand-rgb), 0.55);
-}
-
-.au-otp-boxes span.is-active {
-  border-color: var(--brand);
-  box-shadow: var(--ring-brand);
-}
-
-.au-otp input[aria-invalid='true'] + .au-otp-boxes span {
-  border-color: var(--danger);
-}
-
-.au-resend {
-  margin: calc(var(--space-1) * -0.5) 0 0;
-  text-align: center;
-  font-size: var(--text-sm);
-}
-
-.au-resend .link-btn {
-  min-height: 44px;
-  font-weight: var(--weight-semibold);
-}
-
-.au-resend .link-btn:disabled {
-  color: var(--muted);
-  cursor: default;
-  text-decoration: none;
-}
-
-/* ---------- "or continue with" and the small social buttons ---------- */
 .au-social {
-  margin-top: var(--space-2h);
+  margin-block: var(--space-2) var(--space-1);
 }
 
-.au-or {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1h);
-  margin: 0 0 var(--space-1h);
-  color: var(--muted);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.au-or::before,
-.au-or::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-
+/* ---------- Google and Facebook: quiet full-width buttons in the site's own style ----------
+   Same dark surface and hairline as the fields; only the logos carry the brands' colours. On hover
+   the outline turns volt, the button lifts a touch, the logo tilts and an arrow slides in. Once
+   tapped it says "Connecting…" with a spinner. */
 .au-social-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
-  gap: var(--space-1);
+  gap: var(--space-1h);
 }
 
 .au-social-btn {
-  display: inline-flex;
+  position: relative;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  min-height: 44px;
-  padding: 0 var(--space-1h);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
+  gap: var(--space-1h);
+  min-height: calc(var(--tap) + var(--space-1));
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--surface-2);
   color: var(--ink);
-  font-size: var(--text-sm);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
   transition:
-    border-color var(--duration) var(--ease),
-    background var(--duration) var(--ease),
-    transform var(--duration) var(--ease);
+    transform var(--duration-quick) var(--ease-out),
+    box-shadow var(--duration-quick) var(--ease-out),
+    background-color var(--duration-fast) var(--ease);
+}
+
+/* The logo sits in a small round chip at the left edge. */
+.au-social-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--space-4) + var(--space-xs));
+  height: calc(var(--space-4) + var(--space-xs));
+  border-radius: var(--radius-pill);
+  background: rgb(var(--white-rgb), 0.06);
+  transition: transform var(--duration-medium) var(--ease-spring);
+}
+
+.au-social-facebook .au-social-mark {
+  color: var(--facebook);
+}
+
+.au-social-facebook .au-social-f {
+  fill: var(--white);
 }
 
 .au-social-logo {
   flex: none;
-  width: 18px;
-  height: 18px;
+  width: var(--space-2h);
+  height: var(--space-2h);
 }
 
-@media (hover: hover) {
+.au-social-label {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* "Last used": a small tab hanging from the top edge, clear of the label on any width. */
+.au-social-last {
+  position: absolute;
+  top: 0;
+  right: var(--space-2);
+  padding: 0 var(--space-1) var(--space-xxs);
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+  background: rgb(var(--brand-rgb), 0.16);
+  color: var(--brand);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  line-height: 1.4;
+}
+
+/* The arrow waits off to the right and slides in on hover. */
+.au-social-go {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--space-2h);
+  color: var(--brand);
+  opacity: 0;
+  transform: translateX(calc(var(--space-1) * -1));
+  transition:
+    opacity var(--duration-quick) var(--ease),
+    transform var(--duration-medium) var(--ease-out);
+}
+
+/* A faint band of volt light that crosses the button once on hover. */
+.au-social-btn::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgb(var(--brand-rgb), 0.1) 48%,
+    transparent 66%
+  );
+  content: '';
+  opacity: 0;
+  transform: translateX(-110%);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
   .au-social-btn:hover {
-    border-color: var(--brand);
-    background: var(--surface-2, var(--surface));
-    text-decoration: none;
-    transform: translateY(-1px);
+    background: var(--surface-3);
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--brand-rgb), 0.6),
+      var(--shadow-sm);
+    transform: translateY(calc(var(--space-xxs) * -1));
+  }
+
+  .au-social-btn:hover::after {
+    opacity: 1;
+    transform: translateX(110%);
+    transition:
+      transform var(--duration-slower) var(--ease-out),
+      opacity var(--duration-fast) var(--ease);
+  }
+
+  .au-social-btn:hover .au-social-mark {
+    transform: rotate(-8deg) scale(1.08);
+  }
+
+  .au-social-btn:hover .au-social-go {
+    opacity: 1;
+    transform: none;
   }
 }
 
+/* Keep the text colour: the site's link hover (volt, underlined) must not reach these. */
+.au-social-btn:hover,
+.au-social-btn:focus-visible {
+  color: var(--ink);
+  text-decoration: none;
+}
+
 .au-social-btn:active {
-  transform: scale(0.98);
+  transform: translateY(0) scale(0.985);
+  transition-duration: var(--duration-fast);
 }
 
 .au-social-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--ring-brand);
+  outline: var(--space-xxs) solid var(--brand);
+  outline-offset: var(--space-half);
 }
 
-/* ---------- It's better when you're signed in ---------- */
-.au-perks {
-  width: min(440px, 100%);
-  padding: 0 var(--space-half);
+/* Tapped: the label says "Connecting to Google…" and a spinner replaces the arrow. */
+.au-social-spinner {
+  position: absolute;
+  right: var(--space-2);
+  width: var(--space-2h);
+  height: var(--space-2h);
+  opacity: 0;
+  fill: none;
+  stroke: var(--brand);
+  stroke-dasharray: 40 60;
+  stroke-linecap: round;
+  stroke-width: 2.5;
+  transition: opacity var(--duration-fast) var(--ease);
 }
 
-.au-perks h2 {
-  margin: 0 0 var(--space-1);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  letter-spacing: normal;
-  text-transform: none;
+.au-social-btn.is-loading {
+  pointer-events: none;
+  transform: none;
 }
 
-.au-perks ul {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-xs) var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.au-social-btn.is-loading .au-social-go,
+.au-social-btn.is-loading .au-social-last {
+  opacity: 0;
 }
 
-.au-perks li {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-xs);
-  color: var(--ink-2);
-  font-size: var(--text-sm);
-  line-height: 1.35;
+.au-social-btn.is-loading .au-social-spinner {
+  opacity: 1;
+  animation: au-social-spin var(--duration-slower) var(--ease-linear) infinite;
 }
 
-.au-perks li .i {
-  flex: none;
-  margin-top: var(--space-xxs);
-  padding: var(--space-xxs);
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1.5px solid var(--brand);
-  color: var(--brand-ink);
+.au-social-row.is-busy .au-social-btn:not(.is-loading) {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
-.au-help {
+@keyframes au-social-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.au-social-note {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-xs);
-  margin: var(--space-1h) 0 0;
-  font-size: var(--text-sm);
+  margin-top: var(--space-1h);
   color: var(--muted);
+  font-size: var(--text-xs);
 }
 
-.au-help a {
-  display: inline-flex;
+@media (prefers-reduced-motion: reduce) {
+  .au-social-btn,
+  .au-social-btn::after,
+  .au-social-mark,
+  .au-social-go {
+    transition: none;
+  }
+
+  .au-social-btn::after {
+    display: none;
+  }
+}
+
+/* Each storefront form sets its own height, with no space reserved for the inactive side. */
+.au-storefront .au-panel {
+  gap: var(--space-2h);
+  padding: calc(var(--space-10) + var(--space-3)) var(--gutter) var(--space-6);
+}
+
+.au-storefront .au-flip,
+.au-storefront .au-switch,
+.au-benefits {
+  width: min(100%, calc(var(--space-10) * 7));
+}
+
+.au-storefront .au-flip-inner,
+.au-storefront[data-mode='signup'] .au-flip-inner,
+.au-storefront .au-face {
+  transform: none;
+  transition: none;
+}
+
+.au-storefront .au-flip-inner {
+  display: block;
+}
+
+.au-storefront .au-face[aria-hidden='true'] {
+  display: none;
+}
+
+.au-storefront .au-card {
+  min-width: 0;
+  padding: var(--space-4);
+}
+
+.au-storefront .au-switch a {
+  display: grid;
+  place-items: center;
+  min-height: var(--tap);
+}
+
+.au-eyebrow {
+  color: var(--brand);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.au-storefront .au-title:focus {
+  outline: none;
+}
+
+.au-divider {
+  display: flex;
   align-items: center;
-  min-height: 44px;
+  gap: var(--space-1h);
+  margin-top: var(--space-2h);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.au-divider::before,
+.au-divider::after {
+  content: '';
+  flex: 1;
+  height: var(--space-xxs);
+  background: var(--line);
+}
+
+.au-password-guide summary,
+.au-referral summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.au-password-guide summary::before {
+  content: '+';
+  margin-right: var(--space-1);
+  color: var(--brand);
+}
+
+.au-password-guide[open] summary::before {
+  content: '−';
+}
+
+.au-benefits {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.au-benefits p,
+.au-benefits li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.au-benefits p {
   color: var(--ink-2);
   font-weight: var(--weight-semibold);
 }
 
-/* Phones: one column of perks, slightly smaller code boxes. */
+.au-benefits ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1) var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.au-benefits .i {
+  color: var(--brand);
+}
+
+.au-benefits a {
+  display: inline-grid;
+  place-items: center;
+  min-height: var(--tap);
+  justify-self: center;
+  color: var(--ink-2);
+}
+
+.au-storefront .au-foot a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
+
+@media (max-width: 960px) {
+  .au-storefront .au-scene {
+    height: calc(var(--space-10) * 3);
+    min-height: 0;
+  }
+
+  .au-storefront .au-panel {
+    padding: var(--space-2) var(--gutter) var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .au-storefront .au-card {
+    padding: var(--space-3);
+  }
+}
+
 @media (max-width: 420px) {
-  .au-perks ul {
-    grid-template-columns: minmax(0, 1fr);
+  .au-storefront .au-motto-line {
+    font-size: var(--text-2xl);
+    max-width: 70%;
+    white-space: nowrap;
   }
 
-  .au-otp-boxes span {
-    height: 50px;
+  .au-storefront .au-card {
+    padding: var(--space-2);
   }
 
-  .au-method button {
+  .au-storefront .au-back {
+    padding-inline: var(--space-1);
     font-size: var(--text-xs);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .au-form[data-phone-step].is-entering {
-    animation: nx-au-rise var(--duration-long) var(--ease-out) both;
-  }
-
-  .au-otp.is-shaking {
-    animation: nx-au-soft-shake var(--duration-slow) var(--ease-in-out);
+  .au-storefront.is-enhanced .au-flip,
+  .au-storefront.is-enhanced .au-switch,
+  .au-storefront .au-face:not([aria-hidden='true']) {
+    animation: nx-au-rise var(--duration-quick) var(--ease-out) both;
   }
 }

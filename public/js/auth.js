@@ -20,7 +20,13 @@
   document.querySelectorAll('[data-tilt-card]').forEach((card) => {
     let frame = 0;
     card.addEventListener('pointermove', (event) => {
-      if (event.pointerType !== 'mouse' || !finePointer.matches) return;
+      if (
+        reduced() ||
+        event.pointerType !== 'mouse' ||
+        !finePointer.matches ||
+        card.contains(document.activeElement)
+      )
+        return;
       const {clientX, clientY} = event;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
@@ -54,6 +60,13 @@
 
   function showMode(mode, {focus = true} = {}) {
     if (!faces[mode]) return;
+    // Keep the shopper's email when switching, without copying passwords.
+    const oldEmail = faces[page.dataset.mode]?.querySelector(
+      'input[name="email"]',
+    );
+    const newEmail = faces[mode].querySelector('input[name="email"]');
+    if (oldEmail && newEmail && !newEmail.value)
+      newEmail.value = oldEmail.value.trim();
     page.dataset.mode = mode;
     switchLinks.forEach((link) => {
       if (link.dataset.authTo === mode)
@@ -68,14 +81,11 @@
     });
     document.title = TITLES[mode];
     if (focus) {
-      // After the flip, the first field of the new side.
-      setTimeout(
-        () => {
-          const first = faces[mode].querySelector('input:not([type=hidden])');
-          if (first) first.focus({preventScroll: true});
-        },
-        reduced() ? 0 : 420,
-      );
+      // Announce the screen without opening a phone keyboard unexpectedly.
+      requestAnimationFrame(() => {
+        const heading = faces[mode].querySelector('h1');
+        if (heading) heading.focus({preventScroll: true});
+      });
     }
   }
 
@@ -259,6 +269,17 @@
   // ---------- Each form ----------
   document.querySelectorAll('[data-auth-form]').forEach((form) => {
     const submit = form.querySelector('[data-submit]');
+    const submitLabel = submit.querySelector('.au-submit-label');
+    const idleLabel = submitLabel?.textContent;
+    const loadingLabel =
+      {
+        signup: 'Creating account...',
+        login: 'Signing in...',
+        admin: 'Signing in...',
+        forgot: 'Sending link...',
+        reset: 'Saving password...',
+        verify: 'Confirming email...',
+      }[form.dataset.kind] || 'Please wait...';
     const inputs = [...form.querySelectorAll('[data-field] input')];
 
     inputs.forEach((input) => {
@@ -370,7 +391,15 @@
       submit.dataset.state = state;
       submit.disabled = state === 'loading' || state === 'done';
       submit.setAttribute('aria-busy', String(state === 'loading'));
+      form.setAttribute('aria-busy', String(state === 'loading'));
+      if (submitLabel)
+        submitLabel.textContent =
+          state === 'loading' ? loadingLabel : idleLabel;
     }
+
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) setButton('idle');
+    });
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -423,6 +452,8 @@
         }
         Nx.formAlert(form, message);
         shakeCard();
+        const invalid = form.querySelector('[aria-invalid="true"]');
+        if (invalid) invalid.focus();
         return;
       }
 
@@ -452,9 +483,9 @@
       // Sign-in should feel immediate once the server has accepted the credentials. The longer
       // handoff is reserved for signup's welcome moment; keeping it here made a successful login
       // look unresponsive for more than a second on slower phones.
-      await wait(form.dataset.kind === 'signup' ? 200 : 0);
+      await wait(form.dataset.kind === 'signup' ? 180 : 80);
       if (form.dataset.kind === 'signup') await celebrate(result);
-      await zoomOut(form.dataset.kind === 'signup' ? 300 : 120);
+      await zoomOut(180);
       // replace, not assign: Back must not return to the sign-in form.
       window.location.replace(result.redirect || form.dataset.redirect || next);
     });
@@ -517,9 +548,9 @@
     box.hidden = false;
     void box.offsetWidth;
     box.classList.add('is-open');
-    if (Nx.confetti)
+    if (Nx.confetti && !reduced())
       Nx.confetti(box.querySelector('[data-auth-confetti]'), {keep: true});
-    await wait(900);
+    await wait(650);
   }
 
   // The whole page zooms and fades into the store.
@@ -589,4 +620,49 @@
       setTimeout(type, 500);
     }
   }
+
+  // ---------- Google and Facebook buttons ----------
+  // Tapped: the button says "Connecting to Google…" with a spinner and the other one dims, so the
+  // wait for the provider's page never feels dead. The provider used last on this device gets a
+  // "Last used" badge (only the provider name is kept, nothing else).
+  const LAST_KEY = 'nx_last_social';
+  const names = {google: 'Google', facebook: 'Facebook'};
+  let last = '';
+  try {
+    last = window.localStorage.getItem(LAST_KEY) || '';
+  } catch {
+    /* storage blocked: no badge */
+  }
+  page.querySelectorAll('[data-social-btn]').forEach((button) => {
+    const provider = button.dataset.socialBtn;
+    const label = button.querySelector('[data-social-label]');
+    const idle = label ? label.textContent : '';
+    if (provider === last) {
+      const badge = button.querySelector('[data-social-last]');
+      if (badge) badge.hidden = false;
+    }
+    button.addEventListener('click', (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.button)
+        return;
+      try {
+        window.localStorage.setItem(LAST_KEY, provider);
+      } catch {
+        /* storage blocked */
+      }
+      button.classList.add('is-loading');
+      button.setAttribute('aria-busy', 'true');
+      if (label)
+        label.textContent = `Connecting to ${names[provider] || 'sign in'}…`;
+      const row = button.closest('.au-social-row');
+      if (row) row.classList.add('is-busy');
+    });
+    // Coming back with the browser's Back button shows the page from memory: reset the button.
+    window.addEventListener('pageshow', () => {
+      button.classList.remove('is-loading');
+      button.removeAttribute('aria-busy');
+      if (label) label.textContent = idle;
+      const row = button.closest('.au-social-row');
+      if (row) row.classList.remove('is-busy');
+    });
+  });
 })();

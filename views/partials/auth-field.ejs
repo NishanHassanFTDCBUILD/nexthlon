@@ -7,7 +7,7 @@
 %>
 <div class="au-field <%= isPassword ? 'au-field-password' : '' %>" data-field>
   <span class="au-field-icon" aria-hidden="true"><%- icon(typeof fieldIcon !== 'undefined' ? fieldIcon : 'user', 'i-sm') %></span>
-  <input id="<%= id %>" name="<%= name %>" type="<%= fieldType %>" placeholder=" " autocomplete="<%= typeof autocomplete !== 'undefined' ? autocomplete : 'off' %>" maxlength="<%= typeof max !== 'undefined' ? max : 254 %>" <%= typeof optional !== 'undefined' && optional ? '' : 'required' %> aria-describedby="<%= describedBy %>" value="<%= typeof value !== 'undefined' ? value : '' %>" <%- typeof extra !== 'undefined' ? extra : '' %>>
+  <input id="<%= id %>" name="<%= name %>" type="<%= fieldType %>" placeholder=" " autocomplete="<%= typeof autocomplete !== 'undefined' ? autocomplete : 'off' %>" <%- fieldType === 'email' ? 'inputmode="email" autocapitalize="none" spellcheck="false"' : '' %> maxlength="<%= typeof max !== 'undefined' ? max : 254 %>" <%= typeof optional !== 'undefined' && optional ? '' : 'required' %> aria-describedby="<%= describedBy %>" value="<%= typeof value !== 'undefined' ? value : '' %>" <%- typeof extra !== 'undefined' ? extra : '' %>>
   <label for="<%= id %>"><%= label %></label>
   <span class="au-line" aria-hidden="true"></span>
   <span class="au-ok" aria-hidden="true"><%- icon('check', 'i-xs') %></span>
