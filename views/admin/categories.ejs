@@ -59,7 +59,7 @@
                 </div>
               </td>
               <td data-label="Products" class="cell-num">
-                <% if (c.productCount) { %><a href="<%= adminPath %>/categories/<%= c.id %>"><%= c.productCount %></a><% } else { %><span class="muted">0</span><% } %>
+                <% if (c.productCount) { %><a class="admin-tap" href="<%= adminPath %>/categories/<%= c.id %>" aria-label="<%= c.productCount %> products in <%= c.name %>"><%= c.productCount %></a><% } else { %><span class="muted">0</span><% } %>
               </td>
               <td data-label="Offer" class="cell-num"><span class="inline-cell" data-inline-cell data-current="<%= c.offerPercent %>"><span><%= c.offerPercent ? c.offerPercent + "%" : "—" %></span> <button type="button" class="link-btn" data-inline-edit data-endpoint="/api/admin/categories/<%= c.id %>/offer" data-field="offerPercent" data-label="offer of <%= c.name %>" data-unit="%" data-value="<%= c.offerPercent %>" data-min="0" data-max="90">Edit</button></span></td>
               <td data-label="Order" class="cell-num"><%= c.sortOrder %></td>

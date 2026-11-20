@@ -1,4 +1,4 @@
-<%# Template text. Replace every [bracketed] value, and check the terms with a legal adviser. %>
+<%# Template text. Business details in [brackets] come from the STORE_* settings (config/store.js). Check the terms with a legal adviser. %>
 <%- include('../partials/info-start', { heading: 'Terms and conditions', lead: 'The rules for using this website and buying from us.', updated: true }) %>
 <article class="doc section-box" data-toc>
   <p>This website is run by <%= store.legalName %>, <%= store.address %> (GSTIN: <%= store.gstin %>). By using the website or placing an order you accept these terms.</p>
@@ -15,7 +15,7 @@
   </ul>
 
   <h2>3. Orders and payment</h2>
-  <p>An order is confirmed only when payment succeeds and you receive a confirmation. Payments are processed securely by [Razorpay]. We may cancel an order if an item is out of stock or the payment looks fraudulent. Any amount paid is then refunded.</p>
+  <p>An order is confirmed only when payment succeeds and you receive a confirmation. Payments are processed securely by Razorpay. We may cancel an order if an item is out of stock or the payment looks fraudulent. Any amount paid is then refunded.</p>
 
   <h2>4. Delivery, returns and refunds</h2>
   <p>See our <a href="/shipping-policy">shipping and delivery policy</a> and our <a href="/refund-policy">cancellation and refund policy</a>.</p>

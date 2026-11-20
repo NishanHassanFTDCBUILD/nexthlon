@@ -2970,6 +2970,13 @@ a.inv-card:focus-visible {
   width: 44px;
 }
 
+.inv-col-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
 .inv-table tr.is-selected td {
   background: rgb(var(--brand-rgb), 0.08);
 }
@@ -3646,6 +3653,11 @@ html.inv-drawer-open {
   .admin-body .inv-table td[data-label='Product']::before,
   .admin-body .inv-table td.inv-actions::before {
     content: none;
+  }
+
+  .inv-col-check input {
+    width: 24px;
+    height: 24px;
   }
 
   .inv-product {
@@ -5036,6 +5048,30 @@ html.inv-drawer-open {
   margin: var(--space-1) 0;
   padding: 0;
   border: 0;
+}
+
+/* On touch screens each label is a full-size row to tap, not just its small box. */
+@media (pointer: coarse) {
+  .order-tags .check {
+    min-height: var(--tap);
+    align-items: center;
+  }
+}
+
+/* Small links that stand alone in a cell (a count, "Open"): a bigger tap area, full size on touch. */
+.admin-tap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+@media (pointer: coarse) {
+  .admin-tap {
+    min-width: var(--tap);
+    min-height: var(--tap);
+  }
 }
 
 @media print {
