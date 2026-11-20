@@ -123,7 +123,10 @@ test.after(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-test.beforeEach(() => {
+test.beforeEach(async () => {
+  // Emails the previous test is still sending in the background land first, then the outbox is
+  // emptied, so each test only sees its own emails.
+  await idle();
   outbox.length = 0;
 });
 
