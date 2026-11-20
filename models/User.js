@@ -78,8 +78,6 @@ const userSchema = new mongoose.Schema(
       orderUpdates: {type: Boolean, default: true},
       offers: {type: Boolean, default: true},
       newsletter: {type: Boolean, default: false},
-      // E1: order updates on WhatsApp too (to the phone on the delivery address). Off until the customer says yes.
-      whatsapp: {type: Boolean, default: false},
     },
     // The last products this customer looked at, newest first (kept to RECENT_LIMIT).
     // E2: phones confirmed with a code for Cash on Delivery ("919876543210"), so they are not asked again soon.

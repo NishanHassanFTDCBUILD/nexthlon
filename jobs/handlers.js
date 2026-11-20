@@ -4,7 +4,6 @@ const registry = require('./registry');
 
 // Event listeners (each becomes a job type "event:<event>:<name>").
 require('../events/listeners/orderEmails');
-require('../events/listeners/orderWhatsApp');
 require('../events/listeners/questionEmails');
 require('../events/listeners/giftCards');
 

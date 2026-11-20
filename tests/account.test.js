@@ -852,7 +852,7 @@ test('recently viewed is synced to the account, preferences are true/false only'
   assert.equal(saved.status, 200);
   assert.deepEqual(
     saved.data.preferences,
-    {orderUpdates: true, offers: false, newsletter: true, whatsapp: false},
-    'WhatsApp updates stay off until asked for',
+    {orderUpdates: true, offers: false, newsletter: true},
+    'only the three email choices; anything else is ignored',
   );
 });

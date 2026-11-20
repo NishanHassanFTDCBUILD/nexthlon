@@ -93,8 +93,6 @@ function readConfig() {
     // Email (order emails, cart reminders, campaigns). Optional: without SMTP the emails are
     // written to the console in development. The values are never logged.
     mail: readMail(),
-    // WhatsApp and SMS (E1, E2). Optional: without them messages are written to the console in development.
-    messaging: readMessaging(),
     // Marketplace feed and stock sync (E8). Set a long random MARKETPLACE_TOKEN to allow stock updates.
     marketplace: {token: String(process.env.MARKETPLACE_TOKEN ?? '').trim()},
     // Push notifications (E5): VAPID keys from npm run push:keys. Off without them.
@@ -180,26 +178,6 @@ function readMail() {
 function readAdminPath() {
   const raw = (process.env.ADMIN_PATH || '/admin').trim().replace(/\/+$/, '');
   return (raw.startsWith('/') ? raw : `/${raw}`).toLowerCase();
-}
-
-// WhatsApp Business (Meta Cloud API) and SMS (MSG91). Each is on only when its keys are all set.
-function readMessaging() {
-  const text = (name) => String(process.env[name] ?? '').trim();
-  const whatsapp = {
-    token: text('WHATSAPP_TOKEN'),
-    phoneNumberId: text('WHATSAPP_PHONE_NUMBER_ID'),
-    language: text('WHATSAPP_TEMPLATE_LANGUAGE') || 'en',
-    apiVersion: text('WHATSAPP_API_VERSION') || 'v21.0',
-  };
-  whatsapp.enabled = Boolean(whatsapp.token && whatsapp.phoneNumberId);
-  const sms = {
-    authKey: text('MSG91_AUTH_KEY'),
-    otpTemplateId: text('MSG91_OTP_TEMPLATE_ID'),
-  };
-  sms.enabled = Boolean(sms.authKey && sms.otpTemplateId);
-  // The number customers can chat with (wa.me link), digits with country code, e.g. 919876543210.
-  const supportNumber = text('WHATSAPP_SUPPORT_NUMBER').replace(/[^0-9]/g, '');
-  return {whatsapp, sms, supportNumber};
 }
 
 // Shipping settings. Shiprocket is only used when its login and pickup location are all set.

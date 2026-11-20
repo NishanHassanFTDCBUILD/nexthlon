@@ -547,9 +547,6 @@ function validatePlaceOrder(body = {}) {
     useWallet: readFlag(body.useWallet),
     source: text(body.source) === 'buynow' ? 'buynow' : 'cart',
     giftRecipient: readGiftRecipient(body.giftRecipient),
-    codCode: text(body.codCode)
-      .replace(/[^0-9]/g, '')
-      .slice(0, 6),
   };
   if (!OBJECT_ID.test(value.addressId))
     errors.addressId = 'Choose a delivery address.';
@@ -643,7 +640,7 @@ function validateEmailChange(body = {}) {
 }
 
 // Notification switches: only these three keys are read, and only true/false.
-const PREFERENCE_KEYS = ['orderUpdates', 'offers', 'newsletter', 'whatsapp'];
+const PREFERENCE_KEYS = ['orderUpdates', 'offers', 'newsletter'];
 function validatePreferences(body = {}) {
   const errors = {};
   const value = {};

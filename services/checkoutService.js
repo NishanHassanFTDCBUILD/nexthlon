@@ -11,7 +11,6 @@ const stockService = require('./stockService');
 const {HttpError} = require('../utils/http');
 const {orderTotals} = require('../utils/pricing');
 const settingsService = require('./settingsService');
-const codConfirmService = require('./codConfirmService');
 const User = require('../models/User');
 const {formatPaise} = require('../utils/money');
 const counterService = require('../services/counterService');
@@ -323,7 +322,6 @@ async function placeOrder(
     paymentMethod,
     useWallet = false,
     source = 'cart',
-    codCode = '',
     giftRecipient = null,
   },
 ) {
@@ -397,21 +395,6 @@ async function placeOrder(
       null,
       'cod_limit',
     );
-  }
-
-  // E2: when the admin turned it on, a code sent to the delivery phone confirms the order (first time per phone).
-  if (
-    method === 'cod' &&
-    (await codConfirmService.isNeeded(userId, address.phone))
-  ) {
-    if (!codCode)
-      throw new HttpError(
-        400,
-        'Confirm your phone to place a Cash on Delivery order.',
-        null,
-        'cod_code_needed',
-      );
-    await codConfirmService.verify(userId, address.phone, codCode);
   }
 
   const stockLines = quote.lines.map((line) => ({

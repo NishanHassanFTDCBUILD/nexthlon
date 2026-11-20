@@ -12,7 +12,6 @@ const {
   updateReferral,
   updateCod,
   updatePrepaid,
-  updateCodOtp,
   listTickets,
   replyTicket,
 } = require('../controllers/adminController');
@@ -81,7 +80,6 @@ router.get('/settings', getSettings);
 router.patch('/settings/referral', updateReferral);
 router.patch('/settings/cod', updateCod);
 router.patch('/settings/prepaid', updatePrepaid);
-router.patch('/settings/cod-otp', updateCodOtp);
 router.get('/settings/site', siteSettings.getSite);
 router.patch(
   '/settings/site/:group(business|delivery|catalog|shopper|home)',

@@ -61,7 +61,6 @@
       <ul class="contact-list">
         <li><span class="trust-icon"><%- icon('mail') %></span><span><strong>Email</strong><%= store.supportEmail %></span></li>
         <li><span class="trust-icon"><%- icon('phone') %></span><span><strong>Phone</strong><%= store.supportPhone %></span></li>
-        <% if (whatsappChat) { %><li><span class="trust-icon"><%- icon('phone') %></span><span><strong>WhatsApp</strong><a href="<%= whatsappChat %>?text=<%= encodeURIComponent('Hi Nexthlon, I need help with ') %>" target="_blank" rel="noopener noreferrer">Chat with us</a></span></li><% } %>
         <li><span class="trust-icon"><%- icon('clock') %></span><span><strong>Hours</strong><%= store.supportHours %></span></li>
         <li><span class="trust-icon"><%- icon('pin') %></span><span><strong>Registered office</strong><%= store.legalName %>, <%= store.address %></span></li>
       </ul>
