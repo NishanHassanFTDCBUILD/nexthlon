@@ -5631,17 +5631,60 @@
 
 .doc {
   color: var(--ink-2);
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 .doc > * + * {
-  margin-top: var(--space-2);
+  margin-top: var(--space-1h);
 }
 
 .doc h2 {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   font-size: var(--text-lg);
   color: var(--ink);
+
+  /* Clears the sticky header when a contents link jumps here. */
+  scroll-margin-top: 7rem;
+}
+
+/* "On this page" on the policy pages (public/js/doc-toc.js). */
+.doc-toc {
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border-left: 3px solid var(--brand);
+}
+
+.doc-toc-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.doc-toc ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0 var(--space-2);
+  margin: 0;
+  padding-left: 1.25em;
+}
+
+.doc-toc a {
+  display: inline-block;
+  min-height: 32px;
+  padding-block: 0.3rem;
+  color: var(--ink-2);
+}
+
+.doc-toc a:hover {
+  color: var(--brand);
+}
+
+.doc-toc + h2 {
+  margin-top: var(--space-3);
 }
 
 .doc h2:first-child {

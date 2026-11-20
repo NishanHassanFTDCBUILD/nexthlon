@@ -1,6 +1,6 @@
 <%# Template text. Replace every [bracketed] value, and check the terms with a legal adviser. %>
 <%- include('../partials/info-start', { heading: 'Terms and conditions', lead: 'The rules for using this website and buying from us.', updated: true }) %>
-<article class="doc section-box">
+<article class="doc section-box" data-toc>
   <p>This website is run by <%= store.legalName %>, <%= store.address %> (GSTIN: <%= store.gstin %>). By using the website or placing an order you accept these terms.</p>
 
   <h2>1. Your account</h2>
@@ -29,4 +29,4 @@
   <h2>7. Law and disputes</h2>
   <p>These terms are governed by the laws of India, and the courts in [your city] have jurisdiction. Please contact us first at <%= store.supportEmail %>, as most problems can be solved quickly.</p>
 </article>
-<%- include('../partials/info-end') %>
+<%- include('../partials/info-end', { scripts: ['doc-toc'] }) %>

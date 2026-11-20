@@ -594,7 +594,8 @@ code {
     .pdx-brand,
     .list-item-name,
     dd > a,
-    .catnav-links a
+    .catnav-links a,
+    .join-signin
   )::before {
     content: '';
     position: absolute;
@@ -624,7 +625,8 @@ code {
     .pdx-brand,
     .list-item-name,
     dd > a,
-    .catnav-links a
+    .catnav-links a,
+    .join-signin
   ) {
     position: relative;
   }

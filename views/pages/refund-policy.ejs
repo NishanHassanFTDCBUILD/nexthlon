@@ -1,6 +1,6 @@
 <%# Template text. Replace every [bracketed] value and check the time limits match how you really work. %>
 <%- include('../partials/info-start', { heading: 'Cancellation and refund policy', lead: 'How to cancel an order, return an item and get your money back.', updated: true }) %>
-<article class="doc section-box">
+<article class="doc section-box" data-toc>
   <div class="doc-summary">
     <div><strong><%= store.returnDays %> days</strong><span>to ask for a return after delivery</span></div>
     <div><strong><%= store.refundDays %></strong><span>for the refund to reach you</span></div>
@@ -27,4 +27,4 @@
   <h2>5. Need help?</h2>
   <p>Email <%= store.supportEmail %>, call <%= store.supportPhone %> (<%= store.supportHours %>) or use our <a href="/contact">contact form</a>.</p>
 </article>
-<%- include('../partials/info-end') %>
+<%- include('../partials/info-end', { scripts: ['doc-toc'] }) %>

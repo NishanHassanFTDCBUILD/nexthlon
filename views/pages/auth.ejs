@@ -37,7 +37,8 @@
         <%# ---------- Front: sign in ---------- %>
         <div class="au-card au-face au-face-login" data-face="login" data-tilt-card <%- isSignup ? 'inert aria-hidden="true"' : '' %>>
           <div class="au-card-head">
-            <h1 class="au-title"><%= isSignup ? 'Welcome back' : 'Welcome back' %></h1>
+            <%# Both cards are in the page; only the one shown is the page's main heading. %>
+            <<%= isSignup ? 'h2' : 'h1' %> class="au-title">Welcome back</<%= isSignup ? 'h2' : 'h1' %>>
             <p class="muted">Sign in to pick up where you left off.</p>
           </div>
           <% if (googleSignIn) { %><a class="btn btn-ghost au-google" href="/api/auth/google">Continue with Google</a><% } %>
@@ -70,7 +71,7 @@
         <%# ---------- Back: create an account ---------- %>
         <div class="au-card au-face au-face-signup" data-face="signup" data-tilt-card <%- isSignup ? '' : 'inert aria-hidden="true"' %>>
           <div class="au-card-head">
-            <h1 class="au-title">Join Nexthlon</h1>
+            <<%= isSignup ? 'h1' : 'h2' %> class="au-title">Join Nexthlon</<%= isSignup ? 'h1' : 'h2' %>>
             <p class="muted">It takes less than a minute.<%= referralReward > 0 ? ' Got an invite? You both get ' + formatPrice(referralReward) + ' after your first delivery.' : '' %></p>
           </div>
           <form class="au-form" data-auth-form data-endpoint="/api/signup" data-kind="signup" novalidate>
