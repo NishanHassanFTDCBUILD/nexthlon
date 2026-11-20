@@ -185,34 +185,3 @@ export const dotFragment = `
     glow *= glow;
     gl_FragColor = vec4(mix(uColorA, uColorB, vMix) * glow, glow * vAlpha);
   }`;
-
-// A cyclist on a road bike, side on and leaning forward: two wheels, the frame, a rider in a
-// crouch with the arms on the bars and the legs turning the pedals (400 × 320 canvas).
-export function drawCyclist(ctx) {
-  const limb = limbs(ctx);
-  // Wheels.
-  ctx.lineWidth = 12;
-  for (const x of [110, 290]) {
-    ctx.beginPath();
-    ctx.arc(x, 220, 60, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  // Frame: chainstays, seat stays, top tube, down tube, fork.
-  limb(10, 110, 220, 190, 220);
-  limb(10, 150, 130, 110, 220);
-  limb(10, 150, 130, 268, 130);
-  limb(10, 190, 220, 268, 130);
-  limb(10, 268, 130, 290, 220);
-  // Handlebars.
-  limb(9, 268, 130, 290, 110, 304, 116);
-  // Saddle.
-  limb(12, 136, 118, 166, 118);
-  // Rider: torso leaning forward, head up, arm to the bars, legs on the pedals.
-  limb(30, 160, 126, 238, 78);
-  ctx.beginPath();
-  ctx.arc(262, 52, 19, 0, Math.PI * 2);
-  ctx.fill();
-  limb(14, 238, 84, 276, 118);
-  limb(22, 160, 126, 208, 150);
-  limb(18, 208, 150, 190, 220);
-}
