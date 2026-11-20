@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const pages = require('../controllers/pageController');
 const account = require('../controllers/accountPageController');
-const {customerPage, shopperPage, guestOnly} = require('../middleware/auth');
+const {customerPage, guestOnly} = require('../middleware/auth');
 const {accountShell} = require('../middleware/shell');
 const {publicCache} = require('../middleware/publicCache');
 const recovery = require('../controllers/recoveryController');
@@ -80,7 +80,7 @@ router.get('/account/help', accountPage, account.help);
 router.get('/account/help/:ticketId', accountPage, account.ticket);
 router.get('/lists/:shareId', account.sharedList);
 // The cart is for signed-in customers: anyone else is sent to sign in and comes back here.
-router.get('/cart', shopperPage, pages.cart);
+router.get('/cart', customerPage, pages.cart);
 router.get('/checkout', customerPage, pages.checkout);
 router.get(['/account/orders', '/orders'], accountPage, pages.orders);
 router.get(['/account/wallet', '/wallet'], accountPage, pages.wallet);

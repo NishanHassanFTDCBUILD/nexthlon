@@ -224,6 +224,9 @@
       event.preventDefault();
       const variantId = addForm.nxRequireOption();
       if (addForm.hasAttribute('data-has-options') && !variantId) return;
+      // Signed out: sign in first and come back here with the same size still chosen.
+      if (Nx.shopperRole === 'guest')
+        return Nx.signInFirst(addForm.nxReturnPath());
       // From the big photo, or from the sticky buy bar's photo when the big one has scrolled away.
       const gallery = document.querySelector('[data-gallery-main]');
       const box = gallery ? gallery.getBoundingClientRect() : null;

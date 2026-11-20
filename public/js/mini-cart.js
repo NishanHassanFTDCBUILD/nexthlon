@@ -116,12 +116,14 @@
   }
 
   trigger.addEventListener('click', (event) => {
-    // The cart page itself, and modified clicks (new tab), keep the normal link.
+    // The cart page itself, and modified clicks (new tab), keep the normal link. So do guests: the
+    // cart needs an account, and /cart sends them to sign in (or sign up) and back to the cart.
     if (
       event.metaKey ||
       event.ctrlKey ||
       event.shiftKey ||
-      location.pathname === '/cart'
+      location.pathname === '/cart' ||
+      (window.Nx && Nx.shopperRole === 'guest')
     )
       return;
     event.preventDefault();
