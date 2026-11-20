@@ -24,12 +24,13 @@ router.post('/signup', authLimiter, signup);
 router.post('/login', authLimiter, accountLoginLimiter, login);
 // Sign in with a code to your phone (accounts that have a mobile number). Each step is rate limited by address.
 const phoneSignIn = require('../controllers/phoneSignInController');
-router.post('/phone/request', authLimiter, phoneSignIn.requestCode);
-router.post('/phone/verify', authLimiter, phoneSignIn.verifyCode);
-// Continue with Google (only when configured; see services/googleSignInService.js).
+router.post('/auth/phone/request', authLimiter, phoneSignIn.requestCode);
+router.post('/auth/phone/verify', authLimiter, phoneSignIn.verifyCode);
+// Continue with Google (only when configured; see services/googleSignInService.js). The callback path
+// must match the redirect address registered with Google (googleSignInService redirectUri).
 const googleSignIn = require('../controllers/googleSignInController');
-router.get('/google', authLimiter, googleSignIn.start);
-router.get('/google/callback', authLimiter, googleSignIn.callback);
+router.get('/auth/google', authLimiter, googleSignIn.start);
+router.get('/auth/google/callback', authLimiter, googleSignIn.callback);
 router.post('/admin/login', adminLoginLimiter, accountLoginLimiter, adminLogin);
 router.post(
   '/admin/login/2fa',
