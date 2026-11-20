@@ -1,0 +1,23 @@
+<%# Guest order tracking: an order ID and the phone number used at checkout, no sign-in. Script: public/js/track.js. %>
+<%- include('../partials/info-start', { heading: 'Track your order', lead: 'Enter the order ID from your confirmation and the phone number you gave at checkout. No sign-in needed.' }) %>
+<section class="section-box track-box" aria-labelledby="track-title">
+  <h2 id="track-title" class="sr-only">Find your order</h2>
+  <form class="form track-form" data-track-form novalidate>
+    <div class="form-alert" data-form-alert aria-live="assertive"></div>
+    <div class="form-grid">
+      <div class="float-field">
+        <input id="t-order" name="orderId" type="text" autocomplete="off" autocapitalize="characters" required maxlength="30" placeholder=" " aria-describedby="t-order-error">
+        <label for="t-order">Order ID</label>
+        <p class="field-error" id="t-order-error" data-error-for="orderId"></p>
+      </div>
+      <div class="float-field">
+        <input id="t-phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="16" required placeholder=" " aria-describedby="t-phone-error">
+        <label for="t-phone">Phone number used at checkout</label>
+        <p class="field-error" id="t-phone-error" data-error-for="phone"></p>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg">Track order</button>
+  </form>
+  <div class="track-result" data-track-result aria-live="polite"></div>
+</section>
+<%- include('../partials/info-end', { scripts: ['track'] }) %>

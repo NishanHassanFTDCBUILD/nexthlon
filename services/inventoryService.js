@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const StockAlert = require('../models/StockAlert');
+const Order = require('../models/Order');
 const AuditLog = require('../models/AuditLog');
 const {RULES} = require('../config/catalog');
 const {HttpError} = require('../utils/http');
@@ -15,11 +16,12 @@ const {readListQuery} = require('../utils/listQuery');
 
 const PAGE_SIZE = 20;
 const MAX_STOCK = 100000;
-const STATUSES = ['all', 'out', 'low', 'healthy', 'unlisted'];
+const STATUSES = ['all', 'out', 'low', 'reorder', 'healthy', 'unlisted'];
 const STATUS_LABELS = {
   all: 'All',
   out: 'Out of stock',
   low: 'Low stock',
+  reorder: 'Reorder now',
   healthy: 'Well stocked',
   unlisted: 'Unlisted',
 };
@@ -32,6 +34,11 @@ const SORTS = {
   },
   name_asc: {label: 'Name: A to Z', order: {name: 1}},
   updated: {label: 'Recently changed', order: {updatedAt: -1}},
+};
+// "Reorder now": a product with its own reorder level, at or below it. ($gt null skips products
+// with no level: a missing or null field is never greater than null.)
+const AT_REORDER_LEVEL = {
+  $and: [{$gt: ['$reorderLevel', null]}, {$lte: ['$stock', '$reorderLevel']}],
 };
 // What the three "needs attention" bands mean, in one place.
 // Worked out on each use, because the low-stock level is an admin setting.
@@ -70,6 +77,7 @@ function readInventoryList(query = {}) {
         labels: STATUS_LABELS,
         match: (value) => {
           if (value === 'unlisted') return {isListed: false};
+          if (value === 'reorder') return {$expr: AT_REORDER_LEVEL};
           return BANDS[value] ? {isListed: true, ...BANDS[value]} : {};
         },
       },
@@ -113,6 +121,31 @@ function toRow(product) {
   };
 }
 
+// Units sold in the last 30 days for these products (cancelled and returned items do not count).
+const SOLD_DAYS = 30;
+async function soldLast30(productIds, now = new Date()) {
+  if (!productIds.length) return new Map();
+  const since = new Date(now.getTime() - SOLD_DAYS * 24 * 60 * 60 * 1000);
+  const rows = await Order.aggregate([
+    {$match: {createdAt: {$gte: since}}},
+    {$unwind: '$items'},
+    {
+      $match: {
+        'items.product': {$in: productIds},
+        'items.status': {$nin: ['cancelled', 'returned']},
+      },
+    },
+    {$group: {_id: '$items.product', units: {$sum: '$items.quantity'}}},
+  ]);
+  return new Map(rows.map((row) => [String(row._id), row.units]));
+}
+
+// Days of stock left at the recent pace: stock ÷ (units sold per day). null when nothing sold.
+function daysOfCover(stock, units) {
+  if (!units) return null;
+  return Math.round((stock / (units / SOLD_DAYS)) * 10) / 10;
+}
+
 // The four counters above the table, over the whole catalogue (not just this page).
 async function totals() {
   const [bands] = await Product.aggregate([
@@ -123,6 +156,7 @@ async function totals() {
         listed: {$sum: {$cond: [{$ne: ['$isListed', false]}, 1, 0]}},
         units: {$sum: '$stock'},
         value: {$sum: {$multiply: ['$stock', '$price']}},
+        reorder: {$sum: {$cond: [AT_REORDER_LEVEL, 1, 0]}},
         out: {
           $sum: {
             $cond: [
@@ -155,10 +189,24 @@ async function totals() {
     listed: 0,
     units: 0,
     value: 0,
+    reorder: 0,
     out: 0,
     low: 0,
   };
-  return {...base, lowStockLimit: RULES.lowStockLimit};
+  delete base._id;
+  // Shoppers waiting for a back-in-stock email, over the whole catalogue.
+  const [alerts] = await StockAlert.aggregate([
+    {$match: {notifiedAt: null}},
+    {$count: 'n'},
+  ]);
+  const waiting = alerts ? alerts.n : 0;
+  return {
+    ...base,
+    healthy: Math.max(0, base.listed - base.out - base.low),
+    unlisted: Math.max(0, base.products - base.listed),
+    waiting,
+    lowStockLimit: RULES.lowStockLimit,
+  };
 }
 
 async function listInventory(query = {}) {
@@ -189,6 +237,7 @@ async function listInventory(query = {}) {
     totals(),
     Category.find().sort({sortOrder: 1, name: 1}).select('name').lean(),
   ]);
+  const sold = await soldLast30(rows.map((row) => row._id));
   const waiting = await StockAlert.aggregate([
     {$match: {product: {$in: rows.map((row) => row._id)}, notifiedAt: null}},
     {$group: {_id: '$product', count: {$sum: 1}}},
@@ -200,6 +249,10 @@ async function listInventory(query = {}) {
     products: rows.map((row) => ({
       ...toRow(row),
       waiting: waitingCounts.get(String(row._id)) || 0,
+      soldLast30: sold.get(String(row._id)) || 0,
+      daysOfCover: daysOfCover(row.stock, sold.get(String(row._id)) || 0),
+      reorderLevel: row.reorderLevel ?? null,
+      needsReorder: row.reorderLevel != null && row.stock <= row.reorderLevel,
     })),
     filters,
     totals: sums,
@@ -365,12 +418,23 @@ async function adjustStock(
   };
 }
 
-// Every product that matches the filters, for the CSV export (no paging).
+// The products ticked on the page (?ids=a,b,c), for "Export selected". Up to one page's worth.
+function selectedIds(raw) {
+  if (typeof raw !== 'string' || !raw) return null;
+  const ids = [
+    ...new Set(raw.split(',').filter((id) => mongoose.isValidObjectId(id))),
+  ].slice(0, 100);
+  return ids.length ? ids.map((id) => new mongoose.Types.ObjectId(id)) : null;
+}
+
+// Every product that matches the filters, for the CSV export (no paging). With ?ids=, only those.
 function cursorFor(query = {}) {
   const filters = readFilters(query);
+  const ids = selectedIds(query.ids);
+  const filter = ids ? {_id: {$in: ids}} : filterFrom(filters);
   return {
     filters,
-    cursor: Product.find(filterFrom(filters))
+    cursor: Product.find(filter)
       .sort(SORTS[filters.sort].order)
       .select(
         'name brand sku stock variants basePrice price isListed category updatedAt',
@@ -408,7 +472,36 @@ async function stockHistory(productId) {
   }));
 }
 
+// The level at which a product needs reordering (null clears it, and the store-wide level applies).
+async function setReorderLevel(productId, level) {
+  if (!mongoose.isValidObjectId(productId))
+    throw new HttpError(404, 'Product not found.');
+  if (
+    level !== null &&
+    (!Number.isInteger(level) || level < 0 || level > MAX_STOCK)
+  )
+    throw new HttpError(
+      400,
+      'Enter a whole number from 0 to ' + MAX_STOCK + ', or leave it empty.',
+      {
+        reorderLevel:
+          'Enter a whole number from 0 to ' +
+          MAX_STOCK +
+          ', or leave it empty.',
+      },
+    );
+  const product = await Product.findById(productId).select('name reorderLevel');
+  if (!product) throw new HttpError(404, 'Product not found.');
+  const before = product.reorderLevel ?? null;
+  product.reorderLevel = level;
+  await product.save();
+  return {name: product.name, before, after: level};
+}
+
 module.exports = {
+  setReorderLevel,
+  soldLast30,
+  daysOfCover,
   stockHistory,
   PAGE_SIZE,
   MAX_STOCK,

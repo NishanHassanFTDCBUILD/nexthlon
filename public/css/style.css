@@ -5631,17 +5631,60 @@
 
 .doc {
   color: var(--ink-2);
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 .doc > * + * {
-  margin-top: var(--space-2);
+  margin-top: var(--space-1h);
 }
 
 .doc h2 {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   font-size: var(--text-lg);
   color: var(--ink);
+
+  /* Clears the sticky header when a contents link jumps here. */
+  scroll-margin-top: 7rem;
+}
+
+/* "On this page" on the policy pages (public/js/doc-toc.js). */
+.doc-toc {
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border-left: 3px solid var(--brand);
+}
+
+.doc-toc-title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.doc-toc ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0 var(--space-2);
+  margin: 0;
+  padding-left: 1.25em;
+}
+
+.doc-toc a {
+  display: inline-block;
+  min-height: 32px;
+  padding-block: 0.3rem;
+  color: var(--ink-2);
+}
+
+.doc-toc a:hover {
+  color: var(--brand);
+}
+
+.doc-toc + h2 {
+  margin-top: var(--space-3);
 }
 
 .doc h2:first-child {
@@ -6819,15 +6862,42 @@
   gap: var(--space-xxs);
 }
 
+/* The free-delivery note: a quiet box, not volt, so the checkout button stays the one accent. */
+.free-box {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-1) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.free-box[hidden] {
+  display: none;
+}
+
 .free-note {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-1) var(--space-sm);
-  border-radius: var(--radius-sm);
-  background: var(--brand-soft);
-  color: var(--brand-ink);
+  color: var(--ink-2);
   font-size: var(--text-sm);
+}
+
+/* A track with a fill: the fill moves with transform only, so it never reflows the page. */
+.free-meter {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.free-meter-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ink);
+  transform-origin: left center;
 }
 
 .empty-actions {
@@ -9233,5 +9303,270 @@ html.is-pay-locked body {
   .announce-inner {
     flex-direction: column;
     gap: var(--space-half);
+  }
+}
+
+/* Voice search: a quiet icon beside the search button. It is hidden where the browser cannot listen. */
+.search-voice {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.search-voice[hidden] {
+  display: none;
+}
+
+/* Listening: the mic turns volt and a soft ring pulses. Tap it again to stop. */
+.search-voice.is-listening {
+  color: var(--brand-ink);
+}
+
+.search-voice.is-listening::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  border: 2px solid var(--brand);
+  opacity: 0;
+  pointer-events: none;
+  animation: nx-voice-ring var(--duration-slower) var(--ease-out) infinite;
+}
+
+@keyframes nx-voice-ring {
+  from {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-voice.is-listening::after {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+@media (hover: hover) {
+  .search-voice:hover {
+    color: var(--ink);
+  }
+}
+
+/* ---------- Find my size ---------- */
+.size-finder .form {
+  max-width: 420px;
+}
+
+.size-result {
+  margin-top: var(--space-3);
+}
+
+.size-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: var(--space-1) 0;
+}
+
+.size-grid div {
+  padding: var(--space-2) var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+}
+
+.size-grid dt {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.size-grid dd {
+  margin: var(--space-xxs) 0 0;
+  font-family: var(--display);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-black);
+}
+
+/* ---------- Price-drop alert button (product page) ---------- */
+.pdx-watch {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  margin-top: var(--space-1);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--ink-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.pdx-watch[aria-pressed='true'] {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* ---------- Product video (under the photos) ---------- */
+.pdx-video {
+  margin: var(--space-1) 0 0;
+}
+
+.pdx-video video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--radius);
+  background: var(--surface-3);
+}
+
+/* ---------- 360 spin (under the photos) ---------- */
+.pdx-spin {
+  position: relative;
+  margin-top: var(--space-1);
+  border-radius: var(--radius);
+  background: var(--surface-3);
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.pdx-spin:active {
+  cursor: grabbing;
+}
+
+.pdx-spin img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.pdx-spin-hint {
+  position: absolute;
+  left: var(--space-1);
+  bottom: var(--space-1);
+  margin: 0;
+  padding: var(--space-xxs) var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+}
+
+/* ---------- Customer risk and timeline (admin) ---------- */
+.admin-reasons,
+.admin-timeline {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.admin-timeline li + li {
+  margin-top: var(--space-xs);
+}
+
+.admin-timeline time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-timeline-kind {
+  display: inline-block;
+  min-width: 56px;
+  color: var(--ink-2);
+  font-weight: var(--weight-semibold);
+  text-transform: capitalize;
+}
+
+/* ---------- Styleguide page ---------- */
+.sg-section {
+  margin-bottom: var(--space-3);
+}
+
+.sg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-1) 0;
+}
+
+.sg-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.sg-swatches li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sg-swatch {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+
+.sg-display {
+  margin: 0;
+  font-family: var(--display);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-black);
+  text-transform: uppercase;
+}
+
+.sg-body {
+  font-size: var(--text-base);
+}
+
+.sg-space {
+  display: inline-block;
+  background: var(--brand);
+  border-radius: var(--radius-xs);
+}
+
+.sg-radius {
+  display: inline-grid;
+  place-items: center;
+  width: 96px;
+  height: 56px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+}
+
+/* Touch: the quantity buttons are at least 44px wide as well as tall (the mobile checklist). */
+@media (pointer: coarse) {
+  .qty-btn {
+    min-width: var(--tap);
   }
 }

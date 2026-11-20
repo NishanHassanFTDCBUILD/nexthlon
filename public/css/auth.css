@@ -1725,3 +1725,397 @@
     }
   }
 }
+
+.au-social {
+  margin-block: var(--space-2) var(--space-1);
+}
+
+/* ---------- Google and Facebook: quiet full-width buttons in the site's own style ----------
+   Same dark surface and hairline as the fields; only the logos carry the brands' colours. On hover
+   the outline turns volt, the button lifts a touch, the logo tilts and an arrow slides in. Once
+   tapped it says "Connecting…" with a spinner. */
+.au-social-row {
+  display: grid;
+  gap: var(--space-1h);
+}
+
+.au-social-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1h);
+  min-height: calc(var(--tap) + var(--space-1));
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--duration-quick) var(--ease-out),
+    box-shadow var(--duration-quick) var(--ease-out),
+    background-color var(--duration-fast) var(--ease);
+}
+
+/* The logo sits in a small round chip at the left edge. */
+.au-social-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(var(--space-4) + var(--space-xs));
+  height: calc(var(--space-4) + var(--space-xs));
+  border-radius: var(--radius-pill);
+  background: rgb(var(--white-rgb), 0.06);
+  transition: transform var(--duration-medium) var(--ease-spring);
+}
+
+.au-social-facebook .au-social-mark {
+  color: var(--facebook);
+}
+
+.au-social-facebook .au-social-f {
+  fill: var(--white);
+}
+
+.au-social-logo {
+  flex: none;
+  width: var(--space-2h);
+  height: var(--space-2h);
+}
+
+.au-social-label {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* "Last used": a small tab hanging from the top edge, clear of the label on any width. */
+.au-social-last {
+  position: absolute;
+  top: 0;
+  right: var(--space-2);
+  padding: 0 var(--space-1) var(--space-xxs);
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+  background: rgb(var(--brand-rgb), 0.16);
+  color: var(--brand);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-bold);
+  line-height: 1.4;
+}
+
+/* The arrow waits off to the right and slides in on hover. */
+.au-social-go {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--space-2h);
+  color: var(--brand);
+  opacity: 0;
+  transform: translateX(calc(var(--space-1) * -1));
+  transition:
+    opacity var(--duration-quick) var(--ease),
+    transform var(--duration-medium) var(--ease-out);
+}
+
+/* A faint band of volt light that crosses the button once on hover. */
+.au-social-btn::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgb(var(--brand-rgb), 0.1) 48%,
+    transparent 66%
+  );
+  content: '';
+  opacity: 0;
+  transform: translateX(-110%);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .au-social-btn:hover {
+    background: var(--surface-3);
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--brand-rgb), 0.6),
+      var(--shadow-sm);
+    transform: translateY(calc(var(--space-xxs) * -1));
+  }
+
+  .au-social-btn:hover::after {
+    opacity: 1;
+    transform: translateX(110%);
+    transition:
+      transform var(--duration-slower) var(--ease-out),
+      opacity var(--duration-fast) var(--ease);
+  }
+
+  .au-social-btn:hover .au-social-mark {
+    transform: rotate(-8deg) scale(1.08);
+  }
+
+  .au-social-btn:hover .au-social-go {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Keep the text colour: the site's link hover (volt, underlined) must not reach these. */
+.au-social-btn:hover,
+.au-social-btn:focus-visible {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.au-social-btn:active {
+  transform: translateY(0) scale(0.985);
+  transition-duration: var(--duration-fast);
+}
+
+.au-social-btn:focus-visible {
+  outline: var(--space-xxs) solid var(--brand);
+  outline-offset: var(--space-half);
+}
+
+/* Tapped: the label says "Connecting to Google…" and a spinner replaces the arrow. */
+.au-social-spinner {
+  position: absolute;
+  right: var(--space-2);
+  width: var(--space-2h);
+  height: var(--space-2h);
+  opacity: 0;
+  fill: none;
+  stroke: var(--brand);
+  stroke-dasharray: 40 60;
+  stroke-linecap: round;
+  stroke-width: 2.5;
+  transition: opacity var(--duration-fast) var(--ease);
+}
+
+.au-social-btn.is-loading {
+  pointer-events: none;
+  transform: none;
+}
+
+.au-social-btn.is-loading .au-social-go,
+.au-social-btn.is-loading .au-social-last {
+  opacity: 0;
+}
+
+.au-social-btn.is-loading .au-social-spinner {
+  opacity: 1;
+  animation: au-social-spin var(--duration-slower) var(--ease-linear) infinite;
+}
+
+.au-social-row.is-busy .au-social-btn:not(.is-loading) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@keyframes au-social-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.au-social-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-1h);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .au-social-btn,
+  .au-social-btn::after,
+  .au-social-mark,
+  .au-social-go {
+    transition: none;
+  }
+
+  .au-social-btn::after {
+    display: none;
+  }
+}
+
+/* Each storefront form sets its own height, with no space reserved for the inactive side. */
+.au-storefront .au-panel {
+  gap: var(--space-2h);
+  padding: calc(var(--space-10) + var(--space-3)) var(--gutter) var(--space-6);
+}
+
+.au-storefront .au-flip,
+.au-storefront .au-switch,
+.au-benefits {
+  width: min(100%, calc(var(--space-10) * 7));
+}
+
+.au-storefront .au-flip-inner,
+.au-storefront[data-mode='signup'] .au-flip-inner,
+.au-storefront .au-face {
+  transform: none;
+  transition: none;
+}
+
+.au-storefront .au-flip-inner {
+  display: block;
+}
+
+.au-storefront .au-face[aria-hidden='true'] {
+  display: none;
+}
+
+.au-storefront .au-card {
+  min-width: 0;
+  padding: var(--space-4);
+}
+
+.au-storefront .au-switch a {
+  display: grid;
+  place-items: center;
+  min-height: var(--tap);
+}
+
+.au-eyebrow {
+  color: var(--brand);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.au-storefront .au-title:focus {
+  outline: none;
+}
+
+.au-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1h);
+  margin-top: var(--space-2h);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.au-divider::before,
+.au-divider::after {
+  content: '';
+  flex: 1;
+  height: var(--space-xxs);
+  background: var(--line);
+}
+
+.au-password-guide summary,
+.au-referral summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--ink-2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.au-password-guide summary::before {
+  content: '+';
+  margin-right: var(--space-1);
+  color: var(--brand);
+}
+
+.au-password-guide[open] summary::before {
+  content: '−';
+}
+
+.au-benefits {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.au-benefits p,
+.au-benefits li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.au-benefits p {
+  color: var(--ink-2);
+  font-weight: var(--weight-semibold);
+}
+
+.au-benefits ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1) var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.au-benefits .i {
+  color: var(--brand);
+}
+
+.au-benefits a {
+  display: inline-grid;
+  place-items: center;
+  min-height: var(--tap);
+  justify-self: center;
+  color: var(--ink-2);
+}
+
+.au-storefront .au-foot a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
+
+@media (max-width: 960px) {
+  .au-storefront .au-scene {
+    height: calc(var(--space-10) * 3);
+    min-height: 0;
+  }
+
+  .au-storefront .au-panel {
+    padding: var(--space-2) var(--gutter) var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .au-storefront .au-card {
+    padding: var(--space-3);
+  }
+}
+
+@media (max-width: 420px) {
+  .au-storefront .au-motto-line {
+    font-size: var(--text-2xl);
+    max-width: 70%;
+    white-space: nowrap;
+  }
+
+  .au-storefront .au-card {
+    padding: var(--space-2);
+  }
+
+  .au-storefront .au-back {
+    padding-inline: var(--space-1);
+    font-size: var(--text-xs);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .au-storefront.is-enhanced .au-flip,
+  .au-storefront.is-enhanced .au-switch,
+  .au-storefront .au-face:not([aria-hidden='true']) {
+    animation: nx-au-rise var(--duration-quick) var(--ease-out) both;
+  }
+}

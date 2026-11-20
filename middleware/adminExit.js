@@ -17,8 +17,15 @@ const logger = require('../utils/logger');
 async function endAdminOnStore(req, res, next) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   // An unknown address under the console's own path falls through to here: that is not leaving.
+  // Nor is an /api address that matches no route (an admin tab still running last deploy's script
+  // can ask for one): it gets its 404, and the admin stays signed in.
   const path = req.path;
-  if (path === config.adminPath || path.startsWith(`${config.adminPath}/`))
+  if (
+    path === config.adminPath ||
+    path.startsWith(`${config.adminPath}/`) ||
+    path === '/api' ||
+    path.startsWith('/api/')
+  )
     return next();
   // A browser prefetching or prerendering a store link is not the admin leaving either.
   const purpose = String(

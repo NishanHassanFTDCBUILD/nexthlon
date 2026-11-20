@@ -4,8 +4,8 @@ const registry = require('./registry');
 
 // Event listeners (each becomes a job type "event:<event>:<name>").
 require('../events/listeners/orderEmails');
-require('../events/listeners/orderWhatsApp');
 require('../events/listeners/questionEmails');
+require('../events/listeners/giftCards');
 
 // Back-in-stock alerts (E3): one email per alert, and the sweep that finds alerts whose product is back.
 const stockAlertService = require('../services/stockAlertService');
@@ -18,6 +18,27 @@ registry.register('stock.sweep', () => stockAlertService.sweep(), {
 registry.schedule('stock-sweep', {
   everyMs: 10 * 60 * 1000,
   type: 'stock.sweep',
+});
+
+// Price-drop alerts: one email per drop, and a sweep every 30 minutes that finds drops.
+const priceAlertService = require('../services/priceAlertService');
+registry.register('price.drop', ({watchId}) =>
+  priceAlertService.notify(watchId),
+);
+registry.register('price.sweep', () => priceAlertService.sweep(), {
+  maxAttempts: 2,
+});
+registry.schedule('price-sweep', {
+  everyMs: 30 * 60 * 1000,
+  type: 'price.sweep',
+});
+
+// Abandoned-cart reminders: a sweep every 15 minutes (services/cartReminderService.js).
+const cartReminderService = require('../services/cartReminderService');
+registry.register('cart.reminders', () => cartReminderService.sweep());
+registry.schedule('cart-reminders', {
+  everyMs: 15 * 60 * 1000,
+  type: 'cart.reminders',
 });
 
 // Resume interrupted payment, cancellation, return and refund work after restarts.

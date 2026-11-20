@@ -1,0 +1,13 @@
+<%#
+  The side drawer: a quick look at a record (an order) without leaving the list. Filled by
+  public/js/admin-tools.js; Esc, the close button or the backdrop closes it.
+%>
+<div class="drawer-backdrop" data-drawer-close hidden></div>
+<aside class="drawer" id="admin-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" tabindex="-1" hidden>
+  <header class="drawer-head">
+    <h2 id="drawer-title">Quick look</h2>
+    <button type="button" class="icon-btn" data-drawer-close aria-label="Close quick look">×</button>
+  </header>
+  <div class="drawer-body" data-drawer-body aria-live="polite">Loading…</div>
+  <footer class="drawer-foot"><a class="btn btn-secondary btn-sm" href="#" data-drawer-open-page>Open full page</a></footer>
+</aside>

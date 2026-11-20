@@ -243,6 +243,31 @@ test('an admin signs in at the new path with its own short access cookie and 1-d
   assert.match(out.setCookie, /nx_admin=;/);
 });
 
+test('an unknown /api address keeps the admin signed in; opening a store page signs the admin out', async () => {
+  const admin = await call('POST', '/api/admin/login', {
+    body: {email: 'admin@path.test', password: 'AdminPass123'},
+  });
+  assert.equal(admin.status, 200);
+
+  for (const path of ['/api/admin/no-such-list', '/api/no-such-thing']) {
+    const missing = await call('GET', path, {cookie: admin.cookie});
+    assert.equal(missing.status, 404, path);
+    assert.doesNotMatch(
+      missing.setCookie,
+      /nx_admin=;/,
+      `${path} must not end the admin session`,
+    );
+  }
+  assert.equal(
+    (await call('GET', `${ADMIN}/dashboard`, {cookie: admin.cookie})).status,
+    200,
+  );
+
+  const store = await call('GET', '/products', {cookie: admin.cookie});
+  assert.equal(store.status, 200);
+  assert.match(store.setCookie, /nx_admin=;/, 'leaving for the store ends it');
+});
+
 test('after signing in, the admin login only sends the admin to pages inside the console', async () => {
   assert.match(
     (await call('GET', `${ADMIN}/login?next=%2Faccount`)).data,
@@ -301,7 +326,6 @@ test('admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
     'offers',
     'flash-sales',
     'campaigns',
-    'gift-cards',
     'loyalty',
     'cms',
     'banners',
@@ -312,7 +336,6 @@ test('admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
     'audit-log',
     'tickets',
     'analytics-soon',
-    'reviews',
   ]) {
     assert.doesNotMatch(full.data, new RegExp(`data-nav-link="${gone}"`));
   }
@@ -389,7 +412,6 @@ test('every section in the sidebar opens; anything else is a plain 404', async (
     'audit-log',
     'tickets',
     'profile',
-    'reviews',
     'not-a-section',
   ]) {
     assert.equal(

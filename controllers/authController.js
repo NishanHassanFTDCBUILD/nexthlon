@@ -1,4 +1,9 @@
+const crypto = require('crypto');
 const authService = require('../services/authService');
+const adminTwoFactor = require('../services/adminTwoFactorService');
+const mailService = require('../services/mailService');
+const User = require('../models/User');
+const {renderEmail, siteUrl} = require('../utils/emailLayout');
 const refreshTokenService = require('../services/refreshTokenService');
 const {
   startSession,
@@ -119,8 +124,77 @@ const adminLogin = asyncHandler(async (req, res) => {
   if (hasErrors(errors))
     throw new HttpError(400, 'Please fix the highlighted fields.', errors);
   const user = await authService.authenticate(value, 'admin', {touch: false});
+  // Two-step sign-in on: the password is not enough. The second step gets the code (adminLoginTwoFactor).
+  if (user.twoFactor && user.twoFactor.enabled) {
+    return res.json({
+      message: 'Enter the 6-digit code from your authenticator app.',
+      twoFactorRequired: true,
+      pendingToken: adminTwoFactor.issueChallenge(user._id),
+    });
+  }
   await authService.touchLogin(user);
   await noteLogin(req, user);
+  await adminDeviceAlert(user, req);
+  return sendSignedIn(req, res, user, 200, 'Signed in to the admin console.');
+});
+
+// Email when an admin signs in from a browser they have not used before. The first browser is recorded quietly.
+async function adminDeviceAlert(user, req) {
+  try {
+    const device = crypto
+      .createHash('sha256')
+      .update(String(req.get('user-agent') || 'unknown'))
+      .digest('hex')
+      .slice(0, 16);
+    const full = await User.findById(user._id)
+      .select('+adminDevices email name')
+      .exec();
+    if (!full) return;
+    const known = full.adminDevices || [];
+    if (known.includes(device)) return;
+    full.adminDevices = [device, ...known].slice(0, 20);
+    await full.save();
+    if (!known.length) return;
+    const base = siteUrl();
+    const when =
+      new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+    const {html, text} = renderEmail({
+      preheader: 'A new browser signed in to the admin console.',
+      heading: 'New sign-in to the admin console',
+      paragraphs: [
+        `The admin console was opened from a browser we have not seen before, at ${when}.`,
+        'If this was you, nothing else is needed. If it was not, sign in and change your password now, and turn on two-step sign-in.',
+      ],
+      button: {label: 'Open the admin console', url: `${base}/admin`},
+    });
+    await mailService.send({
+      to: full.email,
+      subject: 'New sign-in to the admin console',
+      html,
+      text,
+    });
+  } catch {
+    // An alert that cannot be sent never stops the sign-in itself.
+  }
+}
+
+// POST /api/admin/login/2fa   body: { pendingToken, code }  (the second step after the password)
+const adminLoginTwoFactor = asyncHandler(async (req, res) => {
+  const body = req.body || {};
+  const id = adminTwoFactor.readChallenge(body.pendingToken);
+  if (!id) throw new HttpError(401, 'That sign-in has expired. Start again.');
+  const user = await User.findOne({_id: id, role: 'admin'}).exec();
+  if (!user || user.isBlocked)
+    throw new HttpError(401, 'That sign-in has expired. Start again.');
+  if (!(await adminTwoFactor.verifyLogin(user, body.code)))
+    throw new HttpError(
+      400,
+      'That code is not right. Try again, or use a recovery code.',
+      {code: 'That code is not right.'},
+    );
+  await authService.touchLogin(user);
+  await noteLogin(req, user);
+  await adminDeviceAlert(user, req);
   return sendSignedIn(req, res, user, 200, 'Signed in to the admin console.');
 });
 
@@ -223,4 +297,16 @@ const adminLogout = asyncHandler(async (req, res) => {
   res.json({message: 'You have been signed out of the admin console.'});
 });
 
-module.exports = {signup, login, adminLogin, refresh, me, logout, adminLogout};
+module.exports = {
+  noteLogin,
+  bringGuestCart,
+  sendSignedIn,
+  signup,
+  login,
+  adminLogin,
+  adminLoginTwoFactor,
+  refresh,
+  me,
+  logout,
+  adminLogout,
+};

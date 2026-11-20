@@ -1,7 +1,7 @@
 <% if (stock <= 0) { %>
-  <span class="stock stock-out">Out of stock</span>
+  <span class="stock stock-out"><%= t('out_of_stock') %></span>
 <% } else if (stock <= 5) { %>
-  <span class="stock stock-low">Only <%= stock %> left</span>
+  <span class="stock stock-low"><%= t('only_left').replace('{n}', stock) %></span>
 <% } else { %>
-  <span class="stock stock-ok">In stock</span>
+  <span class="stock stock-ok"><%= t('in_stock') %></span>
 <% } %>

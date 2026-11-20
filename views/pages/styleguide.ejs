@@ -1,0 +1,87 @@
+<%# Styleguide: the design tokens and the main components, in every state the site uses. It is rendered from the live
+    stylesheets, so it always matches the site. For the team; not linked from the store. %>
+<%- include('../partials/info-start', { heading: 'Styleguide', lead: 'Colours, type, spacing and the main components in every state. Rendered from the live stylesheets.' }) %>
+
+<section class="section-box sg-section" aria-labelledby="sg-colour">
+  <h2 id="sg-colour" class="panel-title">Colour</h2>
+  <p class="muted">One accent (volt) marks the action on a screen. Everything else is neutral. Status colours mean status only.</p>
+  <ul class="sg-swatches">
+    <li><span class="sg-swatch" style="background: var(--bg)"></span><code>bg</code> page floor</li>
+    <li><span class="sg-swatch" style="background: var(--surface)"></span><code>surface</code> cards</li>
+    <li><span class="sg-swatch" style="background: var(--surface-2)"></span><code>surface-2</code> inputs at rest</li>
+    <li><span class="sg-swatch" style="background: var(--surface-3)"></span><code>surface-3</code> tracks</li>
+    <li><span class="sg-swatch" style="background: var(--ink)"></span><code>ink</code> text</li>
+    <li><span class="sg-swatch" style="background: var(--muted)"></span><code>muted</code> captions</li>
+    <li><span class="sg-swatch" style="background: var(--brand)"></span><code>brand</code> the one accent</li>
+    <li><span class="sg-swatch" style="background: var(--success)"></span><code>success</code> status</li>
+    <li><span class="sg-swatch" style="background: var(--danger)"></span><code>danger</code> status</li>
+  </ul>
+</section>
+
+<section class="section-box sg-section" aria-labelledby="sg-type">
+  <h2 id="sg-type" class="panel-title">Type</h2>
+  <p class="sg-display">Display: Barlow Condensed</p>
+  <p class="sg-body">Body: Inter. Running text reads at 16px, with 14px for secondary text and 12px as the smallest size.</p>
+  <p class="muted">Caption text, used for meta and helper lines.</p>
+</section>
+
+<section class="section-box sg-section" aria-labelledby="sg-buttons">
+  <h2 id="sg-buttons" class="panel-title">Buttons</h2>
+  <div class="sg-row">
+    <button type="button" class="btn btn-primary">Add to cart</button>
+    <button type="button" class="btn btn-secondary">Save for later</button>
+    <button type="button" class="btn btn-ghost">Compare</button>
+    <button type="button" class="btn btn-primary" disabled>Out of stock</button>
+  </div>
+  <div class="sg-row">
+    <button type="button" class="btn btn-primary btn-sm">Small</button>
+    <button type="button" class="btn btn-ghost btn-sm">Small ghost</button>
+  </div>
+  <p class="muted">Focus shows a volt ring when you tab to a button. Touch targets are at least 44px on phones.</p>
+</section>
+
+<section class="section-box sg-section" aria-labelledby="sg-stock">
+  <h2 id="sg-stock" class="panel-title">Stock messages</h2>
+  <div class="sg-row">
+    <%- include('../partials/stock', { stock: 40 }) %>
+    <%- include('../partials/stock', { stock: 3 }) %>
+    <%- include('../partials/stock', { stock: 0 }) %>
+  </div>
+</section>
+
+<section class="section-box sg-section" aria-labelledby="sg-fields">
+  <h2 id="sg-fields" class="panel-title">Fields</h2>
+  <form class="form" novalidate>
+    <div class="float-field">
+      <input id="sg-default" type="text" placeholder=" ">
+      <label for="sg-default">At rest</label>
+    </div>
+    <div class="float-field">
+      <input id="sg-error" type="text" placeholder=" " aria-invalid="true" aria-describedby="sg-error-msg" value="Ab">
+      <label for="sg-error">With an error</label>
+      <p class="field-error" id="sg-error-msg">Enter at least three letters.</p>
+    </div>
+    <div class="float-field">
+      <input id="sg-disabled" type="text" placeholder=" " disabled>
+      <label for="sg-disabled">Disabled</label>
+    </div>
+  </form>
+  <p class="muted">Tab into a field to see the focus ring. Errors name the field and say how to fix it.</p>
+</section>
+
+<section class="section-box sg-section" aria-labelledby="sg-type-scale">
+  <h2 id="sg-type-scale" class="panel-title">Spacing and shape</h2>
+  <div class="sg-row">
+    <span class="sg-space" style="width: var(--space-1); height: 24px"></span>
+    <span class="sg-space" style="width: var(--space-2); height: 24px"></span>
+    <span class="sg-space" style="width: var(--space-4); height: 24px"></span>
+    <span class="sg-space" style="width: var(--space-6); height: 24px"></span>
+  </div>
+  <div class="sg-row">
+    <span class="sg-radius" style="border-radius: var(--radius-sm)">12px</span>
+    <span class="sg-radius" style="border-radius: var(--radius)">16px</span>
+    <span class="sg-radius" style="border-radius: var(--radius-pill)">pill</span>
+  </div>
+</section>
+
+<%- include('../partials/info-end') %>

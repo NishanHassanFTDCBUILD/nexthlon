@@ -11,10 +11,11 @@ const stockService = require('./stockService');
 const {HttpError} = require('../utils/http');
 const {orderTotals} = require('../utils/pricing');
 const settingsService = require('./settingsService');
-const codConfirmService = require('./codConfirmService');
+const User = require('../models/User');
 const {formatPaise} = require('../utils/money');
 const counterService = require('../services/counterService');
 const gstService = require('./gstService');
+const loyaltyService = require('./loyaltyService');
 
 // Placed here at once. Online payment (razorpay) goes through paymentService.
 // "wallet" is used when the wallet covers the whole amount.
@@ -67,10 +68,12 @@ async function buildQuote(
   userId,
   {useWallet = false, source = 'cart', payOnline = false} = {},
 ) {
-  const [cart, walletBalance] = await Promise.all([
+  const [cart, walletBalance, tier] = await Promise.all([
     itemsFor(userId, source),
     walletService.getBalance(userId),
+    loyaltyService.forUser(userId),
   ]);
+  const freeDelivery = tier.freeDelivery;
   const lines = cart.items.filter((item) => item.available);
   const problems = cart.items
     .filter((item) => !item.available)
@@ -105,6 +108,7 @@ async function buildQuote(
       useWallet: Boolean(useWallet),
       prepaid,
       payOnline: online,
+      freeDelivery,
     });
   let totals = sums(Boolean(payOnline));
   // The wallet covers it all: nothing is paid online, so there is no online discount.
@@ -239,6 +243,7 @@ async function saveOrder(
     paymentStatus,
     stockReserved,
     note,
+    giftRecipient,
   },
   session,
   undo,
@@ -292,6 +297,7 @@ async function saveOrder(
         address: addressSnapshot(address),
         ...orderMoney(totals),
         source: quote.source === 'buynow' ? 'buynow' : 'cart',
+        giftRecipient,
         paymentMethod,
         paymentStatus,
         orderStatus: 'placed',
@@ -311,7 +317,13 @@ async function saveOrder(
 // All of it happens, or none of it.
 async function placeOrder(
   userId,
-  {addressId, paymentMethod, useWallet = false, source = 'cart', codCode = ''},
+  {
+    addressId,
+    paymentMethod,
+    useWallet = false,
+    source = 'cart',
+    giftRecipient = null,
+  },
 ) {
   if (!PAYMENT_METHODS.includes(paymentMethod)) {
     throw new HttpError(400, 'Choose a payment method.', {
@@ -333,7 +345,30 @@ async function placeOrder(
     );
   }
   // Fake Cash on Delivery orders tie up stock and courier money (D3): at most a few unpaid ones on the way.
+  // A gift card is worth its face value on the day it is paid; cash on delivery cannot be checked for that.
   if (method === 'cod') {
+    const giftInCart = await require('../models/Product').countDocuments({
+      _id: {$in: quote.lines.map((line) => line.productId)},
+      giftCard: true,
+    });
+    if (giftInCart)
+      throw new HttpError(
+        400,
+        'Gift cards need online or wallet payment. Please choose another way to pay.',
+        null,
+        'gift_card_cod',
+      );
+  }
+  if (method === 'cod') {
+    // The team can switch Cash on Delivery off for one customer (fraud control).
+    const account = await User.findById(userId).select('codBlocked').lean();
+    if (account && account.codBlocked)
+      throw new HttpError(
+        400,
+        'Cash on Delivery is not available on this account. Please pay online.',
+        null,
+        'cod_blocked',
+      );
     const open = await Order.countDocuments({
       user: userId,
       paymentMethod: 'cod',
@@ -362,21 +397,6 @@ async function placeOrder(
     );
   }
 
-  // E2: when the admin turned it on, a code sent to the delivery phone confirms the order (first time per phone).
-  if (
-    method === 'cod' &&
-    (await codConfirmService.isNeeded(userId, address.phone))
-  ) {
-    if (!codCode)
-      throw new HttpError(
-        400,
-        'Confirm your phone to place a Cash on Delivery order.',
-        null,
-        'cod_code_needed',
-      );
-    await codConfirmService.verify(userId, address.phone, codCode);
-  }
-
   const stockLines = quote.lines.map((line) => ({
     product: line.productId,
     variant: line.variantId || null,
@@ -396,6 +416,7 @@ async function placeOrder(
           paymentMethod: method,
           paymentStatus: method === 'wallet' ? 'paid' : 'pending',
           stockReserved: true,
+          giftRecipient,
           note:
             method === 'wallet'
               ? 'Paid from the Nexthlon wallet'

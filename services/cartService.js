@@ -6,6 +6,7 @@ const {HttpError} = require('../utils/http');
 const {STORE} = require('../config/store');
 const {RULES} = require('../config/catalog');
 const {deliveryFeeFor} = require('../utils/pricing');
+const loyaltyService = require('./loyaltyService');
 const {
   hasOptions,
   findOption,
@@ -73,7 +74,7 @@ function reasonFor(product, optionId) {
 // Turns stored cart lines (with their products loaded) into what the pages and API show.
 // Prices always come from the product in the database. Unavailable lines stay visible
 // but are left out of every total. A line's key ("<product>" or "<product>-<option>") names it in URLs.
-function buildCartView(lines = []) {
+function buildCartView(lines = [], {freeDelivery = false} = {}) {
   const items = [];
   const summary = {
     count: 0,
@@ -129,7 +130,7 @@ function buildCartView(lines = []) {
   }
   // Everything is in whole paise, so the sums are exact.
   summary.savings = summary.mrpTotal - summary.subtotal;
-  summary.deliveryFee = deliveryFeeFor(summary.subtotal);
+  summary.deliveryFee = deliveryFeeFor(summary.subtotal, {freeDelivery});
   // How much more to spend for free delivery (0 when it is already free).
   summary.freeDeliveryGap = summary.deliveryFee
     ? STORE.freeDeliveryMin - summary.subtotal
@@ -180,6 +181,9 @@ async function findOrCreateCart(owner) {
 async function getCart(owner) {
   if (!owner) return {...buildCartView([]), couponCode: ''};
   const {Model, filter} = storeFor(owner);
+  // Silver and Gold members get free delivery (the same rule checkout uses).
+  const freeDelivery =
+    Model === Cart && (await loyaltyService.forUser(owner)).freeDelivery;
   const cart = await Model.findOne(filter).populate('items.product');
   if (!cart) return {...buildCartView([]), couponCode: ''};
 
@@ -200,7 +204,10 @@ async function getCart(owner) {
     cart.items = kept;
     await cart.save();
   }
-  return {...buildCartView(cart.items), couponCode: cart.couponCode || ''};
+  return {
+    ...buildCartView(cart.items, {freeDelivery}),
+    couponCode: cart.couponCode || '',
+  };
 }
 
 // The number shown on the header cart icon.

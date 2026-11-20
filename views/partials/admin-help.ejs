@@ -1,0 +1,25 @@
+<%#
+  Keyboard shortcuts and the row density switch, opened with ? in the console.
+%>
+<dialog class="confirm-dialog admin-help" id="admin-help" aria-labelledby="admin-help-title">
+  <form method="dialog">
+    <h2 id="admin-help-title">Keyboard shortcuts</h2>
+    <dl class="admin-help-list">
+      <div><dt><kbd>/</kbd></dt><dd>Search the current list</dd></div>
+      <div><dt><kbd>g</kbd> then <kbd>o</kbd></dt><dd>Go to Orders</dd></div>
+      <div><dt><kbd>g</kbd> then <kbd>p</kbd></dt><dd>Go to Products</dd></div>
+      <div><dt><kbd>g</kbd> then <kbd>c</kbd></dt><dd>Go to Customers</dd></div>
+      <div><dt><kbd>g</kbd> then <kbd>i</kbd></dt><dd>Go to Inventory</dd></div>
+      <div><dt><kbd>g</kbd> then <kbd>t</kbd></dt><dd>Go to the Support inbox</dd></div>
+      <div><dt><kbd>g</kbd> then <kbd>r</kbd></dt><dd>Go to Reviews</dd></div>
+      <div><dt><kbd>g</kbd> then <kbd>d</kbd></dt><dd>Go to Deals of the day</dd></div>
+      <div><dt><kbd>g</kbd> then <kbd>s</kbd></dt><dd>Go to Settings</dd></div>
+      <div><dt><kbd>d</kbd></dt><dd>Switch between comfortable and compact rows</dd></div>
+      <div><dt><kbd>?</kbd></dt><dd>Show this sheet</dd></div>
+    </dl>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-ghost" data-density-toggle aria-pressed="false">Compact rows</button>
+      <button class="btn btn-primary" value="close" data-close-help>Done</button>
+    </div>
+  </form>
+</dialog>

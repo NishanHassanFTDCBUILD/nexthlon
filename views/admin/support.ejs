@@ -1,0 +1,48 @@
+<%#
+  Support inbox: customer requests, newest activity first. Open one to read the conversation and reply.
+%>
+<%- include('../partials/admin-start', { section: 'support' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Customers</span>
+    <h1>Support inbox</h1>
+    <p class="muted"><%= counts.open %> waiting for us · <%= counts.pending %> waiting for the customer · <%= counts.resolved %> resolved.</p>
+  </div>
+</header>
+
+<nav class="segmented admin-tabs" aria-label="Request status">
+  <% [['all', 'All', counts.open + counts.pending + counts.resolved], ['open', 'Waiting for us', counts.open], ['pending', 'Waiting for customer', counts.pending], ['resolved', 'Resolved', counts.resolved]].forEach(function ([key, label, n]) { %>
+    <a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="page"' : '' %>><%= label %> <span class="admin-tab-count"><%= n %></span></a>
+  <% }) %>
+</nav>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Requests">
+  <% if (tickets.length) { %>
+    <div class="table-wrap">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">Request</th>
+          <th scope="col">Customer</th>
+          <th scope="col">Topic</th>
+          <th scope="col">Last activity</th>
+          <th scope="col">Status</th>
+        </tr></thead>
+        <tbody>
+          <% tickets.forEach(function (t) { %>
+            <tr data-row-href="<%= adminPath %>/support/<%= t.ticketId %>">
+              <td data-label="Request"><a href="<%= adminPath %>/support/<%= t.ticketId %>"><strong><%= t.subject %></strong></a><small class="muted admin-sub"><%= t.ticketId %><%= t.orderId ? ' · order ' + t.orderId : '' %></small></td>
+              <td data-label="Customer"><%= t.customer ? t.customer.name : 'Customer' %></td>
+              <td data-label="Topic"><%= t.topic %></td>
+              <td data-label="Last activity"><%= formatDate(t.updatedAt) %></td>
+              <td data-label="Status"><span class="pill <%= t.status === 'open' ? 'pill-red' : t.status === 'pending' ? 'pill-amber' : 'pill-green' %>"><%= t.status === 'open' ? 'Waiting for us' : t.status === 'pending' ? 'Waiting for customer' : 'Resolved' %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/admin-pager') %>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>No requests here</h2><p>When a customer writes in, it appears here.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

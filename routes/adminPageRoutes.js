@@ -41,6 +41,10 @@ router.get('/analytics', pages.adminAnalytics);
 
 // ---------- Sales ----------
 router.get('/orders', sales.orders);
+// The pick list must come before /orders/:orderId, or 'pick-list' would be read as an order number.
+router.get('/orders/pick-list', sales.pickList);
+// Batch print: the chosen orders, one page each (the browser prints it or saves it as a PDF).
+router.get('/orders/print', sales.printOrders);
 router.get('/orders/:orderId', sales.order);
 router.get('/returns', sales.returns);
 router.get('/transactions', sales.transactions);
@@ -68,6 +72,11 @@ router.get('/categories/:categoryId', catalog.category);
 
 // ---------- Customers ----------
 router.get('/customers', pages.adminUsers);
+// Customer 360: one customer's whole picture (the wallet page below has its own, longer address).
+router.get(
+  '/customers/:userId',
+  require('../controllers/adminCustomerController').customerPage,
+);
 router.get(
   '/customers/:userId/wallet',
   require('../controllers/adminWalletController').page,
@@ -99,6 +108,27 @@ const needsPage = (permission) => (req, res, next) =>
         ),
       );
 router.get('/staff', needsPage('staff.manage'), staffPages.staffPage);
-router.get('/audit', needsPage('audit.read'), staffPages.auditPage);
+router.get(
+  '/reviews',
+  require('../controllers/adminReviewController').reviewsPage,
+);
+// Operations pages: the GST report (reports.read).
+const opsPages = require('../controllers/adminOpsController');
+router.get('/gst', needsPage('reports.read'), opsPages.gstPage);
+router.get('/security', require('../controllers/adminSecurityController').page);
+router.get(
+  '/gift-cards',
+  needsPage('settings.write'),
+  require('../controllers/giftCardController').listPage,
+);
+router.get(
+  '/returns-report',
+  needsPage('reports.read'),
+  require('../controllers/adminGoalsController').returnsPage,
+);
+// Support inbox: one page to read and answer customer requests (support.write for replying).
+const supportPages = require('../controllers/adminSupportController');
+router.get('/support', supportPages.inbox);
+router.get('/support/:ticketId', supportPages.ticket);
 
 module.exports = router;

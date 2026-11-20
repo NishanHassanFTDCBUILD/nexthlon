@@ -4,7 +4,6 @@ const adminService = require('../services/adminService');
 const dashboardService = require('../services/dashboardService');
 const analyticsService = require('../services/analyticsService');
 const settingsService = require('../services/settingsService');
-const messageService = require('../services/messageService');
 const {
   validateReferralSetting,
   validateCodSetting,
@@ -145,33 +144,6 @@ const updatePrepaid = asyncHandler(async (req, res) => {
   });
 });
 
-// PATCH /api/admin/settings/cod-otp   body: { codOtp: "on" | "off" }   E2: confirm COD orders with a code.
-const updateCodOtp = asyncHandler(async (req, res) => {
-  const wanted = String((req.body && req.body.codOtp) || '');
-  if (!['on', 'off'].includes(wanted))
-    throw new HttpError(400, 'Choose on or off.', {
-      codOtp: 'Choose on or off.',
-    });
-  const settings = await settingsService.set('codOtp', wanted === 'on' ? 1 : 0);
-  await auditService.record({
-    ...auditService.fromRequest(req),
-    action: 'settings.updated',
-    target: 'setting:codOtp',
-    after: {codOtp: wanted},
-  });
-  const warn =
-    wanted === 'on' && !messageService.canSendCodes()
-      ? ' No SMS or WhatsApp provider is set up yet, so no code is asked for until one is.'
-      : '';
-  res.json({
-    message:
-      (wanted === 'on'
-        ? 'Cash on Delivery orders now need a code sent to the delivery phone.'
-        : 'Cash on Delivery orders no longer need a code.') + warn,
-    settings,
-  });
-});
-
 // ---------- Support tickets ----------
 
 // GET /api/admin/tickets?status=open|pending|resolved
@@ -216,7 +188,6 @@ module.exports = {
   updateReferral,
   updateCod,
   updatePrepaid,
-  updateCodOtp,
   listTickets,
   replyTicket,
 };

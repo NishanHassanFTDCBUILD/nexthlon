@@ -1,5 +1,5 @@
 // Order events -> customer emails. Registered at start-up (jobs/handlers.js); each runs as a background job.
-// To react to an order event in another way (WhatsApp, a stock alert), add another listener next to this
+// To react to an order event in another way (a stock alert, a push notification), add another listener next to this
 // one: nothing in the order code changes.
 const events = require('../index');
 const orderMail = require('../../services/orderMailService');

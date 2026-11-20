@@ -12,11 +12,11 @@ const {
   updateReferral,
   updateCod,
   updatePrepaid,
-  updateCodOtp,
   listTickets,
   replyTicket,
 } = require('../controllers/adminController');
 const products = require('../controllers/adminProductController');
+const productImport = require('../controllers/adminProductImportController');
 const reports = require('../controllers/adminReportController');
 const orders = require('../controllers/adminOrderController');
 const catalog = require('../controllers/adminCatalogController');
@@ -56,11 +56,30 @@ router.post(
   require('../controllers/adminWalletController').adjust,
 );
 router.patch('/customers/:userId/block', setCustomerBlocked);
+// Customer 360: profile JSON and the private note (customers.write for the note).
+const customerApi = require('../controllers/adminCustomerController');
+router.get('/customers/:userId/profile', customerApi.profileApi);
+router.patch('/customers/:userId/note', adminWriteLimiter, customerApi.noteApi);
+router.get('/customers/:userId/data', customerApi.dataExportApi);
+router.post(
+  '/customers/:userId/anonymise',
+  adminWriteLimiter,
+  customerApi.anonymiseApi,
+);
+router.patch(
+  '/customers/:userId/cod-block',
+  adminWriteLimiter,
+  customerApi.codBlockApi,
+);
+router.post(
+  '/customers/:userId/sign-out-all',
+  adminWriteLimiter,
+  customerApi.signOutApi,
+);
 router.get('/settings', getSettings);
 router.patch('/settings/referral', updateReferral);
 router.patch('/settings/cod', updateCod);
 router.patch('/settings/prepaid', updatePrepaid);
-router.patch('/settings/cod-otp', updateCodOtp);
 router.get('/settings/site', siteSettings.getSite);
 router.patch(
   '/settings/site/:group(business|delivery|catalog|shopper|home)',
@@ -75,10 +94,35 @@ router.post('/tickets/:ticketId/reply', replyTicket);
 // Products. Uploads are read only after the admin check above, so guests cannot send files.
 router.get('/products', products.listProducts);
 router.post('/products', productImages, products.createProduct);
+// Spreadsheet: export first (a fixed path, so it is not read as a product id).
+router.get('/products/export.csv', productImport.exportProducts);
 router.get('/products/:productId', products.getProduct);
 router.patch('/products/:productId', productImages, products.updateProduct);
+// Product video upload (an MP4 or WebM file; see services/videoService.js).
+const productVideo = require('../controllers/productVideoController');
+router.post(
+  '/products/:productId/video',
+  adminWriteLimiter,
+  productVideo.videoUpload,
+  productVideo.upload,
+);
+// 360 view from uploaded photos, in turning order (see services/spinFrameService.js).
+const productSpin = require('../controllers/productSpinController');
+router.post(
+  '/products/:productId/spin',
+  adminWriteLimiter,
+  productSpin.framesUpload,
+  productSpin.upload,
+);
 router.patch('/products/:productId/listing', products.setListed);
 router.patch('/products/:productId/stock', products.restock);
+// Spreadsheet import: preview saves nothing; apply saves only a clean file.
+router.post('/products/import/preview', productImport.previewImport);
+router.post(
+  '/products/import/apply',
+  adminWriteLimiter,
+  productImport.applyImport,
+);
 
 // Orders (specific paths before /:orderId)
 router.get('/orders', orders.listOrders);
@@ -166,6 +210,7 @@ router.get('/marketplace/feed.json', async (req, res, next) => {
 
 router.post('/orders/:orderId/rto', adminMoneyLimiter, orders.markRto);
 router.post('/orders/:orderId/notes', adminWriteLimiter, orders.addNote);
+router.patch('/orders/:orderId/tags', adminWriteLimiter, orders.setTags);
 router.post('/orders/:orderId/refunds', adminMoneyLimiter, orders.refund);
 router.get('/orders/:orderId/invoice.pdf', orders.invoicePdf);
 router.get('/orders/:orderId/credit-notes/:index.pdf', orders.creditNotePdf);
@@ -202,6 +247,11 @@ router.post(
 );
 router.get('/inventory/:productId/history', catalog.stockHistory);
 router.patch('/inventory/:productId', adminWriteLimiter, catalog.adjustStock);
+router.patch(
+  '/inventory/:productId/reorder',
+  adminWriteLimiter,
+  catalog.setReorder,
+);
 
 // Coupons. Creating and changing one is money, so these use the stricter limiter.
 router.get('/coupons', coupons.listCoupons);
@@ -223,6 +273,11 @@ router.post(
   '/categories/move-products',
   adminWriteLimiter,
   categories.moveProducts,
+);
+router.patch(
+  '/categories/:categoryId/offer',
+  adminWriteLimiter,
+  categories.setOffer,
 );
 router.get('/categories/:categoryId', categories.getCategory);
 router.patch(
@@ -261,7 +316,57 @@ router.patch(
   adminMoneyLimiter,
   staffApi.setStaffActive,
 );
-router.get('/audit', staffApi.listAudit);
+
+// Reviews moderation (reviews.write; see utils/permissions.js).
+const reviewApi = require('../controllers/adminReviewController');
+router.get('/reviews', reviewApi.listReviews);
+// Operations: webhooks, job queue and the GST report (see utils/permissions.js).
+const opsApi = require('../controllers/adminOpsController');
+router.get('/webhooks', opsApi.listWebhooks);
+router.post(
+  '/webhooks/:webhookId/rerun',
+  adminMoneyLimiter,
+  opsApi.rerunWebhook,
+);
+router.get('/reports/gst.csv', opsApi.gstCsv);
+// Account security: two-step sign-in for the signed-in admin (services/adminTwoFactorService.js).
+const security = require('../controllers/adminSecurityController');
+router.post('/security/2fa/setup', adminWriteLimiter, security.setup);
+router.post('/security/2fa/enable', adminWriteLimiter, security.enable);
+router.post('/security/2fa/disable', adminWriteLimiter, security.disable);
+// Gift cards: the list and switching one off (settings.write; see utils/permissions.js).
+const giftAdmin = require('../controllers/giftCardController');
+router.get('/gift-cards', giftAdmin.listApi);
+router.post(
+  '/gift-cards/:cardId/disable',
+  adminWriteLimiter,
+  giftAdmin.disableApi,
+);
+// Size exchange: approve, decline or complete a customer's swap (orders.write; see utils/permissions.js).
+const exchangeAdmin = require('../controllers/exchangeController');
+router.post(
+  '/orders/:orderId/items/:itemId/exchange',
+  adminWriteLimiter,
+  exchangeAdmin.decide,
+);
+// Monthly revenue goal and return reasons (reports.read; the goal can be changed by settings.write).
+const goalsApi = require('../controllers/adminGoalsController');
+router.get('/goals', goalsApi.goalApi);
+router.patch('/goals/:month', adminMoneyLimiter, goalsApi.setGoalApi);
+router.patch('/returns/rules', goalsApi.setReturnRulesApi);
+router.get('/reports/returns', goalsApi.returnsApi);
+router.get('/reports/returns.csv', goalsApi.returnsCsv);
+
+// Saved list views: personal to each admin (any staff role may keep their own).
+const viewApi = require('../controllers/adminViewController');
+router.get('/views', viewApi.list);
+router.post('/views', viewApi.create);
+router.delete('/views/:viewId', viewApi.remove);
+router.patch(
+  '/reviews/:reviewId/hidden',
+  adminWriteLimiter,
+  reviewApi.setReviewHidden,
+);
 
 // System status.
 router.get('/system', catalog.systemStatus);

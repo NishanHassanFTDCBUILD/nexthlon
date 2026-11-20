@@ -25,4 +25,13 @@ You need: the GitHub repo (already connected), the MongoDB Atlas database, a Clo
 9. **Test everything:** sign up, reset password, order (cash on delivery), admin login.
 10. **On a real phone** (iPhone Safari and an Android phone): see "What to check on a real phone" in `docs/mobile-audit-checklist.md`.
 
+11. **Optional: Continue with Google.** In Google Cloud Console create a web OAuth client. Add the authorised redirect URI
+    `<site>/api/auth/google/callback` (your SITE_URL plus that path, exactly). Then type `GOOGLE_CLIENT_ID` and
+    `GOOGLE_CLIENT_SECRET` into Render. The button appears on the sign-in page once all three settings are present.
+12. **Optional: Continue with Facebook.** In developers.facebook.com add Facebook Login to your app, add the redirect URI
+    `<site>/api/auth/facebook/callback`, switch the app to Live, then type `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET`
+    into Render.
+13. **After deploy, check the new pages:** `/track` (order ID and phone), `/find-my-size`, `/faq`, and sign in with email, Google and Facebook.
+    A product with a video or a 360 spin needs its links set in the admin product form first.
+
 The blueprint uses the **free** plan (good for a demo): it sleeps after 15 minutes idle, the first visit then takes about 50 seconds, and emails and background jobs pause while it sleeps. For a real shop, change `plan: free` to `plan: starter` in `render.yaml` (about $7 a month).

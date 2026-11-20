@@ -8,7 +8,7 @@
 //   - Photos are kept too (the newest 120), refreshed in the background.
 //   - Never: anything under /api/, anything from another site (payments, analytics), and anything
 //     that is not a GET. Signed-in pages are never stored, so a shared phone shows nobody else's data.
-const VERSION = 'nx-2026-11-14b';
+const VERSION = 'nx-2026-11-19b';
 const STATIC = `${VERSION}-static`;
 const PHOTOS = `${VERSION}-photos`;
 const OFFLINE = `${VERSION}-offline`;
@@ -19,14 +19,16 @@ const MAX_STATIC = 80;
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
-      const cache = await caches.open(OFFLINE);
-      // Fetched signed out, so the stored copy holds nobody's name or cart.
-      await cache.put(
-        OFFLINE_URL,
-        await fetch(
+      try {
+        const cache = await caches.open(OFFLINE);
+        // Fetched signed out, so the stored copy holds nobody's name or cart.
+        const offline = await fetch(
           new Request(OFFLINE_URL, {credentials: 'omit', cache: 'reload'}),
-        ),
-      );
+        );
+        if (offline.ok) await cache.put(OFFLINE_URL, offline);
+      } catch {
+        // No offline page yet: the worker still installs and the next visit tries again.
+      }
       await self.skipWaiting();
     })(),
   );
@@ -56,7 +58,7 @@ async function trim(cacheName, max) {
 
 async function cacheFirst(event, cacheName, max) {
   const cached = await caches.match(event.request);
-  if (cached) return cached;
+  if (cached && cached.ok) return cached;
   const response = await fetch(event.request);
   if (response.ok && response.type === 'basic') {
     const copy = response.clone();
@@ -116,7 +118,9 @@ self.addEventListener('fetch', (event) => {
 
   // Versioned files never change at the same address: the stored copy is always right.
   if (url.searchParams.has('v')) {
-    event.respondWith(cacheFirst(event, STATIC, MAX_STATIC));
+    event.respondWith(
+      cacheFirst(event, STATIC, MAX_STATIC).catch(() => fetch(event.request)),
+    );
     return;
   }
   if (/^\/(img|fonts|uploads)\//.test(url.pathname)) {

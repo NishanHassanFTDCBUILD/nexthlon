@@ -48,11 +48,11 @@ export function spherePoints(count, radius) {
 // turn into one glowing block when drawn with dots.
 // The NEXTHLON wordmark: outlined letters (wide screens), or filled ones ({ fill: true }, phones,
 // where an outline only a few pixels thick breaks up into speckle).
-export function drawLogo(font, {fill = false} = {}) {
+export function drawLogo(font, {fill = false, stroke = 0.04} = {}) {
   return (ctx, w, h) => {
     ctx.strokeStyle = '#fff';
     ctx.fillStyle = '#fff';
-    ctx.lineWidth = Math.max(5, h * 0.04);
+    ctx.lineWidth = Math.max(5, h * stroke);
     ctx.lineJoin = 'round';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

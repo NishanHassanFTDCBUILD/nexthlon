@@ -29,6 +29,17 @@ function viewLocals(req, res, next) {
   res.locals.navCategories = [];
   // Store details for the footer and policy pages, and price bands for the category menu.
   res.locals.store = STORE;
+  // The Google button shows only when the owner has set up Google sign-in (services/googleSignInService.js).
+  res.locals.googleSignIn = Boolean(
+    config.google.clientId && config.google.clientSecret && config.siteUrl,
+  );
+  res.locals.facebookSignIn = Boolean(
+    config.facebook.appId && config.facebook.appSecret && config.siteUrl,
+  );
+  // The storefront language (the nx_lang cookie) and its strings (config/strings.js).
+  const strings = require('../config/strings');
+  res.locals.lang = strings.langFrom(req.cookies && req.cookies.nx_lang);
+  res.locals.t = strings.translator(res.locals.lang);
   // The admin's shopper settings: announcement bar, home sections, reviews, questions, alerts.
   res.locals.site = siteSettingsService.current();
   res.locals.priceBands = PRICE_BANDS;
@@ -51,10 +62,6 @@ function viewLocals(req, res, next) {
   // Analytics settings for the consent banner (public/js/consent.js). Nothing secret: the IDs are public.
   res.locals.analytics = config.analytics;
   res.locals.metaPixel = config.metaPixel;
-  // "Chat on WhatsApp" (E1): a wa.me link to the support number, or "" when none is set.
-  res.locals.whatsappChat = config.messaging.supportNumber
-    ? `https://wa.me/${config.messaging.supportNumber}`
-    : '';
   // Versioned URL for the site's own CSS and JS (utils/assets.js): asset("/css/style.css").
   res.locals.asset = assetUrl;
   // One stylesheet request for a page: styleBundle(["tokens", "components", ...]).

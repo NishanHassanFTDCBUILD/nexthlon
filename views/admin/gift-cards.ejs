@@ -1,0 +1,39 @@
+<%- include('../partials/admin-start', { section: 'gift-cards', page: 'gift-cards' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Sales</span>
+    <h1>Gift cards</h1>
+    <p class="muted">Cards issued when a gift card order is paid. A code works once. Switch one off if it was issued by mistake or lost.</p>
+  </div>
+</header>
+<nav class="segmented admin-tabs" aria-label="Filter by status">
+  <% [['', 'All'], ['active', 'Active'], ['redeemed', 'Redeemed'], ['disabled', 'Switched off']].forEach(function ([key, text]) { const on = status === key; %><a href="<%= adminPath %>/gift-cards<%= key ? '?status=' + key : '' %>" class="<%= on ? 'is-active' : '' %>" <%- on ? 'aria-current="page"' : '' %>><%= text %></a><% }) %>
+</nav>
+<section class="panel panel-flush admin-table-panel" aria-label="Gift cards">
+  <% if (cards.length) { %>
+    <div class="table-wrap admin-table-scroll">
+      <table class="table table-stack admin-table">
+        <thead>
+          <tr><th scope="col">Code</th><th scope="col">Value</th><th scope="col">Status</th><th scope="col">Order</th><th scope="col">Redeemed by</th><th scope="col">Expires</th><th scope="col"><span class="sr-only">Actions</span></th></tr>
+        </thead>
+        <tbody>
+          <% cards.forEach(function (c) { %>
+          <tr>
+            <td data-label="Code"><code><%= c.code %></code></td>
+            <td data-label="Value"><%= formatPrice(c.amount) %></td>
+            <td data-label="Status"><span class="pill <%= c.status === 'active' ? 'pill-green' : c.status === 'redeemed' ? 'pill-grey' : 'pill-red' %>"><%= c.status === 'active' ? 'Active' : c.status === 'redeemed' ? 'Redeemed' : 'Switched off' %></span></td>
+            <td data-label="Order"><%= c.order ? String(c.order) : '—' %></td>
+            <td data-label="Redeemed by"><%= c.redeemedBy ? c.redeemedBy.email : '—' %></td>
+            <td data-label="Expires"><%= formatDate(c.expiresAt) %></td>
+            <td data-label="Actions"><% if (c.status === 'active') { %><button type="button" class="btn btn-ghost btn-sm" data-gift-disable="<%= c._id %>">Switch off</button><% } %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/admin-pager') %>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2><%= status ? 'No gift cards here' : 'No gift cards yet' %></h2><p><%= status ? 'Try another tab.' : 'They appear here once a gift card order is paid.' %></p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

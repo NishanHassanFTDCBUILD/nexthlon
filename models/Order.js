@@ -26,6 +26,25 @@ const orderItemSchema = new mongoose.Schema({
   status: {type: String, enum: ORDER_STATUSES, default: 'placed'},
   cancelReason: {type: String, default: ''},
   returnReason: {type: String, default: ''},
+  // A size exchange on this delivered item: the size wanted instead, and where the request stands.
+  // The swap is held (stock taken) only when an admin approves; it is returned to stock on completion.
+  exchange: {
+    type: new mongoose.Schema(
+      {
+        variant: {type: mongoose.Schema.Types.ObjectId, default: null},
+        option: {type: String, default: ''},
+        status: {
+          type: String,
+          enum: ['requested', 'approved', 'completed', 'declined'],
+          required: true,
+        },
+        requestedAt: {type: Date, default: Date.now},
+        decidedAt: {type: Date, default: null},
+      },
+      {_id: false},
+    ),
+    default: null,
+  },
   // GST on this line as invoiced (services/gstService.js): value is what was paid after its share of
   // any coupon; taxable + cgst + sgst + igst = value. Missing on orders from before GST invoices.
   tax: {
@@ -218,6 +237,14 @@ const orderSchema = new mongoose.Schema(
     total: {type: Number, required: true, min: 0},
     // Where the items came from: the cart, or a single "Buy now" product (the cart is then left alone).
     source: {type: String, enum: ['cart', 'buynow'], default: 'cart'},
+    // A gift card order sent to someone else: their name, the email the codes go to, and a short message.
+    giftRecipient: {
+      type: new mongoose.Schema(
+        {name: String, email: String, message: String},
+        {_id: false},
+      ),
+      default: null,
+    },
     paymentMethod: {
       type: String,
       enum: ['cod', 'razorpay', 'wallet'],
@@ -293,6 +320,8 @@ const orderSchema = new mongoose.Schema(
       reason: {type: String, default: '', maxlength: 200},
       at: {type: Date, default: null},
     },
+    // Labels for the packing team (utils/orderRules.js ORDER_TAGS).
+    tags: {type: [String], default: []},
     notes: {type: [noteSchema], default: []},
     returnDecision: {type: returnDecisionSchema, default: null},
     gst: {type: gstSchema, default: undefined},

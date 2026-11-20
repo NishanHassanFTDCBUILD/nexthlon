@@ -1,0 +1,26 @@
+<%# Find my shoe size: measure a foot, get a size. A plain form, no script. %>
+<%- include('../partials/info-start', { heading: 'Find my shoe size', lead: 'Stand on a sheet of paper against a wall, mark the longest toe and heel, then measure in centimetres.' }) %>
+<section class="section-box size-finder">
+  <form class="form" method="get" action="/find-my-size" novalidate>
+    <div class="float-field">
+      <input id="sf-cm" name="cm" type="text" inputmode="decimal" autocomplete="off" required maxlength="8" placeholder=" " value="<%= value %>" aria-describedby="sf-hint sf-error">
+      <label for="sf-cm">Foot length (cm)</label>
+      <p class="hint" id="sf-hint">Between <%= min %> and <%= max %> cm. Measure the foot you wear the shoe on.</p>
+      <% if (error) { %><p class="field-error" id="sf-error" role="alert"><%= error %></p><% } %>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg">Find my size</button>
+  </form>
+  <% if (result) { %>
+  <div class="size-result" aria-live="polite">
+    <p class="section-kicker">Your size</p>
+    <dl class="size-grid">
+      <div><dt>EU</dt><dd><%= result.eu %></dd></div>
+      <div><dt>UK</dt><dd><%= result.uk %></dd></div>
+      <div><dt>US</dt><dd><%= result.us %></dd></div>
+    </dl>
+    <p class="muted">An estimate from a standard adult chart. If you are between sizes, or the brand's chart says otherwise, follow the brand's chart. Look for the size on each product page.</p>
+    <p><a class="btn btn-ghost" href="/products">Shop shoes</a></p>
+  </div>
+  <% } %>
+</section>
+<%- include('../partials/info-end') %>

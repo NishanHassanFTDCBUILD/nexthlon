@@ -69,6 +69,11 @@ app.use(
         'style-src': ["'self'", "'unsafe-inline'"],
         // Fonts are served from this site (public/fonts), so nothing comes from Google.
         'font-src': ["'self'"],
+        // Product videos come from the photo bucket's address, like photos (see img-src).
+        'media-src': [
+          "'self'",
+          ...(config.storage.origin ? [config.storage.origin] : []),
+        ],
         // Photos: this site, Unsplash (the sample products), Razorpay's logo, and the photo bucket's address.
         'img-src': [
           "'self'",
@@ -181,6 +186,7 @@ app.get('/api/health', (req, res) =>
 app.use('/api', originCheck);
 app.use('/api', require('./routes/authRoutes'));
 app.use('/api', require('./routes/productRoutes'));
+app.use('/api/assistant', require('./routes/assistantRoutes'));
 app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/push', require('./routes/pushRoutes'));
 app.use('/api', require('./routes/bundleRoutes'));
@@ -188,6 +194,8 @@ app.use(require('./routes/guideRoutes'));
 app.use('/api/addresses', require('./routes/addressRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+// Browsers ask for /favicon.ico by themselves; the page's own icon is the SVG.
+app.get('/favicon.ico', (req, res) => res.redirect(301, '/img/favicon.svg'));
 app.use('/api/account', require('./routes/accountRoutes'));
 app.use('/api/lists', require('./routes/listRoutes'));
 app.use('/api/support', require('./routes/supportRoutes'));

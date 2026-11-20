@@ -196,6 +196,18 @@ const cartLimiter = limiter('cart', {
 
 // Placing orders and starting payments: 20 per 10 minutes per customer account. A sale rush is many
 // customers, not one customer many times; this stops a script or a stuck button hammering checkout.
+// Order tracking: a guest checks an order ID and phone. Ten checks in 15 minutes per address.
+const trackLimiter = limiter('track', {
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    message:
+      'Too many tracking checks. Please wait a few minutes and try again.',
+  },
+});
+
 const orderLimiter = limiter('order', {
   windowMs: 10 * 60 * 1000,
   limit: 20,
@@ -219,6 +231,7 @@ const stockAlertLimiter = limiter('stock-alert', {
 
 module.exports = {
   stockAlertLimiter,
+  trackLimiter,
   accountLoginLimiter,
   searchLimiter,
   orderLimiter,

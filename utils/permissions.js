@@ -76,6 +76,12 @@ const RULES = [
   [/^\/reports/, 'reports.read'],
   [/^\/tickets/, 'support.write'],
   [/^\/questions/, 'reviews.write'],
+  [/^\/reviews/, 'reviews.write'],
+  [/^\/views/, 'read'],
+  [/^\/goals/, 'settings.write'],
+  [/^\/webhooks/, 'settings.write'],
+  [/^\/jobs/, 'settings.write'],
+  [/^\/gift-cards/, 'settings.write'],
   [/^\/products/, 'products.write'],
   [/^\/categories/, 'categories.write'],
   [/^\/inventory/, 'inventory.write'],
@@ -83,6 +89,8 @@ const RULES = [
   [/^\/coupons/, 'coupons.write'],
   [/^\/customers\/[^/]+\/wallet/, 'wallet.write'],
   [/^\/customers/, 'customers.write'],
+  [/^\/security\//, 'read'],
+  [/^\/returns\/rules/, 'settings.write'],
   [/^\/returns/, 'refunds.write'],
   [/^\/transactions/, 'reports.read'],
   [/^\/orders\/[^/]+\/refunds/, 'refunds.write'],
@@ -94,6 +102,10 @@ const RULES = [
 
 // Pages and lists that are narrower than the console itself. Every other GET is "read".
 const READ_GATES = [
+  [/^\/goals/, 'reports.read'],
+  [/^\/webhooks/, 'settings.write'],
+  [/^\/jobs/, 'settings.write'],
+  [/^\/gift-cards/, 'settings.write'],
   [/^\/staff/, 'staff.manage'],
   [/^\/audit/, 'audit.read'],
   [/^\/reports/, 'reports.read'],

@@ -109,6 +109,32 @@ async function customersWithWallets(users) {
 }
 
 // Only customers can be blocked, so an admin can never lock out another admin by mistake.
+// Cash on Delivery off or on for one customer. The checkout refuses COD for them while it is off.
+async function setCustomerCodBlocked(userId, codBlocked) {
+  if (!mongoose.isValidObjectId(userId))
+    throw new HttpError(404, 'Customer not found.');
+  const user = await User.findOneAndUpdate(
+    {_id: userId, role: 'customer'},
+    {$set: {codBlocked}},
+    {new: true},
+  ).lean();
+  if (!user) throw new HttpError(404, 'Customer not found.');
+  return {...publicCustomer(user), codBlocked: Boolean(user.codBlocked)};
+}
+
+// Signs the customer out of every phone and browser: all their refresh tokens are revoked, so
+// nothing can renew a session. Access tokens are short-lived and end on their own soon after.
+async function signOutEverywhere(userId) {
+  if (!mongoose.isValidObjectId(userId))
+    throw new HttpError(404, 'Customer not found.');
+  const user = await User.findOne({_id: userId, role: 'customer'})
+    .select('_id name')
+    .lean();
+  if (!user) throw new HttpError(404, 'Customer not found.');
+  await refreshTokenService.revokeAllForUser(user._id, 'admin_signout');
+  return {id: String(user._id), name: user.name};
+}
+
 async function setCustomerBlocked(userId, isBlocked) {
   if (!mongoose.isValidObjectId(userId))
     throw new HttpError(404, 'Customer not found.');
@@ -242,6 +268,8 @@ module.exports = {
   getDashboardStats,
   listCustomers,
   setCustomerBlocked,
+  setCustomerCodBlocked,
+  signOutEverywhere,
   globalSearch,
   notifications,
 };

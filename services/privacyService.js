@@ -1,4 +1,5 @@
 // "Download my data" (D2): everything the store keeps about one customer, as one JSON file.
+const crypto = require('crypto');
 // Secrets never leave: no password hash, token versions, two-step secrets or refresh tokens.
 // Money is in paise, as stored, and the file says so.
 const User = require('../models/User');
@@ -107,4 +108,52 @@ async function exportData(userId, context = {}) {
   };
 }
 
-module.exports = {exportData, clean};
+// Team action on a customer's request to remove their personal details. The account stays (so its
+// orders, invoices and tax records stay correct) but the name, email, phone, addresses, saved lists, sign-in
+// history and push devices are removed. The account is switched off and cannot sign in again.
+// Orders keep their address snapshot, because invoices and GST records must keep it by law.
+async function anonymise(userId, context = {}) {
+  const user = await User.findById(userId).select('_id role').lean();
+  if (!user || user.role !== 'customer')
+    throw new HttpError(404, 'Customer not found.');
+  const id = String(user._id);
+  const hash = crypto
+    .createHash('sha256')
+    .update(id)
+    .digest('hex')
+    .slice(0, 12);
+  await Promise.all([
+    Address.deleteMany({user: user._id}),
+    Wishlist.deleteMany({user: user._id}),
+    ShoppingList.deleteMany({user: user._id}),
+    LoginActivity.deleteMany({user: user._id}),
+    require('../models/RefreshToken').deleteMany({user: user._id}),
+    require('../models/PushSubscription').deleteMany({user: user._id}),
+  ]);
+  await User.updateOne(
+    {_id: user._id},
+    {
+      $set: {
+        name: 'Former customer',
+        email: `removed-${hash}@anonymised.invalid`,
+        phone: '',
+        isBlocked: true,
+        adminNote: '',
+        recentlyViewed: [],
+        emailVerifiedAt: null,
+      },
+      $unset: {verifiedPhones: 1},
+    },
+  );
+  await auditService.record({
+    ...context,
+    action: 'customer.anonymised',
+    target: `user:${id}`,
+  });
+  return {
+    id,
+    message: 'Personal details removed. Orders and invoices are kept.',
+  };
+}
+
+module.exports = {exportData, clean, anonymise};

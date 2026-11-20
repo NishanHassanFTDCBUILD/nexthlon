@@ -120,11 +120,19 @@ const productSchema = new mongoose.Schema(
     },
     description: {type: String, default: '', maxlength: 4000},
     highlights: {type: [String], default: []},
+    // An optional short video shown under the photos (https MP4 or WebM). Empty for none.
+    videoUrl: {type: String, default: '', maxlength: 500},
+    // A gift card product: its price is the value each card carries. Codes are issued when its order is paid.
+    giftCard: {type: Boolean, default: false},
+    // A 360 spin: up to 36 photos of the product turning, in order (https image links). Empty for none.
+    spinFrames: {type: [String], default: []},
     specs: {type: Map, of: String, default: {}},
     ratingAverage: {type: Number, default: 0, min: 0, max: 5},
     ratingCount: {type: Number, default: 0, min: 0},
     // Soft delete: unlisted products vanish from the store but stay in the database.
     isListed: {type: Boolean, default: true},
+    // The stock level at which this product needs reordering (null: the store-wide low-stock level).
+    reorderLevel: {type: Number, default: null, min: 0, max: 100000},
     // Marks documents whose money is in paise (older ones stored rupees; see the migration below).
     pricesInPaise: {type: Boolean, default: true},
   },

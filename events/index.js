@@ -1,5 +1,5 @@
 // "Something happened": an order was placed, shipped, refunded... The code that makes it happen only says so
-// (emit); everything that should follow (an email, later a WhatsApp message, a stock alert) is a listener
+// (emit); everything that should follow (an email, a stock alert) is a listener
 // registered elsewhere. So adding a reaction never means editing the order code, and a reaction that fails
 // can never fail the order.
 //

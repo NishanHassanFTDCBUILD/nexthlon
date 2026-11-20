@@ -72,7 +72,20 @@
             <% }) %>
           </div>
         <% } %>
+        <% if (product.videoUrl) { %>
+          <figure class="pdx-video">
+            <video src="<%= product.videoUrl %>" poster="<%= product.image %>" controls muted loop playsinline preload="none" aria-label="Video of <%= product.name %>"></video>
+          </figure>
+        <% } %>
       </div>
+
+      <%# A 360 spin under the photos: drag to turn it (public/js/spin.js). %>
+      <% if (product.spinFrames && product.spinFrames.length > 2) { %>
+      <div class="pdx-spin" data-spin data-frames="<%= product.spinFrames.join(' ') %>" tabindex="0" role="img" aria-label="360 view of <%= product.name %>, drag or use the arrow keys to turn it">
+        <img src="<%= product.spinFrames[0] %>" alt="" width="900" height="900" loading="lazy" decoding="async" data-spin-frame>
+        <p class="pdx-spin-hint"><%- icon('arrow-right', 'i-xs') %> Drag to turn</p>
+      </div>
+      <% } %>
 
       <%# ---------- Story + buy panel ---------- %>
       <div class="pdx-info">
@@ -115,40 +128,6 @@
             </div>
           <% } %>
           <p class="pdx-tax">Inclusive of all taxes<% if (offer) { %> · <span class="pdx-offer"><%= offer.text %></span><% } %></p>
-
-          <%# ---------- Delivery (Amazon-style): date, countdown, deliverable or not, COD ---------- %>
-          <div class="pdx-ship-box" data-delivery
-            data-free="<%= freeDelivery ? '1' : '' %>" data-fee="<%= store.deliveryFee %>"
-            data-saved-pin="<%= shipTo ? shipTo.pincode : '' %>">
-            <p class="pdx-eta" data-eta aria-live="polite">
-              <% if (product.stock <= 0) { %>
-                <span class="pdx-eta-muted">Currently unavailable.</span>
-              <% } else { %>
-                <span class="pdx-eta-muted"><%= freeDelivery ? 'FREE delivery' : 'Delivery ' + formatPrice(store.deliveryFee) %> in <%= store.deliveryDays %>. Add your PIN code for the exact date.</span>
-              <% } %>
-            </p>
-            <p class="pdx-countdown" data-countdown hidden></p>
-
-            <div class="pdx-deliver-to" data-deliver-to <%= shipTo ? '' : 'hidden' %>>
-              <%- icon('pin', 'i-sm') %>
-              <span>Deliver to <strong data-ship-name><%= shipTo ? shipTo.fullName.split(' ')[0] : '' %></strong> <span data-ship-place><%= shipTo ? '– ' + shipTo.city + ' ' + shipTo.pincode : '' %></span></span>
-              <button type="button" class="pdx-text-btn" data-change-pin>Change</button>
-            </div>
-
-            <form class="pdx-pin" data-delivery-check novalidate <%= shipTo ? 'hidden' : '' %>>
-              <label for="pincode"><%- icon('pin', 'i-xs') %> Deliver to</label>
-              <div class="pdx-pin-row">
-                <input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6" pattern="[1-9][0-9]{5}" placeholder="Enter 6-digit PIN code" aria-describedby="pincode-result" value="<%= shipTo ? shipTo.pincode : '' %>">
-                <button type="submit">Check</button>
-              </div>
-            </form>
-            <p class="delivery-result" id="pincode-result" data-delivery-result aria-live="polite" hidden></p>
-
-            <ul class="pdx-ship-perks">
-              <li class="<%= codAvailable ? 'is-yes' : 'is-no' %>"><%- icon(codAvailable ? 'check' : 'x', 'i-xs') %> <%= codAvailable ? 'Cash on Delivery available' : codLimit > 0 ? 'Pay online (Cash on Delivery is for orders up to ' + formatPrice(codLimit) + ')' : 'Pay online' %></li>
-              <li class="is-yes"><%- icon('rotate-ccw', 'i-xs') %> <%= store.returnDays %>-day easy returns</li>
-            </ul>
-          </div>
 
           <%# ---------- Stock ---------- %>
           <p class="pdx-stock <%= product.stock <= 0 ? 'is-out' : product.stock <= 5 ? 'is-low' : 'is-ok' %>" data-stock-line>
@@ -232,6 +211,43 @@
           <% if (shopper && site.stockAlertsOn && product.stock > 0 && soldOptions.length) { %>
             <%- include('../partials/stock-alert', { product: product, soldOptions: soldOptions, waiting: alertWaiting || [], signedIn: Boolean(currentUser) }) %>
           <% } %>
+
+          <%# Any signed-in customer can ask to hear when the price drops (not only when a size is sold out). %>
+          <% if (shopper && product.stock > 0 && currentUser && currentUser.role === 'customer') { %><button type="button" class="pdx-watch" data-price-watch data-price-watch-id="<%= product._id %>" aria-pressed="<%= priceWatching ? 'true' : 'false' %>"><%= priceWatching ? 'Price alert on: we will email you if it drops' : 'Tell me if the price drops' %></button><% } %>
+
+          <%# ---------- Delivery (Amazon-style), below the buy buttons so they stay above the fold ---------- %>
+          <div class="pdx-ship-box" data-delivery
+            data-free="<%= freeDelivery ? '1' : '' %>" data-fee="<%= store.deliveryFee %>"
+            data-saved-pin="<%= shipTo ? shipTo.pincode : '' %>">
+            <p class="pdx-eta" data-eta aria-live="polite">
+              <% if (product.stock <= 0) { %>
+                <span class="pdx-eta-muted">Currently unavailable.</span>
+              <% } else { %>
+                <span class="pdx-eta-muted"><%= freeDelivery ? 'FREE delivery' : 'Delivery ' + formatPrice(store.deliveryFee) %> in <%= store.deliveryDays %>. Add your PIN code for the exact date.</span>
+              <% } %>
+            </p>
+            <p class="pdx-countdown" data-countdown hidden></p>
+
+            <div class="pdx-deliver-to" data-deliver-to <%= shipTo ? '' : 'hidden' %>>
+              <%- icon('pin', 'i-sm') %>
+              <span>Deliver to <strong data-ship-name><%= shipTo ? shipTo.fullName.split(' ')[0] : '' %></strong> <span data-ship-place><%= shipTo ? '– ' + shipTo.city + ' ' + shipTo.pincode : '' %></span></span>
+              <button type="button" class="pdx-text-btn" data-change-pin>Change</button>
+            </div>
+
+            <form class="pdx-pin" data-delivery-check novalidate <%= shipTo ? 'hidden' : '' %>>
+              <label for="pincode"><%- icon('pin', 'i-xs') %> Deliver to</label>
+              <div class="pdx-pin-row">
+                <input id="pincode" name="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="6" pattern="[1-9][0-9]{5}" placeholder="6-digit PIN code" aria-describedby="pincode-result" value="<%= shipTo ? shipTo.pincode : '' %>">
+                <button type="submit">Check</button>
+              </div>
+            </form>
+            <p class="delivery-result" id="pincode-result" data-delivery-result aria-live="polite" hidden></p>
+
+            <ul class="pdx-ship-perks">
+              <li class="<%= codAvailable ? 'is-yes' : 'is-no' %>"><%- icon(codAvailable ? 'check' : 'x', 'i-xs') %> <%= codAvailable ? 'Cash on Delivery available' : codLimit > 0 ? 'Pay online (Cash on Delivery is for orders up to ' + formatPrice(codLimit) + ')' : 'Pay online' %></li>
+              <li class="is-yes"><%- icon('rotate-ccw', 'i-xs') %> <%= store.returnDays %>-day easy returns</li>
+            </ul>
+          </div>
 
           <%# ---------- Seller facts, Amazon-style ---------- %>
           <dl class="pdx-facts">

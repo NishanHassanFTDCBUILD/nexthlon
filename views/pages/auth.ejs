@@ -4,9 +4,12 @@
   // One page for /login and /signup. The card flips between the two forms without a reload;
   // without JavaScript each URL simply shows its own form.
   const isSignup = mode === 'signup';
-  const nextQuery = next !== '/' ? '?next=' + encodeURIComponent(next) : '';
+  const authParams = new URLSearchParams();
+  if (next !== '/') authParams.set('next', next);
+  if (referralCode) authParams.set('ref', referralCode);
+  const nextQuery = authParams.size ? '?' + authParams.toString() : '';
 %>
-<main id="main" class="au" data-auth data-mode="<%= mode %>">
+<main id="main" class="au au-storefront" data-auth data-mode="<%= mode %>">
   <section class="au-scene" data-auth-scene>
     <canvas class="au-canvas" data-auth-canvas aria-hidden="true"></canvas>
     <div class="au-scene-fallback" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -37,19 +40,25 @@
         <%# ---------- Front: sign in ---------- %>
         <div class="au-card au-face au-face-login" data-face="login" data-tilt-card <%- isSignup ? 'inert aria-hidden="true"' : '' %>>
           <div class="au-card-head">
-            <h1 class="au-title"><%= isSignup ? 'Welcome back' : 'Welcome back' %></h1>
+            <p class="au-eyebrow">Your next move starts here</p>
+            <h1 class="au-title" tabindex="-1">Welcome back</h1>
             <p class="muted">Sign in to pick up where you left off.</p>
           </div>
+          <%- include('../partials/auth-social', {label: 'Continue with', next}) %>
           <% if (reason === 'blocked') { %>
             <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Your account has been blocked. Please contact Nexthlon support.</span></div>
           <% } else if (reason === 'expired') { %>
             <div class="alert alert-info" role="status"><%- icon('info') %> <span>Your session has ended. Please sign in again.</span></div>
           <% } else if (reason === 'password_reset') { %>
             <div class="alert alert-info" role="status"><%- icon('check') %> <span>Your password has been changed. Sign in with the new one.</span></div>
+          <% } else if (reason === 'google') { %>
+            <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span>Google sign-in did not finish. Try again, or sign in with your email.</span></div>
+          <% } else if (reason === 'facebook' || reason === 'facebook_no_email') { %>
+            <div class="alert alert-danger" role="alert"><%- icon('alert') %> <span><%= reason === 'facebook_no_email' ? 'Facebook did not share an email address. Use Google or sign in with your email.' : 'Facebook sign-in did not finish. Try again, or sign in with your email.' %></span></div>
           <% } else if (reason === 'logged_out_all') { %>
             <div class="alert alert-info" role="status"><%- icon('check') %> <span>You have been signed out of all devices. Sign in again to continue.</span></div>
           <% } %>
-          <form class="au-form" data-auth-form data-endpoint="/api/login" data-kind="login" novalidate>
+          <form class="au-form" action="/api/login" method="post" data-auth-form data-endpoint="/api/login" data-kind="login" novalidate>
             <div class="form-alert" data-form-alert aria-live="assertive"></div>
             <input type="hidden" name="next" value="<%= next %>">
             <%- include('../partials/auth-field', { id: 'login-email', name: 'email', label: 'Email address', type: 'email', fieldIcon: 'mail', autocomplete: 'email', max: 254, hint: '' }) %>
@@ -66,10 +75,12 @@
         <%# ---------- Back: create an account ---------- %>
         <div class="au-card au-face au-face-signup" data-face="signup" data-tilt-card <%- isSignup ? '' : 'inert aria-hidden="true"' %>>
           <div class="au-card-head">
-            <h1 class="au-title">Join Nexthlon</h1>
+            <p class="au-eyebrow">One account. All your gear.</p>
+            <h1 class="au-title" tabindex="-1">Join Nexthlon</h1>
             <p class="muted">It takes less than a minute.<%= referralReward > 0 ? ' Got an invite? You both get ' + formatPrice(referralReward) + ' after your first delivery.' : '' %></p>
           </div>
-          <form class="au-form" data-auth-form data-endpoint="/api/signup" data-kind="signup" novalidate>
+          <%- include('../partials/auth-social', {label: 'Continue with', next}) %>
+          <form class="au-form" action="/api/signup" method="post" data-auth-form data-endpoint="/api/signup" data-kind="signup" novalidate>
             <div class="form-alert" data-form-alert aria-live="assertive"></div>
             <input type="hidden" name="next" value="<%= next %>">
             <%- include('../partials/auth-field', { id: 'signup-name', name: 'name', label: 'Full name', type: 'text', fieldIcon: 'user', autocomplete: 'name', max: 60, hint: '' }) %>
@@ -78,6 +89,8 @@
             <div class="au-strength" data-strength-box>
               <div class="au-meter" aria-hidden="true"><span data-meter-bar></span></div>
               <p class="au-meter-label" data-meter-label aria-live="polite">Use 8 or more characters with a letter and a number.</p>
+              <details class="au-password-guide">
+              <summary>Password tips</summary>
               <ul class="au-checks" aria-label="Password checklist">
                 <li data-check="length"><span class="au-check-mark" aria-hidden="true"></span>8+ characters<em>required</em><span class="sr-only" data-check-state> (not yet)</span></li>
                 <li data-check="letter"><span class="au-check-mark" aria-hidden="true"></span>A letter<em>required</em><span class="sr-only" data-check-state> (not yet)</span></li>
@@ -85,6 +98,7 @@
                 <li data-check="upper"><span class="au-check-mark" aria-hidden="true"></span>An uppercase letter<span class="sr-only" data-check-state> (not yet)</span></li>
                 <li data-check="symbol"><span class="au-check-mark" aria-hidden="true"></span>A symbol<span class="sr-only" data-check-state> (not yet)</span></li>
               </ul>
+              </details>
             </div>
             <%- include('../partials/auth-field', { id: 'signup-confirm', name: 'confirmPassword', label: 'Confirm password', type: 'password', fieldIcon: 'check', autocomplete: 'new-password', max: 64, hint: '' }) %>
             <details class="au-referral" <%= referralCode ? 'open' : '' %>>
@@ -101,6 +115,15 @@
         </div>
       </div>
     </div>
+    <aside class="au-benefits" aria-label="Your Nexthlon account">
+      <p><%- icon('lock', 'i-sm') %> Your gear. Your account.</p>
+      <ul>
+        <li><%- icon('truck', 'i-sm') %> Track orders</li>
+        <li><%- icon('heart', 'i-sm') %> Save favourites</li>
+        <li><%- icon('bolt', 'i-sm') %> Faster checkout</li>
+      </ul>
+      <a href="/contact">Need help signing in?</a>
+    </aside>
   </section>
 
   <div class="au-success" data-auth-success role="status" aria-live="polite" hidden>

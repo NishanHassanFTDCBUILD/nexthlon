@@ -22,6 +22,7 @@
     <p class="muted"><%= pagination.total.toLocaleString('en-IN') %> <%= pagination.total === 1 ? 'order' : 'orders' %><%= chips.length || filters.status !== 'all' ? ' match your filters' : '' %>.</p>
   </div>
   <div class="admin-top-actions">
+    <a class="btn btn-secondary btn-sm" href="<%= adminPath %>/orders/pick-list"><%- icon('package-check', 'i-sm') %> Pick list</a>
     <a class="btn btn-ghost btn-sm" href="/api/admin/orders/export.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> CSV</a>
     <a class="btn btn-ghost btn-sm" href="/api/admin/orders/export.xlsx?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Excel</a>
   </div>
@@ -79,6 +80,7 @@
         <% bulkTargets.forEach(function ([key, label]) { %><option value="<%= key %>"><%= label %></option><% }) %>
       </select>
       <button type="button" class="btn btn-primary btn-sm" data-bulk-apply>Apply</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-print-selected><%- icon('download', 'i-xs') %> Print selected</button>
       <button type="button" class="link-btn" data-bulk-clear>Clear selection</button>
     </div>
   </div>
@@ -102,12 +104,12 @@
             <tr data-row-href="<%= adminPath %>/orders/<%= o.orderId %>">
               <td class="cell-check"><input type="checkbox" data-select="<%= o.orderId %>" aria-label="Select <%= o.orderId %>"></td>
               <td data-label="Order"><a href="<%= adminPath %>/orders/<%= o.orderId %>"><strong><%= o.orderId %></strong></a><% if (o.shipped) { %> <span class="admin-flag" title="Shipment added"><%- icon('truck', 'i-xs') %></span><% } %></td>
-              <td data-label="Customer" data-col="customer"><%= o.customer %><small class="muted admin-sub"><%= o.city %><%= o.state ? ', ' + o.state : '' %></small></td>
+              <td data-label="Customer" data-col="customer"><%= o.customer %> <button type="button" class="link-btn order-quick-look" data-quick-look="<%= o.orderId %>" aria-haspopup="dialog">Quick look</button><small class="muted admin-sub"><%= o.city %><%= o.state ? ', ' + o.state : '' %></small></td>
               <td data-label="Items" data-col="items"><span class="admin-items-name"><strong><%= o.firstItem.length > 28 ? o.firstItem.slice(0, 27) + '…' : o.firstItem %></strong><small class="muted admin-sub"><%= o.items %> <%= o.items === 1 ? 'item' : 'items' %></small></span></td>
               <td data-label="Placed" data-col="placed"><%= formatDate(o.createdAt) %><small class="muted admin-sub"><%= new Date(o.createdAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) %></small></td>
               <td data-label="Amount" data-col="amount"><strong><%= formatPrice(o.charged) %></strong><% if (o.refunded) { %><small class="muted admin-sub">−<%= formatPrice(o.refunded) %> refunded</small><% } %></td>
               <td data-label="Payment" data-col="payment"><span class="pill <%= paymentPill[o.payment] %>"><%= paymentLabels[o.payment] %></span><small class="muted admin-sub"><%= methodLabels[o.method] %></small></td>
-              <td data-label="Status" data-col="status"><span class="status-pill status-<%= o.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[o.status] %></span></td>
+              <td data-label="Status" data-col="status"><span class="status-pill status-<%= o.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[o.status] %></span><% if (o.late || (o.risk && o.risk.applies && o.risk.level !== 'low') || (o.tags && o.tags.length)) { %><span class="order-flags"><% if (o.late) { %><span class="pill pill-red order-late" title="Ship by <%= formatDate(o.shipBy) %>">Late</span><% } %><% if (o.risk && o.risk.applies && o.risk.level !== 'low') { %><span class="pill <%= o.risk.level === 'high' ? 'pill-red' : 'pill-amber' %> order-risk" title="<%= o.risk.reasons.join('; ') %>">COD risk: <%= o.risk.level %></span><% } %><% (o.tags || []).forEach(function (tag) { %><span class="pill pill-grey order-tag"><%= tag %></span><% }) %></span><% } %></td>
             </tr>
           <% }) %>
         </tbody>

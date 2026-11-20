@@ -54,6 +54,22 @@ router.post(
   stockAlertLimiter,
   products.addStockAlert,
 );
+// Price-drop alerts (signed-in customers only): start and stop watching a product.
+const priceWatch = require('../controllers/priceWatchController');
+router.post(
+  '/products/:id/price-watch',
+  requireAuth,
+  requireRole('customer'),
+  stockAlertLimiter,
+  priceWatch.start,
+);
+router.delete(
+  '/products/:id/price-watch',
+  requireAuth,
+  requireRole('customer'),
+  stockAlertLimiter,
+  priceWatch.stop,
+);
 // Product questions and answers (E3).
 router.get('/products/:id/questions', products.listQuestions);
 router.post(

@@ -526,4 +526,96 @@
 
     render();
   });
+  // ---------- Product spreadsheet: preview an edited file, then save it when it is clean ----------
+  let importedCsv = '';
+  const esc = (text) =>
+    String(text).replace(
+      /[&<>"']/g,
+      (ch) =>
+        ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[
+          ch
+        ],
+    );
+  const changesText = (changes) =>
+    Object.entries(changes)
+      .map(([field, change]) => `${field}: ${change.from} → ${change.to}`)
+      .join(' · ');
+
+  function showPreview(result, box, applyButton) {
+    const {summary, rows} = result;
+    const problems = rows.filter((r) => r.errors.length);
+    const changed = rows.filter(
+      (r) => !r.errors.length && Object.keys(r.changes).length,
+    );
+    let html = `<p><strong>${summary.changed}</strong> to change · ${summary.unchanged} unchanged · <strong>${summary.errors}</strong> with errors</p>`;
+    if (problems.length)
+      html += `<ul class="admin-import-errors">${problems
+        .map((r) => `<li>Line ${r.line}: ${esc(r.errors.join(' '))}</li>`)
+        .join(
+          '',
+        )}</ul><p class="muted">Nothing is saved until every row is clean.</p>`;
+    if (changed.length)
+      html += `<ul class="admin-import-changes">${changed
+        .slice(0, 50)
+        .map(
+          (r) =>
+            `<li><strong>${esc(r.name)}</strong>: ${esc(changesText(r.changes))}</li>`,
+        )
+        .join('')}</ul>`;
+    box.innerHTML = html;
+    applyButton.hidden = !result.canApply || !summary.changed;
+  }
+
+  document.addEventListener('change', async (event) => {
+    const input = event.target.closest('[data-import-file]');
+    if (!input) return;
+    const panel = input.closest('[data-product-import]');
+    const box = panel.querySelector('[data-import-result]');
+    const applyButton = panel.querySelector('[data-import-apply]');
+    const file = input.files && input.files[0];
+    importedCsv = '';
+    applyButton.hidden = true;
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      box.textContent =
+        'That file is larger than 1 MB. Split it into smaller files.';
+      return;
+    }
+    importedCsv = await file.text();
+    box.textContent = 'Checking the file…';
+    try {
+      const result = await Nx.api('/api/admin/products/import/preview', {
+        method: 'POST',
+        body: {csv: importedCsv},
+      });
+      showPreview(result, box, applyButton);
+    } catch (error) {
+      box.textContent = error.message;
+    }
+  });
+
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-import-apply]');
+    if (!button) return;
+    const ok = await Nx.confirm({
+      title: 'Save these product changes?',
+      message:
+        'Every change in the file is saved now and recorded in the audit log.',
+      confirmLabel: 'Save changes',
+      tone: 'primary',
+    });
+    if (!ok) return;
+    Nx.busy(button, true, 'Saving…');
+    try {
+      const reply = await Nx.api('/api/admin/products/import/apply', {
+        method: 'POST',
+        body: {csv: importedCsv},
+      });
+      Nx.flash(reply.message);
+      window.location.reload();
+    } catch (error) {
+      Nx.busy(button, false);
+      Nx.toast(error.message, 'error');
+    }
+  });
 })();

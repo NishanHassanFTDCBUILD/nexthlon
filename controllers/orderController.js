@@ -1,6 +1,6 @@
 const checkoutService = require('../services/checkoutService');
-const codConfirmService = require('../services/codConfirmService');
 const orderService = require('../services/orderService');
+const adminOrderService = require('../services/adminOrderService');
 const buyNowService = require('../services/buyNowService');
 const {
   validatePlaceOrder,
@@ -92,16 +92,6 @@ const placeOrder = asyncHandler(async (req, res) => {
   });
 });
 
-// POST /api/checkout/cod-code   { addressId }   E2: sends the code that confirms a Cash on Delivery order.
-const sendCodCode = asyncHandler(async (req, res) => {
-  const address = await checkoutService.findAddress(
-    req.user._id,
-    String((req.body && req.body.addressId) || ''),
-  );
-  const {sentTo} = await codConfirmService.send(req.user._id, address.phone);
-  res.json({message: `We sent a 6-digit code to ${sentTo}.`, sentTo});
-});
-
 // GET /api/orders?status=&period=&q=&page=
 const listOrders = asyncHandler(async (req, res) => {
   const {orders, filters, pagination} = await orderService.listOrders(
@@ -162,14 +152,17 @@ const requestReturn = asyncHandler(async (req, res) => {
       savePhotos: () => imageService.saveImages(files, 'returns'),
     },
   );
+  // The return rules may approve it at once; either way the customer's request has been saved.
+  const approved = await adminOrderService.tryAutoApprove(order);
   res.json({
-    message: 'Return requested. We will arrange a pickup and keep you posted.',
-    order: toPublicOrder(order),
+    message: approved
+      ? 'Return approved. Your refund is on its way.'
+      : 'Return requested. We will arrange a pickup and keep you posted.',
+    order: toPublicOrder(approved || order),
   });
 });
 
 module.exports = {
-  sendCodCode,
   toPublicOrder,
   quote,
   buyNow,

@@ -225,6 +225,22 @@
   // ---------- Totals from the server ----------
   const form = page.querySelector('[data-place-order]');
   const placeButton = form.querySelector('[type="submit"]');
+
+  // A gift for someone else: show the fields, and send them with the order.
+  const giftToggle = form.querySelector('[data-gift-toggle]');
+  const giftFields = form.querySelector('[data-gift-fields]');
+  if (giftToggle && giftFields)
+    giftToggle.addEventListener('change', () => {
+      giftFields.hidden = !giftToggle.checked;
+    });
+  const giftRecipient = () =>
+    giftToggle && giftToggle.checked
+      ? {
+          name: form.elements.giftName.value.trim(),
+          email: form.elements.giftEmail.value.trim(),
+          message: form.elements.giftMessage.value.trim(),
+        }
+      : null;
   const summary = page.querySelector('[data-summary]');
   const cards = [...form.querySelectorAll('[data-pay-card]')];
   const methodInput = (name) =>
@@ -639,103 +655,18 @@
     Nx.toast('Choose another way to pay. Your cart is just as you left it.');
   }
 
-  // ---------- Cash on Delivery code (E2) ----------
-  // When the store asks for it, the server answers cod_code_needed: a code goes to the delivery phone and
-  // this dialog takes it, then the same order is sent again with the code. Resolves with the reply or null.
-  const codDialog = document.getElementById('cod-code-dialog');
-  async function askCode(addressId) {
-    const reply = await Nx.api('/api/checkout/cod-code', {
-      method: 'POST',
-      body: {addressId},
-    }).catch((error) => {
+  // Places the order. Resolves with the reply, or null when it was refused (the reason is shown).
+  async function placeOrder(body) {
+    try {
+      Nx.clearErrors(form);
+      Nx.busy(placeButton, true, 'Placing your order…');
+      return await Nx.api('/api/orders', {method: 'POST', body});
+    } catch (error) {
       showFailure(error);
       return null;
-    });
-    if (!reply) return false;
-    codDialog.querySelector('[data-cod-code-sent]').textContent = reply.message;
-    return true;
-  }
-  function placeWithCode(body) {
-    return new Promise((resolve) => {
-      (async () => {
-        try {
-          Nx.clearErrors(form);
-          Nx.busy(placeButton, true, 'Placing your order…');
-          resolve(await Nx.api('/api/orders', {method: 'POST', body}));
-        } catch (error) {
-          if (error.code !== 'cod_code_needed' || !codDialog) {
-            showFailure(error);
-            resolve(null);
-            return;
-          }
-          if (!(await askCode(body.addressId))) {
-            resolve(null);
-            return;
-          }
-          const codeForm = codDialog.querySelector('[data-cod-code-form]');
-          const input = codeForm.elements.codCode;
-          input.value = '';
-          Nx.clearErrors(codeForm);
-          codDialog.showModal();
-          input.focus();
-          const resend = codeForm.querySelector('[data-cod-code-resend]');
-          const onResend = async () => {
-            Nx.busy(resend, true, 'Sending…');
-            if (await askCode(body.addressId))
-              Nx.toast('A new code is on its way.');
-            Nx.busy(resend, false);
-          };
-          const onSubmit = async (event) => {
-            event.preventDefault();
-            if (!/^[0-9]{6}$/.test(input.value)) {
-              Nx.showErrors(codeForm, {
-                codCode: 'Enter the 6 digits from the message.',
-              });
-              return;
-            }
-            const confirm = codeForm.querySelector('[data-cod-code-confirm]');
-            Nx.busy(confirm, true, 'Checking…');
-            try {
-              const reply = await Nx.api('/api/orders', {
-                method: 'POST',
-                body: {...body, codCode: input.value},
-              });
-              done();
-              codDialog.close();
-              resolve(reply);
-            } catch (failure) {
-              if (/^cod_code_/.test(failure.code || ''))
-                Nx.showErrors(
-                  codeForm,
-                  failure.fieldErrors || {codCode: failure.message},
-                );
-              else {
-                done();
-                codDialog.close();
-                showFailure(failure);
-                resolve(null);
-              }
-            } finally {
-              Nx.busy(confirm, false);
-            }
-          };
-          const onClose = () => {
-            done();
-            resolve(null);
-          };
-          function done() {
-            codeForm.removeEventListener('submit', onSubmit);
-            resend.removeEventListener('click', onResend);
-            codDialog.removeEventListener('close', onClose);
-          }
-          codeForm.addEventListener('submit', onSubmit);
-          resend.addEventListener('click', onResend);
-          codDialog.addEventListener('close', onClose);
-        } finally {
-          Nx.busy(placeButton, false);
-        }
-      })();
-    });
+    } finally {
+      Nx.busy(placeButton, false);
+    }
   }
 
   form.addEventListener('submit', async (event) => {
@@ -775,11 +706,12 @@
       }
       return;
     }
-    const reply = await placeWithCode({
+    const reply = await placeOrder({
       addressId: address.value,
       paymentMethod: p.kind,
       useWallet: p.useWallet,
       source,
+      giftRecipient: giftRecipient(),
     });
     if (!reply) {
       // Prices, stock or the wallet may have changed: show the latest totals.

@@ -40,6 +40,26 @@ const userSchema = new mongoose.Schema(
       default: '',
     },
     isBlocked: {type: Boolean, default: false, index: true},
+    // Cash on Delivery turned off for this one customer (fraud control). Set on the customer page.
+    codBlocked: {type: Boolean, default: false},
+    // Admin two-step sign-in (services/adminTwoFactorService.js). Secrets and codes are never selected by default.
+    twoFactor: {
+      type: new mongoose.Schema(
+        {
+          enabled: {type: Boolean, default: false},
+          secret: {type: String, default: '', select: false},
+          pendingSecret: {type: String, default: '', select: false},
+          recoveryHashes: {type: [String], default: [], select: false},
+          enabledAt: {type: Date, default: null},
+        },
+        {_id: false},
+      ),
+      default: () => ({}),
+    },
+    // Hashes of the admin browsers already seen, so a new sign-in can be flagged by email.
+    adminDevices: {type: [String], default: [], select: false},
+    // A private note the team keeps on a customer. Never shown to the customer.
+    adminNote: {type: String, default: '', maxlength: 1000},
     // Copied into every token. Changing the password adds 1, so all older tokens stop working.
     tokenVersion: {type: Number, default: 0},
     lastLoginAt: {type: Date, default: null},
@@ -58,8 +78,6 @@ const userSchema = new mongoose.Schema(
       orderUpdates: {type: Boolean, default: true},
       offers: {type: Boolean, default: true},
       newsletter: {type: Boolean, default: false},
-      // E1: order updates on WhatsApp too (to the phone on the delivery address). Off until the customer says yes.
-      whatsapp: {type: Boolean, default: false},
     },
     // The last products this customer looked at, newest first (kept to RECENT_LIMIT).
     // E2: phones confirmed with a code for Cash on Delivery ("919876543210"), so they are not asked again soon.

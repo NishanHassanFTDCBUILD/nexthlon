@@ -22,6 +22,33 @@ router.get('/stock-alerts/stop', pages.stopStockAlert);
 router.get('/offline', publicCache, (req, res) => res.render('pages/offline'));
 router.get('/about', publicCache, pages.infoPage('about'));
 router.get('/contact', publicCache, pages.infoPage('contact'));
+router.get('/track', publicCache, pages.infoPage('track'));
+// Styleguide: the design tokens and components, for the team (rendered from the live stylesheets).
+// Frequently asked questions: the answers come from config/faq.js.
+router.get('/faq', publicCache, (req, res) =>
+  res.render('pages/faq', {
+    title: 'Frequently asked questions | Nexthlon',
+    faqs: require('../config/faq'),
+  }),
+);
+// Shown to the team while developing. On the live store it is not published: the normal 404 page answers.
+router.get('/styleguide', publicCache, (req, res, next) => {
+  if (require('../config/env').isProduction) return next();
+  return res.render('pages/styleguide', {
+    title: 'Styleguide | Nexthlon',
+    pageKey: 'styleguide',
+    topics: [],
+  });
+});
+router.get('/account/gift-card', accountPage, (req, res) =>
+  res.render('account/gift-card', {title: 'Gift card | Nexthlon'}),
+);
+// Find my shoe size (a plain form on the server; no script).
+router.get(
+  '/find-my-size',
+  publicCache,
+  require('../controllers/sizeFinderController').sizeFinder,
+);
 router.get('/privacy', publicCache, pages.infoPage('privacy'));
 router.get('/terms', publicCache, pages.infoPage('terms'));
 router.get('/refund-policy', publicCache, pages.infoPage('refund'));

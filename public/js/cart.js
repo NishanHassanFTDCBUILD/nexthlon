@@ -227,18 +227,29 @@
       // Signed out: sign in first and come back here with the same size still chosen.
       if (Nx.shopperRole === 'guest')
         return Nx.signInFirst(addForm.nxReturnPath());
-      // From the big photo, or from the sticky buy bar's photo when the big one has scrolled away.
+      // From the big photo, or the sticky buy bar's photo when the big one has scrolled away, or else
+      // from the pressed button itself. (On phones the photo sits above the button and the bar hides
+      // while the button is in view, so neither photo is on screen and nothing used to fly.)
       const gallery = document.querySelector('[data-gallery-main]');
-      const box = gallery ? gallery.getBoundingClientRect() : null;
-      const onScreen =
-        box && box.bottom > 40 && box.top < window.innerHeight - 40;
+      const onScreen = (element) => {
+        if (!element) return false;
+        const box = element.getBoundingClientRect();
+        return (
+          box.width > 0 && box.bottom > 40 && box.top < window.innerHeight - 40
+        );
+      };
+      const submit =
+        event.submitter || addForm.querySelector('[type="submit"]');
+      const source = [
+        gallery,
+        document.querySelector('[data-dock] img'),
+        submit,
+      ].find(onScreen);
       const result = await Nx.addToCart({
         productId: addForm.dataset.productId,
         quantity: readQuantity(),
         variantId,
-        source: onScreen
-          ? gallery
-          : document.querySelector('[data-dock] img') || gallery,
+        source: source || gallery,
         src: gallery ? gallery.currentSrc || gallery.src : '',
         button: addForm.querySelector('[type="submit"]'),
       });
@@ -353,7 +364,17 @@
       else el.innerHTML = '<span class="text-success">Free</span>';
     });
     const freeNote = page.querySelector('[data-free-note]');
-    if (freeNote) freeNote.hidden = !summary.freeDeliveryGap;
+    if (freeNote) {
+      freeNote.hidden = !summary.freeDeliveryGap;
+      // The progress bar: how much of the way to the free-delivery amount the cart already is.
+      const target = summary.subtotal + summary.freeDeliveryGap;
+      const percent = target > 0 ? summary.subtotal / target : 1;
+      const fill = freeNote.querySelector('[data-free-fill]');
+      const meter = freeNote.querySelector('[role="meter"]');
+      if (fill) fill.style.transform = 'scaleX(' + percent.toFixed(2) + ')';
+      if (meter)
+        meter.setAttribute('aria-valuenow', String(Math.round(percent * 100)));
+    }
     const checkout = page.querySelector('[data-checkout-link]');
     if (checkout) {
       if (summary.itemCount) {

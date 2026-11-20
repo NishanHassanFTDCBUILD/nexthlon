@@ -32,6 +32,9 @@ const cartSchema = new mongoose.Schema(
     items: {type: [cartItemSchema], default: []},
     // The coupon chosen at checkout. It is checked again every time the totals are worked out.
     couponCode: {type: String, default: ''},
+    // Abandoned-cart reminders: the cart version (updatedAt) last reminded, and which reminder it was.
+    reminderVersion: {type: Date, default: null},
+    reminderStage: {type: String, enum: ['', '1h', '24h'], default: ''},
   },
   {timestamps: true},
 );

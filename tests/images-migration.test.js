@@ -306,14 +306,14 @@ test('switching to Cloudinary: every photo on disk is uploaded, and the addresse
     tentNew,
     /^https:\/\/res\.cloudinary\.com\/demo\/image\/upload\/products\/[a-f0-9]{32}-full\.webp$/,
   );
-  assert.ok(cloud.files.has(tentNew.slice(46).replace('-full', '-400')));
+  assert.ok(cloud.files.has(tentNew.slice(45).replace('-full', '-400')));
   const returnedNew = moved[`/uploads/returns/${RETURNED}.jpg`];
   assert.match(
     returnedNew,
     /^https:\/\/res\.cloudinary\.com\/demo\/image\/upload\/returns\/[a-f0-9]{32}\.webp$/,
   );
   assert.equal(
-    (await sharp(cloud.files.get(returnedNew.slice(46))).metadata()).format,
+    (await sharp(cloud.files.get(returnedNew.slice(45))).metadata()).format,
     'webp',
   );
 

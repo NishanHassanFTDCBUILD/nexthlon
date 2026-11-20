@@ -311,4 +311,43 @@
       {signal},
     );
   });
+  // ---------- Labels on one order: save the ticked labels ----------
+  document.addEventListener('submit', async (event) => {
+    const form = event.target.closest('[data-order-tags]');
+    if (!form) return;
+    event.preventDefault();
+    const tags = [...form.querySelectorAll('input[name="tags"]:checked')].map(
+      (box) => box.value,
+    );
+    const button = form.querySelector('[type="submit"]');
+    Nx.busy(button, true, 'Saving…');
+    try {
+      const reply = await Nx.api(
+        `/api/admin/orders/${encodeURIComponent(form.dataset.orderTags)}/tags`,
+        {method: 'PATCH', body: {tags}},
+      );
+      Nx.toast(reply.message);
+    } catch (error) {
+      Nx.toast(error.message, 'error');
+    } finally {
+      Nx.busy(button, false);
+    }
+  });
+
+  // ---------- Batch print: the chosen orders, one page each ----------
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-print-selected]');
+    if (!button) return;
+    const ids = [...document.querySelectorAll('[data-select]:checked')].map(
+      (box) => box.dataset.select,
+    );
+    if (!ids.length) {
+      Nx.toast('Tick the orders to print first.', 'error');
+      return;
+    }
+    const base = document.body.dataset.adminPath || '/admin';
+    window.location.assign(
+      `${base}/orders/print?ids=${encodeURIComponent(ids.join(','))}`,
+    );
+  });
 })();

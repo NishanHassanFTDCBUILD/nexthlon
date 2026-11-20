@@ -1,0 +1,110 @@
+<%#
+  Customer 360: who this customer is, what they have bought, what has come back, their segments,
+  addresses, and a private note only the team sees. Script: public/js/admin-customer.js.
+%>
+<%- include('../partials/admin-start', { section: 'customers', page: 'customer' }) %>
+<nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
+  <a href="<%= adminPath %>/customers">Customers</a> <%- icon('chevron-right', 'i-xs') %>
+  <span aria-current="page"><%= customer.name %></span>
+</nav>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Customer</span>
+    <h1><%= customer.name %></h1>
+    <p class="muted">
+      <%= customer.email %><%= customer.phone ? ' · ' + customer.phone : '' %> · joined <%= formatDate(customer.joinedAt) %>
+      · <%= customer.emailVerified ? 'email confirmed' : 'email not confirmed' %>
+      <% if (customer.isBlocked) { %> · <span class="pill pill-red">Blocked</span><% } %>
+    </p>
+    <% if (segments.length) { %>
+      <p class="customer-segments" aria-label="Segments"><% segments.forEach(function (s) { %><span class="pill pill-grey"><%= s %></span> <% }) %></p>
+    <% } %>
+  </div>
+  <div class="admin-top-actions">
+    <a class="btn btn-secondary btn-sm" href="<%= wallet %>"><%- icon('wallet', 'i-sm') %> Wallet</a>
+    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/orders?q=<%= encodeURIComponent(customer.email) %>"><%- icon('package-check', 'i-sm') %> Their orders</a>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Customer totals">
+  <div class="admin-total"><span>Orders</span><strong><%= summary.orders %></strong><small class="muted"><%= summary.delivered %> delivered</small></div>
+  <div class="admin-total is-in"><span>Paid in total</span><strong><%= formatPrice(summary.paidTotal) %></strong></div>
+  <div class="admin-total <%= summary.returned ? 'is-out' : '' %>"><span>Parcels came back</span><strong><%= summary.returned %></strong></div>
+  <div class="admin-total"><span>Wallet balance</span><strong><%= formatPrice(summary.walletBalance) %></strong><small class="muted">refunded so far <%= formatPrice(summary.refunded) %></small></div>
+</section>
+
+<div class="customer-grid">
+  <section class="panel admin-block" aria-labelledby="c-orders">
+    <h2 id="c-orders" class="panel-title">Recent orders</h2>
+    <% if (recent.length) { %>
+      <ul class="customer-orders">
+        <% recent.forEach(function (o) { %>
+          <li><a href="<%= adminPath %>/orders/<%= o.orderId %>"><strong><%= o.orderId %></strong></a>
+            <span class="muted"><%= o.firstItem %><%= o.items > 1 ? ' + ' + (o.items - 1) + ' more' : '' %></span>
+            <span><%= formatPrice(o.total) %></span>
+            <span class="pill pill-grey"><%= o.status.replace(/_/g, ' ') %></span>
+            <small class="muted"><%= formatDate(o.createdAt) %></small></li>
+        <% }) %>
+      </ul>
+    <% } else { %><p class="muted">No orders yet.</p><% } %>
+  </section>
+
+  <section class="panel admin-block" aria-labelledby="c-note">
+    <h2 id="c-note" class="panel-title">Private note</h2>
+    <p class="muted">Only the team sees this. Use it for what to remember, not for anything the customer should read.</p>
+    <form class="form" data-customer-note="<%= customer.id %>" novalidate>
+      <div class="field">
+        <label for="c-note-text">Note</label>
+        <textarea id="c-note-text" name="note" rows="4" maxlength="1000"><%= customer.note %></textarea>
+      </div>
+      <button class="btn btn-primary btn-sm" type="submit">Save note</button>
+    </form>
+  </section>
+
+  <section class="panel admin-block" aria-labelledby="c-addresses">
+    <h2 id="c-addresses" class="panel-title">Addresses</h2>
+    <% if (addresses.length) { %>
+      <ul class="customer-addresses">
+        <% addresses.forEach(function (a) { %>
+          <li><strong><%= a.name %></strong><%= a.isDefault ? ' · default' : '' %><br>
+            <%= a.line1 %>, <%= a.city %>, <%= a.state %> <%= a.pincode %></li>
+        <% }) %>
+      </ul>
+    <% } else { %><p class="muted">No saved addresses.</p><% } %>
+  </section>
+
+  <section class="panel admin-block" aria-labelledby="c-risk">
+    <h2 id="c-risk" class="panel-title">Risk</h2>
+    <p><span class="pill <%= risk.level === 'high' ? 'pill-red' : risk.level === 'medium' ? 'pill-amber' : 'pill-green' %>"><%= risk.level === 'high' ? 'High' : risk.level === 'medium' ? 'Medium' : 'Low' %> · score <%= risk.score %></span></p>
+    <ul class="admin-reasons"><% risk.reasons.forEach(function (r) { %><li><%= r %></li><% }) %></ul>
+  </section>
+
+  <section class="panel admin-block" aria-labelledby="c-timeline">
+    <h2 id="c-timeline" class="panel-title">Timeline</h2>
+    <% if (!timeline.length) { %><p class="muted">Nothing recorded yet.</p><% } else { %>
+    <ol class="admin-timeline"><% timeline.forEach(function (t) { %><li><% if (t.at) { %><time datetime="<%= new Date(t.at).toISOString() %>"><%= formatDate(t.at) %></time> <% } %><span class="admin-timeline-kind"><%= t.kind %></span> <%= t.text %><% if (t.note) { %> · <span class="muted"><%= t.note %></span><% } %></li><% }) %></ol>
+    <% } %>
+  </section>
+  <section class="panel admin-block" aria-labelledby="c-actions">
+    <h2 id="c-actions" class="panel-title">Actions</h2>
+    <p class="muted">Each action is logged in the audit trail.</p>
+    <div class="customer-actions" data-customer-actions="<%= customer.id %>">
+      <button type="button" class="btn btn-ghost" data-customer-do="block" data-blocked="<%= customer.isBlocked ? 'true' : 'false' %>"><%= customer.isBlocked ? 'Unblock account' : 'Block account' %></button>
+      <button type="button" class="btn btn-ghost" data-customer-do="cod" data-cod-blocked="<%= customer.codBlocked ? 'true' : 'false' %>"><%= customer.codBlocked ? 'Allow Cash on Delivery' : 'Turn off Cash on Delivery' %></button>
+      <button type="button" class="btn btn-ghost" data-customer-do="signout">Sign out of all devices</button>
+      <a class="btn btn-ghost" href="/api/admin/customers/<%= customer.id %>/data" download>Download their data</a>
+      <button type="button" class="btn btn-ghost" data-customer-do="anonymise">Remove personal details</button>
+    </div>
+  </section>
+
+  <section class="panel admin-block" aria-labelledby="c-account">
+    <h2 id="c-account" class="panel-title">Account</h2>
+    <dl class="admin-facts">
+      <div><dt>Last sign-in</dt><dd><%= customer.lastSignInAt ? formatDate(customer.lastSignInAt) : 'Never' %></dd></div>
+      <div><dt>Access</dt><dd><%= customer.isBlocked ? 'Blocked' : 'Active' %></dd></div>
+      <div><dt>Cash on Delivery</dt><dd><%= customer.codBlocked ? 'Off for this account' : 'Allowed' %></dd></div>
+    </dl>
+    <p><a href="<%= adminPath %>/customers">Back to all customers</a></p>
+  </section>
+</div>
+<%- include('../partials/admin-end') %>

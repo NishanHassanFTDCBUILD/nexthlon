@@ -1,0 +1,71 @@
+<%#
+  Reviews: what shoppers wrote. Hide a review that breaks the rules (with a reason), or show it
+  again. A hidden review leaves the product page and the average rating at once. Script: admin-reviews.js.
+%>
+<%- include('../partials/admin-start', { section: 'reviews' }) %>
+<header class="admin-top">
+  <div>
+    <span class="section-kicker">Customers</span>
+    <h1>Reviews</h1>
+    <p class="muted"><%= counts.visible %> shown on the store · <%= counts.hidden %> hidden. Hide only what breaks the rules; every hide is recorded.</p>
+  </div>
+</header>
+
+<section class="admin-totals" aria-label="Review totals">
+  <div class="admin-total is-in"><span>Shown</span><strong><%= counts.visible %></strong></div>
+  <div class="admin-total <%= counts.hidden ? 'is-out' : '' %>"><span>Hidden</span><strong><%= counts.hidden %></strong></div>
+</section>
+
+<nav class="segmented admin-tabs" aria-label="Review status">
+  <% [['all', 'All', counts.all], ['visible', 'Shown', counts.visible], ['hidden', 'Hidden', counts.hidden]].forEach(function ([key, label, n]) { %>
+    <a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="page"' : '' %>><%= label %> <span class="admin-tab-count"><%= n %></span></a>
+  <% }) %>
+</nav>
+
+<section class="panel panel-flush admin-table-panel" aria-label="Reviews">
+  <% if (reviews.length) { %>
+    <div class="table-wrap">
+      <table class="table table-stack admin-table">
+        <thead><tr>
+          <th scope="col">Review</th>
+          <th scope="col">Product</th>
+          <th scope="col">Rating</th>
+          <th scope="col">Status</th>
+          <th scope="col" class="cell-action"><span class="sr-only">Actions</span></th>
+        </tr></thead>
+        <tbody>
+          <% reviews.forEach(function (r) { %>
+            <tr data-review-row="<%= r.id %>" class="<%= r.isHidden ? 'is-unlisted' : '' %>">
+              <td>
+                <strong><%= r.title || 'No title' %></strong>
+                <p class="review-body"><%= r.body %></p>
+                <small class="muted"><%= r.author %> · <%= formatDate(r.createdAt) %><%= r.verified ? ' · verified purchase' : '' %></small>
+              </td>
+              <td data-label="Product"><%= r.product ? r.product.name : 'Product removed' %></td>
+              <td data-label="Rating" class="cell-num"><strong><%= r.rating %></strong> / 5</td>
+              <td data-label="Status">
+                <span class="pill <%= r.isHidden ? 'pill-red' : 'pill-green' %>"><%= r.isHidden ? 'Hidden' : 'Shown' %></span>
+                <% if (r.isHidden && r.hiddenReason) { %><small class="muted admin-sub"><%= r.hiddenReason %></small><% } %>
+              </td>
+              <td class="cell-action"><div class="row-actions">
+                <% if (r.isHidden) { %>
+                  <button type="button" class="btn btn-secondary btn-sm" data-review-show="<%= r.id %>">Show again</button>
+                <% } else { %>
+                  <label class="sr-only" for="reason-<%= r.id %>">Why hide this review</label>
+                  <span class="select-wrap"><select id="reason-<%= r.id %>" data-review-reason>
+                    <% reasons.forEach(function (reason) { %><option value="<%= reason %>"><%= reason %></option><% }) %>
+                  </select></span>
+                  <button type="button" class="btn btn-danger-soft btn-sm" data-review-hide="<%= r.id %>">Hide</button>
+                <% } %>
+              </div></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('../partials/admin-pager') %>
+  <% } else { %>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>No reviews here</h2><p>Reviews appear here once shoppers write them.</p></div>
+  <% } %>
+</section>
+<%- include('../partials/admin-end') %>

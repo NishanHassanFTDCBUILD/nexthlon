@@ -1,4 +1,5 @@
 const config = require('../config/env');
+const loyaltyService = require('../services/loyaltyService');
 // My Account pages (server-rendered, customer only), the public page for a shared list, and the
 // admin's support-ticket pages. The rules live in the services; these only pick the data to show.
 const accountService = require('../services/accountService');
@@ -20,12 +21,7 @@ const overview = asyncHandler(async (req, res) => {
   res.render('account/overview', {
     title: 'Your account | Nexthlon',
     labels: orderRules.STATUS_LABELS,
-    memberTier:
-      data.stats.orders >= 10
-        ? 'Elite'
-        : data.stats.orders >= 3
-          ? 'Pro'
-          : 'Member',
+    loyalty: await loyaltyService.forUser(req.user._id),
     ...data,
   });
 });

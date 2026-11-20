@@ -19,6 +19,12 @@ const FLOW = [
   'out_for_delivery',
   'delivered',
 ];
+// The shipping promise: an order placed and not yet shipped after this many hours is late.
+const SHIP_WITHIN_HOURS = 24;
+
+// Labels an admin can put on an order. Fixed, so a typo cannot make a second, unused label.
+const ORDER_TAGS = ['gift', 'priority', 'fragile', 'check-fraud'];
+
 const CANCELLABLE = ['placed', 'confirmed'];
 const PAYMENT_STATUSES = [
   'pending',
@@ -148,6 +154,8 @@ function settlementFor(order, itemIds) {
 }
 
 module.exports = {
+  ORDER_TAGS,
+  SHIP_WITHIN_HOURS,
   ORDER_STATUSES,
   FLOW,
   CANCELLABLE,

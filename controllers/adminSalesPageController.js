@@ -3,10 +3,12 @@
 const config = require('../config/env');
 const adminOrderService = require('../services/adminOrderService');
 const ledgerService = require('../services/ledgerService');
+const Order = require('../models/Order');
 const adminCouponService = require('../services/adminCouponService');
 const dealService = require('../services/dealService');
 const rules = require('../utils/orderRules');
 const {linkBuilder} = require('../utils/queryString');
+const {pageOf} = require('../utils/paging');
 const {asyncHandler} = require('../utils/http');
 
 const base = (section) => `${config.adminPath}/${section}`;
@@ -54,6 +56,7 @@ const order = asyncHandler(async (req, res) => {
     ...data,
     ...labels,
     cancelReasons: rules.CANCEL_REASONS,
+    tagOptions: rules.ORDER_TAGS,
     // B5: "shiprocket" shows the one-click button; "manual" only the courier and AWB form.
     shippingProvider: config.shipping.provider,
   });
@@ -101,10 +104,18 @@ const transaction = asyncHandler(async (req, res) => {
 
 const reconciliation = asyncHandler(async (req, res) => {
   const data = await ledgerService.reconciliation(req.query);
+  const {rows, pagination} = pageOf(data.issues, req.query);
   res.render('admin/reconciliation', {
     title: 'Reconciliation | Nexthlon Admin',
     ...data,
     ...labels,
+    issueTotal: data.issues.length,
+    issues: rows,
+    pagination,
+    link: linkBuilder(base('transactions/reconciliation'), {
+      days: data.days === 30 ? '' : data.days,
+      limit: pagination.limit === 20 ? '' : pagination.limit,
+    }),
   });
 });
 
@@ -215,6 +226,80 @@ const dealEdit = asyncHandler(async (req, res) => {
   });
 });
 
+// GET <ADMIN_PATH>/orders/print?ids=NX-...  The chosen orders, one page each, for printing.
+const printOrders = asyncHandler(async (req, res) => {
+  const ids = String(req.query.ids || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => /^NX-\d{4}-\d{6}$/.test(id))
+    .slice(0, 50);
+  const orders = ids.length
+    ? await Order.find({orderId: {$in: ids}})
+        .sort({createdAt: 1})
+        .limit(50)
+        .lean()
+    : [];
+  res.render('admin/print-orders', {
+    title: 'Print orders | Nexthlon Admin',
+    orders,
+    asked: ids.length,
+    rules,
+  });
+});
+
+// ---------- Pick list: what to take off the shelves for a set of orders ----------
+// GET <ADMIN_PATH>/orders/pick-list?ids=NX-2026-000001,NX-2026-000002  (or no ids: every order to ship)
+const pickList = asyncHandler(async (req, res) => {
+  const ids = String(req.query.ids || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => /^NX-\d{4}-\d{6}$/.test(id))
+    .slice(0, 200);
+  const filter = ids.length
+    ? {orderId: {$in: ids}}
+    : {orderStatus: 'confirmed'};
+  const orders = await Order.find(filter)
+    .sort({createdAt: 1})
+    .limit(200)
+    .select(
+      'orderId orderStatus createdAt items.name items.option items.sku items.quantity items.status items.product',
+    )
+    .lean();
+  const lines = new Map();
+  for (const order of orders)
+    for (const item of order.items) {
+      if (item.status === 'cancelled' || item.status === 'returned') continue;
+      const key = [String(item.product), item.option || ''].join('|');
+      const line = lines.get(key) || {
+        name: item.name,
+        option: item.option || '',
+        sku: item.sku || '',
+        units: 0,
+        orders: [],
+      };
+      line.units += item.quantity;
+      line.orders.push(order.orderId);
+      lines.set(key, line);
+    }
+  const sorted = [...lines.values()].sort(
+    (a, b) => a.name.localeCompare(b.name) || a.option.localeCompare(b.option),
+  );
+  res.render('admin/pick-list', {
+    title: 'Pick list | Nexthlon Admin',
+    lines: sorted,
+    orderCount: orders.length,
+    units: sorted.reduce((sum, line) => sum + line.units, 0),
+    scope: ids.length ? 'the orders you chose' : 'every order to ship',
+    late: orders.filter(
+      (o) =>
+        ['placed', 'confirmed'].includes(o.orderStatus) &&
+        Date.now() >
+          new Date(o.createdAt).getTime() +
+            require('../utils/orderRules').SHIP_WITHIN_HOURS * 3600000,
+    ).length,
+  });
+});
+
 module.exports = {
   orders,
   order,
@@ -230,4 +315,6 @@ module.exports = {
   deals,
   dealNew,
   dealEdit,
+  pickList,
+  printOrders,
 };

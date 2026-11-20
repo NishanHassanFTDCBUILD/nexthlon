@@ -54,6 +54,7 @@ const INFO_PAGES = {
   about: {view: 'pages/about', title: 'About us'},
   contact: {view: 'pages/contact', title: 'Contact us'},
   privacy: {view: 'pages/privacy', title: 'Privacy policy'},
+  track: {view: 'pages/track', title: 'Track your order'},
   terms: {view: 'pages/terms', title: 'Terms and conditions'},
   refund: {
     view: 'pages/refund-policy',
@@ -305,6 +306,12 @@ const productDetail = asyncHandler(async (req, res) => {
       ),
     canonical: url,
     ogType: 'product',
+    priceWatching: customer
+      ? await require('../services/priceAlertService').isWatching(
+          customer._id,
+          product._id,
+        )
+      : false,
     ogTitle: `${product.name} · ${priceText}`,
     ogImage: photo,
     ogImageSize: null,
@@ -481,6 +488,9 @@ const orderDetail = asyncHandler(async (req, res) => {
       order.paymentMethod === 'razorpay' &&
       ['pending', 'failed'].includes(order.paymentStatus) &&
       order.orderStatus !== 'cancelled',
+    exchangeChoices: await require('../services/exchangeService').choicesFor(
+      order,
+    ),
     cancelReasons: orderRules.CANCEL_REASONS,
     returnReasons: orderRules.RETURN_REASONS,
   });

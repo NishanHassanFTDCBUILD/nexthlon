@@ -1,35 +1,88 @@
 <%#
-  Inventory: see what is on the shelf and correct it. Type the new stock and press Save; a product with
-  sizes has one field per size. The server checks every change and records it in the audit log.
-  Names, prices and photos are edited in Products. Script: public/js/admin-catalog.js.
+  Inventory: watch what is on the shelf and correct it.
+    - Summary cards and tabs (with counts) filter the table.
+    - Each row has one Adjust button. It opens a side panel (a bottom sheet on phones) with three tabs:
+      Adjust (set, add or remove, one field per size, reason, note, a preview of the result),
+      History (recent stock changes) and Reorder level.
+    - Tick rows to restock them together or export them. "Import stock" adds units from a CSV.
+  The server checks every change and records it in the audit log. Names, prices and photos are edited
+  in Products. Script: public/js/admin-catalog.js.
 %>
 <%
+  const t = Object.assign({ products: 0, listed: 0, units: 0, value: 0, low: 0, out: 0, reorder: 0, healthy: 0, unlisted: 0, waiting: 0, lowStockLimit: 5 }, totals);
+  const counts = { all: t.products, out: t.out, low: t.low, reorder: t.reorder, healthy: t.healthy, unlisted: t.unlisted };
   const tabs = Object.entries(statusLabels);
   const pill = { out: 'pill-red', low: 'pill-amber', healthy: 'pill-green' };
   const label = { out: 'Out of stock', low: 'Low', healthy: 'In stock' };
+  const reasons = [['restock', 'Restock'], ['damage', 'Damage'], ['return', 'Returned units'], ['stock_count', 'Physical count'], ['sale_correction', 'Sales correction'], ['other', 'Other']];
+  const num = function (value) { return Number(value || 0).toLocaleString('en-IN'); };
+  // The bar under each stock number is full at four times the level that counts as "low" for it.
+  const fullOf = function (p) { return Math.max(1, (p.reorderLevel != null ? p.reorderLevel : t.lowStockLimit) * 4); };
+  const barOf = function (p) { return Math.min(100, Math.round((p.stock / fullOf(p)) * 100)); };
+  const sizeSummary = function (p) {
+    const short = p.options.filter(function (o) { return o.state !== 'healthy'; }).length;
+    return p.options.length + (p.options.length === 1 ? ' size' : ' sizes') + (short ? ' · ' + short + ' low or out' : '');
+  };
+  const metaOf = function (p) { return [p.brand, p.category || 'No category'].filter(Boolean).join(' · ') + (p.isListed ? '' : ' · unlisted'); };
 %>
 <%- include('../partials/admin-start', { section: 'inventory' }) %>
 
-<header class="admin-top">
+<header class="admin-top inv-head">
   <div>
     <span class="section-kicker">Catalog</span>
     <h1>Inventory</h1>
-    <p class="muted">Low means <%= totals.lowStockLimit %> units or fewer.</p>
+    <p class="muted">Low stock means <%= t.lowStockLimit %> units or fewer. Every change is saved to the audit log.</p>
   </div>
   <div class="admin-top-actions">
+    <button type="button" class="btn btn-primary btn-sm" data-inv-import-open><%- icon('layers', 'i-sm') %> Import stock</button>
     <a class="btn btn-secondary btn-sm" href="/api/admin/inventory/export.csv?<%= exportQuery %>" download data-full-load><%- icon('download', 'i-sm') %> Export CSV</a>
   </div>
 </header>
 
-<section class="admin-totals" aria-label="Stock totals">
-  <div class="admin-total"><span>Units on the shelf</span><strong><%= totals.units.toLocaleString('en-IN') %></strong></div>
-  <a class="admin-total admin-total-link <%= totals.low ? 'is-warn' : '' %>" href="<%= link({ status: 'low', page: '' }) %>"><span>Low stock</span><strong><%= totals.low %></strong></a>
-  <a class="admin-total admin-total-link <%= totals.out ? 'is-out' : '' %>" href="<%= link({ status: 'out', page: '' }) %>"><span>Out of stock</span><strong><%= totals.out %></strong></a>
+<%# ---------- Summary: each card filters the table ---------- %>
+<section class="inv-cards" aria-label="Stock summary">
+  <a class="inv-card" href="<%= link({ status: '', page: '' }) %>">
+    <span class="inv-card-icon" aria-hidden="true"><%- icon('box', 'i-sm') %></span>
+    <span class="inv-card-label">Units on the shelf</span>
+    <strong><%= num(t.units) %></strong>
+    <span class="inv-card-note"><%= num(t.listed) %> products for sale</span>
+  </a>
+  <a class="inv-card" href="<%= link({ sort: 'value_desc', page: '' }) %>">
+    <span class="inv-card-icon" aria-hidden="true"><%- icon('wallet', 'i-sm') %></span>
+    <span class="inv-card-label">Stock value</span>
+    <strong><%= formatPrice(t.value) %></strong>
+    <span class="inv-card-note">At selling price</span>
+  </a>
+  <a class="inv-card<%= t.low ? ' is-warn' : '' %>" href="<%= link({ status: 'low', page: '' }) %>">
+    <span class="inv-card-icon" aria-hidden="true"><%- icon('alert', 'i-sm') %></span>
+    <span class="inv-card-label">Low stock</span>
+    <strong><%= num(t.low) %></strong>
+    <span class="inv-card-note"><%= t.lowStockLimit %> units or fewer</span>
+  </a>
+  <a class="inv-card<%= t.out ? ' is-danger' : '' %>" href="<%= link({ status: 'out', page: '' }) %>">
+    <span class="inv-card-icon" aria-hidden="true"><%- icon('x', 'i-sm') %></span>
+    <span class="inv-card-label">Out of stock</span>
+    <strong><%= num(t.out) %></strong>
+    <span class="inv-card-note">Shoppers can't buy these</span>
+  </a>
+  <a class="inv-card<%= t.reorder ? ' is-danger' : '' %>" href="<%= link({ status: 'reorder', page: '' }) %>">
+    <span class="inv-card-icon" aria-hidden="true"><%- icon('history', 'i-sm') %></span>
+    <span class="inv-card-label">Reorder now</span>
+    <strong><%= num(t.reorder) %></strong>
+    <span class="inv-card-note">At their reorder level</span>
+  </a>
+  <div class="inv-card">
+    <span class="inv-card-icon" aria-hidden="true"><%- icon('bell', 'i-sm') %></span>
+    <span class="inv-card-label">Waiting for alerts</span>
+    <strong><%= num(t.waiting) %></strong>
+    <span class="inv-card-note">Shoppers waiting for a restock</span>
+  </div>
 </section>
 
+<%# ---------- Tabs (with counts), search, category and sort ---------- %>
 <div class="inv-toolbar">
-  <nav class="segmented admin-tabs" aria-label="Stock state">
-    <% tabs.forEach(function ([key, text]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>"><%= text %></a><% }) %>
+  <nav class="inv-tabs" aria-label="Stock state">
+    <% tabs.forEach(function ([key, text]) { const on = filters.status === key; %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="inv-tab<%= on ? ' is-active' : '' %>" <%- on ? 'aria-current="page"' : '' %>><%= text %> <span class="inv-tab-count"><%= num(counts[key]) %></span></a><% }) %>
   </nav>
   <%- include('../partials/admin-list-toolbar', { section: 'inventory', searchMax: 80, searchHint: 'Product or brand', sorts, fields: [
     { key: 'category', label: 'Category', options: [['', 'All categories'], ...categories.map(function (c) { return [String(c._id), c.name]; })] },
@@ -37,39 +90,32 @@
   ] }) %>
 </div>
 
-<%- include('../partials/admin-inventory-import') %>
-<section class="panel panel-flush admin-table-panel" aria-label="Stock levels">
+<%# ---------- The stock table: one Adjust button per row, no forms in the rows ---------- %>
+<section class="panel panel-flush admin-table-panel inv-panel" aria-label="Stock levels">
   <% if (products.length) { %>
-    <div class="table-wrap admin-table-scroll"><table class="table table-stack admin-table"><thead><tr><th scope="col"><input type="checkbox" data-inventory-select-all aria-label="Select restockable products on this page"></th><%- include('../partials/admin-sort-header', { label: 'Product', asc: 'name_asc', desc: '' }) %><%- include('../partials/admin-sort-header', { label: 'Stock', asc: 'stock_asc', desc: 'stock_desc' }) %><%- include('../partials/admin-sort-header', { label: 'Stock value', asc: '', desc: 'value_desc' }) %><th scope="col">Waiting for alerts</th><%- include('../partials/admin-sort-header', { label: 'Last changed', asc: '', desc: 'updated' }) %><th scope="col">Adjust stock</th></tr></thead><tbody>
+    <div class="table-wrap admin-table-scroll"><table class="table table-stack admin-table inv-table"><thead><tr><th scope="col" class="inv-col-check"><input type="checkbox" data-inventory-select-all aria-label="Select all products on this page"></th><%- include('../partials/admin-sort-header', { label: 'Product', asc: 'name_asc', desc: '' }) %><%- include('../partials/admin-sort-header', { label: 'Stock', asc: 'stock_asc', desc: 'stock_desc' }) %><th scope="col">Sales pace</th><%- include('../partials/admin-sort-header', { label: 'Stock value', asc: '', desc: 'value_desc' }) %><th scope="col" title="Shoppers waiting for a back-in-stock email">Alerts</th><%- include('../partials/admin-sort-header', { label: 'Changed', asc: '', desc: 'updated' }) %><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
       <% products.forEach(function (p) { %>
-        <tr data-inv-row="<%= p.id %>"><td data-label="Select"><input type="checkbox" data-inventory-select="<%= p.id %>" aria-label="Select <%= p.name %> for restock" <%= p.options.length ? 'disabled' : '' %>></td><td data-label="Product">
-          <div class="inv-info">
-            <a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a>
-            <span class="muted"><%= p.category || 'No category' %><%= p.isListed ? '' : ' · unlisted' %></span>
+        <tr data-inv-row="<%= p.id %>" class="<%= p.isListed ? '' : 'is-unlisted' %>"><td data-label="Select" class="inv-col-check"><input type="checkbox" data-inventory-select="<%= p.id %>" data-has-sizes="<%= p.options.length ? 'true' : 'false' %>" aria-label="Select <%= p.name %>"></td><td data-label="Product">
+          <div class="inv-product">
+            <% if (p.image) { %><img src="<%= p.image %>" alt="" width="44" height="44" loading="lazy"><% } else { %><span class="inv-thumb-empty" aria-hidden="true"><%- icon('box', 'i-sm') %></span><% } %>
+            <div class="inv-info">
+              <a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a>
+              <span class="muted"><%= metaOf(p) %></span>
+              <% if (p.needsReorder) { %><span class="pill pill-red inv-reorder-flag">Reorder now</span><% } %>
+            </div>
           </div>
           </td><td data-label="Stock">
-            <strong data-inv-stock><%= p.stock %></strong>
-            <span class="pill <%= pill[p.state] %>" data-inv-state><%= label[p.state] %></span>
+            <div class="inv-stock">
+              <div class="inv-stock-top"><strong data-inv-stock><%= p.stock %></strong><span class="pill <%= pill[p.state] %>" data-inv-state><%= label[p.state] %></span></div>
+              <span class="inv-bar is-<%= p.state %>" data-inv-bar-wrap data-full="<%= fullOf(p) %>" aria-hidden="true"><span data-inv-bar style="width: <%= barOf(p) %>%"></span></span>
+              <% if (p.options.length) { %><span class="inv-sub"><%= sizeSummary(p) %></span><% } %>
+            </div>
           </td>
+          <td data-label="Sales pace"><span class="inv-pace"><strong><%= num(p.soldLast30) %></strong> sold / 30 days</span><span class="inv-sub"><%= p.daysOfCover != null ? '~' + Math.round(p.daysOfCover) + ' days left' : 'No recent sales' %></span></td>
           <td data-label="Stock value"><span data-inv-value><%= formatPrice(p.stockValue) %></span></td>
           <td data-label="Waiting for alerts"><%= p.waiting %></td>
-          <td data-label="Last changed"><%= formatDate(p.updatedAt) %>
-            <details data-stock-history="<%= p.id %>"><summary>Adjustment history</summary><div data-history-content role="status">Open to load recent adjustments.</div></details>
-          </td>
-          <td data-label="Adjust stock"><form class="inv-set" data-inv-form="<%= p.id %>" >
-            <label class="admin-field"><span>Action</span><select name="action" data-inv-action><option value="count">Set count</option><option value="add">Add units</option><option value="remove">Remove units</option></select></label>
-            <% if (p.options.length) { %>
-              <% p.options.forEach(function (o) { %>
-                <label class="inv-size"><span><%= o.label %></span><input class="inv-input" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= o.stock %>" data-stock="<%= o.stock %>" data-option-id="<%= o.id %>" data-inv-field aria-label="Stock of <%= p.name %>, <%= o.label %>"></label>
-              <% }) %>
-            <% } else { %>
-              <label class="sr-only" for="inv-<%= p.id %>">Stock of <%= p.name %></label>
-              <input class="inv-input" id="inv-<%= p.id %>" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= p.stock %>" data-stock="<%= p.stock %>" data-inv-field>
-            <% } %>
-            <label class="admin-field"><span>Reason</span><select name="reason" required><option value="">Choose a reason</option><option value="restock">Restock</option><option value="damage">Damage</option><option value="return">Returned units</option><option value="stock_count">Physical count</option><option value="sale_correction">Sales correction</option><option value="other">Other</option></select></label>
-            <label class="admin-field"><span>Note</span><input name="note" maxlength="120" placeholder="Optional explanation"></label>
-            <button class="btn btn-secondary btn-sm" type="submit">Save</button>
-          </form></td>
+          <td data-label="Last changed"><%= formatDate(p.updatedAt) %></td>
+          <td data-label="Actions" class="inv-actions"><button type="button" class="btn btn-secondary btn-sm" data-inv-open="<%= p.id %>"><%- icon('edit', 'i-sm') %> Adjust</button></td>
         </tr>
       <% }) %>
     </tbody></table></div>
@@ -78,4 +124,145 @@
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'box' }) %><h2>No products match</h2><p>Try another tab or search.</p></div>
   <% } %>
 </section>
+
+<%# ---------- Bulk bar: shows when rows are ticked ---------- %>
+<div class="inv-bulk" data-inv-bulk role="region" aria-label="Selected products" hidden>
+  <span class="inv-bulk-count" data-inv-bulk-count aria-live="polite">0 selected</span>
+  <div class="inv-bulk-actions">
+    <button type="button" class="btn btn-primary btn-sm" data-inv-bulk-restock><%- icon('plus', 'i-sm') %> Restock selected</button>
+    <a class="btn btn-secondary btn-sm" href="/api/admin/inventory/export.csv" data-inv-bulk-export download data-full-load><%- icon('download', 'i-sm') %> Export selected</a>
+    <button type="button" class="btn btn-ghost btn-sm" data-inv-bulk-clear>Clear</button>
+  </div>
+</div>
+
+<%# ---------- Side panel: Adjust, History and Reorder level for one product ---------- %>
+<div class="inv-backdrop" data-inv-close hidden></div>
+<aside class="inv-drawer" data-inv-drawer role="dialog" aria-modal="true" aria-label="Manage stock" tabindex="-1" hidden>
+  <header class="inv-drawer-head">
+    <h2>Manage stock</h2>
+    <button type="button" class="icon-btn" data-inv-close aria-label="Close"><%- icon('x') %></button>
+  </header>
+  <div class="inv-drawer-body">
+    <% products.forEach(function (p) { %>
+      <section class="inv-sheet" data-inv-sheet="<%= p.id %>" data-name="<%= p.name %>" hidden>
+        <div class="inv-sheet-head">
+          <% if (p.image) { %><img src="<%= p.image %>" alt="" width="52" height="52" loading="lazy"><% } else { %><span class="inv-thumb-empty" aria-hidden="true"><%- icon('box', 'i-sm') %></span><% } %>
+          <div class="inv-info">
+            <strong><%= p.name %></strong>
+            <span class="muted"><%= metaOf(p) %></span>
+          </div>
+          <div class="inv-sheet-stock">
+            <strong data-inv-stock><%= p.stock %></strong>
+            <span class="pill <%= pill[p.state] %>" data-inv-state><%= label[p.state] %></span>
+          </div>
+        </div>
+
+        <div class="inv-sheet-tabs" role="tablist" aria-label="Stock tools for <%= p.name %>">
+          <button type="button" role="tab" id="inv-tab-adjust-<%= p.id %>" aria-controls="inv-pane-adjust-<%= p.id %>" aria-selected="true" data-inv-tab-btn="adjust"><%- icon('sliders', 'i-xs') %> Adjust</button>
+          <button type="button" role="tab" id="inv-tab-history-<%= p.id %>" aria-controls="inv-pane-history-<%= p.id %>" aria-selected="false" tabindex="-1" data-inv-tab-btn="history"><%- icon('clock', 'i-xs') %> History</button>
+          <button type="button" role="tab" id="inv-tab-reorder-<%= p.id %>" aria-controls="inv-pane-reorder-<%= p.id %>" aria-selected="false" tabindex="-1" data-inv-tab-btn="reorder"><%- icon('history', 'i-xs') %> Reorder level</button>
+        </div>
+
+        <%# Adjust %>
+        <div class="inv-pane" role="tabpanel" id="inv-pane-adjust-<%= p.id %>" aria-labelledby="inv-tab-adjust-<%= p.id %>" data-inv-pane="adjust">
+          <form class="inv-set" data-inv-form="<%= p.id %>" novalidate>
+            <fieldset class="inv-choice">
+              <legend>What do you want to do?</legend>
+              <div class="inv-choice-options">
+                <label><input type="radio" name="action" value="count" checked data-inv-action><span>Set count</span></label>
+                <label><input type="radio" name="action" value="add" data-inv-action><span>Add units</span></label>
+                <label><input type="radio" name="action" value="remove" data-inv-action><span>Remove units</span></label>
+              </div>
+            </fieldset>
+            <p class="inv-hint muted" data-inv-hint>Type the number you counted on the shelf.</p>
+            <div class="inv-lines">
+              <% if (p.options.length) { %>
+                <% p.options.forEach(function (o) { %>
+                  <div class="inv-line" data-inv-line>
+                    <span class="inv-line-name"><%= o.label %> <small class="muted">now <span data-inv-now><%= o.stock %></span></small></span>
+                    <span class="inv-stepper"><button type="button" class="inv-step" data-inv-step="-1" aria-label="One less, <%= o.label %>"><%- icon('minus', 'i-xs') %></button><input class="inv-input" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= o.stock %>" data-stock="<%= o.stock %>" data-option-id="<%= o.id %>" data-inv-field aria-label="Stock of <%= p.name %>, <%= o.label %>"><button type="button" class="inv-step" data-inv-step="1" aria-label="One more, <%= o.label %>"><%- icon('plus', 'i-xs') %></button></span>
+                    <span class="inv-preview" data-inv-preview></span>
+                  </div>
+                <% }) %>
+              <% } else { %>
+                <div class="inv-line" data-inv-line>
+                  <label class="inv-line-name" for="inv-<%= p.id %>">Units <small class="muted">now <span data-inv-now><%= p.stock %></span></small></label>
+                  <span class="inv-stepper"><button type="button" class="inv-step" data-inv-step="-1" aria-label="One less"><%- icon('minus', 'i-xs') %></button><input class="inv-input" id="inv-<%= p.id %>" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= p.stock %>" data-stock="<%= p.stock %>" data-inv-field><button type="button" class="inv-step" data-inv-step="1" aria-label="One more"><%- icon('plus', 'i-xs') %></button></span>
+                  <span class="inv-preview" data-inv-preview></span>
+                </div>
+              <% } %>
+            </div>
+            <label class="admin-field"><span>Reason</span><select name="reason" required><option value="">Choose a reason</option><% reasons.forEach(function ([value, text]) { %><option value="<%= value %>"><%= text %></option><% }) %></select></label>
+            <label class="admin-field"><span>Note (optional)</span><input name="note" maxlength="120" placeholder="For example: supplier invoice 1043"></label>
+            <p class="inv-summary" data-inv-summary aria-live="polite">Change a number to see what will be saved.</p>
+            <div class="inv-sheet-foot">
+              <button type="button" class="btn btn-ghost btn-sm" data-inv-close>Cancel</button>
+              <button class="btn btn-primary btn-sm" type="submit">Save change</button>
+            </div>
+          </form>
+        </div>
+
+        <%# History %>
+        <div class="inv-pane" role="tabpanel" id="inv-pane-history-<%= p.id %>" aria-labelledby="inv-tab-history-<%= p.id %>" data-inv-pane="history" hidden>
+          <div class="inv-history" data-stock-history="<%= p.id %>"><div data-history-content role="status">Recent stock changes load here.</div></div>
+        </div>
+
+        <%# Reorder level %>
+        <div class="inv-pane" role="tabpanel" id="inv-pane-reorder-<%= p.id %>" aria-labelledby="inv-tab-reorder-<%= p.id %>" data-inv-pane="reorder" hidden>
+          <p class="inv-reorder-now">Reorder level: <strong><%= p.reorderLevel != null ? p.reorderLevel + ' units' : 'store-wide (' + t.lowStockLimit + ' units)' %></strong></p>
+          <p class="muted">When stock reaches this level, the product shows "Reorder now" and is counted on the Reorder now card.</p>
+          <form class="inv-reorder-form" data-reorder-form="<%= p.id %>" novalidate>
+            <label class="admin-field"><span>Reorder when stock is at or below</span><input name="reorderLevel" type="number" inputmode="numeric" min="0" max="100000" step="1" value="<%= p.reorderLevel != null ? p.reorderLevel : '' %>" placeholder="Store-wide"></label>
+            <div class="inv-sheet-foot">
+              <button class="btn btn-ghost btn-sm" type="button" data-reorder-clear>Use store-wide</button>
+              <button class="btn btn-primary btn-sm" type="submit">Save level</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    <% }) %>
+  </div>
+</aside>
+
+<%# ---------- Import stock: ticked products or a CSV, always previewed first ---------- %>
+<dialog class="inv-dialog" data-inv-import aria-labelledby="inv-import-title">
+  <div class="inv-dialog-head">
+    <h2 id="inv-import-title">Add stock in bulk</h2>
+    <button type="button" class="icon-btn" data-inv-import-close aria-label="Close"><%- icon('x') %></button>
+  </div>
+  <p class="muted">Adds units to current stock (it never replaces it). You see a preview before anything changes.</p>
+  <div class="segmented inv-import-choice" role="tablist" aria-label="Import from">
+    <button type="button" role="tab" aria-selected="true" data-inv-import-tab="selected">Selected products</button>
+    <button type="button" role="tab" aria-selected="false" tabindex="-1" data-inv-import-tab="csv">CSV file</button>
+  </div>
+
+  <form class="inv-import-form" method="post" data-inventory-bulk data-inv-import-pane="selected" novalidate>
+    <p class="inv-import-note" data-inv-import-selected>Tick products in the table first, then come back here.</p>
+    <label class="admin-field"><span>Units to add to each product</span><input name="units" type="number" min="1" max="100000" step="1" inputmode="numeric" required></label>
+    <label class="admin-field"><span>Reason</span><select name="reason" required><option value="restock">Restock</option><option value="return">Returned units</option><option value="stock_count">Physical count correction</option><option value="other">Other</option></select></label>
+    <label class="admin-field"><span>Note (optional)</span><input name="note" maxlength="120"></label>
+    <button class="btn btn-primary btn-sm" type="submit">Preview</button>
+  </form>
+
+  <form class="inv-import-form" method="post" data-inventory-csv data-inv-import-pane="csv" novalidate hidden>
+    <ol class="inv-steps">
+      <li>Download the <a class="link-btn" href="/api/admin/inventory/restock-template.csv" download data-full-load>CSV template</a>, or use the inventory export (it includes the IDs).</li>
+      <li>Fill in productId, units and reason. For a size, add its optionId.</li>
+      <li>Upload the file and check the preview.</li>
+    </ol>
+    <label class="admin-field"><span>Restock CSV (10 KB maximum)</span><input name="csv" type="file" accept=".csv,text/csv" required aria-describedby="inventory-csv-help"></label>
+    <p class="muted" id="inventory-csv-help">Reasons: restock, damage, return, stock_count, sale_correction, other.</p>
+    <button class="btn btn-primary btn-sm" type="submit">Preview CSV</button>
+  </form>
+
+  <section class="inv-import-preview" data-import-preview hidden aria-label="Restock preview" tabindex="-1">
+    <p data-import-summary role="status"></p>
+    <div class="table-wrap"><table class="table table-stack"><thead><tr><th scope="col">Row</th><th scope="col">Product</th><th scope="col">Units to add</th><th scope="col">Reason</th><th scope="col">Result</th></tr></thead><tbody data-import-rows></tbody></table></div>
+    <div class="admin-top-actions">
+      <button class="btn btn-primary btn-sm" type="button" data-import-apply hidden>Confirm restock</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-import-errors hidden>Download error report</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-import-refresh hidden>Refresh stock list</button>
+    </div>
+  </section>
+</dialog>
 <%- include('../partials/admin-end') %>

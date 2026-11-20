@@ -87,19 +87,6 @@
         <button class="btn btn-secondary btn-sm" type="submit">Save</button>
       </form>
 
-      <form class="form settings-form settings-row" data-settings-form="cod-otp" novalidate>
-        <div class="form-alert" data-form-alert aria-live="assertive"></div>
-        <div class="settings-row-text"><h3>Confirm COD by code</h3><p class="muted">A code to the delivery phone stops fake cash orders. Needs SMS or WhatsApp set up.</p></div>
-        <div class="settings-row-fields">
-          <div class="field">
-            <label for="codOtp">Ask for a code</label>
-            <span class="select-wrap"><select id="codOtp" name="codOtp"><option value="off"<%= settings.codOtp ? '' : ' selected' %>>Off</option><option value="on"<%= settings.codOtp ? ' selected' : '' %>>On</option></select></span>
-            <p class="field-error" data-error-for="codOtp"></p>
-          </div>
-        </div>
-        <button class="btn btn-secondary btn-sm" type="submit">Save</button>
-      </form>
-
       <form class="form settings-form settings-row" data-settings-form="prepaid" novalidate>
         <div class="form-alert" data-form-alert aria-live="assertive"></div>
         <div class="settings-row-text"><h3>Discount for paying online</h3><p class="muted">Taken off the items when the shopper pays by UPI, card or netbanking. 0 turns it off.</p></div>

@@ -55,6 +55,10 @@
                 <img src="<%= sizedUrl(item.image, 200) %>" alt="" width="48" height="48" loading="lazy">
                 <span class="admin-items-name"><a href="/products/<%= item.slug %>" data-nav-skip target="_blank" rel="noopener"><%= item.name %></a><% if (item.option) { %><small><strong><%= item.option %></strong><% if (item.sku) { %> · SKU <%= item.sku %><% } %></small><% } %><small class="muted"><%= item.quantity %> × <%= formatPrice(item.price) %><% if (item.mrp > item.price) { %> · M.R.P. <s><%= formatPrice(item.mrp) %></s><% } %></small></span>
                 <span class="status-pill status-<%= item.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[item.status] %></span>
+                <% if (item.exchange) { %><span class="admin-items-exchange"><small>Size swap to <strong><%= item.exchange.option %></strong> · <%= item.exchange.status %></small>
+                  <% if (item.exchange.status === 'requested') { %><button type="button" class="btn btn-ghost btn-xs" data-exchange-action="approve" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Approve</button> <button type="button" class="btn btn-ghost btn-xs" data-exchange-action="decline" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Decline</button><% } %>
+                  <% if (item.exchange.status === 'approved') { %><button type="button" class="btn btn-ghost btn-xs" data-exchange-action="complete" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Mark swapped</button><% } %>
+                </span><% } %>
                 <strong class="admin-items-total"><%= formatPrice(item.lineTotal) %></strong>
               </li>
             <% }) %>
@@ -205,6 +209,19 @@
         <% } %>
       </section>
 
+      <section class="panel admin-block order-risk-panel" aria-labelledby="labels-title">
+        <div class="dash-card-head"><h2 id="labels-title"><%- icon('sparkles', 'i-sm') %> Labels and risk</h2><span class="muted">For the packing team</span></div>
+        <% if (risk.applies) { %>
+          <p class="order-risk-line">Cash on delivery risk: <span class="pill <%= risk.level === 'high' ? 'pill-red' : risk.level === 'medium' ? 'pill-amber' : 'pill-green' %>"><%= risk.level %> (<%= risk.score %>)</span></p>
+          <% if (risk.reasons.length) { %><ul class="muted order-risk-reasons"><% risk.reasons.forEach(function (reason) { %><li><%= reason %></li><% }) %></ul><% } %>
+        <% } else { %><p class="muted">Paid online, so no cash on delivery risk applies.</p><% } %>
+        <form class="order-tags-form" data-order-tags="<%= order.orderId %>" novalidate>
+          <fieldset class="order-tags"><legend>Labels</legend>
+            <% tagOptions.forEach(function (tag) { %><label class="check"><input type="checkbox" name="tags" value="<%= tag %>" <%= (order.tags || []).includes(tag) ? 'checked' : '' %>> <span><%= tag %></span></label><% }) %>
+          </fieldset>
+          <button class="btn btn-secondary btn-sm" type="submit">Save labels</button>
+        </form>
+      </section>
       <section class="panel admin-block" aria-labelledby="notes-title">
         <div class="dash-card-head"><h2 id="notes-title"><%- icon('edit', 'i-sm') %> Internal notes</h2><span class="muted">Only admins see these</span></div>
         <% if (o.notes.length) { %>

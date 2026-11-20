@@ -40,7 +40,12 @@
         <input type="hidden" name="next" value="<%= next %>">
         <%- include('../partials/auth-field', { id: 'admin-email', name: 'email', label: 'Admin email', type: 'email', fieldIcon: 'mail', autocomplete: 'username', max: 254, hint: '' }) %>
         <%- include('../partials/auth-field', { id: 'admin-password', name: 'password', label: 'Password', type: 'password', fieldIcon: 'lock', autocomplete: 'current-password', max: 64, hint: '<span class="au-caps" data-caps hidden>Caps Lock is on</span>' }) %>
-        <button class="au-submit" type="submit" data-submit data-magnetic>
+        <input type="hidden" name="pendingToken" value="">
+          <div class="au-twofactor" data-twofactor hidden>
+            <label class="au-label" for="admin-code">Code from your authenticator app</label>
+            <input id="admin-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="6-digit code or a recovery code">
+          </div>
+          <button class="au-submit" type="submit" data-submit data-magnetic>
           <span class="au-submit-label">Enter the console</span>
           <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
           <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>

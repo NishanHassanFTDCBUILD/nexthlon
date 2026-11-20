@@ -5,6 +5,7 @@
       <span class="brand-mark"><%- icon('bolt') %></span>
       <span class="brand-word">NEXTHLON <small>Admin console</small></span><span class="sr-only">, dashboard</span>
     </a>
+    <button type="button" class="icon-btn admin-side-fold" data-admin-side-fold aria-expanded="true" aria-label="Fold sidebar to icons"><%- icon('chevron-left') %></button>
     <button type="button" class="icon-btn admin-side-close" data-admin-menu-close aria-label="Close menu"><%- icon('x') %></button>
   </div>
   <nav class="admin-sidenav" aria-label="Admin sections">
@@ -31,3 +32,11 @@
   </div>
 </aside>
 <div class="admin-scrim" data-admin-menu-close hidden></div>
+<%# Phones: the five places people go most, one thumb away. "More" opens the full sidebar. %>
+<nav class="admin-tabbar" aria-label="Quick sections">
+  <a href="<%= adminPath %>/dashboard" class="admin-tab<%= activeSection === 'dashboard' ? ' is-active' : '' %>"<%- activeSection === 'dashboard' ? ' aria-current="page"' : '' %>><%- icon('grid') %><span>Home</span></a>
+  <a href="<%= adminPath %>/orders" class="admin-tab<%= activeSection === 'orders' ? ' is-active' : '' %>"<%- activeSection === 'orders' ? ' aria-current="page"' : '' %>><%- icon('package-check') %><span>Orders</span></a>
+  <a href="<%= adminPath %>/products" class="admin-tab<%= activeSection === 'products' ? ' is-active' : '' %>"<%- activeSection === 'products' ? ' aria-current="page"' : '' %>><%- icon('box') %><span>Products</span></a>
+  <a href="<%= adminPath %>/customers" class="admin-tab<%= activeSection === 'customers' ? ' is-active' : '' %>"<%- activeSection === 'customers' ? ' aria-current="page"' : '' %>><%- icon('users') %><span>Customers</span></a>
+  <button type="button" class="admin-tab" data-admin-menu-open aria-controls="admin-side" aria-expanded="false"><%- icon('menu') %><span>More</span></button>
+</nav>

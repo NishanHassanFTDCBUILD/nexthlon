@@ -36,13 +36,19 @@ const ADMIN_NAV = [
     items: [
       {key: 'customers', label: 'Customers', icon: 'users'},
       {key: 'questions', label: 'Questions', icon: 'headset'},
+      {key: 'reviews', label: 'Reviews', icon: 'star', perm: 'reviews.write'},
+      {
+        key: 'support',
+        label: 'Support inbox',
+        icon: 'mail',
+        perm: 'support.write',
+      },
     ],
   },
   {
     group: 'System',
     items: [
       {key: 'staff', label: 'Staff', icon: 'users', perm: 'staff.manage'},
-      {key: 'audit', label: 'Audit log', icon: 'history', perm: 'audit.read'},
       {key: 'settings', label: 'Settings', icon: 'settings'},
       {key: 'system', label: 'System status', icon: 'monitor'},
     ],

@@ -11,22 +11,20 @@ Legend: **[You]** = the owner must do it (needs an account, card, or legal detai
 
 ## 1. Accounts to create
 
-| #   | Service                                           | Why                                                  | Who              | Where the settings go                                                   |
-| --- | ------------------------------------------------- | ---------------------------------------------------- | ---------------- | ----------------------------------------------------------------------- |
-| 1   | **MongoDB Atlas** (database)                      | Holds all products, orders and customers             | [You]            | `MONGODB_URI`                                                           |
-| 2   | **Cloudinary** (photo storage)                    | Product and review photos                            | [You]            | `STORAGE_DRIVER`, `CLOUDINARY_*`                                        |
-| 3   | **Hosting platform** (Render, Railway or similar) | Runs the website                                     | [You]            | `SITE_URL`, `TRUST_PROXY`                                               |
-| 4   | **Domain name** and HTTPS                         | Your address on the web                              | [You]            | `SITE_URL`                                                              |
-| 5   | **Razorpay** (payments) live account and KYC      | Takes card, UPI and netbanking money                 | [You]            | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`     |
-| 6   | **Email sender** (Brevo, or any SMTP service)     | Order, password and offer emails                     | [You]            | `MAIL_DRIVER`, `BREVO_API_KEY` or `SMTP_*`, `MAIL_FROM`                 |
-| 7   | **Shiprocket** (courier aggregator)               | One-click shipping, tracking, PIN checks             | [You]            | `SHIPROCKET_*`, `SHIPPING_PICKUP_PINCODE`                               |
-| 8   | **WhatsApp Business** (Meta Cloud API)            | WhatsApp order updates                               | [You]            | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_SUPPORT_NUMBER` |
-| 9   | **MSG91** (SMS)                                   | One-time codes for Cash on Delivery                  | [You]            | `MSG91_AUTH_KEY`, `MSG91_OTP_TEMPLATE_ID`                               |
-| 10  | **Sentry** (error alerts)                         | Tells you when something breaks                      | [You] (optional) | `SENTRY_DSN`                                                            |
-| 11  | **Google Analytics 4 or Plausible**               | Visitor counts, after consent                        | [You] (optional) | `ANALYTICS_PROVIDER`, `ANALYTICS_ID`                                    |
-| 12  | **Meta Business** (Pixel, ads)                    | Ads tracking, after consent                          | [You] (optional) | `META_PIXEL_ID`                                                         |
-| 13  | **Redis**                                         | Shared rate limits when running more than one server | [You] (optional) | `REDIS_URL`                                                             |
-| 14  | **Amazon, Flipkart, Myntra seller accounts**      | Selling on marketplaces                              | [You] (optional) | Feed download; `MARKETPLACE_TOKEN` for stock sync                       |
+| #   | Service                                           | Why                                                  | Who              | Where the settings go                                               |
+| --- | ------------------------------------------------- | ---------------------------------------------------- | ---------------- | ------------------------------------------------------------------- |
+| 1   | **MongoDB Atlas** (database)                      | Holds all products, orders and customers             | [You]            | `MONGODB_URI`                                                       |
+| 2   | **Cloudinary** (photo storage)                    | Product and review photos                            | [You]            | `STORAGE_DRIVER`, `CLOUDINARY_*`                                    |
+| 3   | **Hosting platform** (Render, Railway or similar) | Runs the website                                     | [You]            | `SITE_URL`, `TRUST_PROXY`                                           |
+| 4   | **Domain name** and HTTPS                         | Your address on the web                              | [You]            | `SITE_URL`                                                          |
+| 5   | **Razorpay** (payments) live account and KYC      | Takes card, UPI and netbanking money                 | [You]            | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` |
+| 6   | **Email sender** (Brevo, or any SMTP service)     | Order, password and offer emails                     | [You]            | `MAIL_DRIVER`, `BREVO_API_KEY` or `SMTP_*`, `MAIL_FROM`             |
+| 7   | **Shiprocket** (courier aggregator)               | One-click shipping, tracking, PIN checks             | [You]            | `SHIPROCKET_*`, `SHIPPING_PICKUP_PINCODE`                           |
+| 10  | **Sentry** (error alerts)                         | Tells you when something breaks                      | [You] (optional) | `SENTRY_DSN`                                                        |
+| 11  | **Google Analytics 4 or Plausible**               | Visitor counts, after consent                        | [You] (optional) | `ANALYTICS_PROVIDER`, `ANALYTICS_ID`                                |
+| 12  | **Meta Business** (Pixel, ads)                    | Ads tracking, after consent                          | [You] (optional) | `META_PIXEL_ID`                                                     |
+| 13  | **Redis**                                         | Shared rate limits when running more than one server | [You] (optional) | `REDIS_URL`                                                         |
+| 14  | **Amazon, Flipkart, Myntra seller accounts**      | Selling on marketplaces                              | [You] (optional) | Feed download; `MARKETPLACE_TOKEN` for stock sync                   |
 
 Each account needs your own identity documents. Only you should enter passwords and card details.
 
@@ -72,7 +70,7 @@ Set these with the `STORE_*` values. The startup check warns about any placehold
    - `npm run db:check`
 7. **Create the first admin**: `npm run seed:admin`. Sign in at your private admin address.
 8. **Load products and categories** through the admin (or `npm run seed:products` for samples, then replace them).
-9. **Test a real order end to end**: sign up, add to cart, pay with a small real amount, check the email, the WhatsApp message (if set), the invoice PDF, and the tracking page.
+9. **Test a real order end to end**: sign up, add to cart, pay with a small real amount, check the email, the invoice PDF, and the tracking page.
 10. **Test each refund path** once: cancel an item, return an item, refund to the wallet and to the original payment.
 11. **Test on a phone**: sign up, checkout, notifications, install the app.
 12. **Set backups**: `npm run db:backup` on a schedule, and check you can restore (`npm run db:restore`) on a copy.
@@ -86,7 +84,8 @@ These are small, but they are not finished:
 
 - **Admin screens for bundles and guides.** Right now they are created through the admin API. A simple screen would make content work easier for non-developers.
 - **Roadmap file**: `docs/ROADMAP.md` still shows some steps as not started. It needs updating.
-- **Push notifications, WhatsApp and SMS**: code is done, but they only work once the accounts and keys in sections 1 and 2 exist.
+- **Push notifications**: code is done, but it only works once the push keys in section 2 exist.
+- **WhatsApp and SMS were removed** (2026-11-20): customers get emails and on-site tracking; no DLT or Meta account is needed.
 - **Marketplace connection**: the feed and stock sync work, but there is no direct link to Amazon, Flipkart or Myntra. That needs their seller accounts and API access.
 
 ## 7. Legal and business (outside the code)
@@ -115,7 +114,7 @@ These are small, but they are not finished:
 | Shop, cart, checkout, orders, invoices (GST)    | Done                                              |
 | Payments (Razorpay)                             | Code done. Needs live keys and KYC                |
 | Shipping (Shiprocket, tracking, returns)        | Code done. Needs account                          |
-| Emails, WhatsApp, SMS, push                     | Code done. Needs accounts and keys                |
+| Emails, push notifications                      | Code done. Needs accounts and keys                |
 | Privacy, consent, data download                 | Done                                              |
 | Reviews with photos, product questions          | Done                                              |
 | Search (typos, synonyms, suggestions)           | Done                                              |

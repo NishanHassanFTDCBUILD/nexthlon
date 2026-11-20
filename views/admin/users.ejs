@@ -27,7 +27,7 @@
             <tbody>
               <% customers.forEach(function (c) { %>
                 <tr data-user-row="<%= c.id %>">
-                  <td><div class="person"><span class="avatar avatar-sm"><%= c.name.charAt(0).toUpperCase() %></span><div><strong><%= c.name %></strong><span><%= c.email %></span></div></div></td>
+                  <td><div class="person"><span class="avatar avatar-sm"><%= c.name.charAt(0).toUpperCase() %></span><div><strong><a href="<%= adminPath %>/customers/<%= c.id %>"><%= c.name %></a></strong><span><%= c.email %></span></div></div></td>
                   <td data-label="Phone"><%= c.phone ? '+91 ' + c.phone : '—' %></td>
                   <td data-label="Joined"><%= formatDate(c.createdAt) %></td>
                   <td data-label="Last sign-in"><%= formatDate(c.lastLoginAt) %></td>

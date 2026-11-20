@@ -189,6 +189,23 @@ function readPercent(value, max = 90) {
 // Admin product form. The selling price, discount and slug are never read from here; the server
 // works them out from the base price, the M.R.P. and the offers. category is the category's id
 // (the service checks that it exists).
+// An https link to an MP4 or WebM file: no spaces, and the path (before any ?query or #part) ends in the extension.
+function isVideoLink(url) {
+  if (!url.startsWith('https://') || url.length > 500) return false;
+  if (url.split('').some((ch) => ch === ' ' || ch === '\t' || ch === '\n'))
+    return false;
+  const path = url.split('?')[0].split('#')[0].toLowerCase();
+  return path.endsWith('.mp4') || path.endsWith('.webm');
+}
+
+// An https link to a still image (JPG, PNG or WebP): no spaces, a sane length.
+function isImageLink(url) {
+  if (!url.startsWith('https://') || url.length > 500) return false;
+  if (url.split('').some((ch) => ch === ' ' || ch === '	')) return false;
+  const path = url.split('?')[0].split('#')[0].toLowerCase();
+  return ['.jpg', '.jpeg', '.png', '.webp'].some((ext) => path.endsWith(ext));
+}
+
 function validateProduct(body = {}) {
   const errors = {};
   const value = {
@@ -254,6 +271,33 @@ function validateProduct(body = {}) {
       errors.shipWeight =
         'Enter the packed weight in whole grams, up to 50000 (50 kg).';
     else value.shipWeight = grams;
+  }
+  // A short product video: an https link to an MP4 or WebM file. Empty removes it.
+  // (Checked without a regex: the link must start with https://, have no spaces, and end in .mp4 or .webm before any ?query.)
+  if (body.videoUrl !== undefined) {
+    const url = String(body.videoUrl).trim();
+    if (url === '') value.videoUrl = '';
+    else if (url.length > 500 || !isVideoLink(url))
+      errors.videoUrl =
+        'Use an https link to an MP4 or WebM video, up to 500 characters.';
+    else value.videoUrl = url;
+  }
+  // A gift card product (a checkbox): its price is the value each card carries.
+  if (body.giftCard !== undefined)
+    value.giftCard =
+      body.giftCard === true ||
+      body.giftCard === 'on' ||
+      body.giftCard === 'true';
+  // A 360 spin: one https image link per line, 36 at most. Empty removes it.
+  if (body.spinFrames !== undefined) {
+    const lines = Array.isArray(body.spinFrames)
+      ? body.spinFrames
+      : String(body.spinFrames).split(String.fromCharCode(10));
+    const frames = lines.map((line) => String(line).trim()).filter(Boolean);
+    if (frames.length > 36 || frames.some((url) => !isImageLink(url)))
+      errors.spinFrames =
+        'List up to 36 https links to images (JPG, PNG or WebP), one per line.';
+    else value.spinFrames = frames;
   }
   if (value.countryOfOrigin === '')
     errors.countryOfOrigin = 'Enter the country of origin (for example India).';
@@ -473,6 +517,28 @@ function readFlag(value) {
 
 // Checkout: which address, how to pay and whether to use the wallet. Prices, the coupon and
 // every total are worked out on the server.
+// A gift for someone else: a name, a valid email for the codes, and an optional short message. Anything else is ignored.
+function readGiftRecipient(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const name = text(raw.name);
+  const email = String(raw.email || '')
+    .trim()
+    .toLowerCase();
+  if (
+    !name ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ||
+    email.length > 254
+  )
+    return null;
+  return {
+    name: name.slice(0, 60),
+    email,
+    message: String(raw.message || '')
+      .trim()
+      .slice(0, 200),
+  };
+}
+
 function validatePlaceOrder(body = {}) {
   const errors = {};
   const value = {
@@ -480,9 +546,7 @@ function validatePlaceOrder(body = {}) {
     paymentMethod: text(body.paymentMethod),
     useWallet: readFlag(body.useWallet),
     source: text(body.source) === 'buynow' ? 'buynow' : 'cart',
-    codCode: text(body.codCode)
-      .replace(/[^0-9]/g, '')
-      .slice(0, 6),
+    giftRecipient: readGiftRecipient(body.giftRecipient),
   };
   if (!OBJECT_ID.test(value.addressId))
     errors.addressId = 'Choose a delivery address.';
@@ -576,7 +640,7 @@ function validateEmailChange(body = {}) {
 }
 
 // Notification switches: only these three keys are read, and only true/false.
-const PREFERENCE_KEYS = ['orderUpdates', 'offers', 'newsletter', 'whatsapp'];
+const PREFERENCE_KEYS = ['orderUpdates', 'offers', 'newsletter'];
 function validatePreferences(body = {}) {
   const errors = {};
   const value = {};
