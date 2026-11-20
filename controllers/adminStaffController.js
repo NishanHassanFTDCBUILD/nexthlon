@@ -8,7 +8,10 @@ const {
   ROLE_HELP,
   PERMISSIONS,
 } = require('../utils/permissions');
+const config = require('../config/env');
 const {asyncHandler} = require('../utils/http');
+const {pageOf} = require('../utils/paging');
+const {linkBuilder} = require('../utils/queryString');
 const {HttpError} = require('../utils/http');
 
 // GET /api/admin/staff
@@ -91,9 +94,14 @@ const setStaffActive = asyncHandler(async (req, res) => {
 
 // GET <ADMIN_PATH>/staff
 const staffPage = asyncHandler(async (req, res) => {
+  const {rows, pagination} = pageOf(await staffService.list(), req.query);
   res.render('admin/staff', {
     title: 'Staff | Nexthlon Admin',
-    staff: await staffService.list(),
+    staff: rows,
+    pagination,
+    link: linkBuilder(`${config.adminPath}/staff`, {
+      limit: pagination.limit === 20 ? '' : pagination.limit,
+    }),
     roles: ROLES.map((key) => ({
       key,
       label: ROLE_LABELS[key],

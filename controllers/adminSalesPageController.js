@@ -8,6 +8,7 @@ const adminCouponService = require('../services/adminCouponService');
 const dealService = require('../services/dealService');
 const rules = require('../utils/orderRules');
 const {linkBuilder} = require('../utils/queryString');
+const {pageOf} = require('../utils/paging');
 const {asyncHandler} = require('../utils/http');
 
 const base = (section) => `${config.adminPath}/${section}`;
@@ -103,10 +104,18 @@ const transaction = asyncHandler(async (req, res) => {
 
 const reconciliation = asyncHandler(async (req, res) => {
   const data = await ledgerService.reconciliation(req.query);
+  const {rows, pagination} = pageOf(data.issues, req.query);
   res.render('admin/reconciliation', {
     title: 'Reconciliation | Nexthlon Admin',
     ...data,
     ...labels,
+    issueTotal: data.issues.length,
+    issues: rows,
+    pagination,
+    link: linkBuilder(base('transactions/reconciliation'), {
+      days: data.days === 30 ? '' : data.days,
+      limit: pagination.limit === 20 ? '' : pagination.limit,
+    }),
   });
 });
 

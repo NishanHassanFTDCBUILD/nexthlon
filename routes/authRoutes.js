@@ -16,19 +16,12 @@ const {
   adminLoginLimiter,
   refreshLimiter,
   forgotLimiter,
-  phoneCodeLimiter,
   linkLimiter,
 } = require('../middleware/rateLimit');
 
 // Mounted at /api
 router.post('/signup', authLimiter, signup);
 router.post('/login', authLimiter, accountLoginLimiter, login);
-// Sign in or sign up with a code to your phone. Each step is rate limited by address, and texting a
-// code has its own tighter limit (each text costs money).
-const phoneSignIn = require('../controllers/phoneSignInController');
-router.post('/auth/phone/request', phoneCodeLimiter, phoneSignIn.requestCode);
-router.post('/auth/phone/verify', authLimiter, phoneSignIn.verifyCode);
-router.post('/auth/phone/signup', authLimiter, phoneSignIn.createAccount);
 // Continue with Google (only when configured; see services/googleSignInService.js). The callback path
 // must match the redirect address registered with Google (googleSignInService redirectUri).
 const googleSignIn = require('../controllers/googleSignInController');

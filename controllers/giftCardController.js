@@ -1,7 +1,9 @@
 // Gift cards: the customer's redeem call, and the team's list and switch-off (see services/giftCardService.js).
 const giftCardService = require('../services/giftCardService');
 const auditService = require('../services/auditService');
+const config = require('../config/env');
 const {asyncHandler} = require('../utils/http');
+const {linkBuilder} = require('../utils/queryString');
 
 // POST /api/wallet/gift-cards/redeem   body: { code }
 const redeem = asyncHandler(async (req, res) => {
@@ -35,14 +37,15 @@ const disableApi = asyncHandler(async (req, res) => {
 
 // GET <ADMIN_PATH>/gift-cards?status=  (the list page)
 const listPage = asyncHandler(async (req, res) => {
-  const status = ['active', 'redeemed', 'disabled'].includes(req.query.status)
-    ? req.query.status
-    : '';
+  const data = await giftCardService.listPage(req.query);
   res.render('admin/gift-cards', {
     title: 'Gift cards | Nexthlon Admin',
     section: 'gift-cards',
-    cards: await giftCardService.list({status}),
-    status,
+    ...data,
+    link: linkBuilder(`${config.adminPath}/gift-cards`, {
+      status: data.status,
+      limit: data.pagination.limit === 20 ? '' : data.pagination.limit,
+    }),
   });
 });
 

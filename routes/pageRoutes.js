@@ -56,10 +56,6 @@ router.get('/shipping-policy', publicCache, pages.infoPage('shipping'));
 
 // Customer account
 router.get('/login', guestOnly, pages.login);
-// The old phone sign-in page: phone codes now live on the sign-in card's "Phone number" tab.
-router.get('/sign-in/phone', (req, res) =>
-  res.redirect(301, '/login?method=phone'),
-);
 router.get('/signup', guestOnly, pages.signup);
 // Forgotten password and email confirmation. The reset and confirm pages open from the links in emails,
 // so they work whether or not someone is signed in.

@@ -452,9 +452,9 @@
       // Sign-in should feel immediate once the server has accepted the credentials. The longer
       // handoff is reserved for signup's welcome moment; keeping it here made a successful login
       // look unresponsive for more than a second on slower phones.
-      await wait(form.dataset.kind === 'signup' ? 650 : 140);
+      await wait(form.dataset.kind === 'signup' ? 200 : 0);
       if (form.dataset.kind === 'signup') await celebrate(result);
-      await zoomOut(form.dataset.kind === 'signup' ? 520 : 180);
+      await zoomOut(form.dataset.kind === 'signup' ? 300 : 120);
       // replace, not assign: Back must not return to the sign-in form.
       window.location.replace(result.redirect || form.dataset.redirect || next);
     });
@@ -519,7 +519,7 @@
     box.classList.add('is-open');
     if (Nx.confetti)
       Nx.confetti(box.querySelector('[data-auth-confetti]'), {keep: true});
-    await wait(1700);
+    await wait(900);
   }
 
   // The whole page zooms and fades into the store.

@@ -1,7 +1,6 @@
 <%# Small "Continue with" buttons. Google and Facebook show only once their keys are set
-    (middleware/viewLocals.js). { label, phone }: phone adds a button that opens the phone tab. %>
-<% const showPhone = typeof phone !== 'undefined' && phone; %>
-<% if (googleSignIn || facebookSignIn || showPhone) { %>
+    (middleware/viewLocals.js). { label }. %>
+<% if (googleSignIn || facebookSignIn) { %>
 <div class="au-social">
   <p class="au-or"><span><%= label %></span></p>
   <div class="au-social-row">
@@ -15,12 +14,6 @@
       <a class="au-social-btn" href="/api/auth/facebook">
         <svg class="au-social-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="12" fill="#1877F2"/><path fill="#fff" d="M15.1 15.5l.5-3.2h-3.1v-2.1c0-.9.4-1.7 1.8-1.7h1.4V5.8s-1.3-.2-2.5-.2c-2.6 0-4.2 1.5-4.2 4.3v2.4H6.2v3.2H9V24h3.5v-8.5h2.6z"/></svg>
         <span>Facebook</span>
-      </a>
-    <% } %>
-    <% if (showPhone) { %>
-      <a class="au-social-btn" href="/login?method=phone" data-to-phone>
-        <svg class="au-social-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="2" width="12" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.5 18h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span>Phone</span>
       </a>
     <% } %>
   </div>

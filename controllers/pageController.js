@@ -366,8 +366,6 @@ function authPage(mode) {
       mode,
       next: safeNextPath(req.query.next, '/'),
       reason: req.query.reason,
-      // Which sign-in tab is open first: email (default) or phone (/login?method=phone).
-      method: req.query.method === 'phone' ? 'phone' : 'email',
       referralCode: referralService.CODE.test(ref) ? ref : '',
       referralReward: await settingsService.get('referralReward'),
     });

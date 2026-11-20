@@ -55,32 +55,18 @@
             <div class="alert alert-info" role="status"><%- icon('check') %> <span>You have been signed out of all devices. Sign in again to continue.</span></div>
           <% } %>
 
-          <%# E-mail or phone number: two tabs with a sliding underline. Without JavaScript both panels show. %>
-          <div class="au-method" role="tablist" aria-label="Sign in with" data-method-tabs data-method="<%= method %>">
-            <button type="button" role="tab" id="au-tab-email" aria-controls="au-pane-email" aria-selected="<%= method === 'email' %>" <%- method === 'email' ? '' : 'tabindex="-1"' %> data-method-tab="email"><%- icon('mail', 'i-sm') %> E-mail</button>
-            <button type="button" role="tab" id="au-tab-phone" aria-controls="au-pane-phone" aria-selected="<%= method === 'phone' %>" <%- method === 'phone' ? '' : 'tabindex="-1"' %> data-method-tab="phone"><%- icon('phone', 'i-sm') %> Phone number</button>
-            <span class="au-method-bar" aria-hidden="true"></span>
-          </div>
-
-          <div class="au-pane" role="tabpanel" id="au-pane-email" aria-labelledby="au-tab-email" data-method-pane="email" <%- method === 'email' ? '' : 'hidden' %>>
-            <form class="au-form" data-auth-form data-endpoint="/api/login" data-kind="login" novalidate>
-              <div class="form-alert" data-form-alert aria-live="assertive"></div>
-              <input type="hidden" name="next" value="<%= next %>">
-              <%- include('../partials/auth-field', { id: 'login-email', name: 'email', label: 'Email address', type: 'email', fieldIcon: 'mail', autocomplete: 'email', max: 254, hint: '' }) %>
-              <%- include('../partials/auth-field', { id: 'login-password', name: 'password', label: 'Password', type: 'password', fieldIcon: 'lock', autocomplete: 'current-password', max: 64, hint: '<span class="au-caps" data-caps hidden>Caps Lock is on</span>' }) %>
-              <p class="au-forgot"><a href="/forgot-password">Forgot password?</a></p>
-              <button class="au-submit" type="submit" data-submit data-magnetic>
-                <span class="au-submit-label">Sign in</span>
-                <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
-                <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-              </button>
-            </form>
-          </div>
-
-          <div class="au-pane" role="tabpanel" id="au-pane-phone" aria-labelledby="au-tab-phone" data-method-pane="phone" <%- method === 'phone' ? '' : 'hidden' %>>
-            <%- include('../partials/auth-phone', { next }) %>
-          </div>
-
+          <form class="au-form" data-auth-form data-endpoint="/api/login" data-kind="login" novalidate>
+            <div class="form-alert" data-form-alert aria-live="assertive"></div>
+            <input type="hidden" name="next" value="<%= next %>">
+            <%- include('../partials/auth-field', { id: 'login-email', name: 'email', label: 'Email address', type: 'email', fieldIcon: 'mail', autocomplete: 'email', max: 254, hint: '' }) %>
+            <%- include('../partials/auth-field', { id: 'login-password', name: 'password', label: 'Password', type: 'password', fieldIcon: 'lock', autocomplete: 'current-password', max: 64, hint: '<span class="au-caps" data-caps hidden>Caps Lock is on</span>' }) %>
+            <p class="au-forgot"><a href="/forgot-password">Forgot password?</a></p>
+            <button class="au-submit" type="submit" data-submit data-magnetic>
+              <span class="au-submit-label">Sign in</span>
+              <svg class="au-submit-spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+              <svg class="au-submit-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+            </button>
+          </form>
           <%- include('../partials/auth-social', { label: 'or continue with' }) %>
         </div>
 
@@ -119,7 +105,7 @@
             </button>
             <p class="au-foot muted">By creating an account you agree to our <a href="/terms">terms</a> and <a href="/privacy">privacy policy</a>.</p>
           </form>
-          <%- include('../partials/auth-social', { label: 'or sign up with', phone: true }) %>
+          <%- include('../partials/auth-social', { label: 'or sign up with' }) %>
         </div>
       </div>
     </div>
@@ -147,4 +133,4 @@
   <div class="au-zoom" data-auth-zoom aria-hidden="true"></div>
 </main>
 
-<%- include('../partials/scripts', { scripts: ['confetti', 'auth', 'auth-phone'], modules: ['auth3d'] }) %>
+<%- include('../partials/scripts', { scripts: ['confetti', 'auth'], modules: ['auth3d'] }) %>

@@ -21,17 +21,6 @@ test.after(async () => {
   await mongoose.disconnect();
 });
 
-for (const path of ['/api/auth/phone/request', '/api/auth/phone/verify']) {
-  test(`auth routes: POST ${path} exists`, async () => {
-    const res = await fetch(base + path, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({phone: '12', code: '1'}),
-    });
-    assert.doesNotMatch(await res.text(), /No API route/);
-  });
-}
-
 for (const path of ['/api/auth/google', '/api/auth/google/callback']) {
   test(`auth routes: GET ${path} exists`, async () => {
     const res = await fetch(base + path, {redirect: 'manual'});

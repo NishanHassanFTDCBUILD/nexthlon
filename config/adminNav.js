@@ -21,24 +21,6 @@ const ADMIN_NAV = [
       {key: 'refunds', label: 'Refunds', icon: 'wallet'},
       {key: 'coupons', label: 'Coupons', icon: 'ticket'},
       {key: 'deals', label: 'Deals of the day', icon: 'bolt'},
-      {
-        key: 'gift-cards',
-        label: 'Gift cards',
-        icon: 'gift',
-        perm: 'settings.write',
-      },
-      {
-        key: 'gst',
-        label: 'GST report',
-        icon: 'file-text',
-        perm: 'reports.read',
-      },
-      {
-        key: 'returns-report',
-        label: 'Return reasons',
-        icon: 'rotate-ccw',
-        perm: 'reports.read',
-      },
     ],
   },
   {
@@ -67,13 +49,6 @@ const ADMIN_NAV = [
     group: 'System',
     items: [
       {key: 'staff', label: 'Staff', icon: 'users', perm: 'staff.manage'},
-      {
-        key: 'webhooks',
-        label: 'Webhooks',
-        icon: 'bolt',
-        perm: 'settings.write',
-      },
-      {key: 'security', label: 'Account security', icon: 'lock'},
       {key: 'settings', label: 'Settings', icon: 'settings'},
       {key: 'system', label: 'System status', icon: 'monitor'},
     ],

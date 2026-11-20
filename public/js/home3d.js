@@ -1,5 +1,5 @@
 // Home page 3D (ES module, built on public/js/3d):
-//   1. Hero: thousands of glowing particles form a sphere, then the NEXTHLON logo, then a running
+//   1. Hero: thousands of glowing particles form a cyclist, then the NEXTHLON logo, then a running
 //      athlete as you scroll, over an animated obsidian and volt fog. The mouse moves the camera.
 //      This is the page's only WebGL canvas.
 //   2. The zero-gravity showroom lives in its own module, showroom3d.js.
@@ -19,9 +19,9 @@ import {
 import {clamp, damp} from './3d/math.js';
 import {
   sampleShape,
-  spherePoints,
   drawLogo,
   drawAthlete,
+  drawCyclist,
   fogShader,
 } from './3d/shapes.js';
 
@@ -60,7 +60,7 @@ const particleShader = {
     attribute vec3 aAthlete;
     attribute vec3 aRandom;
     uniform mat4 uModel, uView, uProjection;
-    uniform float uTime, uMorph, uSize, uRatio;
+    uniform float uTime, uMorph, uSize, uRatio, uDrift;
     varying float vMix;
     varying float vAlpha;
     void main() {
@@ -71,7 +71,7 @@ const particleShader = {
       float transit = sin(clamp(uMorph, 0.0, 2.0) * 3.14159);
       // While the logo holds, the dots barely drift, so its thin letter strokes stay sharp.
       float logo = m1 * (1.0 - m2);
-      p += vec3(sin(t), cos(t * 1.3), sin(t * 0.7)) * (0.025 * (1.0 - 0.75 * logo) + 0.32 * transit) * aRandom.x;
+      p += vec3(sin(t), cos(t * 1.3), sin(t * 0.7)) * (0.025 * (1.0 - 0.75 * logo) + 0.32 * transit) * aRandom.x * uDrift;
       vec4 mv = uView * uModel * vec4(p, 1.0);
       gl_Position = uProjection * mv;
       gl_PointSize = uSize * (0.55 + aRandom.x) * uRatio / -mv.z;
@@ -95,8 +95,8 @@ const particleShader = {
     }`,
 };
 
-// Scroll progress (0 to 1) → shape (0 sphere, 1 logo, 2 athlete), holding each shape still so it can
-// be seen: sphere until 8%, logo from 30% to 48%, athlete from 70% to the end. (The athlete used to
+// Scroll progress (0 to 1) → shape (0 cyclist, 1 logo, 2 runner), holding each shape still so it can
+// be seen: cyclist until 8%, logo from 30% to 48%, athlete from 70% to the end. (The athlete used to
 // finish at 84%, so on phones it was only fully formed as the hero scrolled away.)
 function morphFor(progress) {
   if (progress < 0.08) return 0;
@@ -112,9 +112,9 @@ const PHONE_PARTICLES = {high: 6000, medium: 4200, low: 2400};
 const PHONE_DOT_SIZE = 0.9; // dot size compared with desktop
 const PHONE_GLOW = 0.95; // brightness compared with desktop
 const PHONE_LOGO_GLOW = 0.9; // a little less while the dots form the NEXTHLON logo
-// Shape sizes in scene units at scale 1 (spherePoints radius, and the sampleShape sizes below).
+// Shape sizes in scene units at scale 1 (the cyclist, logo and runner sizes below).
 const SHAPES = {
-  sphere: [3.7, 3.7],
+  sphere: [4.2, (4.2 * 320) / 400],
   logo: [4.9, (4.9 * 240) / 900],
   athlete: [4.2, (4.2 * 320) / 400],
 };
@@ -133,11 +133,18 @@ function buildHero(canvas, {tier}) {
   const count = phoneAtStart
     ? PHONE_PARTICLES[tier] || PHONE_PARTICLES.medium
     : PARTICLES[tier] || PARTICLES.medium;
-  const sphere = {positions: spherePoints(count, 1.85)};
+  const sphere = {
+    positions: sampleShape(drawCyclist, count, {
+      width: 400,
+      height: 320,
+      scale: 4.2,
+      depth: 0.45,
+    }),
+  };
   const random = new Float32Array(count * 3);
   for (let i = 0; i < count * 3; i += 1) random[i] = Math.random();
   const logoSize = {width: 900, height: 240, scale: 4.9, depth: 0.05};
-  // The logo and athlete shapes only show once you scroll, so they start as the sphere and are drawn
+  // The logo and runner shapes only show once you scroll, so they start as the cyclist and are drawn
   // in their own short tasks after the first frame. Drawn all at once, they held the page busy for
   // most of a second on a mid-range phone. (The logo used to be drawn twice: once in a fallback font,
   // then again in the brand font.)
@@ -158,6 +165,7 @@ function buildHero(canvas, {tier}) {
       uniforms: {
         uSize: 26,
         uRatio: 1,
+        uDrift: 0,
         uColorA: COLOR_A.slice(),
         uColorB: COLOR_B.slice(),
       },
@@ -245,9 +253,11 @@ function buildHero(canvas, {tier}) {
     scene.camera.position[1] = -y * 0.45 + 0.35;
     scene.camera.position[2] = distance;
     scene.camera.target[1] = 0.35;
-    dots.rotation[1] =
-      Math.sin(time * 0.22) * 0.65 * (1 - clamp(morph, 0, 1)) + x * 0.12;
-    dots.rotation[0] = y * 0.08;
+    // The cyclist stays still: no swing and no mouse tilt until the shape turns into the logo.
+    const settle = clamp(morph, 0, 1);
+    dots.rotation[1] = x * 0.12 * settle;
+    dots.rotation[0] = y * 0.08 * settle;
+    dots.uniforms.uDrift = settle;
     // On wide screens the shapes sit to the right of the headline; on tall screens, above it.
     dots.position[0] =
       aspect > 1.25 ? Math.min(1.8, 0.8 + (aspect - 1.25) * 2) : 0;

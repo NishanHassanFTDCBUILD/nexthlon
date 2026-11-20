@@ -16,11 +16,12 @@ const {readListQuery} = require('../utils/listQuery');
 
 const PAGE_SIZE = 20;
 const MAX_STOCK = 100000;
-const STATUSES = ['all', 'out', 'low', 'healthy', 'unlisted'];
+const STATUSES = ['all', 'out', 'low', 'reorder', 'healthy', 'unlisted'];
 const STATUS_LABELS = {
   all: 'All',
   out: 'Out of stock',
   low: 'Low stock',
+  reorder: 'Reorder now',
   healthy: 'Well stocked',
   unlisted: 'Unlisted',
 };
@@ -33,6 +34,11 @@ const SORTS = {
   },
   name_asc: {label: 'Name: A to Z', order: {name: 1}},
   updated: {label: 'Recently changed', order: {updatedAt: -1}},
+};
+// "Reorder now": a product with its own reorder level, at or below it. ($gt null skips products
+// with no level: a missing or null field is never greater than null.)
+const AT_REORDER_LEVEL = {
+  $and: [{$gt: ['$reorderLevel', null]}, {$lte: ['$stock', '$reorderLevel']}],
 };
 // What the three "needs attention" bands mean, in one place.
 // Worked out on each use, because the low-stock level is an admin setting.
@@ -71,6 +77,7 @@ function readInventoryList(query = {}) {
         labels: STATUS_LABELS,
         match: (value) => {
           if (value === 'unlisted') return {isListed: false};
+          if (value === 'reorder') return {$expr: AT_REORDER_LEVEL};
           return BANDS[value] ? {isListed: true, ...BANDS[value]} : {};
         },
       },
@@ -149,6 +156,7 @@ async function totals() {
         listed: {$sum: {$cond: [{$ne: ['$isListed', false]}, 1, 0]}},
         units: {$sum: '$stock'},
         value: {$sum: {$multiply: ['$stock', '$price']}},
+        reorder: {$sum: {$cond: [AT_REORDER_LEVEL, 1, 0]}},
         out: {
           $sum: {
             $cond: [
@@ -181,10 +189,24 @@ async function totals() {
     listed: 0,
     units: 0,
     value: 0,
+    reorder: 0,
     out: 0,
     low: 0,
   };
-  return {...base, lowStockLimit: RULES.lowStockLimit};
+  delete base._id;
+  // Shoppers waiting for a back-in-stock email, over the whole catalogue.
+  const [alerts] = await StockAlert.aggregate([
+    {$match: {notifiedAt: null}},
+    {$count: 'n'},
+  ]);
+  const waiting = alerts ? alerts.n : 0;
+  return {
+    ...base,
+    healthy: Math.max(0, base.listed - base.out - base.low),
+    unlisted: Math.max(0, base.products - base.listed),
+    waiting,
+    lowStockLimit: RULES.lowStockLimit,
+  };
 }
 
 async function listInventory(query = {}) {
@@ -396,12 +418,23 @@ async function adjustStock(
   };
 }
 
-// Every product that matches the filters, for the CSV export (no paging).
+// The products ticked on the page (?ids=a,b,c), for "Export selected". Up to one page's worth.
+function selectedIds(raw) {
+  if (typeof raw !== 'string' || !raw) return null;
+  const ids = [
+    ...new Set(raw.split(',').filter((id) => mongoose.isValidObjectId(id))),
+  ].slice(0, 100);
+  return ids.length ? ids.map((id) => new mongoose.Types.ObjectId(id)) : null;
+}
+
+// Every product that matches the filters, for the CSV export (no paging). With ?ids=, only those.
 function cursorFor(query = {}) {
   const filters = readFilters(query);
+  const ids = selectedIds(query.ids);
+  const filter = ids ? {_id: {$in: ids}} : filterFrom(filters);
   return {
     filters,
-    cursor: Product.find(filterFrom(filters))
+    cursor: Product.find(filter)
       .sort(SORTS[filters.sort].order)
       .select(
         'name brand sku stock variants basePrice price isListed category updatedAt',

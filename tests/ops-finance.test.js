@@ -253,14 +253,6 @@ test('webhooks: the log lists with filters; only a good payment event can be run
   });
   assert.equal(list.status, 200);
   assert.ok(list.data.events.every((e) => e.provider === 'razorpay'));
-  assert.equal(
-    (await call('GET', '/admin/webhooks', {cookie: ownerCookie})).status,
-    200,
-  );
-  assert.equal(
-    (await call('GET', '/admin/webhooks', {cookie: packingCookie})).status,
-    403,
-  );
 
   const bad = await WebhookEvent.findOne({externalId: 'pay_bad'}).lean();
   const refused = await call('POST', `/api/admin/webhooks/${bad._id}/rerun`, {

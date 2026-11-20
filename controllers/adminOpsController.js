@@ -4,8 +4,6 @@ const webhookLogService = require('../services/webhookLogService');
 const gstReportService = require('../services/gstReportService');
 const paymentService = require('../services/paymentService');
 const auditService = require('../services/auditService');
-const config = require('../config/env');
-const {linkBuilder} = require('../utils/queryString');
 const {asyncHandler} = require('../utils/http');
 
 // ---------- Webhooks ----------
@@ -26,18 +24,6 @@ const rerunWebhook = asyncHandler(async (req, res) => {
     after: result,
   });
   res.json({message: `${result.event || 'Event'} run again.`, ...result});
-});
-
-const webhooksPage = asyncHandler(async (req, res) => {
-  const data = await webhookLogService.list(req.query);
-  const current = {};
-  if (data.filters.provider) current.provider = data.filters.provider;
-  if (data.filters.outcome) current.outcome = data.filters.outcome;
-  res.render('admin/webhooks', {
-    title: 'Webhooks | Nexthlon Admin',
-    ...data,
-    link: linkBuilder(`${config.adminPath}/webhooks`, current),
-  });
 });
 
 // ---------- GST ----------
@@ -64,7 +50,6 @@ const gstPage = asyncHandler(async (req, res) => {
 module.exports = {
   listWebhooks,
   rerunWebhook,
-  webhooksPage,
   gstCsv,
   gstPage,
 };

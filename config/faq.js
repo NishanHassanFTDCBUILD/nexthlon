@@ -42,12 +42,6 @@ module.exports = Object.freeze([
     link: 'Gift cards',
   },
   {
-    q: 'Can I sign in or sign up with my phone?',
-    a: 'Yes. Enter your mobile number and we text you a 6-digit code, so you do not need a password. New numbers get an account in one more step.',
-    href: '/login?method=phone',
-    link: 'Sign in with your phone',
-  },
-  {
     q: 'I have a question that is not here.',
     a: 'Send us a message and our team will reply.',
     href: '/contact',

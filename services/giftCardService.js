@@ -8,6 +8,7 @@
 //   disable(cardId)          admin: a lost or wrongly issued card can no longer be redeemed
 const crypto = require('crypto');
 const GiftCard = require('../models/GiftCard');
+const {pagination} = require('../utils/paging');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
@@ -194,6 +195,22 @@ async function list({status = ''} = {}) {
     .lean();
 }
 
+// One page of gift cards for the admin table (newest first), with what the table footer needs.
+async function listPage(query = {}) {
+  const status = ['active', 'redeemed', 'disabled'].includes(query.status)
+    ? query.status
+    : '';
+  const filter = status ? {status} : {};
+  const pager = pagination(await GiftCard.countDocuments(filter), query);
+  const cards = await GiftCard.find(filter)
+    .sort({createdAt: -1, _id: -1})
+    .skip((pager.page - 1) * pager.limit)
+    .limit(pager.limit)
+    .populate('redeemedBy', 'name email')
+    .lean();
+  return {cards, status, pagination: pager};
+}
+
 async function disable(cardId) {
   const card = await GiftCard.findOneAndUpdate(
     {_id: cardId, status: 'active'},
@@ -205,4 +222,12 @@ async function disable(cardId) {
   return card;
 }
 
-module.exports = {issueForOrder, redeem, list, disable, formatCode, newCode};
+module.exports = {
+  listPage,
+  issueForOrder,
+  redeem,
+  list,
+  disable,
+  formatCode,
+  newCode,
+};

@@ -112,9 +112,8 @@ router.get(
   '/reviews',
   require('../controllers/adminReviewController').reviewsPage,
 );
-// Operations pages: webhooks and the job queue (owner or manager), the GST report (reports.read).
+// Operations pages: the GST report (reports.read).
 const opsPages = require('../controllers/adminOpsController');
-router.get('/webhooks', needsPage('settings.write'), opsPages.webhooksPage);
 router.get('/gst', needsPage('reports.read'), opsPages.gstPage);
 router.get('/security', require('../controllers/adminSecurityController').page);
 router.get(
