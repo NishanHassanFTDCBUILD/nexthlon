@@ -228,7 +228,20 @@
     const dy = target.y - sy;
     const lift = Math.max(90, Math.hypot(dx, dy) * 0.32);
     const cx = dx * 0.35;
-    const cy = Math.min(0, dy) - lift;
+    // The highest point may not rise above the cart icon (or 40px from the top): from a photo high on the
+    // screen, such as the showroom's, the full lift would carry the card off the top mid-flight.
+    const curveTop = (c) => {
+      let top = 0;
+      for (let i = 1; i <= 20; i += 1) {
+        const p = i / 20;
+        top = Math.min(top, 2 * (1 - p) * p * c + p * p * dy);
+      }
+      return top;
+    };
+    const lowest = Math.min(0, dy);
+    const ceiling = Math.min(target.y, 40) - sy;
+    let cy = lowest - lift;
+    while (cy < lowest && curveTop(cy) < ceiling) cy = Math.min(lowest, cy + 8);
     const side = dx >= 0 ? 1 : -1;
     const ease = easing();
     const seconds = durationMs / 1000;
