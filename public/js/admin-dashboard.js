@@ -1061,6 +1061,11 @@
       }
     }
     render(true);
+    // Trend lines in the headline cards (the same series as the chart).
+    Object.entries(data.sparks || {}).forEach(([key, values]) => {
+      const el = root.querySelector(`[data-spark="${key}"]`);
+      if (el) sparkline(el, values);
+    });
 
     // Redraw (without motion) when the width changes.
     let lastWidth = root.clientWidth;

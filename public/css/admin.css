@@ -785,6 +785,56 @@
   background: var(--brand);
 }
 
+.an-spark {
+  height: 34px;
+  margin-top: var(--space-half);
+}
+
+.an-share {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+
+.an-table-toggle {
+  margin-top: var(--space-1);
+}
+
+.an-table-toggle > summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-2);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.an-table-wrap {
+  overflow-x: auto;
+  margin-top: var(--space-1);
+}
+
+.an-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.an-table th,
+.an-table td {
+  padding: var(--space-xs) var(--space-1);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.an-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Tablets and phones: the sidebar becomes a menu panel ---------- */
 @media (max-width: 1024px) {
   .admin-body .admin-shell {

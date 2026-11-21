@@ -11,7 +11,9 @@
     return Number(value).toLocaleString('en-IN');
   };
   // Only what the browser needs to draw: the series, not the whole page data.
+  const seriesOf = function (key) { return timeline.map(function (p) { return p[key]; }); };
   const chartData = {
+    sparks: { revenue: seriesOf('revenue'), orders: seriesOf('orders'), aov: seriesOf('aov') },
     timeline: timeline,
     newReturning: newReturning,
     categories: topCategories,
@@ -64,6 +66,7 @@
           <% if (c.hint) { %><span class="dash-hint" role="img" title="<%= c.hint %>" aria-label="<%= c.hint %>"><%- icon('info', 'i-xs') %></span><% } %>
         </div>
         <strong class="dash-kpi-value"><%= fmt(c.value, c.format) %></strong>
+        <% if (chartData.sparks[c.key]) { %><div class="an-spark" data-spark="<%= c.key %>" aria-hidden="true"></div><% } %>
         <div class="dash-kpi-foot">
           <span class="dash-change<%= up ? ' is-good' : down ? ' is-bad' : '' %>">
             <% if (c.change !== null) { %><%- up ? icon('arrow-up', 'i-xs') : down ? icon('arrow-down', 'i-xs') : '' %><%= Math.abs(c.change).toFixed(1) %>%<span class="sr-only"> <%= up ? 'up' : down ? 'down' : 'no change' %> compared with the previous period</span><% } else { %><span class="muted">No earlier sales to compare</span><% } %>
@@ -81,6 +84,19 @@
         <span class="dash-legend"><i class="dash-dot dash-dot-line"></i> Revenue (paid) <i class="dash-dot dash-dot-bar"></i> Orders</span>
       </div>
       <div class="dash-chart dash-chart-tall" data-chart="timeline" role="img" tabindex="0" aria-label="Revenue and orders per <%= periodHead.toLowerCase() %>. Use the arrow keys to read each value."></div>
+      <details class="an-table-toggle">
+        <summary>Sales by <%= periodHead.toLowerCase() %> (table)</summary>
+        <div class="an-table-wrap">
+          <table class="an-table">
+            <thead><tr><th scope="col"><%= periodHead %></th><th scope="col" class="num">Orders</th><th scope="col" class="num">Revenue</th><th scope="col" class="num">Avg order</th></tr></thead>
+            <tbody>
+              <% timeline.forEach(function (p) { %>
+                <tr><th scope="row"><%= p.label %></th><td class="num"><%= p.orders.toLocaleString('en-IN') %></td><td class="num"><%= formatPrice(p.revenue) %></td><td class="num"><%= formatPrice(p.aov) %></td></tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </details>
     </section>
 
     <%# Payment: how many orders placed in the period were paid. %>
@@ -129,7 +145,7 @@
                 <li>
                   <span class="dash-rank-n"><%= i + 1 %></span>
                   <span class="dash-rank-name"><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a><small class="muted"><%= p.units %> <%= p.units === 1 ? 'unit' : 'units' %> · <%= p.orders %> <%= p.orders === 1 ? 'order' : 'orders' %></small></span>
-                  <strong><%= formatPrice(p.revenue) %></strong>
+                  <span class="an-share"><strong><%= formatPrice(p.revenue) %></strong><small class="muted"><%= cards[0].value ? ((p.revenue / cards[0].value) * 100).toFixed(1) : '0.0' %>% of revenue</small></span>
                 </li>
               <% }) %>
             </ol>
