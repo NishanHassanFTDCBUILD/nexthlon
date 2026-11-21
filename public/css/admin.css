@@ -760,8 +760,29 @@
   cursor: default;
 }
 
-.an-funnel a.dash-action {
-  cursor: pointer;
+.an-paid-figure {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.an-paid-figure strong {
+  font: var(--weight-black) var(--text-2xl)/1 var(--display);
+  color: var(--ink);
+}
+
+.an-paid-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.an-paid-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
 }
 
 /* ---------- Tablets and phones: the sidebar becomes a menu panel ---------- */
@@ -1391,9 +1412,7 @@ body.admin-menu-open {
 .dash-donut-legend span {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .dash-donut-legend strong {

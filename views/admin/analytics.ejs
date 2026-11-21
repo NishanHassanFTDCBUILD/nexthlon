@@ -5,7 +5,6 @@
 %>
 <%
   const presets = [['today', 'Today'], ['7d', '7 days'], ['30d', '30 days'], ['month', 'This month'], ['year', 'This year']];
-  const byOptions = [['', 'Automatic'], ['day', 'By day'], ['week', 'By week'], ['month', 'By month']];
   const fmt = function (value, format) {
     if (format === 'money') return formatPrice(value);
     if (format === 'percent') return Number(value).toFixed(1) + '%';
@@ -45,18 +44,13 @@
     </nav>
     <form class="dash-custom<%= range.key === 'custom' ? ' is-active' : '' %>" action="<%= adminPath %>/analytics" method="get">
       <input type="hidden" name="range" value="custom">
-      <input type="hidden" name="by" value="<%= group.key === 'auto' ? '' : group.key %>">
       <label><span>From</span><input type="date" name="from" value="<%= range.fromDay %>" required></label>
       <label><span>To</span><input type="date" name="to" value="<%= range.toDay %>" required></label>
       <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
     </form>
-    <nav class="segmented dash-presets" aria-label="Group by">
-      <% byOptions.forEach(function ([key, label]) { %>
-        <a href="<%= link({ by: key }) %>" class="<%= (group.key === 'auto' ? '' : group.key) === key ? 'is-active' : '' %>"><%= label %></a>
-      <% }) %>
-    </nav>
   </div>
   <% if (range.error) { %><div class="alert alert-danger" role="alert"><%- icon('alert') %><span><%= range.error %> Showing the last 7 days instead.</span></div><% } %>
+  <% if (group.note) { %><div class="alert alert-info" role="status"><%- icon('info') %><span><%= group.note %></span></div><% } %>
 
   <%# ---------- Headline numbers ---------- %>
   <section class="dash-kpis" aria-label="Key numbers">
@@ -72,8 +66,7 @@
         <strong class="dash-kpi-value"><%= fmt(c.value, c.format) %></strong>
         <div class="dash-kpi-foot">
           <span class="dash-change<%= up ? ' is-good' : down ? ' is-bad' : '' %>">
-            <% if (c.change === null) { %>–<% } else { %><%- up ? icon('arrow-up', 'i-xs') : down ? icon('arrow-down', 'i-xs') : '' %><%= Math.abs(c.change).toFixed(1) %>%<% } %>
-            <span class="sr-only"><%= c.change === null ? 'nothing to compare with' : up ? 'up' : down ? 'down' : 'no change' %> compared with the previous period</span>
+            <% if (c.change !== null) { %><%- up ? icon('arrow-up', 'i-xs') : down ? icon('arrow-down', 'i-xs') : '' %><%= Math.abs(c.change).toFixed(1) %>%<span class="sr-only"> <%= up ? 'up' : down ? 'down' : 'no change' %> compared with the previous period</span><% } else { %><span class="muted">No earlier sales to compare</span><% } %>
           </span>
         </div>
       </article>
@@ -90,18 +83,12 @@
       <div class="dash-chart dash-chart-tall" data-chart="timeline" role="img" tabindex="0" aria-label="Revenue and orders per <%= periodHead.toLowerCase() %>. Use the arrow keys to read each value."></div>
     </section>
 
-    <%# Conversion: how many filled baskets turned into orders. %>
+    <%# Payment: how many orders placed in the period were paid. %>
     <section class="panel dash-card" aria-labelledby="an-funnel-title">
-      <div class="dash-card-head"><h2 id="an-funnel-title">Conversion</h2></div>
-      <ul class="dash-actions an-funnel">
-        <li><span class="dash-action"><%- icon('cart', 'i-sm') %><span>Shoppers with items in a cart</span><strong><%= funnel.carts.toLocaleString('en-IN') %></strong></span></li>
-        <li><span class="dash-action has-count"><%- icon('package-check', 'i-sm') %><span>Orders placed</span><strong><%= funnel.orders.toLocaleString('en-IN') %></strong></span></li>
-        <li><span class="dash-action"><%- icon('credit-card', 'i-sm') %><span>Orders paid</span><strong><%= funnel.paid.toLocaleString('en-IN') %></strong></span></li>
-      </ul>
-      <p class="muted dash-sub">
-        <strong><%= funnel.cartToOrder.toFixed(1) %>%</strong> of filled baskets became an order,
-        and <strong><%= funnel.orderToPaid.toFixed(1) %>%</strong> of orders were paid.
-      </p>
+      <div class="dash-card-head"><h2 id="an-funnel-title">Orders paid</h2></div>
+      <p class="an-paid-figure"><strong><%= funnel.paid.toLocaleString('en-IN') %></strong> of <%= funnel.orders.toLocaleString('en-IN') %> orders</p>
+      <div class="an-paid-bar" role="img" aria-label="<%= funnel.orderToPaid.toFixed(1) %> percent of orders were paid"><span style="width: <%= Math.min(100, funnel.orderToPaid) %>%"></span></div>
+      <p class="muted dash-sub"><strong><%= funnel.orderToPaid.toFixed(1) %>%</strong> of orders placed in this period were paid.</p>
     </section>
   </div>
 

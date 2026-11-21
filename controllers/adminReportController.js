@@ -175,9 +175,8 @@ const analyticsCsv = asyncHandler(async (req, res) => {
   );
   blank();
 
-  section('Conversion (carts to orders)');
+  section('Payments');
   res.write(row(['Step', 'Count']));
-  res.write(row(['Shoppers with items in a cart', data.funnel.carts]));
   res.write(row(['Orders placed', data.funnel.orders]));
   res.write(row(['Orders paid', data.funnel.paid]));
   res.end();

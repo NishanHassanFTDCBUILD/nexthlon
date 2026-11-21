@@ -11,9 +11,8 @@
 //   average order value               summary.aov, and aov per bucket in the timeline
 //   new vs returning customers        newReturning
 //   payment method split              payments (Razorpay / wallet / COD)
-//   conversion (carts -> orders)      funnel
+//   orders paid                       funnel
 const Order = require('../models/Order');
-const Cart = require('../models/Cart');
 const User = require('../models/User');
 const {PAID_STATUSES} = require('../utils/orderRules');
 const {
@@ -51,22 +50,23 @@ const liveItems = (match) => [
   {$match: {'items.status': {$ne: 'cancelled'}}},
 ];
 
-// Reads ?by=day|week|month on top of the range. "week" needs a range of at least a week, and
-// "day" is refused for a range of months, so a chart never ends up with 400 bars.
+// Reads ?by=day|week|month on top of the range. The grouping the admin picks is always the one
+// shown. "day" covers up to about a year (a bar per day stays readable); a longer range is grouped
+// automatically, and the page says so, instead of quietly changing the choice.
+const MAX_DAY_SPAN = 370;
 function readGroup(query = {}, range) {
   const asked = GROUPS.includes(query.by) ? query.by : 'auto';
   if (asked === 'auto')
     return {key: 'auto', unit: range.bucket, label: GROUP_LABELS.auto};
   const spanDays = (range.to - range.from) / DAY;
-  const tooMany = asked === 'day' && spanDays > 120;
-  const tooFew =
-    (asked === 'week' && spanDays < 7) || (asked === 'month' && spanDays < 28);
-  const unit = tooMany || tooFew ? range.bucket : asked;
-  return {
-    key: tooMany || tooFew ? 'auto' : asked,
-    unit,
-    label: GROUP_LABELS[tooMany || tooFew ? 'auto' : asked],
-  };
+  if (asked === 'day' && spanDays > MAX_DAY_SPAN)
+    return {
+      key: 'auto',
+      unit: range.bucket,
+      label: GROUP_LABELS.auto,
+      note: 'By day covers up to a year at a time, so this longer range is grouped automatically. Pick a shorter range to see each day.',
+    };
+  return {key: asked, unit: asked, label: GROUP_LABELS[asked]};
 }
 
 // Every bucket start in the range, so empty days or weeks still show as zero.
@@ -267,29 +267,19 @@ async function payments(range) {
   }));
 }
 
-// Conversion, carts -> orders. A cart counts once it has had something in it during the range
-// (Cart keeps one row per customer, so "carts" means "shoppers who filled a basket").
-// Orders placed in the range are the step after it; what is left never became an order.
+// Orders placed in the range, and how many of them were paid. (A cart count is not shown: a cart is
+// emptied when it becomes an order, so carts cannot be compared with orders honestly.)
 async function funnel(range) {
-  const [carts, orders, paid] = await Promise.all([
-    Cart.countDocuments({
-      'items.0': {$exists: true},
-      ...inRange('updatedAt', range.from, range.to),
-    }),
+  const [orders, paid] = await Promise.all([
     Order.countDocuments(inRange('createdAt', range.from, range.to)),
     Order.countDocuments({
       paymentStatus: {$in: PAID_STATUSES},
       ...inRange('createdAt', range.from, range.to),
     }),
   ]);
-  // A cart that became an order is counted in both steps, so the base is carts plus those orders
-  // that started from a cart emptied in the same period.
-  const baskets = Math.max(carts, orders);
   return {
-    carts: baskets,
     orders,
     paid,
-    cartToOrder: baskets ? Math.round((orders / baskets) * 1000) / 10 : 0,
     orderToPaid: orders ? Math.round((paid / orders) * 1000) / 10 : 0,
   };
 }
@@ -378,14 +368,6 @@ async function summary(range) {
       format: 'number',
       value: now.newCustomers,
       change: change(now.newCustomers, before.newCustomers),
-    },
-    {
-      key: 'cartToOrder',
-      label: 'Carts that became orders',
-      format: 'percent',
-      value: steps.cartToOrder,
-      change: null,
-      hint: 'Orders placed, out of the shoppers who filled a basket in this period',
     },
   ];
   return {cards, funnel: steps};
