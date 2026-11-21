@@ -17,7 +17,7 @@
   <% }) %>
 </nav>
 
-<%- include('../partials/admin-list-toolbar', { section: 'returns', searchMax: 60, searchHint: 'Order number or customer', sorts, fields: [{ key: 'status', label: 'Status', clearValue: 'all', options: [['all', 'All'], ['requested', 'Waiting'], ['approved', 'Approved'], ['rejected', 'Rejected']] }] }) %>
+<%- include('../partials/admin-list-toolbar', { section: 'returns', searchMax: 60, searchHint: 'Order number or customer', sorts, fields: [{ key: 'status', label: 'Status', default: 'requested', options: [['all', 'All'], ['requested', 'Waiting'], ['approved', 'Approved'], ['rejected', 'Rejected']] }] }) %>
 
 
 
@@ -44,8 +44,13 @@
   <% } else { %>
     <div class="empty-state empty-state-flat">
       <%- include('../partials/empty-art', { art: 'box' }) %>
-      <h2><%= filters.status === 'requested' ? 'No returns waiting' : 'No returns here' %></h2>
-      <p><%= filters.status === 'requested' ? 'New return requests from customers appear here.' : 'Try another tab.' %></p>
+      <% if (filters.q) { %>
+        <h2>No returns match “<%= filters.q %>”</h2>
+        <p>Try another order number or customer name, or clear the search.</p>
+      <% } else { %>
+        <h2><%= filters.status === 'requested' ? 'No returns waiting' : 'No returns here' %></h2>
+        <p><%= filters.status === 'requested' ? 'New return requests from customers appear here.' : 'Try another tab.' %></p>
+      <% } %>
     </div>
   <% } %>
 </section>

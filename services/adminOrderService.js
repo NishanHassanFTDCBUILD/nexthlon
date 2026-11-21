@@ -552,15 +552,7 @@ async function listReturns(query = {}) {
     const pattern = new RegExp(escapeRegex(filters.q), 'i');
     filter.$and = [{$or: [{orderId: pattern}, {'address.fullName': pattern}]}];
   }
-  const [orders, total, counts] = await Promise.all([
-    Order.find(filter)
-      .sort(list.order)
-      .skip(list.skip)
-      .limit(size)
-      .select(
-        'orderId items total walletUsed paymentMethod paymentStatus orderStatus returnReason returnNote returnPhotos returnDecision updatedAt deliveredAt address.fullName address.city',
-      )
-      .lean(),
+  const [total, counts] = await Promise.all([
     Order.countDocuments(filter),
     Promise.all([
       Order.countDocuments(byStatus.requested),
@@ -568,6 +560,17 @@ async function listReturns(query = {}) {
       Order.countDocuments(byStatus.rejected),
     ]),
   ]);
+  // A page past the last one shows the last page, not an empty table.
+  const pages = Math.max(1, Math.ceil(total / size));
+  const page = Math.min(filters.page, pages);
+  const orders = await Order.find(filter)
+    .sort(list.order)
+    .skip((page - 1) * size)
+    .limit(size)
+    .select(
+      'orderId items total walletUsed paymentMethod paymentStatus orderStatus returnReason returnNote returnPhotos returnDecision updatedAt deliveredAt address.fullName address.city',
+    )
+    .lean();
   return {
     returns: orders.map((order) => {
       const requested = order.items.filter(
@@ -604,7 +607,7 @@ async function listReturns(query = {}) {
     counts: {requested: counts[0], approved: counts[1], rejected: counts[2]},
     chips: list.chips,
     sorts: list.sorts,
-    pagination: list.pagination(total),
+    pagination: {page, pages, total, limit: size},
   };
 }
 

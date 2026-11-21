@@ -1,5 +1,6 @@
 <%
-  const activeFields = fields.filter(function (field) { return filters[field.key] && filters[field.key] !== 'all'; });
+  // A value equal to the field's default (or "all") is not a filter, so it gets no chip and does not open the panel.
+  const activeFields = fields.filter(function (field) { return filters[field.key] && filters[field.key] !== 'all' && filters[field.key] !== (field.default === undefined ? 'all' : field.default); });
   const activeChips = activeFields.map(function (field) {
     const value = filters[field.key];
     const option = (field.options || []).find(function (item) { return String(item[0]) === String(value); });
