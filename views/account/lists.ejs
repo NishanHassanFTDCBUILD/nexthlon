@@ -56,7 +56,7 @@
               <p class="acct-buy-price"><strong><%= formatPrice(item.price) %></strong><% if (item.discountPercent > 0) { %> <s><%= formatPrice(item.mrp) %></s> <em><%= item.discountPercent %>% off</em><% } %></p>
               <% if (!item.available) { %><span class="pill pill-red"><%= item.reason %></span><% } %>
               <div class="list-item-actions">
-                <% if (item.available) { %><button type="button" class="btn btn-primary btn-xs" data-list-cart="<%= item.productId %>"><%- icon('cart', 'i-xs') %> Move to cart</button><% } %>
+                <% if (item.available) { %><button type="button" class="btn btn-primary btn-sm list-item-cart" data-list-cart="<%= item.productId %>"><%- icon('cart', 'i-xs') %> Move to cart</button><% } %>
                 <button type="button" class="icon-btn icon-btn-sm" data-list-remove="<%= item.productId %>" aria-label="Remove <%= item.name %> from <%= l.name %>"><%- icon('heart', 'i-sm') %></button>
                 <% if (all.length > 1) { %>
                   <span class="select-wrap select-xs">
