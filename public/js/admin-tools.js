@@ -1,6 +1,5 @@
 // Console tools for every admin page: keyboard shortcuts with a help sheet, a density switch
-// (comfortable or compact rows, remembered in this browser), and saved list views (kept on the server,
-// per admin: see controllers/adminViewController.js).
+// (comfortable or compact rows, remembered in this browser).
 (function () {
   'use strict';
 
@@ -106,119 +105,6 @@
       if (dialog && dialog.open) dialog.close();
     }
   });
-
-  // ---------- Saved views ----------
-  // A bar above every list page: the views kept for this list, and "Save this view" for the current filters.
-  function listPath() {
-    return window.location.pathname.replace(/\/$/, '');
-  }
-
-  function onListPage() {
-    return !!document.querySelector(
-      '.admin-content .admin-filterbar, .admin-content .admin-table-panel',
-    );
-  }
-
-  async function renderViews() {
-    const content = document.querySelector('.admin-content');
-    if (!content) return;
-    const existing = content.querySelector('[data-saved-views]');
-    if (!onListPage()) {
-      if (existing) existing.remove();
-      return;
-    }
-    if (existing && existing.dataset.path === listPath()) return;
-    if (existing) existing.remove();
-
-    const bar = document.createElement('section');
-    bar.className = 'saved-views';
-    bar.dataset.savedViews = '';
-    bar.dataset.path = listPath();
-    bar.setAttribute('aria-label', 'Saved views');
-    bar.innerHTML =
-      '<span class="saved-views-label">Saved views</span>' +
-      '<ul class="saved-views-list"></ul>' +
-      '<form class="saved-views-save" novalidate>' +
-      '<label class="sr-only" for="view-name">Name this view</label>' +
-      '<input id="view-name" name="name" maxlength="40" placeholder="Name this view" autocomplete="off">' +
-      '<button class="btn btn-ghost btn-sm" type="submit">Save this view</button>' +
-      '</form>';
-    content.prepend(bar);
-
-    const list = bar.querySelector('.saved-views-list');
-    try {
-      const reply = await window.Nx.api(
-        `/api/admin/views?path=${encodeURIComponent(listPath())}`,
-      );
-      if (!reply.views.length) {
-        list.innerHTML =
-          '<li class="muted">None yet. Filter the list, then name and save it.</li>';
-      }
-      reply.views.forEach((view) => {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.className = 'saved-view';
-        a.href = `${listPath()}?${view.query}`;
-        a.textContent = view.name;
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'saved-view-remove';
-        del.dataset.viewRemove = view.id;
-        del.setAttribute('aria-label', `Remove the view ${view.name}`);
-        del.textContent = '×';
-        li.append(a, del);
-        list.append(li);
-      });
-    } catch {
-      list.innerHTML =
-        '<li class="muted">Saved views could not load. Try again later.</li>';
-    }
-  }
-
-  document.addEventListener('submit', async (event) => {
-    const form = event.target.closest('.saved-views-save');
-    if (!form) return;
-    event.preventDefault();
-    const name = form.elements.name.value.trim();
-    try {
-      const reply = await window.Nx.api('/api/admin/views', {
-        method: 'POST',
-        body: {
-          path: listPath(),
-          name,
-          query: window.location.search.replace(/^\?/, ''),
-        },
-      });
-      window.Nx.toast(reply.message);
-      form.reset();
-      document.querySelector('[data-saved-views]').dataset.path = '';
-      renderViews();
-    } catch (error) {
-      window.Nx.toast(error.message, 'error');
-    }
-  });
-
-  document.addEventListener('click', async (event) => {
-    const remove = event.target.closest('[data-view-remove]');
-    if (!remove) return;
-    event.preventDefault();
-    try {
-      await window.Nx.api(
-        `/api/admin/views/${encodeURIComponent(remove.dataset.viewRemove)}`,
-        {method: 'DELETE'},
-      );
-      remove.closest('li').remove();
-    } catch (error) {
-      window.Nx.toast(error.message, 'error');
-    }
-  });
-
-  // Sections load without a reload, so look again whenever the content changes.
-  const observer = new MutationObserver(() => renderViews());
-  const content = document.querySelector('.admin-content');
-  if (content) observer.observe(content, {childList: true});
-  window.addEventListener('popstate', () => renderViews());
-  renderViews();
 
   // ---------- Side drawer: quick look at an order ----------
   const drawer = document.getElementById('admin-drawer');
