@@ -114,7 +114,8 @@
           <form class="form pay-form" data-place-order novalidate>
             <div class="form-alert" data-form-alert aria-live="assertive"></div>
             <%
-              const walletReady = quote.walletBalance > 0;
+              // The wallet can pay the whole order, or part of it with online payment for the rest (never COD).
+              const walletReady = quote.walletBalance > 0 && (razorpayEnabled || quote.coveredByWallet);
               // Default to the available online payment gateway.
               const firstChoice = razorpayEnabled ? 'razorpay' : quote.codAllowed ? 'cod' : walletReady ? 'wallet' : '';
             %>
@@ -155,7 +156,6 @@
                     <fieldset class="pay-rest" data-pay-rest hidden>
                       <legend>Pay the remaining <strong data-sum="total" data-value="<%= t.total %>"><%= formatPrice(t.total) %></strong> with</legend>
                       <label class="choice"><input type="radio" name="restMethod" value="razorpay" <%= razorpayEnabled ? 'checked' : 'disabled' %>><span>Pay online (UPI, cards, netbanking)</span></label>
-                      <label class="choice"><input type="radio" name="restMethod" value="cod" <%= razorpayEnabled ? '' : 'checked' %>><span>Cash on Delivery</span></label>
                     </fieldset>
                   <% } else { %>
                     <p>Your wallet is empty. Refunds and referral rewards land here. <a href="/account/referral">Invite friends to earn</a>.</p>

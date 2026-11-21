@@ -393,13 +393,6 @@
       }
     } else if (restBox) {
       restBox.hidden = quote.coveredByWallet;
-      const restCod = restBox.querySelector('input[value="cod"]');
-      const restOnline = restBox.querySelector('input[value="razorpay"]');
-      restCod.disabled = !quote.codAllowed;
-      if (restCod.checked && restCod.disabled) {
-        restCod.checked = false;
-        if (!restOnline.disabled) restOnline.checked = true;
-      }
       walletNote.textContent = quote.coveredByWallet
         ? `Your wallet covers this whole order. ${Nx.formatPrice(quote.walletBalance - t.walletUsed)} stays in your wallet.`
         : `${Nx.formatPrice(t.walletUsed)} comes from your wallet.`;

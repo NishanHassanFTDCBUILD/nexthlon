@@ -344,6 +344,15 @@ async function placeOrder(
       'wallet_short',
     );
   }
+  // The wallet pays part of an order and the rest is paid online: never on delivery.
+  if (method === 'cod' && quote.totals.walletUsed > 0) {
+    throw new HttpError(
+      400,
+      'Your wallet can only be combined with online payment for the rest. Please pay online.',
+      null,
+      'wallet_short',
+    );
+  }
   // Fake Cash on Delivery orders tie up stock and courier money (D3): at most a few unpaid ones on the way.
   // A gift card is worth its face value on the day it is paid; cash on delivery cannot be checked for that.
   if (method === 'cod') {
