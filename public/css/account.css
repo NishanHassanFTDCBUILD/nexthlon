@@ -918,9 +918,8 @@
   margin-top: auto;
 }
 
-.list-item-actions [data-list-remove] .i {
+.list-item-actions [data-list-remove] {
   color: var(--deal);
-  fill: currentcolor;
 }
 
 /* Wishlist cards: every card is the same size, the photo is square, the name always takes two lines and
