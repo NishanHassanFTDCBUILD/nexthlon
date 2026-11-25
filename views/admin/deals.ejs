@@ -21,6 +21,44 @@
   </div>
 </header>
 
+<section class="panel deal-countdown-panel" aria-labelledby="countdown-title">
+  <h2 id="countdown-title" class="panel-title">Home-page flip countdown</h2>
+  <p class="muted">Choose the clock shown above Deals of the Day. Product discounts keep their own start and end times below.</p>
+  <form class="form" data-deal-countdown data-auto-ends="<%= countdownAutoEndsAt %>">
+    <div class="form-grid form-grid-2">
+      <div class="field">
+        <label for="countdown-mode">Countdown mode</label>
+        <select id="countdown-mode" name="dealsCountdownMode" data-countdown-mode>
+          <% [['auto', 'Automatic — live deal expiry or midnight IST'], ['custom', 'Set my own end date and time'], ['hidden', 'Hide the home-page countdown']].forEach(function ([value, label]) { %>
+            <option value="<%= value %>" <%= countdown.dealsCountdownMode === value ? 'selected' : '' %>><%= label %></option>
+          <% }) %>
+        </select>
+        <p class="field-error" data-error-for="dealsCountdownMode"></p>
+      </div>
+      <div class="field" data-countdown-end-field <%= countdown.dealsCountdownMode === 'custom' ? '' : 'hidden' %>>
+        <label for="countdown-end">End date and time (IST)</label>
+        <input id="countdown-end" name="dealsCountdownEndsAt" type="datetime-local" value="<%= countdownEndsInput %>" data-countdown-end aria-describedby="countdown-end-hint countdown-end-error">
+        <p class="hint" id="countdown-end-hint">Indian Standard Time. Choose a future time within 31 days.</p>
+        <p class="field-error" id="countdown-end-error" data-error-for="dealsCountdownEndsAt"></p>
+      </div>
+    </div>
+    <div class="deal-quick-btns" role="group" aria-label="Set countdown from now">
+      <% [[1, '1 hour'], [6, '6 hours'], [24, '24 hours'], [72, '3 days']].forEach(function ([hours, label]) { %>
+        <button type="button" class="btn btn-ghost btn-sm" data-countdown-quick="<%= hours %>"><%= label %></button>
+      <% }) %>
+    </div>
+    <p class="hint">Live preview — save to apply it to the storefront.</p>
+    <div class="deal-countdown-preview" data-countdown-preview role="timer" aria-label="Countdown preview">
+      <% [['d', 'days'], ['h', 'hours'], ['m', 'minutes'], ['s', 'seconds']].forEach(function ([key, label]) { %>
+        <span><strong data-preview-digit="<%= key %>">00</strong><small><%= label %></small></span>
+      <% }) %>
+    </div>
+    <p class="hint" data-countdown-preview-note aria-live="polite"></p>
+    <p class="form-alert" data-countdown-feedback role="status" aria-live="polite"></p>
+    <button type="submit" class="btn btn-primary">Save countdown</button>
+  </form>
+</section>
+
 <section class="admin-totals" aria-label="Deal totals">
   <div class="admin-total is-in"><span>Live now</span><strong><%= totals.live %></strong><small class="muted">on the home page</small></div>
   <div class="admin-total"><span>Starts later</span><strong><%= totals.scheduled %></strong><small class="muted">start by themselves</small></div>

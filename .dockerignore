@@ -17,6 +17,8 @@ npm-debug.log*
 tests
 docs
 coverage
+tmp
+backups
 README.md
 Dockerfile
 .dockerignore

@@ -53,18 +53,28 @@ async function record({
   after = null,
   ip = '',
 }) {
+  const entry = {
+    _id: new mongoose.Types.ObjectId(),
+    actor,
+    actorRole,
+    action,
+    target: String(target).slice(0, 120),
+    before: clean(before),
+    after: clean(after),
+    ip: maskIp(ip),
+    at: new Date(),
+  };
   try {
-    await AuditLog.create({
-      actor,
-      actorRole,
-      action,
-      target: String(target).slice(0, 120),
-      before: clean(before),
-      after: clean(after),
-      ip: maskIp(ip),
-    });
+    await AuditLog.create(entry);
   } catch (error) {
     logger.error('audit.write_failed', {action, error});
+    try {
+      await require('../jobs/queue').enqueue('audit.write', entry, {
+        dedupeKey: `audit:${entry._id}`,
+      });
+    } catch (queueError) {
+      logger.error('audit.retry_failed', {action, error: queueError});
+    }
   }
 }
 
@@ -73,7 +83,7 @@ async function list({actor = '', action = '', target = '', page = 1} = {}) {
   const filter = {};
   if (mongoose.isValidObjectId(actor)) filter.actor = actor;
   if (/^[a-z_.]{2,60}$/.test(action)) filter.action = action;
-  if (/^[a-z]{2,20}:[a-f0-9]{24}$/.test(target)) filter.target = target;
+  if (/^[a-z_]{2,30}:[a-zA-Z0-9_-]{1,85}$/.test(target)) filter.target = target;
   const current = Math.max(1, Number.parseInt(page, 10) || 1);
   const [entries, total] = await Promise.all([
     AuditLog.find(filter)

@@ -340,7 +340,7 @@ const KPI_META = [
     goodWhenUp: true,
     hint: 'Customers who ordered, out of those who signed in or ordered',
   },
-  {key: 'refunds', label: 'Refunds', format: 'money', goodWhenUp: false},
+  {key: 'refunds', label: 'Money returned', format: 'money', goodWhenUp: false},
   {
     key: 'credits',
     label: 'Wallet credits given',
@@ -652,7 +652,11 @@ async function panels() {
       )
       .lean(),
     Order.countDocuments({orderStatus: 'placed'}),
-    Order.countDocuments({orderStatus: 'confirmed'}),
+    Order.countDocuments(
+      require('../config/orderWorkQueues')
+        .ORDER_WORK_QUEUES.find((queue) => queue.key === 'dispatch')
+        .filter(),
+    ),
     Order.countDocuments({orderStatus: 'return_requested'}),
     Order.countDocuments({
       paymentStatus: 'failed',
@@ -704,7 +708,7 @@ async function panels() {
         key: 'ship',
         label: 'Orders to ship',
         count: toShip,
-        href: 'orders?status=confirmed',
+        href: 'orders?queue=dispatch',
         icon: 'truck',
       },
       {
@@ -724,7 +728,7 @@ async function panels() {
       {
         key: 'stock',
         label: 'Low-stock products',
-        count: lowStockCount + outOfStock,
+        count: lowStockCount,
         href: 'products?status=low',
         icon: 'alert',
       },
@@ -733,6 +737,7 @@ async function panels() {
       id: String(p._id),
       name: p.name,
       stock: p.stock,
+      hasOptions: Boolean(p.variants?.length),
       image: p.image,
     })),
     recentCustomers: recentCustomers.map((c) => ({

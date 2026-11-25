@@ -68,6 +68,7 @@ async function requestExchange(
 ) {
   const order = await Order.findOne({orderId: String(orderId), user: userId});
   if (!order) throw new HttpError(404, 'Order not found.');
+  require('./settlementService').assertSettled(order);
   if (!rules.canRequestReturn(order, STORE.returnDays, now))
     throw new HttpError(
       400,
@@ -217,6 +218,8 @@ async function completeExchange(orderId, itemId, now = new Date()) {
 // Keyed by item id, and empty when the swap is not open (too late, already asked, or no other size).
 async function choicesFor(order, now = new Date()) {
   const open = rules.canRequestReturn(order, STORE.returnDays, now);
+  if (!open || (order.settlements || []).some((entry) => !entry.done))
+    return {};
   const delivered = order.items.filter(
     (item) =>
       item.status === 'delivered' &&

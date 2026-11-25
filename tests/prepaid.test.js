@@ -270,9 +270,8 @@ test('prepaid: off by default; once on, checkout shows the saving and the online
     order.total,
     'Razorpay is asked for the discounted amount',
   );
-  // GST is on the discounted price: the items' taxable values add up to what the items really cost.
-  const itemValue = order.items.reduce((sum, item) => sum + item.tax.value, 0);
-  assert.equal(itemValue, order.subtotal - order.prepaidDiscount);
+  assert.equal(order.gst, undefined);
+  assert.ok(order.items.every((item) => !item.tax));
 });
 
 test('prepaid: Cash on Delivery orders never get it, even when the browser asks', async () => {

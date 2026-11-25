@@ -58,7 +58,7 @@ const INFO_PAGES = {
   terms: {view: 'pages/terms', title: 'Terms and conditions'},
   refund: {
     view: 'pages/refund-policy',
-    title: 'Cancellation and refund policy',
+    title: 'Cancellation, returns and wallet credit',
   },
   shipping: {
     view: 'pages/shipping-policy',
@@ -481,8 +481,10 @@ const orderDetail = asyncHandler(async (req, res) => {
     // B5: the courier's scans for the latest parcel (empty until it ships).
     tracking: shippingService.trackingFor(order),
     labels: orderRules.STATUS_LABELS,
-    canCancel: order.items.some(orderRules.canCancelItem),
-    canReturn: orderRules.canRequestReturn(order, STORE.returnDays),
+    canCancel: require('../utils/orderExperience').orderExperience(order)
+      .actions.cancel,
+    canReturn: require('../utils/orderExperience').orderExperience(order)
+      .actions.return,
     canRetryPayment:
       razorpayService.isEnabled() &&
       order.paymentMethod === 'razorpay' &&

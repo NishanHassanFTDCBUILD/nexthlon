@@ -18,6 +18,16 @@
     transform: translateY(-100%);
   }
 
+  /* Keep the profile menu below the header and scroll its contents on short screens. */
+  #account-menu {
+    top: calc(var(--header-h, 120px) + var(--space-1));
+    max-height: calc(100vh - var(--header-h, 120px) - var(--space-2));
+    max-height: calc(100dvh - var(--header-h, 120px) - var(--space-2));
+    margin-top: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
   /* Bars that stick below it follow it up and down. */
   .toolbar-sticky {
     top: var(--header-h);
@@ -125,6 +135,26 @@
 
   .cart-item-actions .link-btn {
     white-space: nowrap;
+    min-height: var(--tap);
+  }
+
+  .cart-item-actions .link-btn::after {
+    inset: 0;
+  }
+
+  /* Keep shopping actions and text fields comfortable without relying on pointer detection. */
+  .zg-chip,
+  body:not(.admin-body) main select,
+  body:not(.admin-body)
+    main
+    input:not(
+      [type='hidden'],
+      [type='checkbox'],
+      [type='radio'],
+      [type='range'],
+      [type='file']
+    ) {
+    min-height: var(--tap);
   }
 
   /* ---------- Checkout: the steps (address, summary, payment) come first, the price summary after ---------- */
@@ -427,6 +457,17 @@
 
   .pdx-meta .pdx-chip {
     min-height: var(--tap);
+  }
+
+  html.search-sheet-open .assistant-fab {
+    visibility: hidden;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Keep floating help clear of product and checkout actions on phones and tablets. */
+  body:has(.pdx-dock.is-on, .checkout) :is(.assistant-fab, .assistant-panel) {
+    --assistant-bottom: calc(96px + env(safe-area-inset-bottom));
   }
 }
 

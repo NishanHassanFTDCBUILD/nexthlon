@@ -151,21 +151,12 @@
             `<li><strong>${esc(i.name)}</strong>${i.option ? ` · ${esc(i.option)}` : ''} × ${i.quantity} <span class="muted">${money(i.lineTotal)}</span></li>`,
         )
         .join('');
-      const tags = (o.tags || [])
-        .map((t) => `<span class="pill pill-grey">${esc(t)}</span>`)
-        .join(' ');
-      const risk =
-        data.risk && data.risk.applies
-          ? `<p>Cash on delivery risk: <strong>${esc(data.risk.level)}</strong></p>`
-          : '';
       body.innerHTML =
         `<h3>${esc(o.orderId)}</h3>` +
-        `<p><span class="pill pill-grey">${esc(String(o.orderStatus).replace(/_/g, ' '))}</span> ${esc(o.paymentMethod === 'cod' ? 'Cash on delivery' : 'Paid online')}</p>` +
+        `<p><span class="pill pill-grey">${esc(String(o.orderStatus).replace(/_/g, ' '))}</span> ${esc({cod: 'Cash on delivery', razorpay: 'Razorpay', wallet: 'Wallet'}[o.paymentMethod] || o.paymentMethod)} · ${esc(String(o.paymentStatus || '').replace(/_/g, ' '))}</p>` +
         `<p class="muted">${esc(o.address && o.address.fullName)} · ${esc(o.address && o.address.city)}, ${esc(o.address && o.address.state)}</p>` +
         `<ul class="drawer-items">${items}</ul>` +
-        `<p><strong>Total ${money(o.total)}</strong></p>` +
-        risk +
-        (tags ? `<p>${tags}</p>` : '');
+        `<p><strong>Order value ${money(o.total + (o.walletUsed || 0))}</strong></p>`;
     } catch (error) {
       body.textContent = error.message;
     }
@@ -215,11 +206,13 @@
 
   // ---------- Inline edit with undo ----------
   // A value shown with an Edit button: change it in place, save, and a short "Undo" restores the old one.
+  const inlinePending = new WeakSet();
   document.addEventListener('click', async (event) => {
     const edit = event.target.closest('[data-inline-edit]');
     if (edit) {
       event.preventDefault();
       const cell = edit.closest('[data-inline-cell]');
+      if (inlinePending.has(cell)) return;
       const input = document.createElement('input');
       input.type = 'number';
       input.inputMode = 'numeric';
@@ -245,6 +238,7 @@
     if (saveBtn) {
       const input = saveBtn.parentElement.querySelector('input');
       const cell = saveBtn.closest('[data-inline-cell]');
+      if (inlinePending.has(cell)) return;
       const next = Number(input.value);
       const previous = cell.dataset.current;
       if (
@@ -259,12 +253,17 @@
         input.focus();
         return;
       }
+      inlinePending.add(cell);
+      window.Nx.busy(saveBtn, true, 'Saving.');
+      input.disabled = true;
       try {
         const reply = await window.Nx.api(input.dataset.endpoint, {
           method: 'PATCH',
           body: {[input.dataset.field]: next},
         });
         renderInline(cell, next, input.dataset);
+        if (cell.nextElementSibling?.classList.contains('inline-undo'))
+          cell.nextElementSibling.remove();
         const status = document.createElement('span');
         status.className = 'inline-undo';
         status.setAttribute('role', 'status');
@@ -278,6 +277,10 @@
         setTimeout(() => status.remove(), 8000);
       } catch (error) {
         window.Nx.toast(error.message, 'error');
+      } finally {
+        inlinePending.delete(cell);
+        input.disabled = false;
+        window.Nx.busy(saveBtn, false);
       }
       return;
     }
@@ -285,6 +288,10 @@
     if (undo) {
       const status = undo.closest('.inline-undo');
       const cell = status.previousElementSibling;
+      if (!cell?.matches('[data-inline-cell]') || inlinePending.has(cell))
+        return;
+      inlinePending.add(cell);
+      window.Nx.busy(undo, true, 'Undoing.');
       try {
         await window.Nx.api(status.dataset.endpoint, {
           method: 'PATCH',
@@ -300,6 +307,9 @@
         window.Nx.toast('Change undone.');
       } catch (error) {
         window.Nx.toast(error.message, 'error');
+      } finally {
+        inlinePending.delete(cell);
+        window.Nx.busy(undo, false);
       }
     }
   });

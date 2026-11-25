@@ -3,14 +3,22 @@
   const pill = { requested: 'pill-amber', approved: 'pill-green', rejected: 'pill-red' };
 %>
 <%- include('../partials/admin-start', { section: 'returns' }) %>
-<header class="admin-top">
+<div class="sales-workspace sales-returns">
+<%- include('../partials/admin-sales-nav', { salesSection: 'returns' }) %>
+<header class="admin-top sales-heading">
   <div>
-    <span class="section-kicker">Sales</span>
+    <span class="section-kicker">Sales / Aftercare</span>
     <h1>Returns</h1>
-    <p class="muted">Approving restocks the items and refunds them. Rejecting sends your note to the customer.</p>
+    <p class="muted">Review the customer’s request, evidence and eligible wallet credit before making a decision.</p>
   </div>
 </header>
 
+<section class="admin-totals sales-metrics" aria-label="Return workload">
+  <a class="admin-total sales-metric-featured" href="<%= link({status: 'requested', page: ''}) %>"><div class="sales-metric-top"><span>Awaiting review</span><%- icon('clock', 'i-sm') %></div><strong><%= counts.requested %></strong><small>Requests that need a decision</small></a>
+  <a class="admin-total is-in" href="<%= link({status: 'approved', page: ''}) %>"><div class="sales-metric-top"><span>Approved</span><%- icon('check', 'i-sm') %></div><strong><%= counts.approved %></strong><small>Restocking and wallet credits initiated</small></a>
+  <a class="admin-total" href="<%= link({status: 'rejected', page: ''}) %>"><div class="sales-metric-top"><span>Declined</span><%- icon('x', 'i-sm') %></div><strong><%= counts.rejected %></strong><small>Customer informed of the reason</small></a>
+  <div class="admin-total"><div class="sales-metric-top"><span>Matching requests</span><%- icon('rotate-ccw', 'i-sm') %></div><strong><%= pagination.total %></strong><small>Within the current search and status</small></div>
+</section>
 <nav class="segmented admin-tabs" aria-label="Return status">
   <% tabs.forEach(function ([key, label, n]) { %>
     <a href="<%= link({ status: key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="true"' : '' %>><%= label %> <span class="admin-tab-count"><%= n %></span></a>
@@ -22,19 +30,21 @@
 
 
 <section class="panel panel-flush admin-table-panel" aria-label="Returns">
+  <div class="sales-table-heading"><div><h2>Return review queue</h2><p>Open a request to review its photos and take action</p></div><span class="sales-record-count"><%= pagination.total %> requests</span></div>
   <% if (returns.length) { %>
     <div class="table-wrap admin-table-scroll">
       <table class="table table-stack admin-table">
-        <thead><tr><%- include('../partials/admin-sort-header', { label: 'Order / last change', asc: 'oldest', desc: 'updated' }) %><th scope="col">Customer</th><th scope="col">Items</th><th scope="col">Reason</th><th scope="col">Value</th><th scope="col">Status</th></tr></thead>
+        <thead><tr><%- include('../partials/admin-sort-header', { label: 'Order / last change', asc: 'oldest', desc: 'updated' }) %><th scope="col">Customer</th><th scope="col">Items</th><th scope="col">Reason</th><th scope="col">Value</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
         <tbody>
           <% returns.forEach(function (r) { %>
             <tr data-row-href="<%= adminPath %>/orders/<%= r.orderId %>#return">
               <td data-label="Order"><a href="<%= adminPath %>/orders/<%= r.orderId %>#return"><strong><%= r.orderId %></strong></a><small class="muted admin-sub"><%= formatDate(r.updatedAt) %></small></td>
               <td data-label="Customer"><%= r.customer %><small class="muted admin-sub"><%= r.city %></small></td>
-              <td data-label="Items"><%= r.items.join(', ') %><% if (r.photos.length) { %><small class="muted admin-sub"><%- icon('image', 'i-xs') %> <%= r.photos.length %> <%= r.photos.length === 1 ? 'photo' : 'photos' %></small><% } %></td>
+              <td data-label="Items"><%= r.items.length ? r.items.join(', ') : 'Item snapshot not recorded' %><% if (r.photos.length) { %><small class="muted admin-sub"><%- icon('image', 'i-xs') %> <%= r.photos.length %> <%= r.photos.length === 1 ? 'photo' : 'photos' %></small><% } %></td>
               <td data-label="Reason"><%= r.reason || '—' %><% if (r.note) { %><small class="muted admin-sub">“<%= r.note.length > 60 ? r.note.slice(0, 59) + '…' : r.note %>”</small><% } %></td>
-              <td data-label="Value"><%= formatPrice(r.value) %><small class="muted admin-sub"><%= methodLabels[r.method] %></small></td>
-              <td data-label="Status"><span class="pill <%= pill[r.status] %>"><%= r.status === 'requested' ? 'Waiting' : r.status === 'approved' ? 'Approved' : 'Rejected' %></span><% if (r.decision && r.decision.refunded) { %><small class="muted admin-sub"><%= formatPrice(r.decision.refunded) %> refunded</small><% } %></td>
+              <td data-label="Value"><%= r.value == null ? 'Not recorded' : formatPrice(r.value) %><small class="muted admin-sub"><%= methodLabels[r.method] %></small></td>
+              <td data-label="Status"><span class="pill <%= pill[r.status] %>"><%= r.status === 'requested' ? 'Waiting' : r.status === 'approved' ? 'Approved' : 'Rejected' %></span><% if (r.decision && r.decision.refunded) { %><small class="muted admin-sub"><%= formatPrice(r.decision.refunded) %> credited</small><% } %></td>
+              <td data-label="Action"><a class="btn btn-secondary btn-sm" href="<%= adminPath %>/orders/<%= r.orderId %>#return">Review <%- icon('arrow-right', 'i-xs') %></a></td>
             </tr>
           <% }) %>
         </tbody>
@@ -54,4 +64,5 @@
     </div>
   <% } %>
 </section>
+</div>
 <%- include('../partials/admin-end') %>

@@ -26,6 +26,12 @@ let server;
 let base;
 
 async function call(method, path, {body, cookie} = {}) {
+  if (
+    method === 'PATCH' &&
+    /^\/api\/admin\/products\/[^/]+\/stock$/.test(path) &&
+    body
+  )
+    body = {...body, requestId: require('node:crypto').randomUUID()};
   const headers = {Accept: 'text/html,application/json', Origin: base};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (cookie) headers.Cookie = cookie;
@@ -243,31 +249,6 @@ test('an admin signs in at the new path with its own short access cookie and 1-d
   assert.match(out.setCookie, /nx_admin=;/);
 });
 
-test('an unknown /api address keeps the admin signed in; opening a store page signs the admin out', async () => {
-  const admin = await call('POST', '/api/admin/login', {
-    body: {email: 'admin@path.test', password: 'AdminPass123'},
-  });
-  assert.equal(admin.status, 200);
-
-  for (const path of ['/api/admin/no-such-list', '/api/no-such-thing']) {
-    const missing = await call('GET', path, {cookie: admin.cookie});
-    assert.equal(missing.status, 404, path);
-    assert.doesNotMatch(
-      missing.setCookie,
-      /nx_admin=;/,
-      `${path} must not end the admin session`,
-    );
-  }
-  assert.equal(
-    (await call('GET', `${ADMIN}/dashboard`, {cookie: admin.cookie})).status,
-    200,
-  );
-
-  const store = await call('GET', '/products', {cookie: admin.cookie});
-  assert.equal(store.status, 200);
-  assert.match(store.setCookie, /nx_admin=;/, 'leaving for the store ends it');
-});
-
 test('after signing in, the admin login only sends the admin to pages inside the console', async () => {
   assert.match(
     (await call('GET', `${ADMIN}/login?next=%2Faccount`)).data,
@@ -308,7 +289,6 @@ test('admin layout: grouped sidebar, top bar, and X-Partial returns only the sec
     'orders',
     'returns',
     'transactions',
-    'refunds',
     'coupons',
     'deals',
     'products',
@@ -381,25 +361,33 @@ test('every section in the sidebar opens; anything else is a plain 404', async (
   );
 
   // No placeholders any more: each of these renders a real page.
-  for (const key of [
-    'dashboard',
-    'analytics',
-    'orders',
-    'returns',
-    'transactions',
-    'refunds',
-    'coupons',
-    'deals',
-    'products',
-    'categories',
-    'inventory',
-    'customers',
-    'settings',
-    'system',
-  ]) {
+  const sections = require('../config/adminNav').ALL_ITEMS.map(
+    (item) => item.key,
+  );
+  for (const key of [...sections, 'security']) {
     const page = await call('GET', `${ADMIN}/${key}`, {cookie});
     assert.equal(page.status, 200, `${key} should render`);
     assert.doesNotMatch(page.data, /Coming in Part|admin-soon-panel/);
+    const partial = await fetch(base + `${ADMIN}/${key}`, {
+      headers: {Cookie: cookie, 'X-Partial': '1'},
+    });
+    assert.equal(
+      partial.status,
+      200,
+      `${key} should render through section navigation`,
+    );
+    const html = await partial.text();
+    // Inventory and support embed inert JSON data for their already-loaded page modules.
+    const withoutData = html.replace(
+      /<script\b[^>]*type="application\/json"[^>]*>[\s\S]*?<\/script>/gi,
+      '',
+    );
+    assert.doesNotMatch(
+      withoutData,
+      /<html|<script\b/,
+      `${key} should return section content only`,
+    );
+    assert.match(partial.headers.get('vary') || '', /X-Partial/);
   }
   // Sections that were removed are ordinary 404s, like any unknown URL.
   for (const gone of [
@@ -694,7 +682,12 @@ test('quick restock adds stock atomically, is validated and audit-logged', async
   assert.equal(ok.status, 200);
   assert.equal(ok.data.product.stock, before + 5);
   assert.equal((await Product.findById(product._id)).stock, before + 5);
-  const log = await AuditLog.findOne({action: 'product.restock'}).lean();
+  const log = await AuditLog.findOne({
+    action: 'inventory.stock_changed',
+    target: `product:${product._id}`,
+  })
+    .sort({at: -1})
+    .lean();
   assert.equal(log.target, `product:${product._id}`);
   assert.equal(log.before.stock, before);
   assert.equal(log.after.stock, before + 5);

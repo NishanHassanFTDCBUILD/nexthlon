@@ -11,11 +11,12 @@
   };
 %>
 <%- include('../partials/admin-start', { section: 'coupons', page: 'coupon-form' }) %>
+<div class="sales-workspace">
 <nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
   <a href="<%= adminPath %>/coupons">Coupons</a> <%- icon('chevron-right', 'i-xs') %>
   <span aria-current="page"><%= isEdit ? c.code : 'New coupon' %></span>
 </nav>
-<header class="admin-top">
+<header class="admin-top sales-heading">
   <div>
     <span class="section-kicker"><%= isEdit ? 'Edit coupon' : 'New coupon' %></span>
     <h1><%= isEdit ? c.code : 'Create a coupon' %></h1>
@@ -29,15 +30,19 @@
   </div>
 </header>
 
-<form class="form" data-coupon-form novalidate
+<form class="form sales-coupon-form" data-coupon-form novalidate
       data-endpoint="<%= isEdit ? '/api/admin/coupons/' + c.id : '/api/admin/coupons' %>"
       data-method="<%= isEdit ? 'PATCH' : 'POST' %>"
       data-done="<%= adminPath %>/coupons">
   <div class="form-alert" data-form-alert aria-live="assertive"></div>
 
-  <div class="product-form-grid">
+  <section class="sales-coupon-preview" aria-label="Coupon preview">
+      <div><span class="section-kicker">Offer preview</span><strong data-coupon-preview-value><%= c.type === 'percent' ? (c.valueRupees || '0') + '% off' : formatPrice((c.valueRupees || 0) * 100) + ' off' %></strong><p data-coupon-preview-rule>No minimum order</p></div>
+      <code data-coupon-preview-code><%= c.code || 'YOURCODE' %></code>
+    </section>
+    <div class="product-form-grid">
     <section class="panel" aria-labelledby="cp-what-title">
-      <h2 id="cp-what-title" class="panel-title">The discount</h2>
+      <h2 id="cp-what-title" class="panel-title"><span class="sales-step">01</span> Offer details</h2>
       <div class="form-grid form-grid-2">
         <div class="field">
           <label for="cp-code">Code</label>
@@ -64,13 +69,13 @@
         </div>
         <div class="field" data-coupon-cap <%= c.type === 'percent' ? '' : 'hidden' %>>
           <label for="cp-max">Most it can take off (₹)</label>
-          <input id="cp-max" name="maxDiscount" type="number" inputmode="numeric" min="0" step="1" value="<%= c.maxDiscountRupees || '' %>" aria-describedby="cp-max-error cp-max-hint">
+          <input id="cp-max" name="maxDiscount" type="number" inputmode="decimal" min="0" step="0.01" value="<%= c.maxDiscountRupees || '' %>" aria-describedby="cp-max-error cp-max-hint">
           <p class="hint" id="cp-max-hint">Empty or 0 means no cap. Only percent coupons can have one.</p>
           <p class="field-error" id="cp-max-error" data-error-for="maxDiscount"></p>
         </div>
         <div class="field">
           <label for="cp-min">Minimum order (₹)</label>
-          <input id="cp-min" name="minOrder" type="number" inputmode="numeric" min="0" step="1" value="<%= c.minOrderRupees || '' %>" aria-describedby="cp-min-error cp-min-hint">
+          <input id="cp-min" name="minOrder" type="number" inputmode="decimal" min="0" step="0.01" value="<%= c.minOrderRupees || '' %>" aria-describedby="cp-min-error cp-min-hint">
           <p class="hint" id="cp-min-hint">Measured against the items only, before delivery. Empty means no minimum.</p>
           <p class="field-error" id="cp-min-error" data-error-for="minOrder"></p>
         </div>
@@ -84,7 +89,7 @@
     </section>
 
     <section class="panel" aria-labelledby="cp-when-title">
-      <h2 id="cp-when-title" class="panel-title">When and how often</h2>
+      <h2 id="cp-when-title" class="panel-title"><span class="sales-step">02</span> Schedule &amp; limits</h2>
       <div class="form-grid form-grid-2">
         <div class="field">
           <label for="cp-starts">Starts <span class="optional">(optional)</span></label>
@@ -126,4 +131,5 @@
     <a class="btn btn-ghost" href="<%= adminPath %>/coupons">Cancel</a>
   </div>
 </form>
+</div>
 <%- include('../partials/admin-end') %>

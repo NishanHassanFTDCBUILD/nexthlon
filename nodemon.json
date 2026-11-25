@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "**/tmp/**",
+    "**/backups/**",
+    "**/docs/screenshots/**",
+    "**/public/uploads/**"
+  ]
+}

@@ -201,7 +201,7 @@ test('refunded: says the amount and where it went', async () => {
   );
   assert.equal(
     outbox[0].subject,
-    `Refund of ₹6,000 for order ${order.orderId}`,
+    `Wallet credit of ₹6,000 for order ${order.orderId}`,
   );
   assert.match(outbox[0].text, /wallet/i);
 });
@@ -418,7 +418,7 @@ test('a refund emails once, even when the money goes to two places', async () =>
     reason: 'Cancelled',
   });
   await drain();
-  assert.equal(subjects().filter((s) => /^Refund of/.test(s)).length, 1);
+  assert.equal(subjects().filter((s) => /^Wallet credit of/.test(s)).length, 1);
 });
 
 test('adding tracking to an order not yet shipped sends nothing; after shipping it sends the tracking email', async () => {

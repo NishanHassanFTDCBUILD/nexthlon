@@ -46,6 +46,7 @@
       ).length > 1;
 
     const start = () => {
+      if (stage.classList.contains('is-video')) return;
       const src = hiRes(mainPhoto.getAttribute('src'));
       const box = stage.getBoundingClientRect();
       stage.style.setProperty('--lens-w', `${100 / ZOOM}%`);
@@ -96,6 +97,7 @@
     };
 
     stage.addEventListener('pointerenter', (event) => {
+      if (stage.classList.contains('is-video')) return;
       if (event.pointerType !== 'mouse' || !mouseZoom.matches) return;
       active = true;
       stage.classList.add('is-zooming');
@@ -103,6 +105,7 @@
       move(event);
     });
     stage.addEventListener('pointermove', (event) => {
+      if (stage.classList.contains('is-video')) return;
       if (!active) return;
       // Over the share / full-screen / arrow buttons, pause the zoom so they are easy to use.
       if (event.target.closest('button, a')) {
@@ -238,6 +241,7 @@
     // Clicking or tapping the photo opens the viewer too.
     if (stage) {
       stage.addEventListener('click', (event) => {
+        if (stage.classList.contains('is-video')) return;
         if (!event.target.closest('button, a')) open();
       });
     }

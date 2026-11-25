@@ -8,10 +8,11 @@ const config = require('../config/env');
 const authService = require('../services/authService');
 const refreshTokenService = require('../services/refreshTokenService');
 const {startSession} = require('../services/tokenService');
-const {asyncHandler} = require('../utils/http');
+const {asyncHandler, safeNextPath} = require('../utils/http');
 
 function socialSignIn(name, service) {
   const stateCookie = `nx_${name}_state`;
+  const nextCookie = `nx_${name}_next`;
   const statePath = `/api/auth/${name}`;
 
   const start = (req, res) => {
@@ -24,13 +25,22 @@ function socialSignIn(name, service) {
       maxAge: 10 * 60 * 1000,
       path: statePath,
     });
+    res.cookie(nextCookie, safeNextPath(req.query?.next, '/account'), {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: config.cookieSecure,
+      maxAge: 10 * 60 * 1000,
+      path: statePath,
+    });
     return res.redirect(service.authUrl(state));
   };
 
   const callback = asyncHandler(async (req, res) => {
     if (!service.enabled()) return res.status(404).end();
     const saved = req.cookies && req.cookies[stateCookie];
+    const next = safeNextPath(req.cookies?.[nextCookie], '/account');
     res.clearCookie(stateCookie, {path: statePath});
+    res.clearCookie(nextCookie, {path: statePath});
     const {state, code} = req.query;
     if (
       !saved ||
@@ -58,7 +68,7 @@ function socialSignIn(name, service) {
       refreshTokenService.deviceFrom(req),
     );
     startSession(res, {user, refreshToken: rawToken, familyId});
-    return res.redirect('/account');
+    return res.redirect(next);
   });
 
   return {start, callback};

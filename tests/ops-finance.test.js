@@ -50,7 +50,6 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const WebhookEvent = require('../models/WebhookEvent');
 const {hashPassword} = require('../services/authService');
-const paymentService = require('../services/paymentService');
 
 const dbUrl = new URL(process.env.TEST_MONGODB_URI);
 dbUrl.pathname = `${dbUrl.pathname.replace(/\/$/, '')}_ops`;
@@ -58,7 +57,6 @@ dbUrl.pathname = `${dbUrl.pathname.replace(/\/$/, '')}_ops`;
 let server;
 let base;
 let ownerCookie;
-let packingCookie;
 let owner;
 
 async function call(method, path, {body, cookie, raw, headers: extra} = {}) {
@@ -177,11 +175,6 @@ test.before(async () => {
       body: {email: 'owner@ops.test', password: 'AdminPass123'},
     })
   ).cookie;
-  packingCookie = (
-    await call('POST', '/api/admin/login', {
-      body: {email: 'packing@ops.test', password: 'AdminPass123'},
-    })
-  ).cookie;
 });
 
 test.after(async () => {
@@ -190,29 +183,15 @@ test.after(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-test('GST: the month report lists the invoice with its tax, totals it, and downloads as CSV', async () => {
-  const csv = await call('GET', '/api/admin/reports/gst.csv?month=2026-11', {
-    cookie: ownerCookie,
-  });
-  assert.equal(csv.status, 200);
-  assert.match(csv.data, /NX\/2026-27\/000001/);
-  assert.match(csv.data, /"1000\.00"/);
-  assert.match(csv.data, /"180\.00"/);
-  assert.match(csv.data, /"1180\.00"/);
-  assert.match(csv.data, /1 invoices/);
-  const empty = await call('GET', '/api/admin/reports/gst.csv?month=2026-10', {
-    cookie: ownerCookie,
-  });
-  assert.doesNotMatch(empty.data, /NX\/2026-27/);
+test('GST report page and export are no longer available', async () => {
   assert.equal(
-    (await call('GET', '/admin/gst?month=2026-11', {cookie: ownerCookie}))
+    (await call('GET', '/api/admin/reports/gst.csv', {cookie: ownerCookie}))
       .status,
-    200,
+    404,
   );
   assert.equal(
-    (await call('GET', '/api/admin/reports/gst.csv', {cookie: packingCookie}))
-      .status,
-    403,
+    (await call('GET', '/admin/gst', {cookie: ownerCookie})).status,
+    404,
   );
 });
 
@@ -247,48 +226,19 @@ test('webhooks: a courier call with the wrong token is refused and logged', asyn
   );
 });
 
-test('webhooks: the log lists with filters; only a good payment event can be run again', async () => {
-  const list = await call('GET', '/api/admin/webhooks?provider=razorpay', {
-    cookie: ownerCookie,
+test('webhooks: the admin Webhooks page and its API are gone; the store webhooks still run', async () => {
+  assert.equal(
+    (await call('GET', '/admin/webhooks', {cookie: ownerCookie})).status,
+    404,
+  );
+  assert.equal(
+    (await call('GET', '/api/admin/webhooks', {cookie: ownerCookie})).status,
+    404,
+  );
+  // The Razorpay endpoint is still mounted: a bad signature is refused (400), not missing (404).
+  const res = await call('POST', '/api/payments/razorpay/webhook', {
+    raw: '{}',
+    headers: {'x-razorpay-signature': 'nope'},
   });
-  assert.equal(list.status, 200);
-  assert.ok(list.data.events.every((e) => e.provider === 'razorpay'));
-
-  const bad = await WebhookEvent.findOne({externalId: 'pay_bad'}).lean();
-  const refused = await call('POST', `/api/admin/webhooks/${bad._id}/rerun`, {
-    cookie: ownerCookie,
-  });
-  assert.equal(refused.status, 400, 'a refused event cannot be run again');
-
-  // A good event is run again through the same handler, with its stored body and signature.
-  const good = await WebhookEvent.create({
-    provider: 'razorpay',
-    event: 'payment.captured',
-    externalId: 'pay_good',
-    signatureOk: true,
-    outcome: 'processed',
-    rawBody: JSON.stringify({event: 'payment.captured'}),
-    signature: 'sig',
-  });
-  const original = paymentService.handleWebhook;
-  let seen = null;
-  paymentService.handleWebhook = async (raw, signature) => {
-    seen = {raw: raw.toString('utf8'), signature};
-  };
-  try {
-    const run = await webhookLogService.rerun(good._id, (raw, signature) =>
-      paymentService.handleWebhook(raw, signature),
-    );
-    assert.equal(run.externalId, 'pay_good');
-    assert.equal(seen.signature, 'sig');
-    assert.match(seen.raw, /payment\.captured/);
-    assert.ok(
-      await WebhookEvent.findOne({
-        externalId: 'pay_good',
-        outcome: 'rerun',
-      }).lean(),
-    );
-  } finally {
-    paymentService.handleWebhook = original;
-  }
+  assert.equal(res.status, 400);
 });

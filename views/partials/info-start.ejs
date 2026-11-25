@@ -5,10 +5,9 @@
 <%
   const infoLinks = [
     { key: 'about', href: '/about', label: 'About us', icon: 'award' },
-    { key: 'faq', href: '/faq', label: 'FAQ', icon: 'info' },
     { key: 'contact', href: '/contact', label: 'Contact us', icon: 'headset' },
     { key: 'shipping', href: '/shipping-policy', label: 'Shipping and delivery', icon: 'truck' },
-    { key: 'refund', href: '/refund-policy', label: 'Cancellation and refunds', icon: 'rotate-ccw' },
+    { key: 'refund', href: '/refund-policy', label: 'Cancellation and wallet credit', icon: 'rotate-ccw' },
     { key: 'terms', href: '/terms', label: 'Terms and conditions', icon: 'info' },
     { key: 'privacy', href: '/privacy', label: 'Privacy policy', icon: 'lock' }
   ];
@@ -21,7 +20,7 @@
   <div class="info-layout">
     <nav class="info-nav" aria-label="Help and policies">
       <% infoLinks.forEach(function (link) { %>
-        <a href="<%= link.href %>" class="<%= (typeof pageKey !== 'undefined' && pageKey) === link.key ? 'is-active' : '' %>" <%- (typeof pageKey !== 'undefined' && pageKey) === link.key ? 'aria-current="page"' : '' %>><%- icon(link.icon, 'i-sm') %> <%= link.label %></a>
+        <% const onPage = typeof pageKey !== 'undefined' && pageKey === link.key; %><a href="<%= link.href %>" class="<%= onPage ? 'is-active' : '' %>" <%- onPage ? 'aria-current="page"' : '' %>><%- icon(link.icon, 'i-sm') %> <%= link.label %></a>
       <% }) %>
     </nav>
     <div class="info-main">

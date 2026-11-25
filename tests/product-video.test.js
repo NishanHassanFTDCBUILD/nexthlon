@@ -11,6 +11,13 @@ const base = {
   stock: 3,
 };
 
+test('uploaded local product media survives subsequent product edits', () => {
+  const videoUrl = '/uploads/products/videos/demo.mp4';
+  const {errors, value} = validateProduct({...base, videoUrl});
+  assert.equal(errors.videoUrl, undefined);
+  assert.equal(value.videoUrl, videoUrl);
+});
+
 test('product video: an https MP4 or WebM link is accepted, with or without a query', () => {
   for (const videoUrl of [
     'https://cdn.example.com/shoe-spin.mp4',

@@ -816,7 +816,9 @@ test('recently viewed is synced to the account, preferences are true/false only'
   let page;
   for (let attempt = 0; attempt < 40; attempt += 1) {
     page = await call('GET', '/account/recent', {cookie});
-    if (page.data.includes('Account Trail Shoe')) break;
+    const socksAt = page.data.indexOf('Account Trail Socks');
+    const shoeAt = page.data.indexOf('Account Trail Shoe');
+    if (socksAt > 0 && shoeAt > socksAt) break;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   const socksAt = page.data.indexOf('Account Trail Socks');

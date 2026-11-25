@@ -1,6 +1,6 @@
 <%# Template text. Replace every [bracketed] value and check the times match your courier partners. %>
 <%- include('../partials/info-start', { heading: 'Shipping and delivery policy', lead: 'Where we deliver, how long it takes and what it costs.', updated: true }) %>
-<article class="doc section-box" data-toc>
+<article class="doc section-box">
   <div class="doc-summary">
     <div><strong><%= store.dispatchDays %></strong><span>to pack and dispatch</span></div>
     <div><strong><%= store.deliveryDays %></strong><span>to deliver to most PIN codes</span></div>
@@ -20,9 +20,9 @@
   <p>When your order ships we email you the courier name and tracking number.</p>
 
   <h2>5. Failed delivery</h2>
-  <p>If the courier cannot complete delivery and returns the parcel to us, any amount already paid for the returned items is refunded according to our <a href="/refund-policy">refund policy</a>. No Cash on Delivery amount is collected for an undelivered parcel.</p>
+  <p>If the courier cannot complete delivery and returns the parcel to us, any amount already paid for the returned items is credited to the Nexthlon wallet according to our <a href="/refund-policy">cancellation and wallet credit policy</a>. No Cash on Delivery amount is collected for an undelivered parcel.</p>
 
   <h2>6. Questions</h2>
   <p>Write to <%= store.supportEmail %> or use our <a href="/contact">contact form</a>.</p>
 </article>
-<%- include('../partials/info-end', { scripts: ['doc-toc'] }) %>
+<%- include('../partials/info-end') %>

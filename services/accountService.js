@@ -210,6 +210,7 @@ async function endSession(
 async function deleteAccount(userId, password, context = {}) {
   const user = await checkPassword(userId, password);
   user.isDeleted = true;
+  user.fitProfile = undefined;
   user.deletedAt = new Date();
   user.tokenVersion = (user.tokenVersion || 0) + 1;
   user.recentlyViewed = [];
@@ -231,7 +232,7 @@ async function deleteAccount(userId, password, context = {}) {
 async function lastOrder(userId) {
   return Order.findOne({user: userId})
     .sort({createdAt: -1})
-    .select('orderId orderStatus items createdAt total deliveredAt')
+    .select('orderId orderStatus items createdAt total walletUsed deliveredAt')
     .lean();
 }
 

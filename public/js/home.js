@@ -30,6 +30,7 @@
       Date.parse(countdown.dataset.ends) ||
       Date.now() + Number(countdown.dataset.left || 0);
     const boxes = {
+      d: countdown.querySelector('[data-countdown-d]'),
       h: countdown.querySelector('[data-countdown-h]'),
       m: countdown.querySelector('[data-countdown-m]'),
       s: countdown.querySelector('[data-countdown-s]'),
@@ -47,15 +48,20 @@
     };
     const tick = () => {
       const left = Math.max(0, ends - Date.now());
-      set(boxes.h, pad(Math.floor(left / 3600000)));
+      const days = Math.floor(left / 86400000);
+      set(boxes.d, pad(days));
+      for (const part of countdown.querySelectorAll(
+        '[data-countdown-days], [data-countdown-day-sep]',
+      ))
+        part.hidden = days === 0;
+      set(boxes.h, pad(Math.floor(left / 3600000) % 24));
       set(boxes.m, pad(Math.floor(left / 60000) % 60));
       set(boxes.s, pad(Math.floor(left / 1000) % 60));
       if (left === 0) {
         clearInterval(timer);
-        countdown.setAttribute(
-          'aria-label',
-          "Today's deals have ended. New deals are coming.",
-        );
+        countdown.setAttribute('aria-label', 'The countdown has ended.');
+        const label = countdown.querySelector('[data-countdown-label]');
+        if (label) label.textContent = 'Countdown ended';
       }
     };
     const timer = setInterval(tick, 1000);

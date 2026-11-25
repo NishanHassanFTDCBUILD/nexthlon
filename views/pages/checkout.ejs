@@ -158,7 +158,7 @@
                       <label class="choice"><input type="radio" name="restMethod" value="razorpay" <%= razorpayEnabled ? 'checked' : 'disabled' %>><span>Pay online (UPI, cards, netbanking)</span></label>
                     </fieldset>
                   <% } else { %>
-                    <p>Your wallet is empty. Refunds and referral rewards land here. <a href="/account/referral">Invite friends to earn</a>.</p>
+                    <p>Your wallet is empty. Cancellation credits, return credits and referral rewards land here. <a href="/account/referral">Invite friends to earn</a>.</p>
                   <% } %>
                 </div>
               </div>
@@ -182,15 +182,6 @@
 
             <% const firstEta = chosen && typeof estimates !== 'undefined' ? estimates[String(chosen._id)] : null; %>
             <p class="pay-eta" data-pay-eta <%= firstEta && firstEta.deliverable ? '' : 'hidden' %>><%- icon('truck', 'i-xs') %> Arrives <strong data-pay-eta-text><%= firstEta && firstEta.deliverable ? firstEta.label : '' %></strong><% if (firstEta && firstEta.orderBy) { %> <span class="muted">if you order by <%= firstEta.orderBy %></span><% } %></p>
-            <fieldset class="gift-recipient" data-gift-block>
-              <legend class="label-caps">Gift</legend>
-              <label class="check-label"><input type="checkbox" name="giftFor" data-gift-toggle> <span>These gift cards are for someone else</span></label>
-              <div class="gift-fields" data-gift-fields hidden>
-                <div class="field"><label for="gift-name">Their name</label><input id="gift-name" name="giftName" maxlength="60" autocomplete="off"></div>
-                <div class="field"><label for="gift-email">Their email (the codes are sent here)</label><input id="gift-email" name="giftEmail" type="email" maxlength="254" autocomplete="off"></div>
-                <div class="field"><label for="gift-message">A short message <span class="optional">(optional)</span></label><textarea id="gift-message" name="giftMessage" maxlength="200" rows="2"></textarea></div>
-              </div>
-            </fieldset>
             <div class="pay-submit" data-pay-submit>
               <button class="btn btn-primary btn-lg btn-block pay-btn" type="submit" <%= firstChoice && !quote.problems.length ? '' : 'disabled' %>>
                 <%- icon('lock', 'i-sm') %> <span data-place-text>Pay <%= formatPrice(t.total) %> securely</span>
@@ -200,7 +191,8 @@
               <span class="trust-row-label"><%- icon('lock', 'i-sm') %> 100% secure payments</span>
               <%- include('../partials/payment-icons', { compact: true }) %>
             </div>
-            <p class="hint"><%- icon('shield', 'i-xs') %> By placing your order you agree to our <a href="/terms">terms</a> and <a href="/refund-policy">refund policy</a>.</p>
+            <p class="hint"><%- icon('shield', 'i-xs') %> By placing your order you agree to our <a href="/terms">terms</a> and <a href="/refund-policy">cancellation and wallet credit policy</a>.</p>
+            <p class="hint">Eligible paid cancellations and approved returns credit your Nexthlon wallet for future purchases on Nexthlon.</p>
           </form>
         </div>
       </section>
@@ -252,7 +244,7 @@
       <ul class="panel co-promises" aria-label="Our promises">
         <li><span aria-hidden="true"><%- icon('lock', 'i-sm') %></span><span><strong>Secure payment</strong><small>Paid in Razorpay's window. We never see card or UPI details.</small></span></li>
         <li><span aria-hidden="true"><%- icon('truck', 'i-sm') %></span><span><strong>Tracked delivery</strong><small>Live updates by email from dispatch to your door.</small></span></li>
-        <li><span aria-hidden="true"><%- icon('shield', 'i-sm') %></span><span><strong>Easy returns</strong><small>See our <a href="/refund-policy">refund policy</a> for the details.</small></span></li>
+        <li><span aria-hidden="true"><%- icon('shield', 'i-sm') %></span><span><strong>Easy returns</strong><small>See our <a href="/refund-policy">cancellation and wallet credit policy</a> for the details.</small></span></li>
       </ul>
     </div>
   </div>

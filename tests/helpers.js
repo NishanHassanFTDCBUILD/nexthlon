@@ -18,3 +18,6 @@ process.env.RAZORPAY_WEBHOOK_SECRET = 'test-webhook-secret';
 // Photos go to the local disk, so a Cloudinary or bucket login in your own .env is never used by the tests.
 // A test file that needs another driver sets it itself before loading the app.
 process.env.STORAGE_DRIVER = 'local';
+
+// Test links must use the test server, never the developer's .env origin.
+process.env.SITE_URL = '';

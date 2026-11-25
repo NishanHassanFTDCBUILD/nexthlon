@@ -6,7 +6,7 @@
 //   signInWith(code)    trades the code for the shopper's email, then finds or creates the customer account
 //
 // Facebook only shares an email it has confirmed. Some Facebook accounts (phone-only) have none: those
-// get a clear message and can use email or a phone code instead.
+// get a clear message and can use email or Google instead.
 const crypto = require('crypto');
 const config = require('../config/env');
 const {accountForEmail} = require('./socialAccountService');

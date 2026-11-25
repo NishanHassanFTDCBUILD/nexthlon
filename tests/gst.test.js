@@ -123,32 +123,19 @@ test('gst: shares, words, financial years and suggestions', () => {
   assert.equal(gst.STATE_CODES.Delhi, '07');
 });
 
-test('gst: product tax fields are checked', () => {
+test('new product edits ignore retired GST fields', () => {
   const {validateProduct} = require('../utils/validators');
-  const base = {
+  const result = validateProduct({
     name: 'Trail shoe',
     category: 'c'.repeat(24),
     price: '1000',
     mrp: '1200',
     stock: '3',
-  };
-  assert.deepEqual(
-    validateProduct({
-      ...base,
-      hsn: '6404',
-      gstRate: '5',
-      gstRateAbove: '18',
-      gstAbove: '2500',
-    }).value.tax,
-    {hsn: '6404', rate: 5, rateAbove: 18, above: 250000},
-  );
-  const bad = validateProduct({...base, hsn: '64', gstRate: '12'}).errors;
-  assert.ok(bad.hsn && bad.gstRate, '12% is no longer a slab');
-  assert.deepEqual(
-    validateProduct({...base, hsn: '', gstRate: ''}).value.tax,
-    {hsn: '', rate: null, rateAbove: null, above: null},
-    'empty: use the suggestion',
-  );
+    hsn: '6404',
+    gstRate: '18',
+  });
+  assert.equal(result.value.tax, undefined);
+  assert.equal(result.errors.gstRate, undefined);
 });
 
 if (!process.env.TEST_MONGODB_URI) {
@@ -165,8 +152,6 @@ const app = require('../app');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const categoryService = require('../services/categoryService');
-const gstService = require('../services/gstService');
-const {STORE} = require('../config/store');
 
 const dbUrl = new URL(process.env.TEST_MONGODB_URI);
 dbUrl.pathname = `${dbUrl.pathname.replace(/\/$/, '')}_gst`;
@@ -175,7 +160,6 @@ let server;
 let base;
 let boot;
 let football;
-let socks;
 let shopper;
 const addresses = {};
 
@@ -280,7 +264,7 @@ test.before(async () => {
     manufacturer: 'Nexthlon Imports, Kochi',
     netQuantity: '1 pair',
   });
-  socks = await Product.create({
+  await Product.create({
     name: 'GST Running Socks',
     slug: 'gst-running-socks',
     category: running._id,
@@ -336,145 +320,26 @@ test.after(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-test('gst orders: a Kerala order is CGST + SGST with an invoice number; a Delhi order is IGST and the next number', async () => {
-  assert.equal(STORE.state, 'Kerala');
-  const kerala = await order('Kerala', [
-    [boot, 1],
-    [football, 2],
-  ]);
-  assert.equal(kerala.gst.interstate, false);
-  assert.equal(kerala.gst.placeOfSupply, 'Kerala');
-  assert.match(kerala.gst.invoiceNo, /^NX\/\d{2}-\d{2}\/000001$/);
-  assert.ok(
-    kerala.items.every(
-      (item) =>
-        item.tax &&
-        item.tax.cgst > 0 &&
-        item.tax.sgst > 0 &&
-        item.tax.igst === 0,
-    ),
-  );
-  assert.equal(
-    kerala.items.find((item) => item.name === 'GST Trail Running Shoes').tax
-      .hsn,
-    '6404',
-  );
-  assert.equal(
-    kerala.items.find((item) => item.name === 'GST Match Football').tax.hsn,
-    '9506',
-    'no tax set: the suggestion',
-  );
-  assert.equal(kerala.gst.taxable + kerala.gst.tax, kerala.gst.value);
-  assert.equal(
-    kerala.gst.value,
-    kerala.subtotal - kerala.couponDiscount + kerala.deliveryFee,
-  );
-
-  const delhi = await order('Delhi', [[socks, 1]]);
-  assert.equal(delhi.gst.interstate, true);
-  assert.equal(delhi.gst.placeOfSupply, 'Delhi');
-  assert.ok(
-    delhi.items.every((item) => item.tax.igst > 0 && item.tax.cgst === 0),
-  );
-  assert.match(delhi.gst.invoiceNo, /\/000002$/, 'one unbroken series');
-  assert.ok(
-    delhi.gst.delivery && delhi.gst.delivery.igst > 0,
-    'a small order pays delivery, taxed too',
-  );
-
-  // Issuing again changes nothing.
-  const again = await gstService.issueInvoice(delhi._id);
-  assert.equal(again.gst.invoiceNo, delhi.gst.invoiceNo);
-
-  for (const placed of [kerala, delhi]) {
-    const pdf = await call(shopper, 'GET', `/orders/${placed.orderId}/invoice`);
+test('new orders have no GST snapshots and still provide a receipt', async () => {
+  for (const state of ['Kerala', 'Delhi']) {
+    const placed = await order(state, [
+      [boot, 1],
+      [football, 1],
+    ]);
+    assert.equal(placed.gst, undefined);
+    assert.ok(placed.items.every((item) => !item.tax));
+    const pdf = await call(
+      shopper,
+      'GET',
+      '/orders/' + placed.orderId + '/invoice',
+    );
     assert.equal(pdf.status, 200);
-    assert.match(pdf.type, /application\/pdf/);
     assert.equal(pdf.data.subarray(0, 4).toString(), '%PDF');
-    assert.match(pdf.disposition, /filename="NX-\d{2}-\d{2}-00000\d\.pdf"/);
   }
 });
 
-test('gst orders: cancelling an invoiced item gives a credit note with the same tax, downloadable', async () => {
-  const placed = await order('Kerala', [
-    [boot, 1],
-    [football, 1],
-  ]);
-  const ballLine = placed.items.find(
-    (item) => item.name === 'GST Match Football',
-  );
-  const cancel = await call(
-    shopper,
-    'POST',
-    `/api/orders/${placed.orderId}/items/${ballLine._id}/cancel`,
-    {reason: 'Ordered by mistake'},
-  );
-  assert.equal(cancel.status, 200, JSON.stringify(cancel.data));
-  const after = await Order.findById(placed._id).lean();
-  assert.equal(after.creditNotes.length, 1);
-  const note = after.creditNotes[0];
-  assert.match(note.number, /^CN\/\d{2}-\d{2}\/000001$/);
-  assert.equal(note.lines.length, 1);
-  assert.equal(note.lines[0].cgst, ballLine.tax.cgst);
-  assert.equal(note.value, ballLine.tax.value);
-  assert.equal(
-    note.delivery,
-    null,
-    'the order goes on, so delivery is not taken back',
-  );
-
-  // A second call covers nothing new.
-  assert.equal(await gstService.syncCreditNotes(placed._id), null);
-
-  const pdf = await call(
-    shopper,
-    'GET',
-    `/orders/${placed.orderId}/credit-notes/0`,
-  );
-  assert.equal(pdf.status, 200);
-  assert.equal(pdf.data.subarray(0, 4).toString(), '%PDF');
-  assert.equal(
-    (await call(shopper, 'GET', `/orders/${placed.orderId}/credit-notes/5`))
-      .status,
-    404,
-  );
-  const page = await call(shopper, 'GET', `/orders/${placed.orderId}`);
-  assert.match(page.data, /Credit note CN\/\d{2}-\d{2}\/000001/);
-});
-
-test('gst orders: an unpaid online order has no invoice yet', async () => {
-  const placed = await order('Kerala', [[football, 1]]);
-  await Order.updateOne(
-    {_id: placed._id},
-    {
-      $set: {
-        'gst.invoiceNo': '',
-        paymentMethod: 'razorpay',
-        paymentStatus: 'pending',
-      },
-    },
-  );
-  const refused = await call(
-    shopper,
-    'GET',
-    `/orders/${placed.orderId}/invoice`,
-  );
-  assert.equal(refused.status, 409);
-  const issued = await gstService.issueInvoice(placed._id);
-  assert.match(issued.gst.invoiceNo, /^NX\//);
-  assert.equal(
-    (await call(shopper, 'GET', `/orders/${placed.orderId}/invoice`)).status,
-    200,
-  );
-});
-
-test('gst orders: the product page shows the legally required details', async () => {
-  const page = await call(jar(), 'GET', `/products/${boot.slug}`);
-  assert.match(page.data, /<dt>Country of origin<\/dt><dd>Vietnam<\/dd>/);
-  assert.match(page.data, /<dt>Net quantity<\/dt><dd>1 pair<\/dd>/);
-  assert.match(
-    page.data,
-    /<dt>Manufacturer \/ importer<\/dt><dd>Nexthlon Imports, Kochi<\/dd>/,
-  );
-  assert.match(page.data, /Inclusive of all taxes \(GST\)/);
+test('product page retains product details without GST wording', async () => {
+  const page = await call(jar(), 'GET', '/products/' + boot.slug);
+  assert.match(page.data, /Country of origin/);
+  assert.doesNotMatch(page.data, /Inclusive of all taxes \(GST\)/);
 });

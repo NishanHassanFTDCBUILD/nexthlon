@@ -1,10 +1,7 @@
-// The webhook log: record every payment and courier webhook, list them for the team, and re-run a
-// payment event. Recording never blocks or changes the webhook's answer: a log failure is only logged.
-const mongoose = require('mongoose');
+// The webhook log: record every payment and courier webhook call we receive. Recording never blocks or changes the webhook's answer: a log failure is only logged.
 const WebhookEvent = require('../models/WebhookEvent');
 const logger = require('../utils/logger');
 const {HttpError} = require('../utils/http');
-const {pageSize} = require('../utils/paging');
 
 const PROVIDERS = ['razorpay', 'shiprocket'];
 const OUTCOMES = ['processed', 'ignored', 'rejected', 'failed', 'rerun'];
@@ -75,88 +72,10 @@ async function record({
   }
 }
 
-async function list(query = {}) {
-  const filter = {};
-  if (PROVIDERS.includes(query.provider)) filter.provider = query.provider;
-  if (OUTCOMES.includes(query.outcome)) filter.outcome = query.outcome;
-  const size = pageSize(query, 20);
-  const current = Math.max(1, Number.parseInt(query.page, 10) || 1);
-  const [rows, total] = await Promise.all([
-    WebhookEvent.find(filter)
-      .sort({receivedAt: -1, _id: -1})
-      .skip((current - 1) * size)
-      .limit(size)
-      .select('-rawBody -signature')
-      .lean(),
-    WebhookEvent.countDocuments(filter),
-  ]);
-  return {
-    events: rows.map((r) => ({
-      id: String(r._id),
-      provider: r.provider,
-      event: r.event || '(unreadable)',
-      externalId: r.externalId,
-      signatureOk: r.signatureOk,
-      outcome: r.outcome,
-      error: r.error,
-      receivedAt: r.receivedAt,
-    })),
-    filters: {
-      provider: PROVIDERS.includes(query.provider) ? query.provider : '',
-      outcome: OUTCOMES.includes(query.outcome) ? query.outcome : '',
-    },
-    pagination: {
-      page: current,
-      pages: Math.max(1, Math.ceil(total / size)),
-      total,
-      limit: size,
-    },
-  };
-}
-
-// Re-run a Razorpay payment event we received with a good signature. The original body and
-// signature are used, so the handler checks the same signature again.
-async function rerun(id, handle) {
-  if (!mongoose.isValidObjectId(id))
-    throw new HttpError(404, 'Webhook not found.');
-  const original = await WebhookEvent.findById(id).lean();
-  if (!original) throw new HttpError(404, 'Webhook not found.');
-  if (original.provider !== 'razorpay')
-    throw new HttpError(
-      400,
-      'Only payment (Razorpay) events can be re-run here.',
-    );
-  if (!original.signatureOk || !original.rawBody)
-    throw new HttpError(
-      400,
-      'Only events with a good signature and a stored body can be re-run.',
-    );
-  let error = null;
-  try {
-    await handle(Buffer.from(original.rawBody, 'utf8'), original.signature);
-  } catch (caught) {
-    error = caught;
-  }
-  await record({
-    provider: 'razorpay',
-    event: original.event,
-    externalId: original.externalId,
-    rawBody: original.rawBody,
-    signature: original.signature,
-    signatureOk: true,
-    outcome: error ? outcomeOf(error) : 'rerun',
-    error,
-  });
-  if (error) throw error;
-  return {event: original.event, externalId: original.externalId};
-}
-
 module.exports = {
   PROVIDERS,
   OUTCOMES,
   record,
-  list,
-  rerun,
   outcomeOf,
   describeRazorpay,
 };

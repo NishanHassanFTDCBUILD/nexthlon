@@ -366,7 +366,7 @@ test('inventory: bands, filters, stock value and the CSV export', async () => {
     cookie: adminCookie,
   });
   assert.equal(page.status, 200);
-  assert.match(page.data, /data-inv-form="/);
+  assert.match(page.data, /data-inventory-edit=/);
   assert.match(page.data, /Section Socks/);
 
   const csv = await call('GET', '/api/admin/inventory/export.csv', {
@@ -379,8 +379,17 @@ test('inventory: bands, filters, stock value and the CSV export', async () => {
 });
 
 test('inventory: add, remove and set the exact count, and stock can never go negative', async () => {
-  const change = (id, body) =>
-    call('PATCH', `/api/admin/inventory/${id}`, {body, cookie: adminCookie});
+  const change = async (id, body) =>
+    call('PATCH', `/api/admin/inventory/${id}`, {
+      body: {
+        ...body,
+        requestId: require('node:crypto').randomUUID(),
+        ...(body.action === 'count'
+          ? {expectedStock: (await Product.findById(id)).stock}
+          : {}),
+      },
+      cookie: adminCookie,
+    });
 
   const added = await change(socks._id, {action: 'add', units: 7});
   assert.equal(added.status, 200);
@@ -464,7 +473,7 @@ test('inventory: a product with sizes is changed one size at a time, on the page
   const s9 = String(sized.variants[1]._id);
   const change = (body) =>
     call('PATCH', `/api/admin/inventory/${sized._id}`, {
-      body,
+      body: {...body, requestId: require('node:crypto').randomUUID()},
       cookie: adminCookie,
     });
 
@@ -475,7 +484,7 @@ test('inventory: a product with sizes is changed one size at a time, on the page
   // Each size has its own number field, holding its stock.
   assert.match(
     page.data,
-    /value="0" data-stock="0" data-option-id="[a-f0-9]{24}" data-inv-field aria-label="Stock of [^"]*Size 9"/,
+    /data-inventory-option="[a-f0-9]{24}" aria-label="Edit stock for [^"]*Size 9"/,
   );
 
   const edit = await call('GET', `${ADMIN}/products/${sized._id}/edit`, {

@@ -596,6 +596,16 @@ const PNG = Buffer.from(
 const FAKE_PNG = Buffer.from('this is not an image at all');
 
 async function sendForm(method, path, {fields = {}, files = [], cookie} = {}) {
+  if (
+    method === 'PATCH' &&
+    /^\/api\/admin\/products\/[a-f0-9]{24}$/.test(path) &&
+    cookie &&
+    fields.stockSnapshot === undefined
+  ) {
+    const current = await call('GET', path, {cookie});
+    if (current.status === 200)
+      fields = {...fields, stockSnapshot: current.data.product.stockSnapshot};
+  }
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) form.append(key, value);
   for (const file of files)
@@ -1329,7 +1339,7 @@ test('policy pages, about, contact and wishlist pages render for everyone', asyn
   const pages = {
     '/privacy': /Privacy policy/,
     '/terms': /Terms and conditions/,
-    '/refund-policy': /Cancellation and refund policy/,
+    '/refund-policy': /Cancellation, returns and wallet credit/,
     '/shipping-policy': /Shipping and delivery policy/,
     '/about': /About Nexthlon/,
     '/contact': /data-contact-form/,
@@ -2288,10 +2298,7 @@ test('orders belong to their customer: lists, details, pages and invoices', asyn
   assert.equal(pdf.status, 200);
   assert.equal(pdf.headers.get('content-type'), 'application/pdf');
   // A GST invoice number per financial year (B4): NX/26-27/000001 -> NX-26-27-000001.pdf.
-  assert.match(
-    pdf.headers.get('content-disposition'),
-    /NX-\d{2}-\d{2}-\d{6}\.pdf/,
-  );
+  assert.match(pdf.headers.get('content-disposition'), /INV-\d{4}-\d{6}\.pdf/);
   const bytes = Buffer.from(await pdf.arrayBuffer());
   assert.equal(bytes.subarray(0, 5).toString(), '%PDF-');
 });
@@ -2785,42 +2792,21 @@ test('a closed or failed payment keeps the cart, and the order offers Retry paym
   );
 });
 
-test('cancelling a paid order refunds to the original method through Razorpay, and puts stock back', async () => {
+test('cancelling a paid order credits the wallet and restores stock', async () => {
   const before = (await Product.findById(racket._id)).stock;
+  const callsBefore = razorpayCalls.refunds.length;
   const cancel = await call('POST', `/api/orders/${payer.orderId}/cancel`, {
     body: {reason: 'Ordered by mistake', refundMethod: 'original'},
     cookie: payer.cookie,
   });
   assert.equal(cancel.status, 200);
-  const refund = razorpayCalls.refunds[razorpayCalls.refunds.length - 1];
-  assert.equal(refund.paymentId, 'pay_TESTGOOD01');
-  assert.equal(refund.amount, 900000);
   const order = await Order.findOne({orderId: payer.orderId}).lean();
   assert.equal(order.refundedAmount, 900000);
   assert.equal(order.paymentStatus, 'refunded');
-  assert.equal(order.refunds[0].method, 'original');
-  assert.equal(order.refunds[0].status, 'pending');
+  assert.equal(order.refunds[0].method, 'wallet');
+  assert.equal(order.refunds[0].status, 'processed');
+  assert.equal(razorpayCalls.refunds.length, callsBefore);
   assert.equal((await Product.findById(racket._id)).stock, before + 2);
-
-  assert.equal(
-    await sendWebhook({
-      event: 'refund.processed',
-      payload: {
-        refund: {
-          entity: {
-            id: refund.id || 'rfnd_TEST1',
-            payment_id: 'pay_TESTGOOD01',
-            amount: 900000,
-          },
-        },
-      },
-    }),
-    200,
-  );
-  assert.equal(
-    (await Order.findOne({orderId: payer.orderId}).lean()).refunds[0].status,
-    'processed',
-  );
 });
 
 test('a payment gateway error gives a clear message and leaves no stray order', async () => {
@@ -3356,7 +3342,7 @@ test('wallet: pay for the whole order from the wallet', async () => {
   assert.equal(debit.balanceAfter, 80000);
 });
 
-test('wallet: part paid from the wallet, the rest on delivery; cancelling gives the wallet part back', async () => {
+test('wallet: partial balance requires online payment and full wallet cancellations restore credit', async () => {
   await call('POST', '/api/cart/items', {
     body: {productId: String(shoe._id), quantity: 1},
     cookie: saver.cookie,
@@ -3365,39 +3351,16 @@ test('wallet: part paid from the wallet, the rest on delivery; cancelling gives 
     body: {addressId: saver.addressId, paymentMethod: 'cod', useWallet: true},
     cookie: saver.cookie,
   });
-  assert.equal(res.status, 201);
-  assert.equal(res.data.order.paymentMethod, 'cod');
-  assert.equal(res.data.order.walletUsed, 80000);
-  assert.equal(res.data.order.total, 40000);
-  assert.equal(await balanceOf(saver.user), 0);
-
-  const cancel = await call(
-    'POST',
-    `/api/orders/${res.data.order.orderId}/cancel`,
-    {body: {refundMethod: 'original'}, cookie: saver.cookie},
-  );
-  assert.equal(cancel.status, 200);
-  assert.equal(cancel.data.order.total, 0);
-  assert.equal(cancel.data.order.refundedAmount, 80000);
-  assert.equal(cancel.data.order.paymentStatus, 'refunded');
+  assert.equal(res.status, 400);
+  assert.match(res.data.message, /combined with online payment/);
   assert.equal(await balanceOf(saver.user), 80000);
-  const refund = await WalletTransaction.findOne({
-    user: saver.user._id,
-    kind: 'refund',
-  }).lean();
-  assert.equal(refund.orderId, res.data.order.orderId);
-
-  // Cancelling the fully wallet-paid order refunds it to the wallet too.
-  await call('POST', `/api/orders/${saver.walletOrder}/cancel`, {
+  const cancel = await call('POST', `/api/orders/${saver.walletOrder}/cancel`, {
     body: {},
     cookie: saver.cookie,
   });
+  assert.equal(cancel.status, 200);
   assert.equal(await balanceOf(saver.user), 200000);
-  const page = await call('GET', '/api/wallet?type=credit', {
-    cookie: saver.cookie,
-  });
-  assert.equal(page.data.transactions.length, 3);
-  assert.equal(page.data.totals.debited, 200000);
+  await emptyCart(saver);
 });
 
 test('wallet: the balance can never go below zero, even with two debits at once', async () => {
@@ -3497,23 +3460,21 @@ test('wallet with Razorpay: the wallet pays part, Razorpay the rest; refunds spl
   const cancelled = await Order.findById(order._id).lean();
   assert.deepEqual(
     cancelled.refunds.map((refund) => [refund.method, refund.amount]),
-    [
-      ['original', 200000],
-      ['wallet', 100000],
-    ],
+    [['wallet', 300000]],
   );
   assert.equal(cancelled.paymentStatus, 'refunded');
-  assert.equal(await balanceOf(mixer.user), 100000);
+  assert.equal(await balanceOf(mixer.user), 300000);
 });
 
 test('wallet with Razorpay: a gateway error puts the wallet amount and the coupon use back', async () => {
-  const mixer = {user: await User.findOne({email: 'mixed@nexthlon.test'})};
-  mixer.cookie = (
-    await call('POST', '/api/login', {
-      body: {email: 'mixed@nexthlon.test', password: 'order2024'},
-    })
-  ).cookie;
-  mixer.addressId = String((await Address.findOne({user: mixer.user._id}))._id);
+  const mixer = await newCustomer(
+    'Gateway Failure',
+    'mixed.failure@nexthlon.test',
+  );
+  await walletService.credit(mixer.user._id, 100000, {
+    kind: 'admin',
+    reason: 'Test partial wallet balance',
+  });
   await Coupon.create({
     code: 'GATEWAY',
     type: 'flat',
@@ -3688,7 +3649,7 @@ test('a payment that lands after the shopper cancelled the order is refunded at 
   assert.equal(order.paymentStatus, 'refunded');
   assert.deepEqual(
     order.refunds.map((refund) => [refund.method, refund.amount]),
-    [['original', created.data.amount]],
+    [['wallet', created.data.amount]],
   );
   assert.equal((await Product.findById(kit._id)).stock, stockBefore);
   // The cart was never emptied.

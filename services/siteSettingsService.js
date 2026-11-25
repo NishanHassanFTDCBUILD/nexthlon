@@ -38,7 +38,6 @@ const FIELDS = {
   // ---------- Business details (policy pages, footer, invoices, emails) ----------
   legalName: {group: 'business', type: 'text', max: 120, target: STORE},
   address: {group: 'business', type: 'text', max: 240, target: STORE},
-  gstin: {group: 'business', type: 'text', max: 15, target: STORE},
   supportEmail: {group: 'business', type: 'email', max: 120, target: STORE},
   supportPhone: {group: 'business', type: 'text', max: 20, target: STORE},
   supportHours: {group: 'business', type: 'text', max: 80, target: STORE},
@@ -87,6 +86,13 @@ const FIELDS = {
   reviewsOn: {group: 'shopper', type: 'bool', target: null},
   questionsOn: {group: 'shopper', type: 'bool', target: null},
   stockAlertsOn: {group: 'shopper', type: 'bool', target: null},
+  dealsCountdownMode: {
+    group: 'countdown',
+    type: 'choice',
+    options: ['auto', 'custom', 'hidden'],
+    target: null,
+  },
+  dealsCountdownEndsAt: {group: 'countdown', type: 'datetime', target: null},
   ...Object.fromEntries(
     HOME_SECTIONS.map(([key]) => [
       key,
@@ -109,6 +115,8 @@ const DEFAULTS = Object.freeze({
   reviewsOn: true,
   questionsOn: true,
   stockAlertsOn: true,
+  dealsCountdownMode: 'auto',
+  dealsCountdownEndsAt: '',
   ...Object.fromEntries(HOME_SECTIONS.map(([key]) => [key, true])),
 });
 
@@ -160,6 +168,23 @@ const text = (value) =>
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function readField(key, field, raw) {
+  if (field.type === 'choice') {
+    return field.options.includes(raw)
+      ? {value: raw}
+      : {error: 'Choose a countdown option.'};
+  }
+  if (field.type === 'datetime') {
+    if (raw === '') return {value: ''};
+    if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw))
+      return {error: 'Choose an end date and time in IST.'};
+    const date = new Date(`${raw}:00+05:30`);
+    if (
+      !Number.isFinite(date.getTime()) ||
+      new Date(date.getTime() + 330 * 60000).toISOString().slice(0, 16) !== raw
+    )
+      return {error: 'Choose a valid date and time.'};
+    return {value: date.toISOString()};
+  }
   if (field.type === 'bool')
     return {value: raw === true || raw === 'true' || raw === 'on' || raw === 1};
   if (field.type === 'money' || field.type === 'int') {
@@ -198,13 +223,25 @@ async function update(group, body = {}) {
   const changes = {};
   for (const key of keys) {
     const field = FIELDS[key];
-    if (field.type !== 'bool' && !Object.hasOwn(body, key)) continue;
+    if (!Object.hasOwn(body, key)) continue;
     const {value, error} = readField(key, field, body[key]);
     if (error) errors[key] = error;
     else changes[key] = value;
   }
   if (group === 'shopper' && changes.announceOn && !changes.announceText)
     errors.announceText = 'Write the message, or switch the bar off.';
+  if (group === 'countdown') {
+    const mode = changes.dealsCountdownMode ?? live.dealsCountdownMode;
+    const endsAt = changes.dealsCountdownEndsAt ?? live.dealsCountdownEndsAt;
+    if (mode === 'custom' && !errors.dealsCountdownEndsAt) {
+      const remaining = new Date(endsAt).getTime() - Date.now();
+      if (!Number.isFinite(remaining) || remaining <= 0)
+        errors.dealsCountdownEndsAt = 'Choose a future end date and time.';
+      else if (remaining > 31 * 86400000)
+        errors.dealsCountdownEndsAt =
+          'Choose an end time within the next 31 days.';
+    }
+  }
   if (Object.keys(errors).length)
     throw new HttpError(400, 'Please fix the highlighted fields.', errors);
 

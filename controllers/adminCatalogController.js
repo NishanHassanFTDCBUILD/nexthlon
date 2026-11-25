@@ -29,27 +29,13 @@ const listInventory = asyncHandler(async (req, res) => {
 // One stock change: applied, written to the audit log, and back-in-stock
 // shoppers are emailed when units came back.
 async function applyChange(req, productId, value) {
-  const result = await inventoryService.adjustStock(productId, value);
-  if (result.after > result.before) stockAlertService.kick();
-  await auditService.record({
-    ...auditService.fromRequest(req),
-    action: 'inventory.stock_changed',
-    target: `product:${result.product.id}`,
-    before: {
-      stock: result.before,
-      ...(result.option ? {option: result.option.label} : {}),
-    },
-    after: {
-      stock: result.after,
-      action: value.action,
-      units: value.units,
-      note: value.note,
-      reason: value.reason,
-      ...(result.option
-        ? {option: result.option.label, optionId: result.option.id}
-        : {}),
-    },
-  });
+  const result = await require('../services/inventoryAdjustmentService').apply(
+    auditService.fromRequest(req),
+    productId,
+    value,
+  );
+  if (result.after > result.before && !result.replayed)
+    stockAlertService.kick();
   return result;
 }
 
@@ -70,10 +56,23 @@ const describe = (result) => {
 // PATCH /api/admin/inventory/:productId   body: { action: "add"|"remove"|"count", units, note?, optionId? }
 const adjustStock = asyncHandler(async (req, res) => {
   const value = checked(validateStockChange, req.body);
+  if (!value.requestId)
+    throw new HttpError(
+      400,
+      'An adjustment reference is required. Reload Inventory and try again.',
+    );
+  if (value.action === 'count' && value.expectedStock == null)
+    throw new HttpError(
+      400,
+      'The original stock count is required. Reload Inventory and try again.',
+    );
   const result = await applyChange(req, req.params.productId, value);
+  const current = await inventoryService.currentStock(req.params.productId);
   res.json({
-    message: describe(result),
-    product: result.product,
+    message: result.replayed
+      ? `Adjustment already saved. Current total stock: ${current.product.stock}.`
+      : describe(result),
+    ...current,
     option: result.option || null,
   });
 });
@@ -81,6 +80,33 @@ const adjustStock = asyncHandler(async (req, res) => {
 const stockHistory = asyncHandler(async (req, res) => {
   res.json({
     entries: await inventoryService.stockHistory(req.params.productId),
+  });
+});
+
+const restockCombination = asyncHandler(async (req, res) => {
+  const combination =
+    require('../services/inventoryOptionService').readCombination(req.body);
+  const value = checked(validateStockChange, {
+    ...req.body,
+    action: 'add',
+    reason: 'restock',
+    optionId: null,
+  });
+  if (!value.requestId)
+    throw new HttpError(
+      400,
+      'Reload Inventory before submitting this restock.',
+    );
+  const result = await applyChange(req, req.params.productId, {
+    ...value,
+    combination,
+  });
+  res.json({
+    message: result.replayed
+      ? 'This restock was already saved.'
+      : `${result.optionCreated ? 'New combination added. ' : ''}${describe(result)}`,
+    option: result.option,
+    optionCreated: result.optionCreated,
   });
 });
 
@@ -212,6 +238,7 @@ const setReorder = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  restockCombination,
   setReorder,
   previewRestock,
   applyRestock,

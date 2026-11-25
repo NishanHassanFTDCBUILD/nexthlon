@@ -15,7 +15,7 @@
         <p class="muted">
           <% if (isEdit) { %>
             <span class="pill <%= p.isListed ? 'pill-green' : 'pill-grey' %>"><%= p.isListed ? 'Listed in the store' : 'Unlisted' %></span>
-            <% if (p.isListed) { %>· <a href="/products/<%= p.slug %>">View in store <%- icon('chevron-right', 'i-xs') %></a><% } %>
+            <% if (p.isListed) { %>· <a href="/products/<%= p.slug %>" target="_blank" rel="noopener" data-nav-skip>View in store <%- icon('chevron-right', 'i-xs') %><span class="sr-only">(opens in a new tab)</span></a><% } %>
           <% } else { %>
             The web address and discount are worked out for you when you save.
           <% } %>
@@ -27,11 +27,12 @@
           data-endpoint="<%= isEdit ? '/api/admin/products/' + p.id : '/api/admin/products' %>"
           data-method="<%= isEdit ? 'PATCH' : 'POST' %>">
       <div class="form-alert" data-form-alert aria-live="assertive"></div>
+      <% if (isEdit) { %><input type="hidden" name="stockSnapshot" value="<%= p.stockSnapshot %>"><% } %>
 
       <nav class="product-jump" aria-label="Jump to a section of this form">
         <a href="#sec-details">Details</a>
         <a href="#sec-pricing">Price and stock</a>
-        <a href="#sec-tax">GST and legal</a>
+        <a href="#sec-tax">Product details</a>
         <a href="#sec-options">Sizes and colours</a>
         <a href="#sec-images">Photos</a>
       </nav>
@@ -104,47 +105,9 @@
           </div>
         </section>
 
-        <%
-          const t = p.tax || { hsn: '', rate: null, rateAbove: null, aboveRupees: '' };
-          const s = p.taxSuggestion || { hsn: '9506', label: 'Sports goods', rate: 5, rateAbove: null, above: null };
-          const suggestText = s.label + ': HSN ' + s.hsn + ', ' + s.rate + '%' + (s.rateAbove !== null ? ' up to ₹' + (s.above / 100).toLocaleString('en-IN') + ' a piece, ' + s.rateAbove + '% above' : '');
-        %>
         <section class="panel product-tax-panel" id="sec-tax" aria-labelledby="tax-title">
-          <h2 id="tax-title" class="panel-title">GST and legal details</h2>
-          <p class="muted">Shown on the GST invoice and the product page. Leave HSN and rate empty to use the suggestion: <strong data-tax-suggest-text><%= suggestText %></strong>. Rates changed in September 2025, so confirm them with your chartered accountant.</p>
+          <h2 id="tax-title" class="panel-title">Product details</h2>
           <div class="form-grid form-grid-2">
-            <div class="field">
-              <label for="p-hsn">HSN code</label>
-              <input id="p-hsn" name="hsn" inputmode="numeric" maxlength="8" pattern="\d{4}|\d{6}|\d{8}" value="<%= t.hsn %>" placeholder="<%= s.hsn %>" aria-describedby="p-hsn-error">
-              <p class="field-error" id="p-hsn-error" data-error-for="hsn"></p>
-            </div>
-            <div class="field">
-              <label for="p-gst">GST rate</label>
-              <div class="select-wrap select-field">
-                <select id="p-gst" name="gstRate" aria-describedby="p-gst-error">
-                  <option value="">Use the suggestion (<%= s.rate %>%)</option>
-                  <% [0, 5, 18, 40].forEach(function (r) { %><option value="<%= r %>" <%= t.rate === r ? 'selected' : '' %>><%= r %>%</option><% }) %>
-                </select>
-                <%- icon('chevron-down', 'i-xs') %>
-              </div>
-              <p class="field-error" id="p-gst-error" data-error-for="gstRate"></p>
-            </div>
-            <div class="field">
-              <label for="p-gst-above">Higher rate <span class="optional">(footwear and clothing)</span></label>
-              <div class="select-wrap select-field">
-                <select id="p-gst-above" name="gstRateAbove" aria-describedby="p-gst-above-error">
-                  <option value="">None</option>
-                  <% [5, 18, 40].forEach(function (r) { %><option value="<%= r %>" <%= t.rateAbove === r ? 'selected' : '' %>><%= r %>%</option><% }) %>
-                </select>
-                <%- icon('chevron-down', 'i-xs') %>
-              </div>
-              <p class="field-error" id="p-gst-above-error" data-error-for="gstRateAbove"></p>
-            </div>
-            <div class="field">
-              <label for="p-gst-limit">…for pieces worth more than (₹, before tax)</label>
-              <input id="p-gst-limit" name="gstAbove" type="number" inputmode="decimal" min="1" step="0.01" value="<%= t.aboveRupees %>" placeholder="2500" aria-describedby="p-gst-limit-error">
-              <p class="field-error" id="p-gst-limit-error" data-error-for="gstAbove"></p>
-            </div>
             <div class="field">
               <label for="p-origin">Country of origin</label>
               <input id="p-origin" name="countryOfOrigin" maxlength="60" value="<%= p.countryOfOrigin || 'India' %>" required aria-describedby="p-origin-error">
@@ -160,32 +123,9 @@
               <input id="p-weight" name="shipWeight" type="number" inputmode="numeric" min="0" max="50000" step="1" value="<%= p.shipWeight || '' %>" placeholder="e.g. 450" aria-describedby="p-weight-error">
               <p class="field-error" id="p-weight-error" data-error-for="shipWeight"></p>
             </div>
+
+
             <div class="field">
-              <label for="p-video">Video link <span class="optional">(optional: an https link to an MP4 or WebM)</span></label>
-              <input id="p-video" name="videoUrl" type="url" maxlength="500" value="<%= p.videoUrl || '' %>" placeholder="https://…/shoe-spin.mp4" aria-describedby="p-video-error">
-              <p class="field-error" id="p-video-error" data-error-for="videoUrl"></p>
-              <% if (isEdit) { %>
-              <label class="admin-field"><span>Or upload a video</span>
-                <input type="file" accept="video/mp4,video/webm" data-video-file data-upload-url="/api/admin/products/<%= p.id %>/video" aria-describedby="p-video-status"></label>
-              <p class="hint" id="p-video-status" data-video-status role="status">MP4 or WebM, up to 25 MB. It is set on this product straight away.</p>
-              <% } else { %>
-              <p class="hint">Save the product first, then you can upload a video file for it.</p>
-              <% } %>
-            </div>
-            <div class="field">
-              <label for="p-spin">360 spin <span class="optional">(optional: one image link per line, up to 36, in turning order)</span></label>
-              <textarea id="p-spin" name="spinFrames" rows="4" placeholder="https://…/shoe-001.jpg" aria-describedby="p-spin-error"><%= p.spinFrames || '' %></textarea>
-              <p class="field-error" id="p-spin-error" data-error-for="spinFrames"></p>
-              <% if (p.id) { %>
-              <label class="admin-field"><span>Or upload the photos</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-spin-file data-upload-url="/api/admin/products/<%= p.id %>/spin" aria-describedby="p-spin-status"></label>
-              <p class="hint" id="p-spin-status" data-spin-status role="status">Choose the photos in turning order, 3 to 36, each 2 MB or smaller. They replace the 360 view on this product straight away.</p>
-              <% } else { %>
-              <p class="hint">Save the product first, then you can upload its 360 photos.</p>
-              <% } %>
-            </div>
-            <div class="field">
-              <label class="check-label"><input type="checkbox" name="giftCard" value="on"<%= p.giftCard ? ' checked' : '' %>> <span>This is a gift card. Its price is the value each card carries.</span></label>
             </div>
             <div class="field">
               <label for="p-sku">SKU <span class="optional">(for a product without sizes; sizes have their own)</span></label>
@@ -218,7 +158,16 @@
         </section>
 
         <section class="panel product-images-panel" id="sec-images" aria-labelledby="images-title">
-          <h2 id="images-title" class="panel-title">Photos</h2>
+          <h2 id="images-title" class="panel-title">Photos and video</h2>
+            <div class="field product-video-editor">
+              <label for="p-video">Video link <span class="optional">(optional: an https link to an MP4 or WebM)</span></label>
+              <input id="p-video" name="videoUrl" type="url" maxlength="500" value="<%= p.videoUrl || '' %>" placeholder="https://…/shoe-spin.mp4" aria-describedby="p-video-error">
+              <p class="field-error" id="p-video-error" data-error-for="videoUrl"></p>
+              <label class="admin-field"><span>Or upload a video</span>
+                <input type="file" accept="video/mp4,video/webm" data-video-file data-upload-url="/api/admin/products/<%= p.id %>/video" aria-describedby="p-video-status"></label>
+              <p class="hint" id="p-video-status" data-video-status role="status">MP4 or WebM, up to 25 MB. Uploads when you save the product.</p>
+              <video class="admin-media-video" data-video-preview controls playsinline preload="metadata" hidden></video>
+            </div>
           <p class="muted">Up to 4 JPG, PNG or WEBP images, 2 MB each. Choose the main photo, and use the pencil to crop, rotate or replace one. When the product has colours, pick the colour each photo shows: shoppers see those photos when they choose that colour.</p>
           <div class="image-manager" data-image-manager data-existing="<%= JSON.stringify(p.images) %>" data-colour-photos="<%= JSON.stringify(p.colourPhotos || []) %>" data-editor-src="<%= asset('/js/image-editor.js') %>">
             <ul class="image-tiles" data-image-tiles></ul>

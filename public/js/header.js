@@ -81,8 +81,7 @@
         return;
       }
       listener = new Speech();
-      listener.lang =
-        document.documentElement.lang === 'hi' ? 'hi-IN' : 'en-IN';
+      listener.lang = 'en-IN';
       listener.interimResults = false;
       listener.maxAlternatives = 1;
       listener.onresult = (event) => {
@@ -114,9 +113,14 @@
 
   function engage() {
     form.classList.add('is-active');
+    form.classList.toggle('is-sheet', phone.matches);
+    document.documentElement.classList.toggle(
+      'search-sheet-open',
+      phone.matches,
+    );
     if (phone.matches) {
-      form.classList.add('is-sheet');
-      document.documentElement.classList.add('search-sheet-open');
+      scrim.classList.remove('is-on');
+      scrim.hidden = true;
     } else {
       scrim.hidden = false;
       requestAnimationFrame(() => scrim.classList.add('is-on'));

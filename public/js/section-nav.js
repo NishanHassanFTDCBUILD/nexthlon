@@ -72,6 +72,18 @@
   let request = null; // the AbortController of the fetch in flight
   const keyOf = (url) => url.pathname + url.search;
   let shownUrl = keyOf(location);
+  let askingToLeave = false;
+  const unsaved = () => main.querySelector('[data-unsaved="true"]');
+  window.addEventListener('beforeunload', (event) => {
+    if (
+      !unsaved() &&
+      !main.querySelector('[data-pending="true"]') &&
+      !window.Nx.hasPendingAdminWrites?.()
+    )
+      return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
 
   // ---------- Section scripts ----------
   function start(root) {
@@ -136,30 +148,85 @@
     else window.location.assign(url);
   }
 
+  function clearUnsaved() {
+    main.querySelectorAll('[data-unsaved="true"]').forEach((form) => {
+      delete form.dataset.unsaved;
+    });
+  }
+
   // mode: "push" (a click), "replace" (refresh the same section after a change), "pop" (Back/Forward).
   async function load(href, mode = 'push') {
     const url = new URL(href, location.href);
+    if (
+      main.querySelector('[data-pending="true"]') ||
+      window.Nx.hasPendingAdminWrites?.()
+    ) {
+      window.Nx.toast('Please wait for the current save to finish.');
+      if (mode === 'pop') history.pushState({}, '', shownUrl);
+      return;
+    }
+    if (unsaved()) {
+      if (askingToLeave) return;
+      askingToLeave = true;
+      let leave;
+      try {
+        leave = await window.Nx.confirm({
+          title: 'Leave unsaved changes?',
+          message: 'Your changes have not been saved.',
+          confirmLabel: 'Discard changes',
+        });
+      } finally {
+        askingToLeave = false;
+      }
+      if (!leave) {
+        if (mode === 'pop') history.pushState({}, '', shownUrl);
+        return;
+      }
+    }
     if (!inArea(url)) {
+      clearUnsaved();
       fullLoad(url.href, mode);
       return;
     }
     if (request) request.abort();
     const controller = new AbortController();
     request = controller;
-    const spinner = setTimeout(
-      () => main.classList.add('is-loading'),
-      SPINNER_DELAY,
-    );
+    const spinner = setTimeout(() => {
+      if (request === controller) main.classList.add('is-loading');
+    }, SPINNER_DELAY);
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 20000);
     main.setAttribute('aria-busy', 'true');
     try {
-      const response = await fetch(url.href, {
+      const options = {
         headers: {'X-Partial': '1', Accept: 'text/html'},
         credentials: 'same-origin',
         cache: 'no-store',
         signal: controller.signal,
-      });
+      };
+      let response = await fetch(url.href, options);
+      if (controller.signal.aborted || request !== controller) return;
+      const login = area === 'admin' ? `${adminBase}/login` : '/login';
+      // A normal access-token expiry must not tear down the editor or flash the sign-in page.
+      if (
+        (response.status === 401 ||
+          new URL(response.url || url.href).pathname === login) &&
+        window.Nx.renewSession &&
+        (await window.Nx.renewSession())
+      ) {
+        if (controller.signal.aborted || request !== controller) return;
+        response = await fetch(url.href, options);
+      }
+      if (controller.signal.aborted || request !== controller) return;
+      if (response.status >= 500 || response.status === 429) {
+        throw new Error('Section temporarily unavailable');
+      }
       const finalUrl = new URL(response.url || url.href);
       const html = await response.text();
+      if (controller.signal.aborted || request !== controller) return;
       const fresh = new DOMParser()
         .parseFromString(html, 'text/html')
         .querySelector('[data-page]');
@@ -170,6 +237,7 @@
         fresh.dataset.pageFull === '1' ||
         !inArea(finalUrl)
       ) {
+        clearUnsaved();
         fullLoad(url.href, mode);
         return;
       }
@@ -179,10 +247,25 @@
       if (!finalUrl.hash) finalUrl.hash = url.hash;
       swap(fresh, finalUrl.href, mode);
     } catch (error) {
-      if (error && error.name === 'AbortError') return;
-      fullLoad(url.href, mode);
+      if (request !== controller || (error?.name === 'AbortError' && !timedOut))
+        return;
+      // A committed create must never leave an old create form available for duplicate submission.
+      if (main.querySelector('[data-saved="true"]')) {
+        clearUnsaved();
+        fullLoad(url.href, mode);
+        return;
+      }
+      if (mode === 'pop')
+        history.pushState({nxNav: true, scrollY: window.scrollY}, '', shownUrl);
+      window.Nx.toast(
+        timedOut
+          ? 'That page took too long. Your current page is still here; try again.'
+          : "We couldn't open that page. Your current page and unsaved changes are still here; try again.",
+        'error',
+      );
     } finally {
       clearTimeout(spinner);
+      clearTimeout(timeout);
       if (request === controller) {
         request = null;
         main.classList.remove('is-loading');
@@ -212,8 +295,7 @@
     // when the same section refreshes after a change.
     if (mode === 'push') {
       const hashTarget =
-        location.hash &&
-        document.getElementById(decodeURIComponent(location.hash.slice(1)));
+        location.hash && document.getElementById(safeHash(location.hash));
       if (hashTarget) hashTarget.scrollIntoView();
       else if (window.scrollY > contentTop()) window.scrollTo(0, contentTop());
     } else if (mode === 'pop') {
@@ -221,6 +303,14 @@
       window.scrollTo(0, Number.isFinite(saved) ? saved : 0);
     }
     focusHeading(root);
+  }
+
+  function safeHash(hash) {
+    try {
+      return decodeURIComponent(hash.slice(1));
+    } catch {
+      return hash.slice(1);
+    }
   }
 
   // ---------- Links and GET forms ----------

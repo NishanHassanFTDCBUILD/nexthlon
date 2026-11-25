@@ -124,7 +124,6 @@ test('checkout input: only the address and payment method are read', () => {
       paymentMethod: 'cod',
       useWallet: false,
       source: 'cart',
-      giftRecipient: null,
     },
     'prices and totals sent by the browser are never read',
   );
@@ -157,7 +156,7 @@ test('checkout input: only the address and payment method are read', () => {
   assert.equal(
     validateCancel({reason: rules.CANCEL_REASONS[0], refundMethod: 'original'})
       .value.refundMethod,
-    'original',
+    'wallet',
   );
   assert.ok(validateReturn({reason: 'Just because'}).errors.reason);
   assert.equal(

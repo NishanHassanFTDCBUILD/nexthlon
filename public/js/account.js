@@ -10,6 +10,104 @@
   'use strict';
 
   const Pages = (window.NxPages = window.NxPages || {});
+  define('account-profile', (root, signal) => {
+    const pending = new WeakSet();
+    root.addEventListener(
+      'input',
+      (event) => {
+        const form = event.target.closest('form');
+        if (form) {
+          form.dataset.unsaved = 'true';
+          const status = form.querySelector('[data-profile-status]');
+          if (status) status.textContent = 'Unsaved changes';
+        }
+      },
+      {signal},
+    );
+    root.addEventListener(
+      'click',
+      (event) => {
+        if (!event.target.closest('[data-clear-fit]')) return;
+        const form = root.querySelector('[data-fit-profile]');
+        if (pending.has(form)) return;
+        form.querySelectorAll('[name="sports"]').forEach((input) => {
+          input.checked = false;
+        });
+        form.elements.clothing.value = '';
+        form.elements.shoeSize.value = '';
+        form.elements.shoeSystem.value = 'UK';
+        form.dataset.unsaved = 'true';
+        form.querySelector('[data-profile-status]').textContent =
+          'Save to clear your preferences';
+      },
+      {signal},
+    );
+    root.addEventListener(
+      'submit',
+      async (event) => {
+        const form = event.target.closest(
+          '[data-profile-details], [data-fit-profile]',
+        );
+        if (!form) return;
+        event.preventDefault();
+        if (pending.has(form)) return;
+        pending.add(form);
+        form.dataset.pending = 'true';
+        const status = form.querySelector('[data-profile-status]');
+        if (status) status.textContent = 'Saving…';
+        const isFit = form.matches('[data-fit-profile]');
+        const body = isFit
+          ? {
+              sports: [...form.querySelectorAll('[name="sports"]:checked')].map(
+                (input) => input.value,
+              ),
+              clothing: form.elements.clothing.value,
+              shoeSystem: form.elements.shoeSystem.value,
+              shoeSize: form.elements.shoeSize.value,
+            }
+          : {name: form.elements.name.value, phone: form.elements.phone.value};
+        const controls = [
+          ...form.querySelectorAll('input, select, button'),
+        ].map((control) => ({control, disabled: control.disabled}));
+        controls.forEach(({control}) => {
+          control.disabled = true;
+        });
+        try {
+          const reply = await Nx.submitForm(form, {
+            url: isFit ? '/api/profile/fit' : '/api/profile',
+            method: 'PATCH',
+            body,
+            busyLabel: 'Saving…',
+          });
+          if (reply) {
+            delete form.dataset.unsaved;
+            if (status) status.textContent = 'Changes saved';
+            if (!isFit && reply.user) {
+              const name = reply.user.name;
+              form.elements.name.value = name;
+              document
+                .querySelectorAll('[data-user-name], [data-profile-name]')
+                .forEach((element) => {
+                  element.textContent = name;
+                });
+              root.querySelector('[data-profile-initial]').textContent = name
+                .charAt(0)
+                .toUpperCase();
+            }
+            Nx.toast(reply.message);
+          } else if (status)
+            status.textContent = 'Review the highlighted details';
+        } finally {
+          pending.delete(form);
+          delete form.dataset.pending;
+          controls.forEach(({control, disabled}) => {
+            control.disabled = disabled;
+          });
+        }
+      },
+      {signal},
+    );
+  });
 
   // define(name, setup): setup(root, signal) attaches the section's listeners and may return a
   // cleanup function for anything else (timers, elements outside the root).
@@ -51,8 +149,9 @@
   // swaps just the content; without it the page reloads and the message shows after.
   function refresh(message, type = 'success') {
     if (window.NxNav && window.NxNav.reload) {
-      window.NxNav.reload().then(() => message && Nx.toast(message, type));
-      return;
+      return window.NxNav.reload().then(
+        () => message && Nx.toast(message, type),
+      );
     }
     if (message) Nx.flash(message, type);
     window.location.reload();
@@ -215,6 +314,79 @@
     const returnDialog = root.querySelector('#return-dialog');
     const returnForm =
       returnDialog && returnDialog.querySelector('[data-return-form]');
+    const exchangeDialog = root.querySelector('#exchange-dialog');
+    const exchangeForm = root.querySelector('[data-exchange-form]');
+    const pendingForms = new WeakSet();
+    async function submitOrderForm(form, options, dialog) {
+      if (!form || pendingForms.has(form) || signal.aborted) return;
+      pendingForms.add(form);
+      try {
+        const reply = await Nx.submitForm(form, options);
+        if (reply && !signal.aborted) {
+          dialog.close();
+          await refresh(reply.message);
+        }
+      } finally {
+        pendingForms.delete(form);
+      }
+    }
+
+    on(
+      root,
+      'click',
+      '[data-exchange-open]',
+      (event, button) => {
+        event.preventDefault();
+        if (!exchangeDialog || !exchangeForm) return;
+        let options;
+        try {
+          options = JSON.parse(button.dataset.options || '[]');
+        } catch {
+          options = [];
+        }
+        if (!Array.isArray(options) || !options.length) {
+          Nx.toast('No other sizes are available right now.', 'info');
+          return;
+        }
+        exchangeForm.reset();
+        Nx.clearErrors(exchangeForm);
+        exchangeForm.elements.variantId.replaceChildren(
+          ...options.map((option) => {
+            const node = document.createElement('option');
+            node.value = option.id;
+            node.textContent = option.label;
+            return node;
+          }),
+        );
+        exchangeForm.elements.itemId.value = button.dataset.exchangeOpen;
+        exchangeDialog.querySelector('[data-exchange-name]').textContent =
+          button.dataset.itemName || '';
+        exchangeDialog.showModal();
+      },
+      signal,
+    );
+    on(
+      root,
+      'click',
+      '[data-exchange-close]',
+      () => exchangeDialog?.close(),
+      signal,
+    );
+    on(
+      root,
+      'submit',
+      '[data-exchange-form]',
+      (event, form) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        return submitOrderForm(
+          form,
+          {url: `/api/orders/${orderId}/exchange`, busyLabel: 'Sending.'},
+          exchangeDialog,
+        );
+      },
+      signal,
+    );
 
     on(
       root,
@@ -228,11 +400,16 @@
         cancelDialog.querySelector('[data-cancel-title]').textContent = item
           ? `Cancel ${button.dataset.itemName}?`
           : 'Cancel this order?';
+        cancelDialog.querySelector('[data-cancel-submit-label]').textContent =
+          item ? 'Cancel item' : 'Cancel order';
         cancelDialog.querySelector('[data-cancel-text]').textContent =
           page.dataset.paid === 'true'
-            ? 'The money for this goes back to you, and the item goes back on the shelf.'
+            ? 'Cancel before shipment to receive the eligible paid amount as Nexthlon wallet credit.'
             : 'The items go back on the shelf and you will not be charged for them.';
         cancelDialog.showModal();
+        cancelDialog
+          .querySelector('[data-cancel-title]')
+          .focus({preventScroll: true});
       },
       signal,
     );
@@ -259,18 +436,18 @@
         const url = values.itemId
           ? `/api/orders/${orderId}/items/${encodeURIComponent(values.itemId)}/cancel`
           : `/api/orders/${orderId}/cancel`;
-        const reply = await Nx.submitForm(cancelForm, {
-          url,
-          body: {
-            reason: values.reason,
-            refundMethod: values.refundMethod || 'wallet',
+        await submitOrderForm(
+          cancelForm,
+          {
+            url,
+            body: {
+              reason: values.reason,
+              refundMethod: 'wallet',
+            },
+            busyLabel: 'Cancelling…',
           },
-          busyLabel: 'Cancelling…',
-        });
-        if (reply) {
-          cancelDialog.close();
-          refresh(reply.message);
-        }
+          cancelDialog,
+        );
       },
       signal,
     );
@@ -289,15 +466,15 @@
         }
         const body =
           photos && photos.files.length ? new FormData(returnForm) : undefined;
-        const reply = await Nx.submitForm(returnForm, {
-          url: `/api/orders/${orderId}/return`,
-          body,
-          busyLabel: 'Sending…',
-        });
-        if (reply) {
-          returnDialog.close();
-          refresh(reply.message);
-        }
+        await submitOrderForm(
+          returnForm,
+          {
+            url: `/api/orders/${orderId}/return`,
+            body,
+            busyLabel: 'Sending…',
+          },
+          returnDialog,
+        );
       },
       signal,
     );

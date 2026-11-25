@@ -1,36 +1,56 @@
 <%- include('../partials/admin-start', { section: 'customers', page: 'customer-wallet' }) %>
-<a href="<%= adminPath %>/customers" class="btn btn-secondary btn-sm">Back to customers</a>
-<header class="admin-top"><div><span class="section-kicker">Customer wallet</span><h1><%= customer.name %></h1><p class="muted"><%= customer.email %><%= customer.isBlocked ? ' · Blocked account' : '' %></p></div></header>
-<section class="panel" aria-label="Wallet balance">
-  <h2>Available credit: <span data-admin-wallet-balance><%= formatPrice(balance) %></span></h2>
-  <p class="muted">Total received <%= formatPrice(totals.credited) %> · Total spent <%= formatPrice(totals.debited) %></p>
-  <p>Store credit can pay for Nexthlon orders. Adding credit here does not collect a payment from the customer.</p>
+<div class="wallet-workspace">
+<nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb"><a href="<%= adminPath %>/customers">Customers</a><span aria-hidden="true">/</span><a href="<%= adminPath %>/customers/<%= customer.id %>"><%= customer.name %></a><span aria-hidden="true">/</span><span aria-current="page">Wallet</span></nav>
+<header class="admin-top"><div><span class="section-kicker">Customer wallet</span><h1><%= customer.name %></h1><p class="muted"><%= customer.email %></p><% if(customer.isBlocked) { %><span class="pill pill-red">Blocked account</span><% } %></div><a class="btn btn-secondary btn-sm" href="<%= adminPath %>/customers/<%= customer.id %>">View customer</a></header>
+<section class="wallet-summary" aria-label="Wallet overview">
+  <div class="panel wallet-balance-card"><span class="section-kicker">Available store credit</span><strong data-admin-wallet-balance><%= formatPrice(balance) %></strong><p class="muted">Available for purchases on Nexthlon.</p></div>
+  <div class="panel wallet-total-card"><span>Total credited</span><strong><%= formatPrice(totals.credited) %></strong><p class="muted">All wallet credits</p></div>
+  <div class="panel wallet-total-card"><span>Total debited</span><strong><%= formatPrice(totals.debited) %></strong><p class="muted">Purchases and credit removals</p></div>
 </section>
-<section class="panel">
-  <h2>Adjust wallet credit</h2>
-  <form class="form" data-admin-wallet-form data-user-id="<%= customer.id %>">
+<div class="wallet-columns">
+<section class="panel wallet-adjustment" aria-labelledby="wallet-adjust-title">
+  <span class="section-kicker">Manual adjustment</span><h2 id="wallet-adjust-title">Adjust store credit</h2><p class="muted">Choose an action, enter the amount, then review before applying.</p>
+  <form class="form" data-admin-wallet-form data-user-id="<%= customer.id %>" data-balance="<%= balance %>">
     <div class="form-alert" data-form-alert role="alert"></div>
-    <label for="wallet-type">Action</label>
-    <select id="wallet-type" name="type" required><option value="credit">Add credit</option><option value="debit">Remove credit</option></select>
-    <p class="field-error" data-error-for="type"></p>
-    <label for="wallet-amount">Amount (₹)</label>
-    <input id="wallet-amount" name="amount" type="number" inputmode="decimal" min="0.01" max="100000" step="0.01" required>
-    <p class="field-error" data-error-for="amount"></p>
-    <label for="wallet-reason">Reason</label>
-    <input id="wallet-reason" name="reason" minlength="3" maxlength="160" required placeholder="For example: goodwill credit for a delayed order">
-    <p class="field-error" data-error-for="reason"></p>
-    <p class="hint">Every change is recorded in the customer's wallet history and the admin audit log. Credit cannot be removed below zero.</p>
+    <div class="field"><label for="wallet-type">Action</label><select id="wallet-type" name="type" required><option value="credit">Add credit</option><option value="debit">Remove credit</option></select><p class="field-error" data-error-for="type"></p></div>
+    <div class="field"><label for="wallet-amount">Amount (INR)</label><input id="wallet-amount" name="amount" type="number" inputmode="decimal" min="0.01" max="100000" step="0.01" required placeholder="0.00" aria-describedby="wallet-amount-hint"><p id="wallet-amount-hint" class="hint">Enter ₹0.01 to ₹1,00,000. Use up to two decimal places.</p><p class="field-error" data-error-for="amount"></p></div>
+    <div class="field"><label for="wallet-reason">Reason for this adjustment</label><textarea id="wallet-reason" name="reason" rows="3" minlength="3" maxlength="160" required placeholder="For example: goodwill credit for a delayed order" aria-describedby="wallet-reason-hint"></textarea><p id="wallet-reason-hint" class="hint">Visible in the customer's wallet history. Be clear and specific.</p><p class="field-error" data-error-for="reason"></p></div>
+    <div class="wallet-preview" data-wallet-preview aria-live="polite" aria-atomic="true">
+      <div><span>Current balance</span><strong><%= formatPrice(balance) %></strong></div>
+      <div><span data-wallet-action-label>Credit to add</span><strong data-wallet-change>—</strong></div>
+      <div class="wallet-preview-total"><span>Balance after adjustment</span><strong data-wallet-after><%= formatPrice(balance) %></strong></div>
+      <p class="hint" data-wallet-preview-hint>Enter an amount to preview the change. Nothing has been applied.</p>
+    </div>
     <button class="btn btn-primary" type="submit">Review adjustment</button>
   </form>
-  <p><a href="<%= adminPath %>/settings">Manage referral rewards</a> · <a href="<%= adminPath %>/transactions">View money ledger</a></p>
+  <p class="wallet-safety-note">Adding credit does not collect a payment. Every adjustment is recorded in wallet history and the admin audit log. The balance cannot go below zero.</p>
 </section>
-<section class="panel">
-  <h2>Wallet history</h2>
-  <% if (!transactions.length) { %><p class="muted">No wallet transactions yet.</p><% } else { %>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Reason</th><th>Source</th><th>Amount</th><th>Balance after</th></tr></thead><tbody>
-    <% transactions.forEach(function(t) { %><tr><td><%= formatDate(t.createdAt) %></td><td><%= t.reason %><% if(t.orderId) { %> · <%= t.orderId %><% } %></td><td><%= t.kind %></td><td><%= t.type === 'credit' ? '+' : '-' %><%= formatPrice(t.amount) %></td><td><%= formatPrice(t.balanceAfter) %></td></tr><% }) %>
-  </tbody></table></div>
-  <%- include('../partials/pagination', { pagination, link }) %>
+<section class="panel wallet-history" aria-labelledby="wallet-history-title">
+  <div class="wallet-section-heading"><div><span class="section-kicker">Activity</span><h2 id="wallet-history-title">Transaction history</h2></div><span class="pill pill-grey"><%= transactions.length %> on this page</span></div>
+  <% if (!transactions.length) { %>
+    <div class="wallet-empty"><h3>No transactions yet</h3><p class="muted">Credits, purchases and manual adjustments will appear here.</p></div>
+  <% } else { %>
+    <div class="wallet-history-tools" data-wallet-history-tools hidden>
+      <div class="field"><label for="wallet-history-search">Search this page</label><input id="wallet-history-search" type="search" data-wallet-history-search placeholder="Reason, source or order number"></div>
+      <div class="field"><label for="wallet-history-type">Transaction type</label><select id="wallet-history-type" data-wallet-history-type><option value="all">All activity</option><option value="credit">Credits only</option><option value="debit">Debits only</option></select></div>
+    </div>
+    <p class="hint" data-wallet-history-status role="status"></p>
+    <div class="table-wrap"><table class="table wallet-history-table">
+      <caption class="sr-only">Customer wallet transactions, newest first</caption>
+      <thead><tr><th scope="col">Transaction</th><th scope="col">Amount</th><th scope="col">Balance after</th></tr></thead><tbody>
+      <% const sources = {admin: 'Admin adjustment', order: 'Order payment', refund: 'Cancellation / return', referral: 'Referral reward', gift_card: 'Gift card'}; %>
+      <% transactions.forEach(function(t) { %>
+        <tr data-wallet-history-row data-type="<%= t.type %>">
+          <td><strong class="wallet-transaction-reason"><%= t.reason %></strong><div class="wallet-transaction-meta"><time datetime="<%= new Date(t.createdAt).toISOString() %>"><%= formatDate(t.createdAt) %></time><span><%= sources[t.kind] || t.kind %></span></div><% if(t.orderId) { %><a class="wallet-order-link" href="<%= adminPath %>/orders/<%= encodeURIComponent(t.orderId) %>"><%= t.orderId %></a><% } %></td>
+          <td class="wallet-money"><span class="wallet-amount <%= t.type === 'credit' ? 'is-credit' : 'is-debit' %>"><%= t.type === 'credit' ? '+' : '−' %><%= formatPrice(t.amount) %></span><small><%= t.type === 'credit' ? 'Credit' : 'Debit' %></small></td><td class="wallet-money"><%= formatPrice(t.balanceAfter) %></td>
+        </tr>
+      <% }) %>
+      </tbody></table></div>
+    <div class="wallet-empty" data-wallet-history-empty hidden><h3>No matching transactions on this page</h3><p class="muted">Try another search or choose All activity.</p><button type="button" class="btn btn-secondary btn-sm" data-wallet-history-reset>Clear filters</button></div>
+    <%- include('../partials/pagination', { pagination, link }) %>
   <% } %>
 </section>
+</div>
+<nav class="wallet-related" aria-label="Related wallet tools"><a href="<%= adminPath %>/transactions">View money ledger</a><a href="<%= adminPath %>/settings">Manage referral rewards</a></nav>
+</div>
 <%- include('../partials/admin-end') %>

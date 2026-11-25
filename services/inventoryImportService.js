@@ -106,6 +106,7 @@ async function preview(body, actor, now = new Date()) {
   if (!valid) return {rows: prepared, batchId: null, valid: false};
   const batch = await InventoryBatch.create({
     actor,
+    recoveryVersion: 1,
     rows: prepared,
     applyBefore: new Date(now.getTime() + 15 * 60 * 1000),
     expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
@@ -118,9 +119,28 @@ async function preview(body, actor, now = new Date()) {
 async function apply(batchId, actor, change, now = new Date()) {
   if (!mongoose.isValidObjectId(batchId))
     throw new HttpError(404, 'Import preview not found.');
+  const lockToken = require('node:crypto').randomUUID();
   const batch = await InventoryBatch.findOneAndUpdate(
-    {_id: batchId, actor, status: 'preview', applyBefore: {$gt: now}},
-    {$set: {status: 'applying'}},
+    {
+      _id: batchId,
+      actor,
+      $or: [
+        {status: 'preview', applyBefore: {$gt: now}},
+        {status: 'applying', recoveryVersion: 1, lockedUntil: {$lte: now}},
+        {
+          status: 'completed',
+          recoveryVersion: 1,
+          results: {$elemMatch: {status: 'review'}},
+        },
+      ],
+    },
+    {
+      $set: {
+        status: 'applying',
+        lockToken,
+        lockedUntil: new Date(now.getTime() + 5 * 60 * 1000),
+      },
+    },
     {new: true},
   );
   if (!batch) {
@@ -131,12 +151,21 @@ async function apply(batchId, actor, change, now = new Date()) {
     throw new HttpError(
       409,
       previous.status === 'applying'
-        ? 'This batch is running or needs review. Do not submit it again; check stock history.'
+        ? 'This batch is running. Recovery is available after its five-minute lease expires.'
         : 'The preview expired. Prepare a new preview.',
     );
   }
-  const results = [];
+  const results = [...(batch.results || [])].map((row) =>
+    row.toObject ? row.toObject() : row,
+  );
   for (const [index, row] of batch.rows.entries()) {
+    if (
+      results.some(
+        (result) => result.row === index + 2 && result.status === 'applied',
+      )
+    )
+      continue;
+    let outcome;
     try {
       await change(row.productId, {
         action: 'add',
@@ -144,16 +173,17 @@ async function apply(batchId, actor, change, now = new Date()) {
         optionId: row.optionId || null,
         reason: row.reason,
         note: row.note,
+        requestId: `batch:${batchId}:${index}`,
       });
-      results.push({
+      outcome = {
         row: index + 2,
         productId: row.productId,
         status: 'applied',
         message: 'Stock added.',
-      });
+      };
     } catch (error) {
       // Even an uncertain database response is never retried automatically.
-      results.push({
+      outcome = {
         row: index + 2,
         productId: row.productId,
         status: 'review',
@@ -161,13 +191,33 @@ async function apply(batchId, actor, change, now = new Date()) {
           error instanceof HttpError
             ? error.message
             : 'Change could not be confirmed. Review stock history before making another adjustment.',
-      });
+      };
     }
+    const previous = results.findIndex((result) => result.row === index + 2);
+    if (previous < 0) results.push(outcome);
+    else results[previous] = outcome;
+    const saved = await InventoryBatch.updateOne(
+      {_id: batchId, actor, lockToken},
+      {
+        $set: {results, lockedUntil: new Date(Date.now() + 5 * 60 * 1000)},
+      },
+    );
+    if (!saved.matchedCount)
+      throw new HttpError(
+        409,
+        'Another worker is recovering this batch. Refresh its progress.',
+      );
   }
-  batch.results = results;
-  batch.status = 'completed';
-  await batch.save();
-  return {status: batch.status, results};
+  const completed = await InventoryBatch.updateOne(
+    {_id: batchId, actor, lockToken},
+    {
+      $set: {results, status: 'completed'},
+      $unset: {lockedUntil: 1, lockToken: 1},
+    },
+  );
+  if (!completed.matchedCount)
+    throw new HttpError(409, 'The import lease changed. Refresh its progress.');
+  return {status: 'completed', results};
 }
 
 module.exports = {COLUMNS, readRows, preview, apply};

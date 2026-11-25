@@ -27,7 +27,7 @@ test('stock changes preserve a valid reason, reject unknown reasons, and retain 
   );
 });
 
-test('inventory renders every existing sort and status, stock value, alert counts and labelled corrections', async () => {
+test('inventory renders filters, variant stock rows and one shared drawer', async () => {
   const filters = {
     q: '',
     category: '',
@@ -58,7 +58,22 @@ test('inventory renders every existing sort and status, stock value, alert count
           waiting: 2,
           state: 'low',
           isListed: true,
-          options: [],
+          options: [
+            {
+              id: 'black-5',
+              label: 'Size 5 · Black',
+              size: '5',
+              colour: 'Black',
+              stock: 1,
+            },
+            {
+              id: 'white-6',
+              label: 'Size 6 · White',
+              size: '6',
+              colour: 'White',
+              stock: 2,
+            },
+          ],
         },
       ],
       icon: () => '',
@@ -71,10 +86,19 @@ test('inventory renders every existing sort and status, stock value, alert count
     assert.ok(html.includes(`value="${key}"`));
   for (const key of ['out', 'low', 'healthy', 'unlisted'])
     assert.ok(html.includes(`value="${key}"`));
-  assert.match(html, /paise:60000/);
-  assert.match(html, /data-label="Waiting for alerts">2/);
+  assert.match(html, /paise:40000/);
   assert.match(html, /name="reason" required/);
-  assert.match(html, /data-stock-history="test"/);
+  assert.doesNotMatch(html, /data-stock-history|data-reorder-form/);
   assert.match(html, /&lt;test&gt;/);
   assert.match(html, /<table /);
+  assert.match(html, /data-stock-variant="black-5"/);
+  assert.match(html, /data-label="Color"><span class="stock-color-name">Black/);
+  assert.match(html, /data-label="Size"><strong>6/);
+  assert.match(html, /data-variant-quantity>2/);
+  assert.equal((html.match(/data-inventory-drawer /g) || []).length, 1);
+  assert.doesNotMatch(
+    html,
+    /inventory-product-card|inventory-edit-pane|data-stock-editor/,
+  );
+  assert.match(html, /data-inventory-products/);
 });

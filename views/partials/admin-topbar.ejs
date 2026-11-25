@@ -35,7 +35,7 @@
         </div>
         <div class="menu-group">
           <a href="<%= adminPath %>/settings"><%- icon('settings') %> Settings</a>
-          <a href="/" data-nav-skip data-logout="/api/admin/logout" data-logout-to="/"><%- icon('home') %> View store (signs you out)</a>
+            <a href="/" target="_blank" rel="noopener" data-nav-skip><%- icon('home') %> View store <span class="sr-only">(opens in a new tab)</span></a>
         </div>
         <div class="menu-group">
           <button type="button" class="menu-logout" data-logout="/api/admin/logout"><%- icon('logout') %> Sign out</button>

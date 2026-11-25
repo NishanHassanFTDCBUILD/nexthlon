@@ -51,7 +51,6 @@ function readConfig() {
       clientId: text('GOOGLE_CLIENT_ID'),
       clientSecret: text('GOOGLE_CLIENT_SECRET'),
     },
-    // Continue with Facebook (optional): the app id and secret from developers.facebook.com.
     facebook: {
       appId: text('FACEBOOK_APP_ID'),
       appSecret: text('FACEBOOK_APP_SECRET'),

@@ -1,6 +1,6 @@
-<%# Template text. Business details in [brackets] come from the STORE_* settings (config/store.js). Check the policy with a legal adviser. %>
+<%# Template text. Replace every [bracketed] value, and check the policy with a legal adviser. %>
 <%- include('../partials/info-start', { heading: 'Privacy policy', lead: 'How we collect, use and protect your personal information when you shop with us.', updated: true }) %>
-<article class="doc section-box" data-toc>
+<article class="doc section-box">
   <p>This policy explains how <%= store.legalName %> ("<%= store.brandName %>", "we", "us") handles your personal data when you use this website. By using the website you agree to this policy.</p>
 
   <h2>1. Information we collect</h2>
@@ -21,7 +21,7 @@
   </ul>
 
   <h2>3. Sharing</h2>
-  <p>We share only what is needed with our payment partner Razorpay to process payments, our delivery partners (couriers booked through Shiprocket) to ship your order, and authorities when the law requires it. We do not sell your personal data.</p>
+  <p>We share only what is needed with our payment partner [Razorpay] to process payments, our delivery partners [courier names] to ship your order, and authorities when the law requires it. We do not sell your personal data.</p>
 
   <h2 id="cookies">4. Cookies and browser storage</h2>
   <p>We use one essential cookie to keep you signed in. Your wishlist, recently viewed items and light or dark theme choice are saved in your own browser (local storage) and stay on your device.</p>
@@ -29,7 +29,7 @@
   <p>Signed in, you can download everything we keep about you as one file from the same page, or delete your account there.</p>
 
   <h2>5. How long we keep data</h2>
-  <p>We keep account data while your account is open, and order records for as long as tax and accounting laws require (GST records, for example, are kept for 72 months after the annual return for that year is due).</p>
+  <p>We keep account data while your account is open, and order records for as long as tax and accounting laws require [for example, 8 years].</p>
 
   <h2>6. Your rights</h2>
   <p>You can view and update your profile and addresses from your account at any time. To ask for a copy of your data, or to close your account and delete your data, email <%= store.supportEmail %>.</p>
@@ -49,4 +49,4 @@
   <h2>9. Changes to this policy</h2>
   <p>We may update this policy. The date at the top shows when it last changed.</p>
 </article>
-<%- include('../partials/info-end', { scripts: ['doc-toc'] }) %>
+<%- include('../partials/info-end') %>

@@ -243,7 +243,6 @@ async function saveOrder(
     paymentStatus,
     stockReserved,
     note,
-    giftRecipient,
   },
   session,
   undo,
@@ -275,29 +274,16 @@ async function saveOrder(
       undo,
     });
   }
-  // GST, worked out now from the server's own prices and fixed on the order (services/gstService.js).
-  const {perLine, gst} = await gstService.taxForOrder({
-    lines: quote.lines,
-    // The online-payment discount (E2) lowers the price like a coupon, so it lowers the taxable value too.
-    couponDiscount: totals.couponDiscount + (totals.prepaidDiscount || 0),
-    deliveryFee: totals.deliveryFee,
-    buyerState: address.state,
-  });
   const [order] = await Order.create(
     [
       {
         _id,
         orderId,
         user: userId,
-        items: itemSnapshots(quote.lines).map((item, index) => ({
-          ...item,
-          tax: perLine[index],
-        })),
-        gst,
+        items: itemSnapshots(quote.lines),
         address: addressSnapshot(address),
         ...orderMoney(totals),
         source: quote.source === 'buynow' ? 'buynow' : 'cart',
-        giftRecipient,
         paymentMethod,
         paymentStatus,
         orderStatus: 'placed',
@@ -317,13 +303,7 @@ async function saveOrder(
 // All of it happens, or none of it.
 async function placeOrder(
   userId,
-  {
-    addressId,
-    paymentMethod,
-    useWallet = false,
-    source = 'cart',
-    giftRecipient = null,
-  },
+  {addressId, paymentMethod, useWallet = false, source = 'cart'},
 ) {
   if (!PAYMENT_METHODS.includes(paymentMethod)) {
     throw new HttpError(400, 'Choose a payment method.', {
@@ -354,20 +334,6 @@ async function placeOrder(
     );
   }
   // Fake Cash on Delivery orders tie up stock and courier money (D3): at most a few unpaid ones on the way.
-  // A gift card is worth its face value on the day it is paid; cash on delivery cannot be checked for that.
-  if (method === 'cod') {
-    const giftInCart = await require('../models/Product').countDocuments({
-      _id: {$in: quote.lines.map((line) => line.productId)},
-      giftCard: true,
-    });
-    if (giftInCart)
-      throw new HttpError(
-        400,
-        'Gift cards need online or wallet payment. Please choose another way to pay.',
-        null,
-        'gift_card_cod',
-      );
-  }
   if (method === 'cod') {
     // The team can switch Cash on Delivery off for one customer (fraud control).
     const account = await User.findById(userId).select('codBlocked').lean();
@@ -425,7 +391,6 @@ async function placeOrder(
           paymentMethod: method,
           paymentStatus: method === 'wallet' ? 'paid' : 'pending',
           stockReserved: true,
-          giftRecipient,
           note:
             method === 'wallet'
               ? 'Paid from the Nexthlon wallet'

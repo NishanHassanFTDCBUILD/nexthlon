@@ -43,6 +43,49 @@
   const iconSvg = (name) =>
     `<svg class="i i-sm" aria-hidden="true"><use href="/img/icons.svg#${name}"></use></svg>`;
 
+  // Downloads remain on the current page and renew expired access before requesting the file again.
+  const downloads = new WeakSet();
+  document.addEventListener('click', async (event) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    const link = event.target.closest('a[href]');
+    if (!link) return;
+    const url = new URL(link.href, location.href);
+    if (
+      url.origin !== location.origin ||
+      !url.pathname.startsWith('/api/admin/') ||
+      !/\.(csv|xlsx|pdf)$/i.test(url.pathname)
+    )
+      return;
+    event.preventDefault();
+    if (downloads.has(link)) return;
+    downloads.add(link);
+    link.setAttribute('aria-busy', 'true');
+    try {
+      const file = await Nx.download(url.href);
+      const objectUrl = URL.createObjectURL(file.blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = file.filename;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      Nx.toast(error.message, 'error');
+    } finally {
+      link.removeAttribute('aria-busy');
+      downloads.delete(link);
+    }
+  });
+
   // ---------- Sidebar: collapsible groups (remembered), the group with the active page stays open ----------
   const COLLAPSED_KEY = 'nx-admin-collapsed';
   function setGroup(group, open) {
@@ -126,9 +169,40 @@
   side.addEventListener('click', (event) => {
     if (event.target.closest('a[href]')) setMenu(false);
   });
+  window
+    .matchMedia('(min-width: 1025px)')
+    .addEventListener('change', (event) => {
+      if (event.matches) setMenu(false);
+    });
+  scrim.addEventListener('click', () => setMenu(false));
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && side.classList.contains('is-open'))
       setMenu(false);
+    if (event.key === 'Tab' && side.classList.contains('is-open')) {
+      const items = [
+        ...side.querySelectorAll('a[href], button:not([disabled])'),
+      ].filter(
+        (item) => item.getClientRects().length && !item.closest('[hidden]'),
+      );
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first) return;
+      if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          !side.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          !side.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
   });
 
   // A new section is shown: keep its sidebar group open.
@@ -146,11 +220,13 @@
     returned: 'Returned',
   };
   const cache = new Map();
+  let searchGeneration = 0;
   async function searchApi(q) {
     const key = q.toLowerCase();
     if (cache.has(key)) return cache.get(key);
+    const generation = searchGeneration;
     const reply = await Nx.api(`/api/admin/search?q=${encodeURIComponent(q)}`);
-    cache.set(key, reply.results);
+    if (generation === searchGeneration) cache.set(key, reply.results);
     if (cache.size > 30) cache.delete(cache.keys().next().value);
     return reply.results;
   }
@@ -256,10 +332,12 @@
 
   function debounce(fn, ms) {
     let timer = 0;
-    return (...args) => {
+    const debounced = (...args) => {
       clearTimeout(timer);
       timer = setTimeout(() => fn(...args), ms);
     };
+    debounced.cancel = () => clearTimeout(timer);
+    return debounced;
   }
 
   // ---------- Top bar search ----------
@@ -268,6 +346,8 @@
   const searchPop = searchBox.querySelector('[data-admin-search-results]');
   let searchSeq = 0;
   function closeSearch() {
+    searchSeq++;
+    runSearch.cancel();
     searchPop.hidden = true;
     searchInput.setAttribute('aria-expanded', 'false');
   }
@@ -290,7 +370,11 @@
       if (seq === searchSeq) Nx.toast(error.message, 'error');
     }
   }, 180);
-  searchInput.addEventListener('input', runSearch);
+  searchInput.addEventListener('input', () => {
+    searchSeq++;
+    if (searchInput.value.trim().length < 2) closeSearch();
+    else runSearch();
+  });
   searchInput.addEventListener('focus', () => {
     if (searchInput.value.trim().length >= 2) runSearch();
   });
@@ -355,7 +439,19 @@
     paletteInput.focus();
     updatePalette();
   }
-  paletteInput.addEventListener('input', updatePalette);
+  paletteInput.addEventListener('input', () => {
+    paletteSeq++;
+    updatePalette();
+  });
+  palette.addEventListener('close', () => {
+    paletteSeq++;
+    updatePalette.cancel();
+  });
+  document.addEventListener('nx:section', () => {
+    searchGeneration++;
+    cache.clear();
+    closeSearch();
+  });
   palette.addEventListener('click', (event) => {
     if (event.target === palette) palette.close();
   });
@@ -474,12 +570,12 @@
   // Unsaved changes on a long form (a product, coupon, category or deal): the save bar says so,
   // and leaving the page asks first. A successful save moves on to the list, which ends it; a
   // failed save keeps the warning, because the changes are still not saved.
-  let dirty = null;
   const SAVE_FORMS =
     '.admin-content form[data-product-form], .admin-content form[data-coupon-form], ' +
     '.admin-content form[data-category-form], .admin-content form[data-deal-form]';
   const setDirty = (form) => {
-    dirty = form;
+    form.dataset.unsaved = 'true';
+    delete form.dataset.saved;
     const bar = form && form.querySelector('.admin-save-bar');
     if (!bar) return;
     let note = bar.querySelector('.admin-save-note');
@@ -492,35 +588,21 @@
     bar.classList.add('is-dirty');
     note.textContent = 'Unsaved changes';
   };
-  const isDirty = () => Boolean(dirty && document.contains(dirty));
   ['input', 'change'].forEach((type) =>
     document.addEventListener(type, (event) => {
       const form = event.target.closest(SAVE_FORMS);
       if (form && !event.target.closest('[data-auto-submit]')) setDirty(form);
     }),
   );
-  window.addEventListener('beforeunload', (event) => {
-    if (!isDirty()) return;
-    event.preventDefault();
-    event.returnValue = '';
+  document.addEventListener('nx:form-saved', (event) => {
+    const form = event.target;
+    if (!form.matches(SAVE_FORMS)) return;
+    const bar = form.querySelector('.admin-save-bar');
+    if (!bar) return;
+    bar.classList.remove('is-dirty');
+    const note = bar.querySelector('.admin-save-note');
+    if (note) note.textContent = 'Changes saved';
   });
-  // Links inside the console load without a reload (section-nav.js), so ask here first.
-  document.addEventListener(
-    'click',
-    (event) => {
-      if (!isDirty() || event.defaultPrevented) return;
-      const link = event.target.closest('a[href]');
-      if (!link || link.closest('form') === dirty || link.target === '_blank')
-        return;
-      if (window.confirm('You have unsaved changes. Leave without saving?'))
-        dirty = null;
-      else {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-    },
-    true,
-  );
 
   // "More filters" panels close on Esc or a click outside, and return focus to their summary.
   document.addEventListener('keydown', (event) => {

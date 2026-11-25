@@ -94,7 +94,7 @@ test('confirmed batch applies saved values once; repeat requests return the save
   };
   t.mock.method(InventoryBatch, 'findOneAndUpdate', async (filter) => {
     assert.equal(filter.actor, actor);
-    assert.equal(filter.status, 'preview');
+    assert.equal(filter.$or[0].status, 'preview');
     if (state !== 'preview') return null;
     state = 'applying';
     return doc;
@@ -102,6 +102,12 @@ test('confirmed batch applies saved values once; repeat requests return the save
   t.mock.method(InventoryBatch, 'findOne', () => ({
     lean: async () => ({status: state, results: doc.results}),
   }));
+  t.mock.method(InventoryBatch, 'updateOne', async (filter, update) => {
+    assert.ok(filter.lockToken);
+    doc.results = [...update.$set.results];
+    if (update.$set.status) state = update.$set.status;
+    return {matchedCount: 1};
+  });
   const calls = [];
   const change = async (id, value) => calls.push({id, value});
   const result = await imports.apply(batchId, actor, change);
@@ -122,7 +128,7 @@ test('a running or expired batch cannot be replayed, and another actor cannot re
   const change = () => assert.fail('a claimed batch must not run again');
   await assert.rejects(
     imports.apply(batchId, actor, change),
-    /running or needs review/,
+    /batch is running/,
   );
   previous = {status: 'preview'};
   await assert.rejects(imports.apply(batchId, actor, change), /expired/);
@@ -137,6 +143,7 @@ test('partial and uncertain failures are reported for review, never silently ret
     save: async () => {},
   };
   t.mock.method(InventoryBatch, 'findOneAndUpdate', async () => doc);
+  t.mock.method(InventoryBatch, 'updateOne', async () => ({matchedCount: 1}));
   let calls = 0;
   const result = await imports.apply(batchId, actor, async () => {
     calls += 1;
@@ -151,6 +158,7 @@ test('partial and uncertain failures are reported for review, never silently ret
 });
 
 test('concurrent confirmation requests cannot both execute the stock callback', async (t) => {
+  t.mock.method(InventoryBatch, 'updateOne', async () => ({matchedCount: 1}));
   let claimed = false;
   let finish;
   let started;
@@ -185,11 +193,60 @@ test('concurrent confirmation requests cannot both execute the stock callback', 
   try {
     await assert.rejects(
       imports.apply(batchId, actor, change),
-      /running or needs review/,
+      /batch is running/,
     );
   } finally {
     finish();
   }
   await first;
   assert.equal(calls, 1);
+});
+
+test('recovery after stock commits but progress saving fails reuses the same receipt and persists each row', async (t) => {
+  const doc = {
+    rows: [
+      {...row, units: 4},
+      {...row, productId: optionId, units: 5},
+    ],
+    results: [],
+  };
+  let failProgress = true;
+  const checkpoints = [];
+  t.mock.method(InventoryBatch, 'findOneAndUpdate', async (filter) => {
+    assert.equal(filter.actor, actor);
+    assert.ok(
+      filter.$or.some(
+        (branch) => branch.status === 'applying' && branch.lockedUntil,
+      ),
+    );
+    return doc;
+  });
+  t.mock.method(InventoryBatch, 'updateOne', async (filter, update) => {
+    assert.ok(filter.lockToken);
+    if (failProgress) {
+      failProgress = false;
+      throw new Error('Progress write lost');
+    }
+    doc.results = [...update.$set.results];
+    checkpoints.push(doc.results.length);
+    return {matchedCount: 1};
+  });
+  const receipts = new Set();
+  let unitsAdded = 0;
+  const change = async (id, value) => {
+    assert.match(value.requestId, new RegExp(`^batch:${batchId}:`));
+    if (!receipts.has(value.requestId)) {
+      receipts.add(value.requestId);
+      unitsAdded += value.units;
+    }
+  };
+  await assert.rejects(
+    imports.apply(batchId, actor, change),
+    /Progress write lost/,
+  );
+  assert.equal(unitsAdded, 4);
+  const recovered = await imports.apply(batchId, actor, change);
+  assert.equal(unitsAdded, 9, 'the first four units were not added again');
+  assert.equal(recovered.results.length, 2);
+  assert.deepEqual(checkpoints, [1, 2, 2]);
 });

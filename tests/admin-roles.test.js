@@ -32,7 +32,6 @@ test('roles: each role gets what its job needs and nothing it should not have', 
   assert.equal(can('support', 'refunds.write'), false);
   assert.equal(can('finance', 'refunds.write'), true);
   assert.equal(can('finance', 'products.write'), false);
-  assert.equal(can('finance', 'audit.read'), false);
   assert.equal(
     can('unknown-role', 'read'),
     false,
@@ -44,7 +43,6 @@ test('roles: each role gets what its job needs and nothing it should not have', 
 test('routes: a request maps to the permission it needs', () => {
   assert.equal(permissionFor('GET', '/orders'), 'read');
   assert.equal(permissionFor('GET', '/staff'), 'staff.manage');
-  assert.equal(permissionFor('GET', '/audit'), 'audit.read');
   assert.equal(permissionFor('POST', '/orders/NX-1/refunds'), 'refunds.write');
   assert.equal(permissionFor('POST', '/orders/NX-1/shipments'), 'orders.ship');
   assert.equal(permissionFor('PATCH', '/orders/NX-1/status'), 'orders.write');
@@ -214,7 +212,10 @@ test('roles: the API refuses what a role may not do, and says which permission i
     cookie: financeCookie,
     body: {},
   });
-  assert.notEqual(financeRefund.status, 403, 'finance may refund');
+  assert.ok(
+    financeRefund.status >= 400,
+    'the removed manual refund endpoint cannot be used',
+  );
 
   const productEdit = await call(
     'PATCH',

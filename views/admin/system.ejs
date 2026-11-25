@@ -66,7 +66,7 @@
       <div class="admin-total">
         <span><%= c.label %></span>
         <strong><%= c.value.toLocaleString('en-IN') %></strong>
-        <small class="muted"><% if (c.section) { %><a class="admin-tap" href="<%= adminPath %>/<%= c.section %>">Open</a><% } else { %>live refresh tokens<% } %></small>
+        <small class="muted"><% if (c.section) { %><a href="<%= adminPath %>/<%= c.section %>">Open</a><% } else { %>live refresh tokens<% } %></small>
       </div>
     <% }) %>
   </div>

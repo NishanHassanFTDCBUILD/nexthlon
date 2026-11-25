@@ -228,7 +228,7 @@ const markRto = asyncHandler(async (req, res) => {
   res.json({
     message:
       stage === 'received'
-        ? 'Marked as back with us. The items are cancelled, stock is back, and any payment is refunded.'
+        ? 'Marked as back with us. The items are cancelled, stock is back, and the eligible paid amount is credited to the customer’s wallet.'
         : 'Marked as coming back to us.',
     status: order.orderStatus,
   });
@@ -264,34 +264,6 @@ const addNote = asyncHandler(async (req, res) => {
     note: body.slice(0, 120),
   });
   res.status(201).json({message: 'Note added.', note});
-});
-
-const refund = asyncHandler(async (req, res) => {
-  const value = checked(v.validateManualRefund, req.body);
-  const requestKey = req.body && req.body.requestKey;
-  if (
-    requestKey !== undefined &&
-    (typeof requestKey !== 'string' ||
-      !/^[a-zA-Z0-9-]{16,80}$/.test(requestKey))
-  )
-    throw new HttpError(400, 'Invalid refund request identifier.');
-  if (requestKey) value.key = `manual:${requestKey}`;
-  const {order, before, after, refunds} = await adminOrderService.manualRefund(
-    req.params.orderId,
-    value,
-  );
-  await audit(req, 'order.refund', `order:${order.orderId}`, before, {
-    ...after,
-    amount: value.amount,
-    method: value.method,
-    reason: value.reason,
-  });
-  const toCard = refunds.some((entry) => entry.method === 'original');
-  res.status(201).json({
-    message: `${(value.amount / 100).toLocaleString('en-IN', {style: 'currency', currency: 'INR'})} refunded ${toCard ? 'to the original payment method' : "to the customer's wallet"}.`,
-    refunds,
-    refunded: order.refundedAmount,
-  });
 });
 
 const invoicePdf = asyncHandler(async (req, res) => {
@@ -353,7 +325,7 @@ const decideReturn = asyncHandler(async (req, res) => {
   res.json({
     message:
       value.decision === 'approve'
-        ? `Return approved. Stock is back on the shelf${result.refund ? ` and ${money} was refunded` : ''}.`
+        ? `Return approved. Stock is back on the shelf${result.refund ? ` and ${money} was credited to the wallet` : ''}.`
         : 'Return rejected. The customer can see your note.',
     status: result.order.orderStatus,
     refund: result.refund,
@@ -399,10 +371,6 @@ const reconciliation = asyncHandler(async (req, res) => {
   res.json(await ledgerService.reconciliation(req.query));
 });
 
-const listRefunds = asyncHandler(async (req, res) => {
-  res.json(await ledgerService.listRefunds(req.query));
-});
-
 module.exports = {
   setTags,
   listOrders,
@@ -415,7 +383,6 @@ module.exports = {
   shipNow,
   markRto,
   addNote,
-  refund,
   invoicePdf,
   creditNotePdf,
   packingSlipPdf,
@@ -425,5 +392,4 @@ module.exports = {
   exportTransactions,
   getTransaction,
   reconciliation,
-  listRefunds,
 };

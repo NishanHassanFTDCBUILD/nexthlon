@@ -15,7 +15,8 @@ const RETRIES = 2;
 const TIMEOUT_MS = 30_000;
 // Only application-owned image names are accepted. This blocks traversal, query-string injection
 // and arbitrary Cloudinary public IDs while leaving tests and future generated IDs flexible.
-const KEY = /^(?:products|returns|reviews)\/[a-z0-9_-]+\.webp$/i;
+const KEY =
+  /^(?:(?:products|returns|reviews)\/[a-z0-9_-]+\.webp|products\/videos\/[a-z0-9_-]+\.(?:mp4|webm))$/i;
 
 // "products/abc-400.webp" -> "products/abc-400" (Cloudinary's public id has no extension).
 const publicIdOf = (key) => key.replace(/\.[a-z0-9]+$/i, '');
@@ -41,7 +42,7 @@ function createCloudinaryStorage(
       )
       .digest('hex');
 
-  async function call(action, fields, file) {
+  async function call(action, fields, file, resource = 'image') {
     const timestamp = now();
     const signed = {...fields, timestamp};
     let last;
@@ -57,7 +58,7 @@ function createCloudinaryStorage(
         form.append('signature', sign(signed));
         if (file) form.append('file', file.blob, file.name);
         const response = await fetchImpl(
-          `${API}/${cloudName}/image/${action}`,
+          `${API}/${cloudName}/${resource}/${action}`,
           {method: 'POST', body: form, signal: AbortSignal.timeout(TIMEOUT_MS)},
         );
         const body = await response.json().catch(() => ({}));
@@ -91,6 +92,7 @@ function createCloudinaryStorage(
         'upload',
         {public_id: publicIdOf(key), overwrite: 'false'},
         {blob, name: key.split('/').pop()},
+        key.startsWith('products/videos/') ? 'video' : 'image',
       );
     },
 
@@ -99,19 +101,28 @@ function createCloudinaryStorage(
       for (const key of keys) {
         try {
           assertKey(key);
-          await call('destroy', {
-            public_id: publicIdOf(key),
-            invalidate: 'true',
-          });
+          await call(
+            'destroy',
+            {
+              public_id: publicIdOf(key),
+              invalidate: 'true',
+            },
+            undefined,
+            key.startsWith('products/videos/') ? 'video' : 'image',
+          );
         } catch (error) {
           logger.warn('storage.delete_failed', {key, error});
         }
       }
     },
 
-    publicUrl: (key) => `${base}/${key}`,
+    publicUrl: (key) =>
+      `${key.startsWith('products/videos/') ? base.replace('/image/upload', '/video/upload') : base}/${key}`,
 
     keyFromUrl(url) {
+      const videoBase = base.replace('/image/upload', '/video/upload');
+      if (typeof url === 'string' && url.startsWith(`${videoBase}/`))
+        return url.slice(videoBase.length + 1);
       return typeof url === 'string' && url.startsWith(`${base}/`)
         ? url.slice(base.length + 1)
         : null;

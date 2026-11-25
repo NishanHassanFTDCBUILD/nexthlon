@@ -5,11 +5,13 @@
   const filtered = filters.type !== 'all' || filters.status !== 'all' || filters.method !== 'all' || filters.from || filters.to || filters.q;
 %>
 <%- include('../partials/admin-start', { section: 'transactions' }) %>
-<header class="admin-top">
+<div class="sales-workspace">
+<%- include('../partials/admin-sales-nav', { salesSection: 'transactions' }) %>
+<header class="admin-top sales-heading">
   <div>
-    <span class="section-kicker">Sales</span>
+    <span class="section-kicker">Sales / Finance</span>
     <h1>Transactions</h1>
-    <p class="muted">Every money movement: online payments, cash on delivery, refunds, wallet credits and coupons.</p>
+    <p class="muted">A single view of payments, order credits and wallet activity. Amounts follow your current filters.</p>
   </div>
   <div class="admin-top-actions">
     <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/transactions/reconciliation"><%- icon('check', 'i-sm') %> Daily reconciliation</a>
@@ -18,11 +20,11 @@
   </div>
 </header>
 
-<section class="admin-totals" aria-label="Totals for these filters">
-  <div class="admin-total is-in"><span>Money in</span><strong><%= formatPrice(totals.in) %></strong><small class="muted">Captured online payments and cash collected</small></div>
-  <div class="admin-total is-out"><span>Money out</span><strong><%= formatPrice(totals.out) %></strong><small class="muted">Refunds and wallet credits given</small></div>
-  <div class="admin-total"><span>Net</span><strong><%= formatPrice(totals.net) %></strong><small class="muted">In minus out</small></div>
-  <div class="admin-total is-other"><span>Not counted</span><strong><%= formatPrice(totals.other) %></strong><small class="muted">Coupons, wallet spends, pending and failed</small></div>
+<section class="admin-totals sales-metrics" aria-label="Totals for these filters">
+  <div class="admin-total is-in"><div class="sales-metric-top"><span>Money received</span><%- icon('arrow-down', 'i-sm') %></div><strong><%= formatPrice(totals.in) %></strong><small>Captured payments and collected cash</small></div>
+  <div class="admin-total is-out"><div class="sales-metric-top"><span>Money returned</span><%- icon('arrow-up', 'i-sm') %></div><strong><%= formatPrice(totals.out) %></strong><small>Processed payment returns and wallet credits</small></div>
+  <div class="admin-total sales-metric-featured"><div class="sales-metric-top"><span>Net movement</span><%- icon('wallet', 'i-sm') %></div><strong><%= formatPrice(totals.net) %></strong><small>Received minus returned</small></div>
+  <div class="admin-total"><div class="sales-metric-top"><span>Other activity</span><%- icon('list', 'i-sm') %></div><strong><%= formatPrice(totals.other) %></strong><small>Internal, pending and failed entries</small></div>
 </section>
 
 <%- include('../partials/admin-list-toolbar', { section: 'transactions', searchMax: 60, searchHint: 'Order number, payment id or customer', sorts, fields: [
@@ -34,11 +36,15 @@
 
 
 
-<section class="panel panel-flush admin-table-panel" aria-label="Transactions">
+<nav class="segmented admin-tabs sales-status-tabs" aria-label="Transaction type">
+      <% [['all', 'All activity'], ['payment', 'Online payments'], ['cod', 'Cash on delivery'], ['refund', 'Money returned'], ['wallet_credit', 'Wallet credits']].forEach(function ([key, label]) { %><a href="<%= link({ type: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.type === key ? 'is-active' : '' %>" <%= filters.type === key ? 'aria-current="page"' : '' %>><%= label %></a><% }) %>
+    </nav>
+    <section class="panel panel-flush admin-table-panel" aria-label="Transactions">
+  <div class="sales-table-heading"><div><h2>Activity ledger</h2><p>All amounts in INR · dates in IST</p></div><span class="sales-record-count"><%= pagination.total.toLocaleString('en-IN') %> entries</span></div>
   <% if (transactions.length) { %>
     <div class="table-wrap admin-table-scroll">
       <table class="table table-stack admin-table">
-        <thead><tr><%- include('../partials/admin-sort-header', { label: 'Date', asc: 'oldest', desc: 'newest' }) %><th scope="col">Type</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Method</th><%- include('../partials/admin-sort-header', { label: 'Amount', asc: 'amount_asc', desc: 'amount_desc' }) %><th scope="col">Status</th><th scope="col">Reference</th></tr></thead>
+        <thead><tr><%- include('../partials/admin-sort-header', { label: 'Date', asc: 'oldest', desc: 'newest' }) %><th scope="col">Type</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Method</th><%- include('../partials/admin-sort-header', { label: 'Amount', asc: 'amount_asc', desc: 'amount_desc' }) %><th scope="col">Status</th><th scope="col">Reference</th><th scope="col"><span class="sr-only">Details</span></th></tr></thead>
         <tbody>
           <% transactions.forEach(function (t) { %>
             <tr data-row-href="<%= adminPath %>/transactions/<%= t.id %>">
@@ -50,6 +56,7 @@
               <td data-label="Amount" class="cell-num"><strong class="admin-amt is-<%= t.direction %>"><%= dirMark[t.direction] %><%= formatPrice(t.amount) %></strong></td>
               <td data-label="Status"><span class="pill <%= statusPill[t.status] || 'pill-grey' %>"><%= t.status %></span></td>
               <td data-label="Reference"><code class="admin-code"><%= t.reference || '—' %></code></td>
+              <td class="sales-row-link"><a class="btn btn-ghost btn-sm" href="<%= adminPath %>/transactions/<%= t.id %>" aria-label="View transaction <%= t.id %>"><%- icon('arrow-right', 'i-sm') %></a></td>
             </tr>
           <% }) %>
         </tbody>
@@ -60,8 +67,9 @@
     <div class="empty-state empty-state-flat">
       <%- include('../partials/empty-art', { art: 'wallet' }) %>
       <h2><%= filtered ? 'Nothing matches these filters' : 'No money movements yet' %></h2>
-      <p><%= filtered ? 'Try fewer filters.' : 'Payments, refunds and wallet credits will appear here.' %></p>
+      <p><%= filtered ? 'Try fewer filters.' : 'Payments, order credits and wallet credits will appear here.' %></p>
     </div>
   <% } %>
 </section>
+</div>
 <%- include('../partials/admin-end') %>

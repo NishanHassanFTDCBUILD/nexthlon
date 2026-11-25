@@ -83,13 +83,26 @@
       return {text: `In stock in ${name}`, tone: 'is-ok'};
     }
 
-    function refresh() {
+    function refresh(event) {
+      if (event && event.target.name === 'colour' && groups.includes('size')) {
+        const compatible = options.some(
+          (option) =>
+            option.colour === picked('colour') &&
+            option.size === picked('size') &&
+            option.stock > 0,
+        );
+        if (!compatible)
+          box.querySelectorAll('input[name="size"]').forEach((input) => {
+            input.checked = false;
+          });
+      }
       const choice = Object.fromEntries(
         groups.map((name) => [name, picked(name)]),
       );
       // A choice in one group crosses out what is sold out with it in the other.
       groups.forEach((name) => {
         const others = {...choice, [name]: ''};
+        if (name === 'colour') others.size = '';
         box.querySelectorAll(`input[name="${name}"]`).forEach((input) => {
           const left = options
             .filter(
@@ -219,7 +232,7 @@
       const query = params.toString();
       return window.location.pathname + (query ? `?${query}` : '');
     };
-    // The shared Nx.addToCart (store.js): the photo flies from the gallery the moment you press the button.
+    // The shared Nx.addToCart (store.js): the photo flies once the server confirms the add.
     addForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const variantId = addForm.nxRequireOption();

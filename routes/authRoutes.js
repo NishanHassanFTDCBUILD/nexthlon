@@ -22,12 +22,10 @@ const {
 // Mounted at /api
 router.post('/signup', authLimiter, signup);
 router.post('/login', authLimiter, accountLoginLimiter, login);
-// Continue with Google (only when configured; see services/googleSignInService.js). The callback path
-// must match the redirect address registered with Google (googleSignInService redirectUri).
+// Continue with Google (only when configured; see services/googleSignInService.js).
 const googleSignIn = require('../controllers/googleSignInController');
 router.get('/auth/google', authLimiter, googleSignIn.start);
 router.get('/auth/google/callback', authLimiter, googleSignIn.callback);
-// Continue with Facebook (only when configured; see services/facebookSignInService.js).
 const facebookSignIn = require('../controllers/facebookSignInController');
 router.get('/auth/facebook', authLimiter, facebookSignIn.start);
 router.get('/auth/facebook/callback', authLimiter, facebookSignIn.callback);

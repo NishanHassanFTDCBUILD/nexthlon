@@ -1,9 +1,10 @@
 <%
-  const tabs = [['all', 'All'], ['placed', 'To confirm'], ['confirmed', 'To ship'], ['shipped', 'Shipped'], ['out_for_delivery', 'Out for delivery'], ['delivered', 'Delivered'], ['return_requested', 'Returns'], ['cancelled', 'Cancelled']];
+  const tabs = [['all', 'All'], ['placed', 'To confirm'], ['confirmed', 'To ship'], ['shipped', 'Shipped'], ['out_for_delivery', 'Out for delivery'], ['delivered', 'Delivered'], ['return_requested', 'Returns'], ['returned', 'Returned'], ['cancelled', 'Cancelled']];
   const allCount = Object.values(counts).reduce(function (a, b) { return a + b; }, 0);
   const paymentLabels = { pending: 'Pending', paid: 'Paid', failed: 'Failed', refunded: 'Refunded', partially_refunded: 'Part refunded' };
   const paymentPill = { pending: 'pill-amber', paid: 'pill-green', failed: 'pill-red', refunded: 'pill-grey', partially_refunded: 'pill-blue' };
   const chipLabels = {
+    queue: function (v) { const queues = typeof orderWorkQueues !== 'undefined' ? orderWorkQueues : []; return 'Queue: ' + (queues.find(function (q) { return q.key === v; })?.label || v); },
     method: function (v) { return 'Method: ' + (methodLabels[v] || v); },
     payment: function (v) { return 'Payment: ' + (paymentLabels[v] || v); },
     from: function (v) { return 'From ' + v; }, to: function (v) { return 'To ' + v; },
@@ -15,9 +16,11 @@
   const bulkTargets = [['confirmed', 'Confirmed'], ['shipped', 'Shipped'], ['out_for_delivery', 'Out for delivery'], ['delivered', 'Delivered']];
 %>
 <%- include('../partials/admin-start', { section: 'orders' }) %>
-<header class="admin-top">
+<div class="sales-workspace sales-orders">
+<%- include('../partials/admin-sales-nav', { salesSection: 'orders' }) %>
+<header class="admin-top sales-heading">
   <div>
-    <span class="section-kicker">Sales</span>
+    <span class="section-kicker">Sales / Fulfilment</span>
     <h1>Orders</h1>
     <p class="muted"><%= pagination.total.toLocaleString('en-IN') %> <%= pagination.total === 1 ? 'order' : 'orders' %><%= chips.length || filters.status !== 'all' ? ' match your filters' : '' %>.</p>
   </div>
@@ -28,13 +31,21 @@
   </div>
 </header>
 
+<section class="admin-totals sales-metrics" aria-label="Order workload">
+  <a class="admin-total sales-metric-featured" href="<%= link({status: 'placed', queue: '', page: ''}) %>"><div class="sales-metric-top"><span>Awaiting confirmation</span><%- icon('clock', 'i-sm') %></div><strong><%= counts.placed || 0 %></strong><small>Review and confirm new orders</small></a>
+  <a class="admin-total" href="<%= link({status: 'confirmed', queue: '', page: ''}) %>"><div class="sales-metric-top"><span>Confirmed orders</span><%- icon('package-check', 'i-sm') %></div><strong><%= counts.confirmed || 0 %></strong><small>Review payment and prepare dispatch</small></a>
+  <div class="admin-total"><div class="sales-metric-top"><span>On the way</span><%- icon('truck', 'i-sm') %></div><strong><%= (counts.shipped || 0) + (counts.out_for_delivery || 0) %></strong><small>Shipped or out for delivery</small></div>
+  <a class="admin-total is-in" href="<%= link({status: 'delivered', queue: '', page: ''}) %>"><div class="sales-metric-top"><span>Delivered</span><%- icon('check', 'i-sm') %></div><strong><%= counts.delivered || 0 %></strong><small>Successfully completed deliveries</small></a>
+</section>
+<% if (typeof orderWorkQueues !== 'undefined') { %><section class="admin-work-queues" aria-label="Order work queues"><div><span class="section-kicker">Work queues</span><p>Choose the next job to work on.</p></div><div class="admin-work-queue-grid"><% orderWorkQueues.forEach(function (queue) { %><a href="<%= link({queue: queue.key, status: '', payment: '', method: '', page: ''}) %>" class="<%= filters.queue === queue.key ? 'is-active' : '' %>" <%- filters.queue === queue.key ? 'aria-current="page"' : '' %>><%- icon(queue.icon, 'i-sm') %><span><strong><%= queue.label %></strong><small><%= queue.description %></small></span></a><% }) %></div></section><% } %>
 <nav class="segmented admin-tabs" aria-label="Order status">
   <% tabs.forEach(function ([key, label]) { const n = key === 'all' ? allCount : (counts[key] || 0); %>
-    <a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%- filters.status === key ? 'aria-current="true"' : '' %>><%= label %> <span class="admin-tab-count"><%= n %></span></a>
+    <a href="<%= link({ status: key === 'all' ? '' : key, queue: '', page: '' }) %>" class="<%= filters.status === key && (!filters.queue || filters.queue === 'all') ? 'is-active' : '' %>" <%- filters.status === key && (!filters.queue || filters.queue === 'all') ? 'aria-current="true"' : '' %>><%= label %> <span class="admin-tab-count"><%= n %></span></a>
   <% }) %>
 </nav>
 
 <form class="admin-filterbar" action="<%= adminPath %>/orders" method="get" data-filter-form>
+  <% if (filters.queue && filters.queue !== 'all') { %><input type="hidden" name="queue" value="<%= filters.queue %>"><% } %>
   <% if (filters.status !== 'all') { %><input type="hidden" name="status" value="<%= filters.status %>"><% } %>
   <div class="admin-filter-search">
     <%- icon('search', 'i-sm') %>
@@ -45,8 +56,6 @@
     <select name="method" data-auto-submit><option value="">Any</option><% methods.forEach(function (m) { %><option value="<%= m %>" <%= filters.method === m ? 'selected' : '' %>><%= methodLabels[m] %></option><% }) %></select></label>
   <label class="admin-field"><span>Payment</span>
     <select name="payment" data-auto-submit><option value="">Any</option><% paymentStatuses.forEach(function (p) { %><option value="<%= p %>" <%= filters.payment === p ? 'selected' : '' %>><%= paymentLabels[p] %></option><% }) %></select></label>
-  <label class="admin-field"><span>Sort</span>
-    <select name="sort" data-auto-submit><% Object.entries(sorts).forEach(function ([key, s]) { %><option value="<%= key %>" <%= filters.sort === key ? 'selected' : '' %>><%= s.label %></option><% }) %></select></label>
   <details class="admin-more-filters" <%= moreCount ? 'open' : '' %>>
     <summary><%- icon('filter', 'i-sm') %> More filters<% if (moreCount) { %> <span class="admin-more-count"><%= moreCount %></span><% } %></summary>
     <div class="admin-more-panel">
@@ -61,8 +70,9 @@
       </div>
     </div>
   </details>
+  <% if (filters.sort !== 'newest') { %><input type="hidden" name="sort" value="<%= filters.sort %>"><% } %>
   <% if (filters.limit) { %><input type="hidden" name="limit" value="<%= filters.limit %>"><% } %>
-  <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+  <button class="btn btn-secondary btn-sm" type="submit">Search</button>
 </form>
 
 <%- include('../partials/admin-filter-chips', {
@@ -71,6 +81,7 @@
 }) %>
 
 <section class="panel panel-flush admin-table-panel" aria-label="Orders" data-orders>
+  <div class="sales-table-heading"><div><h2>Order workspace</h2><p>Review orders, manage fulfilment and track payments</p></div><span class="sales-record-count"><%= pagination.total.toLocaleString('en-IN') %> matching orders</span></div>
   <div class="admin-table-tools">
     <div class="admin-bulk" data-bulk-bar hidden>
       <strong data-bulk-count>0 selected</strong>
@@ -104,12 +115,12 @@
             <tr data-row-href="<%= adminPath %>/orders/<%= o.orderId %>">
               <td class="cell-check"><input type="checkbox" data-select="<%= o.orderId %>" aria-label="Select <%= o.orderId %>"></td>
               <td data-label="Order"><a href="<%= adminPath %>/orders/<%= o.orderId %>"><strong><%= o.orderId %></strong></a><% if (o.shipped) { %> <span class="admin-flag" title="Shipment added"><%- icon('truck', 'i-xs') %></span><% } %></td>
-              <td data-label="Customer" data-col="customer"><%= o.customer %> <button type="button" class="link-btn order-quick-look" data-quick-look="<%= o.orderId %>" aria-haspopup="dialog">Quick look</button><small class="muted admin-sub"><%= o.city %><%= o.state ? ', ' + o.state : '' %></small></td>
+              <td data-label="Customer" data-col="customer"><%= o.customer %><small class="muted admin-sub"><%= o.city %><%= o.state ? ', ' + o.state : '' %></small><% if (o.packingOwnerName) { %><small class="muted admin-sub">Packing: <%= o.packingOwnerName %></small><% } %></td>
               <td data-label="Items" data-col="items"><span class="admin-items-name"><strong><%= o.firstItem.length > 28 ? o.firstItem.slice(0, 27) + '…' : o.firstItem %></strong><small class="muted admin-sub"><%= o.items %> <%= o.items === 1 ? 'item' : 'items' %></small></span></td>
               <td data-label="Placed" data-col="placed"><%= formatDate(o.createdAt) %><small class="muted admin-sub"><%= new Date(o.createdAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) %></small></td>
               <td data-label="Amount" data-col="amount"><strong><%= formatPrice(o.charged) %></strong><% if (o.refunded) { %><small class="muted admin-sub">−<%= formatPrice(o.refunded) %> refunded</small><% } %></td>
               <td data-label="Payment" data-col="payment"><span class="pill <%= paymentPill[o.payment] %>"><%= paymentLabels[o.payment] %></span><small class="muted admin-sub"><%= methodLabels[o.method] %></small></td>
-              <td data-label="Status" data-col="status"><span class="status-pill status-<%= o.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[o.status] %></span><% if (o.late || (o.risk && o.risk.applies && o.risk.level !== 'low') || (o.tags && o.tags.length)) { %><span class="order-flags"><% if (o.late) { %><span class="pill pill-red order-late" title="Ship by <%= formatDate(o.shipBy) %>">Late</span><% } %><% if (o.risk && o.risk.applies && o.risk.level !== 'low') { %><span class="pill <%= o.risk.level === 'high' ? 'pill-red' : 'pill-amber' %> order-risk" title="<%= o.risk.reasons.join('; ') %>">COD risk: <%= o.risk.level %></span><% } %><% (o.tags || []).forEach(function (tag) { %><span class="pill pill-grey order-tag"><%= tag %></span><% }) %></span><% } %></td>
+              <td data-label="Status" data-col="status"><span class="status-pill status-<%= o.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[o.status] %></span><% if (o.late) { %><small class="muted admin-sub sales-late">Dispatch overdue</small><% } %></td>
             </tr>
           <% }) %>
         </tbody>
@@ -125,4 +136,5 @@
     </div>
   <% } %>
 </section>
+</div>
 <%- include('../partials/admin-end') %>

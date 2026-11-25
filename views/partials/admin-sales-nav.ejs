@@ -1,0 +1,5 @@
+<nav class="sales-section-nav" aria-label="Sales workspace">
+  <% [['orders', 'Orders', 'package-check'], ['returns', 'Returns', 'rotate-ccw'], ['transactions', 'Transactions', 'credit-card']].forEach(function ([key, label, symbol]) { if (key === 'transactions' && !adminCan('reports.read')) return; %>
+    <a href="<%= adminPath %>/<%= key %>" class="<%= salesSection === key ? 'is-active' : '' %>" <%- salesSection === key ? 'aria-current="page"' : '' %>><%- icon(symbol, 'i-sm') %><span><%= label %></span></a>
+  <% }) %>
+</nav>

@@ -1,0 +1,8 @@
+<ol class="timeline">
+  <% timeline.forEach(function (step) { %>
+    <li class="timeline-step <%= step.done ? 'is-done' : '' %> <%= ['cancelled', 'return_requested', 'returned'].includes(step.status) ? 'is-alert' : '' %>" <%- step.status === order.orderStatus ? 'aria-current="step"' : '' %>>
+      <span class="timeline-dot" aria-hidden="true"><% if (step.done) { %><%- icon(step.status === 'cancelled' ? 'x' : 'check', 'i-xs') %><% } %></span>
+      <span class="timeline-text"><strong><%= step.label %></strong><span class="muted"><%= step.done ? (step.at ? timeText(step.at) : 'Completed') : 'Pending' %></span></span>
+    </li>
+  <% }) %>
+</ol>

@@ -17,12 +17,16 @@ const baseUrl = (req) => `${req.protocol}://${req.get('host')}`;
 
 // GET /account
 const overview = asyncHandler(async (req, res) => {
-  const data = await accountService.overview(req.user);
+  const [data, updates] = await Promise.all([
+    accountService.overview(req.user),
+    require('../services/accountUpdatesService').forUser(req.user._id),
+  ]);
   res.render('account/overview', {
     title: 'Your account | Nexthlon',
     labels: orderRules.STATUS_LABELS,
     loyalty: await loyaltyService.forUser(req.user._id),
     ...data,
+    updates,
   });
 });
 

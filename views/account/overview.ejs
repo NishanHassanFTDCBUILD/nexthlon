@@ -8,12 +8,15 @@
     { key: 'coupons', label: 'Active coupons', value: stats.coupons, href: '/account/coupons', icon: 'ticket', note: 'Ready to use' }
   ];
 %>
-<section class="acct-hello" aria-labelledby="acct-hello">
+<section class="acct-hello acct-profile-hero" aria-labelledby="acct-hello">
   <span class="avatar avatar-lg acct-hello-avatar" aria-hidden="true"><%= currentUser.name.charAt(0).toUpperCase() %></span>
   <div class="acct-hello-text">
-    <h1 id="acct-hello">Hello, <%= firstName(currentUser.name) %></h1>
+    <span class="section-kicker">Your Nexthlon</span>
+    <h1 id="acct-hello">Your account</h1>
+    <p class="profile-welcome">Welcome back, <%= firstName(currentUser.name) %>. Manage your orders, payments and account.</p>
     <p class="muted">Member since <%= formatDate(currentUser.createdAt) %> · <span class="acct-badge"><%- icon('award', 'i-xs') %> Nexthlon <%= loyalty.name %></span><% if (loyalty.nextName) { %> <span class="muted">· <%= formatPrice(loyalty.toNextPaise) %> more in the last 12 months for <%= loyalty.nextName %></span><% } %><% if (loyalty.freeDelivery) { %> <span class="muted">· Free delivery on every order</span><% } %></p>
   </div>
+  <div class="profile-hero-actions"><a href="/account/orders" class="btn btn-primary btn-sm"><%- icon('package-check', 'i-sm') %> Track orders</a><a href="/account/help" class="btn btn-ghost btn-sm">Get support</a></div>
 </section>
 
 <section class="acct-stats" aria-label="Your account at a glance">
@@ -29,6 +32,9 @@
   <% }) %>
 </section>
 
+<% if (typeof updates !== 'undefined' && updates.length) { %>
+<section class="acct-section" aria-labelledby="profile-updates-title"><div class="acct-section-head"><div><span class="section-kicker">Keep things moving</span><h2 id="profile-updates-title">Your order updates</h2></div><a href="/account/orders" class="section-link">All orders</a></div><div class="profile-updates-grid"><% updates.forEach(function (update) { %><article class="profile-update-card"><span class="label-caps"><%= update.orderId %></span><h3><%= update.title %></h3><p><%= update.message %></p><a href="<%= update.href %>"><%= update.action %> <%- icon('chevron-right', 'i-xs') %></a></article><% }) %></div></section>
+<% } %>
 <section class="panel acct-section" aria-labelledby="last-order-title">
   <div class="acct-section-head">
     <h2 id="last-order-title">Your last order</h2>
@@ -42,7 +48,7 @@
       </span>
       <span class="acct-last-body">
         <strong><%= lastOrder.orderId %></strong>
-        <small class="muted">Placed <%= formatDate(lastOrder.createdAt) %> · <%= lastOrder.items.length %> <%= lastOrder.items.length === 1 ? 'item' : 'items' %> · <%= formatPrice(lastOrder.total) %></small>
+        <small class="muted">Placed <%= formatDate(lastOrder.createdAt) %> · <%= lastOrder.items.length %> <%= lastOrder.items.length === 1 ? 'item' : 'items' %> · <%= formatPrice(lastOrder.total + (lastOrder.walletUsed || 0)) %></small>
         <span class="status-pill status-<%= lastOrder.orderStatus %>"><span class="status-dot" aria-hidden="true"></span><%= labels[lastOrder.orderStatus] || lastOrder.orderStatus %></span>
       </span>
       <% if (step !== undefined) { %>
@@ -56,6 +62,7 @@
   <% } %>
 </section>
 
+<%- include('../partials/account-services') %>
 <% if (recent.length) { %>
   <section class="panel acct-section" aria-labelledby="recent-title">
     <div class="acct-section-head">

@@ -6,10 +6,6 @@
 
   const Pages = window.NxPages;
   if (!Pages || !Pages.define) return;
-  const BASE = document.body.dataset.adminPath || '';
-  const money = (paise) => Nx.formatPrice(paise);
-  const go = (href) =>
-    window.NxNav ? window.NxNav.go(href) : window.location.assign(href);
   const refresh = (message) => {
     if (window.NxNav)
       return window.NxNav.reload().then(() => message && Nx.toast(message));
@@ -21,6 +17,7 @@
   // ---------- Orders ----------
   Pages.define('admin-orders', (root, signal) => {
     const bar = root.querySelector('[data-bulk-bar]');
+    let bulkPending = false;
 
     // Bulk select.
     const boxes = () => [...root.querySelectorAll('[data-select]')];
@@ -64,37 +61,45 @@
           return;
         }
         const apply = event.target.closest('[data-bulk-apply]');
-        if (!apply) return;
+        if (!apply || bulkPending) return;
         const status = bar.querySelector('[data-bulk-status]').value;
         const orderIds = selected();
+        if (!orderIds.length)
+          return Nx.toast('Select at least one order first.', 'error');
         if (!status)
           return Nx.toast('Choose the status to move the orders to.', 'error');
         const label = bar.querySelector(
           `[data-bulk-status] option[value="${status}"]`,
         ).textContent;
-        const ok = await Nx.confirm({
-          title: `Move ${orderIds.length} ${orderIds.length === 1 ? 'order' : 'orders'} to ${label}?`,
-          message:
-            "Orders only move forward. Any order that can't take this step is skipped and listed.",
-          confirmLabel: 'Move orders',
-          tone: 'primary',
-        });
-        if (!ok) return;
-        Nx.busy(apply, true, 'Moving…');
+        bulkPending = true;
         try {
-          const reply = await Nx.api('/api/admin/orders/bulk-status', {
-            method: 'POST',
-            body: {orderIds, status},
+          const ok = await Nx.confirm({
+            title: `Move ${orderIds.length} ${orderIds.length === 1 ? 'order' : 'orders'} to ${label}?`,
+            message:
+              "Orders only move forward. Any order that can't take this step is skipped and listed.",
+            confirmLabel: 'Move orders',
+            tone: 'primary',
           });
-          await refresh(reply.message);
-          if (reply.skipped.length)
-            Nx.toast(
-              `Skipped: ${reply.skipped.map((s) => `${s.orderId} (${s.reason})`).join('; ')}`,
-              'error',
-            );
-        } catch (error) {
+          if (!ok || signal.aborted) return;
+          Nx.busy(apply, true, 'Moving…');
+          try {
+            const reply = await Nx.api('/api/admin/orders/bulk-status', {
+              method: 'POST',
+              body: {orderIds, status},
+            });
+            await refresh(reply.message);
+            if (reply.skipped.length)
+              Nx.toast(
+                `Skipped: ${reply.skipped.map((s) => `${s.orderId} (${s.reason})`).join('; ')}`,
+                'error',
+              );
+          } catch (error) {
+            Nx.busy(apply, false);
+            Nx.toast(error.message, 'error');
+          }
+        } finally {
+          bulkPending = false;
           Nx.busy(apply, false);
-          Nx.toast(error.message, 'error');
         }
       },
       {signal},
@@ -107,23 +112,75 @@
     if (!holder) return;
     const id = encodeURIComponent(holder.dataset.adminOrder);
     const api = (path) => `/api/admin/orders/${id}${path}`;
+    const pendingForms = new WeakSet();
 
     async function send(form, {url, method = 'POST', body, confirm, busy}) {
-      if (confirm && !(await Nx.confirm(confirm))) return;
-      const reply = await Nx.submitForm(form, {
-        url,
-        method,
-        body,
-        busyLabel: busy,
-      });
-      if (reply) refresh(reply.message);
+      if (pendingForms.has(form) || signal.aborted) return;
+      pendingForms.add(form);
+      try {
+        if (confirm && !(await Nx.confirm(confirm))) return;
+        if (signal.aborted) return;
+        const reply = await Nx.submitForm(form, {
+          url,
+          method,
+          body,
+          busyLabel: busy,
+        });
+        if (reply && !signal.aborted) await refresh(reply.message);
+      } finally {
+        pendingForms.delete(form);
+      }
+    }
+
+    const cancelForm = root.querySelector('[data-cancel-form]');
+    if (cancelForm) {
+      const chosen = () => [
+        ...cancelForm.querySelectorAll('input[name="itemIds"]'),
+      ];
+      const updateSelection = () => {
+        const boxes = chosen();
+        const count = boxes.filter((box) => box.checked).length;
+        const master = cancelForm.querySelector('[data-cancel-select-all]');
+        const label = cancelForm.querySelector('[data-cancel-count]');
+        const submit = cancelForm.querySelector('[data-cancel-submit]');
+        if (master) {
+          master.checked = count > 0 && count === boxes.length;
+          master.indeterminate = count > 0 && count < boxes.length;
+        }
+        if (label) label.textContent = count + ' selected';
+        if (submit) submit.disabled = count === 0;
+      };
+      cancelForm.addEventListener(
+        'change',
+        (event) => {
+          if (event.target.matches('[data-cancel-select-all]'))
+            chosen().forEach((box) => {
+              box.checked = event.target.checked;
+            });
+          updateSelection();
+        },
+        {signal},
+      );
+      updateSelection();
     }
 
     root.addEventListener(
       'submit',
       (event) => {
         const form = event.target;
-        if (form.matches('[data-status-form]')) {
+        if (form.matches('[data-order-tags]')) {
+          event.preventDefault();
+          send(form, {
+            url: api('/tags'),
+            method: 'PATCH',
+            body: {
+              tags: [
+                ...form.querySelectorAll('input[name="tags"]:checked'),
+              ].map((input) => input.value),
+            },
+            busy: 'Saving labels.',
+          });
+        } else if (form.matches('[data-status-form]')) {
           event.preventDefault();
           const select = form.elements.status;
           const label = select.options[select.selectedIndex].textContent;
@@ -145,13 +202,17 @@
           const itemIds = [
             ...form.querySelectorAll("input[name='itemIds']:checked"),
           ].map((box) => box.value);
+          if (!itemIds.length) {
+            Nx.toast('Select the items you want to cancel first.', 'error');
+            return;
+          }
           const values = Nx.formValues(form);
           send(form, {
             url: api('/cancel'),
             body: {
               itemIds,
               reason: values.reason,
-              refundMethod: values.refundMethod || 'wallet',
+              refundMethod: 'wallet',
             },
             busy: 'Cancelling…',
             confirm: {
@@ -159,7 +220,7 @@
                 ? `Cancel ${itemIds.length} ${itemIds.length === 1 ? 'item' : 'items'}?`
                 : 'Cancel every item that can still be cancelled?',
               message:
-                'Stock goes back on the shelf, and anything already paid is refunded to the customer.',
+                'Stock goes back on the shelf, and anything already paid is credited to the customer’s Nexthlon wallet.',
               confirmLabel: 'Cancel items',
             },
           });
@@ -197,7 +258,7 @@
                 ? {
                     title: 'Parcel back with you?',
                     message:
-                      "Every item still on its way is cancelled, stock goes back on the shelf, and anything paid online is refunded to the card or UPI. This can't be undone.",
+                      "Every item still on its way is cancelled, stock goes back on the shelf, and the eligible paid amount is credited to the customer’s Nexthlon wallet. This can't be undone.",
                     confirmLabel: 'Mark as back',
                     tone: 'danger',
                   }
@@ -212,35 +273,15 @@
         } else if (form.matches('[data-note-form]')) {
           event.preventDefault();
           send(form, {url: api('/notes'), busy: 'Saving…'});
-        } else if (form.matches('[data-refund-form]')) {
-          event.preventDefault();
-          const values = Nx.formValues(form);
-          // Keep the same key when a failed/uncertain submission is retried.
-          form.dataset.refundRequestKey ||= crypto.randomUUID();
-          values.requestKey = form.dataset.refundRequestKey;
-          const paise = Math.round(Number(values.amount) * 100);
-          if (!(paise > 0) || paise > Number(form.dataset.max)) {
-            Nx.showErrors(form, {
-              amount: `Enter an amount from ₹1 to ${money(Number(form.dataset.max))}.`,
-            });
-            return;
-          }
-          send(form, {
-            url: api('/refunds'),
-            body: values,
-            busy: 'Refunding…',
-            confirm: {
-              title: `Refund ${money(paise)}?`,
-              message:
-                values.method === 'original'
-                  ? "The money goes back to the customer's card or UPI (5 to 7 working days). This can't be undone."
-                  : "The money goes into the customer's Nexthlon wallet straight away. This can't be undone.",
-              confirmLabel: 'Refund',
-              tone: 'danger',
-            },
-          });
         } else if (form.matches('[data-return-form]')) {
           event.preventDefault();
+          if (
+            !event.submitter ||
+            !['approve', 'reject'].includes(event.submitter.value)
+          ) {
+            Nx.toast('Choose Approve or Reject to continue.', 'info');
+            return;
+          }
           const decision =
             event.submitter && event.submitter.value === 'reject'
               ? 'reject'
@@ -259,7 +300,7 @@
             body: {
               decision,
               note: values.note,
-              refundMethod: values.refundMethod || 'wallet',
+              refundMethod: 'wallet',
             },
             busy: decision === 'approve' ? 'Approving…' : 'Rejecting…',
             confirm:
@@ -267,8 +308,8 @@
                 ? {
                     title: 'Approve this return?',
                     message:
-                      'The items count as returned, their stock goes back on the shelf, and their value is refunded.',
-                    confirmLabel: 'Approve and refund',
+                      'The items count as returned, their stock goes back on the shelf, and their paid value is credited to the customer’s Nexthlon wallet.',
+                    confirmLabel: 'Approve and credit wallet',
                     tone: 'primary',
                   }
                 : {
@@ -292,47 +333,6 @@
 
   // ---------- Lists ----------
   // Returns, transactions and reconciliation need nothing beyond the shared table behaviour (admin.js).
-
-  Pages.define('admin-refunds', (root, signal) => {
-    root.addEventListener(
-      'submit',
-      (event) => {
-        const form = event.target.closest('[data-refund-lookup]');
-        if (!form) return;
-        event.preventDefault();
-        const orderId = form.elements.orderId.value.trim().toUpperCase();
-        if (!/^NX-\d{4}-\d{6}$/.test(orderId))
-          return Nx.toast(
-            'Enter an order number like NX-2026-000123.',
-            'error',
-          );
-        go(`${BASE}/orders/${orderId}`);
-      },
-      {signal},
-    );
-  });
-  // ---------- Labels on one order: save the ticked labels ----------
-  document.addEventListener('submit', async (event) => {
-    const form = event.target.closest('[data-order-tags]');
-    if (!form) return;
-    event.preventDefault();
-    const tags = [...form.querySelectorAll('input[name="tags"]:checked')].map(
-      (box) => box.value,
-    );
-    const button = form.querySelector('[type="submit"]');
-    Nx.busy(button, true, 'Saving…');
-    try {
-      const reply = await Nx.api(
-        `/api/admin/orders/${encodeURIComponent(form.dataset.orderTags)}/tags`,
-        {method: 'PATCH', body: {tags}},
-      );
-      Nx.toast(reply.message);
-    } catch (error) {
-      Nx.toast(error.message, 'error');
-    } finally {
-      Nx.busy(button, false);
-    }
-  });
 
   // ---------- Batch print: the chosen orders, one page each ----------
   document.addEventListener('click', (event) => {

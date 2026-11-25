@@ -782,6 +782,7 @@
     const main = gallery.querySelector('[data-gallery-main]');
     const thumbs = [...gallery.querySelectorAll('.thumb')];
     const counter = gallery.querySelector('[data-gallery-index]');
+    const video = gallery.querySelector('[data-gallery-video]');
     if (!main || !thumbs.length) return;
     let current = Math.max(
       0,
@@ -869,14 +870,31 @@
       if (next === current) return;
       // The shorter way round decides the direction (the last photo going on to the first is "next").
       const step = index - current;
-      turn(dir || (step > 0 ? 1 : -1));
+      if (
+        !thumbs[next].hasAttribute('data-video-thumb') &&
+        !thumbs[current].hasAttribute('data-video-thumb')
+      )
+        turn(dir || (step > 0 ? 1 : -1));
       current = next;
       const thumb = thumbs[current];
+      const isVideo = thumb.hasAttribute('data-video-thumb');
+      if (video) {
+        video.pause();
+        video.hidden = !isVideo;
+      }
+      main.hidden = isVideo;
+      const stage = main.closest('[data-stage]');
+      stage.classList.toggle('is-video', isVideo);
+      stage.classList.remove('is-zooming', 'is-inplace');
+      const pane = gallery.querySelector('[data-zoom-pane]');
+      const lens = gallery.querySelector('[data-zoom-lens]');
+      if (pane) pane.hidden = true;
+      if (lens) lens.hidden = true;
       // The big photo comes in several sizes: switch its srcset together with its src, or the browser
       // would keep choosing from the previous photo's set.
       if (thumb.dataset.srcset) main.srcset = thumb.dataset.srcset;
       else main.removeAttribute('srcset');
-      main.src = thumb.dataset.src;
+      if (!isVideo) main.src = thumb.dataset.src;
       thumbs.forEach((other) => other.removeAttribute('aria-current'));
       thumb.setAttribute('aria-current', 'true');
       paintCount();
@@ -947,6 +965,7 @@
         main.style.translate = '';
       };
       stage.addEventListener('pointerdown', (event) => {
+        if (stage.classList.contains('is-video')) return;
         if (event.pointerType === 'mouse' || event.target.closest('button, a'))
           return;
         startX = event.clientX;

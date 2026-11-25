@@ -13,7 +13,7 @@ async function supportsTransactions() {
       const hello = await mongoose.connection.db.admin().command({hello: 1});
       support = Boolean(hello.setName || hello.msg === 'isdbgrid');
     } catch {
-      support = false;
+      return false;
     }
   }
   return support;

@@ -13,106 +13,85 @@
       : window.location.assign(href);
 
   // Enable/disable and delete work the same on the list and on the detail page.
-  function wireRowActions(root, signal, {onDeleted}) {
+  function wireRowActions(root, signal, {onDeleted, onChanged}) {
+    const pending = new Set();
     root.addEventListener(
       'click',
       async (event) => {
         const toggle = event.target.closest('[data-coupon-toggle]');
         const remove = event.target.closest('[data-coupon-delete]');
-        if (!toggle && !remove) return;
-
-        if (toggle) {
-          const id = toggle.dataset.couponToggle;
-          const isActive = toggle.dataset.active === 'true';
-          const code = toggle.dataset.code;
-          const ok = await Nx.confirm({
-            title: isActive ? `Disable ${code}?` : `Enable ${code}?`,
-            message: isActive
-              ? 'Customers will be told the code is not valid from the next checkout onwards. Orders already placed keep their discount.'
-              : 'Customers who qualify will be able to use this code again.',
-            confirmLabel: isActive ? 'Disable the coupon' : 'Enable the coupon',
-            tone: isActive ? 'danger' : 'primary',
-          });
-          if (!ok) return;
-          Nx.busy(toggle, true, isActive ? 'Disabling…' : 'Enabling…');
-          try {
-            const reply = await Nx.api(
-              `/api/admin/coupons/${encodeURIComponent(id)}/active`,
-              {method: 'PATCH', body: {isActive: !isActive}},
-            );
-            Nx.busy(toggle, false);
-            const coupon = reply.coupon;
-            toggle.dataset.active = String(coupon.isActive);
-            toggle.textContent = coupon.isActive ? 'Disable' : 'Enable';
-            toggle.className = `btn btn-sm ${coupon.isActive ? 'btn-danger-soft' : 'btn-secondary'}`;
-            toggle.setAttribute(
-              'aria-label',
-              `${coupon.isActive ? 'Disable' : 'Enable'} ${code}`,
-            );
-            // The status word can change in more ways than on/off (expired, fully used...).
-            root.querySelectorAll('[data-coupon-status]').forEach((pill) => {
-              const row = pill.closest('[data-coupon-row]');
-              if (row && row.dataset.couponRow !== id) return;
-              pill.textContent =
-                {
-                  active: 'Running now',
-                  scheduled: 'Starts later',
-                  expired: 'Expired',
-                  disabled: 'Disabled',
-                  used_up: 'Fully used',
-                }[coupon.status] || coupon.status;
-              pill.className = `pill ${{active: 'pill-green', scheduled: 'pill-blue', expired: 'pill-red', disabled: 'pill-grey', used_up: 'pill-amber'}[coupon.status] || 'pill-grey'}`;
-            });
-            Nx.toast(reply.message);
-          } catch (error) {
-            Nx.busy(toggle, false);
-            Nx.toast(error.message, 'error');
-          }
-          return;
-        }
-
-        const id = remove.dataset.couponDelete;
-        const code = remove.dataset.code;
-        const ok = await Nx.confirm({
-          title: `Delete ${code}?`,
-          message:
-            'The code can never be used again and leaves this list. Orders that used it keep their history, so your reports stay correct.',
-          confirmLabel: 'Delete the coupon',
-        });
-        if (!ok) return;
-        Nx.busy(remove, true, 'Deleting…');
+        const button = toggle || remove;
+        if (!button || button.disabled) return;
+        event.preventDefault();
+        const id = toggle
+          ? toggle.dataset.couponToggle
+          : remove.dataset.couponDelete;
+        if (pending.has(id)) return;
+        pending.add(id);
+        const code = button.dataset.code;
+        const active = button.dataset.active === 'true';
+        const action = remove ? 'Delete' : active ? 'Disable' : 'Enable';
         try {
+          const confirmed = await Nx.confirm({
+            title: action + ' ' + code + '?',
+            message: remove
+              ? 'This code will leave the list and cannot be reused. Past orders keep their coupon history.'
+              : active
+                ? 'Stop new checkouts from using this code. Existing orders keep their discount.'
+                : 'Enable this code. Its dates and usage limits still apply.',
+            confirmLabel: action + ' coupon',
+            tone: remove || active ? 'danger' : 'primary',
+          });
+          if (!confirmed || signal.aborted) return;
+          Nx.busy(button, true, 'Saving…');
           const reply = await Nx.api(
-            `/api/admin/coupons/${encodeURIComponent(id)}`,
-            {method: 'DELETE'},
+            '/api/admin/coupons/' +
+              encodeURIComponent(id) +
+              (toggle ? '/active' : ''),
+            {
+              method: toggle ? 'PATCH' : 'DELETE',
+              ...(toggle ? {body: {isActive: !active}} : {}),
+            },
           );
-          onDeleted(id, reply.message);
+          if (signal.aborted) return;
+          if (remove) await onDeleted(id, reply.message);
+          else await onChanged(reply.message);
         } catch (error) {
-          Nx.busy(remove, false);
-          Nx.toast(error.message, 'error');
+          if (!signal.aborted) Nx.toast(error.message, 'error');
+        } finally {
+          pending.delete(id);
+          Nx.busy(button, false);
         }
       },
       {signal},
     );
   }
 
-  // ---------- The list ----------
+  // Refresh the data, totals and tabs together after a mutation. Start on page one because the last
+  // row on a filtered page may have disappeared; preserve the search, status, sort and page size.
+  function refreshList(message) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('page');
+    Nx.flash(message);
+    return go(url.pathname + url.search);
+  }
   Pages.define('admin-coupons', (root, signal) => {
     wireRowActions(root, signal, {
-      onDeleted(id, message) {
-        const row = root.querySelector(`[data-coupon-row="${id}"]`);
-        if (row) row.remove();
-        Nx.toast(message);
-      },
+      onDeleted: (id, message) => refreshList(message),
+      onChanged: refreshList,
     });
   });
 
-  // ---------- One coupon ----------
   Pages.define('admin-coupon-detail', (root, signal) => {
     wireRowActions(root, signal, {
       onDeleted(id, message) {
         Nx.flash(message);
-        go(`${BASE}/coupons`);
+        return go(BASE + '/coupons');
+      },
+      onChanged(message) {
+        Nx.flash(message);
+        if (window.NxNav) return window.NxNav.reload();
+        window.location.reload();
       },
     });
   });
@@ -138,7 +117,32 @@
         ? 'A whole percentage from 1 to 90.'
         : 'In rupees, at least ₹1.';
       valueInput.max = percent ? '90' : '10000000';
+      valueInput.step = percent ? '1' : '0.01';
+      valueInput.inputMode = percent ? 'numeric' : 'decimal';
+      updatePreview();
     }
+    function updatePreview() {
+      const code = form.querySelector('[data-coupon-preview-code]');
+      const offer = form.querySelector('[data-coupon-preview-value]');
+      const rule = form.querySelector('[data-coupon-preview-rule]');
+      if (!code || !offer || !rule) return;
+      const amount = Number(valueInput.value) || 0;
+      const min = Number(form.elements.minOrder.value) || 0;
+      const max = Number(form.elements.maxDiscount.value) || 0;
+      code.textContent = form.elements.code.value || 'YOURCODE';
+      offer.textContent =
+        type.value === 'percent'
+          ? amount + '% off'
+          : Nx.formatPrice(Math.round(amount * 100)) + ' off';
+      rule.textContent =
+        (min > 0
+          ? 'On orders from ' + Nx.formatPrice(Math.round(min * 100))
+          : 'No minimum order') +
+        (type.value === 'percent' && max > 0
+          ? ' · Maximum savings ' + Nx.formatPrice(Math.round(max * 100))
+          : '');
+    }
+    form.addEventListener('input', updatePreview, {signal});
     type.addEventListener('change', applyType, {signal});
     applyType();
 
@@ -154,22 +158,29 @@
       {signal},
     );
 
+    let saving = false;
     form.addEventListener(
       'submit',
       async (event) => {
         event.preventDefault();
+        if (saving || signal.aborted) return;
+        saving = true;
         const body = Nx.formValues(form);
         // An unchecked checkbox is simply absent, so make the intent explicit either way.
         body.isActive = form.elements.isActive.checked;
-        const reply = await Nx.submitForm(form, {
-          url: form.dataset.endpoint,
-          method: form.dataset.method,
-          body,
-          busyLabel: 'Saving…',
-        });
-        if (!reply) return;
-        Nx.flash(reply.message);
-        go(form.dataset.done);
+        try {
+          const reply = await Nx.submitForm(form, {
+            url: form.dataset.endpoint,
+            method: form.dataset.method,
+            body,
+            busyLabel: 'Saving…',
+          });
+          if (!reply || signal.aborted) return;
+          Nx.flash(reply.message);
+          go(form.dataset.done);
+        } finally {
+          saving = false;
+        }
       },
       {signal},
     );

@@ -27,8 +27,8 @@ const CANNED_REPLIES = [
     body: 'You can return an item within the return window shown on your order. Open My orders, choose the item and select Return. We will confirm the pickup by email.',
   },
   {
-    label: 'Refund timing',
-    body: 'Refunds go back to the original payment method or your Nexthlon wallet. They usually reach your bank in 5 to 7 working days after we receive the item.',
+    label: 'Wallet credit',
+    body: 'Paid cancellations and approved returns credit your Nexthlon wallet for future purchases on Nexthlon. Check My orders and Wallet for the recorded credit, or contact us if a credit is still processing.',
   },
   {
     label: 'Could you share more details?',

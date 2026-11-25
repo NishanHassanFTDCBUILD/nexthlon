@@ -23,8 +23,6 @@ const COLUMNS = [
   'availability',
   'image_url',
   'link',
-  'hsn',
-  'gst_rate',
   'country_of_origin',
 ];
 
@@ -51,8 +49,6 @@ function rowsFor(products) {
       mrp_inr: rupees(Math.max(p.mrp, p.price)),
       image_url: image,
       link,
-      hsn: (p.tax && p.tax.hsn) || '',
-      gst_rate: p.tax && Number.isInteger(p.tax.rate) ? p.tax.rate : '',
       country_of_origin: p.countryOfOrigin || 'India',
     };
     if (p.variants && p.variants.length) {

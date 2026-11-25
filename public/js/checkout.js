@@ -226,21 +226,6 @@
   const form = page.querySelector('[data-place-order]');
   const placeButton = form.querySelector('[type="submit"]');
 
-  // A gift for someone else: show the fields, and send them with the order.
-  const giftToggle = form.querySelector('[data-gift-toggle]');
-  const giftFields = form.querySelector('[data-gift-fields]');
-  if (giftToggle && giftFields)
-    giftToggle.addEventListener('change', () => {
-      giftFields.hidden = !giftToggle.checked;
-    });
-  const giftRecipient = () =>
-    giftToggle && giftToggle.checked
-      ? {
-          name: form.elements.giftName.value.trim(),
-          email: form.elements.giftEmail.value.trim(),
-          message: form.elements.giftMessage.value.trim(),
-        }
-      : null;
   const summary = page.querySelector('[data-summary]');
   const cards = [...form.querySelectorAll('[data-pay-card]')];
   const methodInput = (name) =>
@@ -704,7 +689,6 @@
       paymentMethod: p.kind,
       useWallet: p.useWallet,
       source,
-      giftRecipient: giftRecipient(),
     });
     if (!reply) {
       // Prices, stock or the wallet may have changed: show the latest totals.

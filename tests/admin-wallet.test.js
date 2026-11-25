@@ -221,8 +221,8 @@ test('wallet page renders empty and populated histories and escapes customer tex
     assert.ok(html.includes('data-page="admin-customer-wallet"'));
     assert.ok(html.includes('data-admin-wallet-form'));
     assert.ok(!html.includes('<script>bad()'));
-    assert.equal(html.includes('Goodwill</td>'), populated);
-    assert.equal(html.includes('No wallet transactions yet.'), !populated);
+    assert.equal(html.includes('Goodwill</strong>'), populated);
+    assert.equal(html.includes('No transactions yet'), !populated);
   }
 });
 
@@ -237,6 +237,7 @@ test('admin wallet form retries an uncertain response with the same request id',
   const button = {};
   const form = {
     dataset: {userId},
+    dispatchEvent() {},
     elements: {
       type: {value: 'credit'},
       amount: {value: '10'},
@@ -254,6 +255,8 @@ test('admin wallet form retries an uncertain response with the same request id',
   };
   const context = {
     crypto,
+    document: {body: {dataset: {adminPath: '/admin'}}},
+    CustomEvent: class {},
     window: {
       NxPages: {
         define: (_name, handler) => {
@@ -273,6 +276,7 @@ test('admin wallet form retries an uncertain response with the same request id',
       flash() {},
       formAlert: (_form, message) => {
         alert = message;
+        return true;
       },
       confirm: async () => true,
       api: async (_url, options) => {
@@ -282,6 +286,17 @@ test('admin wallet form retries an uncertain response with the same request id',
       },
     },
   };
+  const helpers = fs.readFileSync(
+    require('node:path').join(__dirname, '../public/js/app.js'),
+    'utf8',
+  );
+  vm.runInNewContext(
+    helpers.slice(
+      helpers.indexOf('const submittingForms ='),
+      helpers.indexOf('// ---------- Motion helpers'),
+    ),
+    context,
+  );
   vm.runInNewContext(
     fs.readFileSync(
       require('node:path').join(__dirname, '../public/js/admin-wallet.js'),

@@ -2,6 +2,7 @@
 <%
   const STATUS_LABELS = { active: 'Active', unlisted: 'Unlisted', out: 'Out of stock' };
   const STATUS_PILLS = { active: 'pill-green', unlisted: 'pill-grey', out: 'pill-red' };
+  const canEdit = typeof adminCan !== 'function' || adminCan('products.write');
   const filtered = filters.q || filters.category || filters.status !== 'all';
 %>
 <%- include('../partials/admin-start', { section: 'products' }) %>
@@ -13,7 +14,7 @@
       </div>
       <div class="admin-top-actions">
         <a class="btn btn-ghost btn-sm" href="/api/admin/products/export.csv" download data-full-load><%- icon('download', 'i-sm') %> Export CSV</a>
-        <details class="admin-import" data-product-import>
+        <% if (canEdit) { %><details class="admin-import" data-product-import>
           <summary class="btn btn-ghost btn-sm"><%- icon('copy', 'i-sm') %> Import CSV</summary>
           <div class="admin-import-panel">
             <p class="muted">Export the list, edit prices, names, brands, categories, offers or listing in the file, then upload it here. Blank cells keep the current value. Stock is changed in Inventory.</p>
@@ -24,7 +25,7 @@
             </div>
           </div>
         </details>
-        <a class="btn btn-primary btn-sm" href="<%= adminPath %>/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
+        <a class="btn btn-primary btn-sm" href="<%= adminPath %>/products/new"><%- icon('plus', 'i-sm') %> Add product</a><% } %>
       </div>
     </header>
 
@@ -63,12 +64,12 @@
                   <td data-label="Discount"><%= p.discountPercent ? p.discountPercent + '%' : '—' %></td>
                   <td data-label="Stock"><span class="<%= p.stock === 0 ? 'text-red' : p.isLowStock ? 'text-amber' : '' %>"><%= p.stock %></span></td>
                   <td data-label="Status"><span class="pill <%= STATUS_PILLS[p.status] %>" data-status><%= STATUS_LABELS[p.status] %></span></td>
-                  <td class="cell-action"><div class="row-actions">
+                  <td class="cell-action"><% if (canEdit) { %><div class="row-actions">
                     <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/products/<%= p.id %>/edit" aria-label="Edit <%= p.name %>"><%- icon('edit', 'i-xs') %> Edit</a>
                     <button type="button" class="btn btn-sm <%= p.isListed ? 'btn-danger-soft' : 'btn-secondary' %>"
                             data-toggle-listing="<%= p.id %>" data-listed="<%= p.isListed %>" data-name="<%= p.name %>" data-stock="<%= p.stock %>"
                             aria-label="<%= p.isListed ? 'Unlist' : 'List' %> <%= p.name %>"><%= p.isListed ? 'Unlist' : 'List' %></button>
-                  </div></td>
+                  </div><% } else { %><span class="muted">View only</span><% } %></td>
                 </tr>
               <% }) %>
             </tbody>
@@ -81,7 +82,7 @@
           <p><%= filtered ? 'Try a different search or filter.' : 'Add your first product to start selling.' %></p>
           <% if (filtered) { %>
             <a class="btn btn-secondary" href="<%= adminPath %>/products">Show all products</a>
-          <% } else { %>
+          <% } else if (canEdit) { %>
             <a class="btn btn-primary" href="<%= adminPath %>/products/new"><%- icon('plus', 'i-sm') %> Add product</a>
           <% } %>
         </div>

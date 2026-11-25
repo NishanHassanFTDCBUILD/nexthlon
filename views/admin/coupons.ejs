@@ -4,30 +4,32 @@
   Disabling is reversible; deleting is a soft delete, so past orders keep their history.
 %>
 <%
+  const canEdit = typeof adminCan !== 'function' || adminCan('coupons.write');
   const tabs = [['all', 'All'], ['active', 'Running'], ['scheduled', 'Starts later'], ['expired', 'Expired'], ['used_up', 'Fully used'], ['disabled', 'Disabled']];
   const pill = { active: 'pill-green', scheduled: 'pill-blue', expired: 'pill-red', disabled: 'pill-grey', used_up: 'pill-amber' };
 %>
 <%- include('../partials/admin-start', { section: 'coupons' }) %>
-<header class="admin-top">
+<div class="sales-workspace">
+<header class="admin-top sales-heading">
   <div>
-    <span class="section-kicker">Sales</span>
+    <span class="section-kicker">Sales / Promotions</span>
     <h1>Coupons</h1>
-    <p class="muted">Discount codes customers type at checkout. Every code is checked again on the server when it is applied and when the order is placed.</p>
+    <p class="muted">Create offers, control when they run and see how customers use them.</p>
   </div>
   <div class="admin-top-actions">
-    <a class="btn btn-primary btn-sm" href="<%= adminPath %>/coupons/new"><%- icon('plus', 'i-sm') %> New coupon</a>
+    <% if (canEdit) { %><a class="btn btn-primary btn-sm" href="<%= adminPath %>/coupons/new"><%- icon('plus', 'i-sm') %> New coupon</a><% } %>
   </div>
 </header>
 
-<section class="admin-totals" aria-label="Coupon totals">
-  <div class="admin-total"><span>Running now</span><strong><%= totals.active %></strong><small class="muted">customers can use these</small></div>
-  <div class="admin-total"><span>Times used</span><strong><%= totals.uses.toLocaleString('en-IN') %></strong><small class="muted">across all coupons</small></div>
-  <div class="admin-total is-out"><span>Discount given</span><strong><%= formatPrice(totals.discountGiven) %></strong><small class="muted">total, all time</small></div>
-  <div class="admin-total"><span>Not running</span><strong><%= totals.disabled + totals.expired + totals.used_up %></strong><small class="muted"><%= totals.disabled %> disabled · <%= totals.expired %> expired · <%= totals.used_up %> used up</small></div>
+<section class="admin-totals sales-metrics" aria-label="Coupon totals">
+  <div class="admin-total sales-metric-featured"><div class="sales-metric-top"><span>Running now</span><%- icon('ticket', 'i-sm') %></div><strong><%= totals.active %></strong><small>Available to qualifying customers</small></div>
+  <div class="admin-total"><div class="sales-metric-top"><span>Scheduled</span><%- icon('clock', 'i-sm') %></div><strong><%= totals.scheduled || 0 %></strong><small>Ready for their start date</small></div>
+  <div class="admin-total"><div class="sales-metric-top"><span>Total redemptions</span><%- icon('check', 'i-sm') %></div><strong><%= totals.uses.toLocaleString('en-IN') %></strong><small>Across all coupons, including history</small></div>
+  <div class="admin-total is-in"><div class="sales-metric-top"><span>Discount given</span><%- icon('tag', 'i-sm') %></div><strong><%= formatPrice(totals.discountGiven) %></strong><small>Lifetime value of redeemed discounts</small></div>
 </section>
 
 <nav class="segmented admin-tabs" aria-label="Coupon status">
-  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>"><%= label %><% if (key !== 'all' && totals[key]) { %> <span class="admin-tab-count"><%= totals[key] %></span><% } %></a><% }) %>
+  <% tabs.forEach(function ([key, label]) { %><a href="<%= link({ status: key === 'all' ? '' : key, page: '' }) %>" class="<%= filters.status === key ? 'is-active' : '' %>" <%= filters.status === key ? 'aria-current="page"' : '' %>><%= label %><% if (key !== 'all' && totals[key]) { %> <span class="admin-tab-count"><%= totals[key] %></span><% } %></a><% }) %>
 </nav>
 
 <%- include('../partials/admin-list-toolbar', { section: 'coupons', searchMax: 40, searchHint: 'Code or description', sorts, fields: [{ key: 'status', label: 'Status', options: [['', 'Any status'], ...tabs.filter(function (t) { return t[0] !== 'all'; })] }] }) %>
@@ -35,44 +37,40 @@
 
 
 <section class="panel panel-flush admin-table-panel" aria-label="Coupons">
+  <div class="sales-table-heading"><div><h2>Your discount codes</h2><p>Dates are inclusive and use Indian Standard Time</p></div><span class="sales-record-count"><%= pagination.total.toLocaleString('en-IN') %> coupons</span></div>
   <% if (coupons.length) { %>
     <div class="table-wrap admin-table-scroll">
-      <table class="table table-stack admin-table">
+      <table class="table table-stack admin-table sales-coupon-table">
         <thead><tr>
           <%- include('../partials/admin-sort-header', { label: 'Code', asc: 'code_asc', desc: '' }) %><th scope="col">Discount</th>
-          <th scope="col" class="cell-num">Minimum order</th><th scope="col" class="cell-num">Cap</th>
-          <%- include('../partials/admin-sort-header', { label: 'Runs', asc: 'ending', desc: '' }) %><th scope="col">Limits</th>
-          <%- include('../partials/admin-sort-header', { label: 'Used', asc: '', desc: 'used_desc' }) %><th scope="col">Status</th>
+          <th scope="col">Order rules</th>
+          <%- include('../partials/admin-sort-header', { label: 'Schedule', asc: 'ending', desc: '' }) %>
+          <%- include('../partials/admin-sort-header', { label: 'Usage', asc: '', desc: 'used_desc' }) %><th scope="col">Status</th>
           <th scope="col" class="cell-action">Actions</th>
         </tr></thead>
         <tbody>
           <% coupons.forEach(function (c) { %>
             <tr data-coupon-row="<%= c.id %>" data-row-href="<%= adminPath %>/coupons/<%= c.id %>">
-              <td>
+              <td data-label="Code">
                 <div class="admin-items-name">
                   <strong><a href="<%= adminPath %>/coupons/<%= c.id %>"><code class="admin-code"><%= c.code %></code></a></strong>
-                  <% if (c.description) { %><span class="admin-sub"><%= c.description %></span><% } %>
+                  <% if (c.description) { %><span class="admin-sub sales-coupon-description" title="<%= c.description %>"><%= c.description %></span><% } %>
                 </div>
               </td>
               <td data-label="Discount"><%= c.type === 'percent' ? c.value + '% off' : formatPrice(c.value) + ' off' %></td>
-              <td data-label="Minimum order" class="cell-num"><%= c.minOrder ? formatPrice(c.minOrder) : '—' %></td>
-              <td data-label="Cap" class="cell-num"><%= c.maxDiscount ? formatPrice(c.maxDiscount) : '—' %></td>
-              <td data-label="Runs">
-                <%= c.startsAt ? formatDate(c.startsAt) : 'Now' %> → <%= c.endsAt ? formatDate(c.endsAt) : 'No end' %>
+              <td data-label="Order rules"><%= c.minOrder ? formatPrice(c.minOrder) + ' minimum' : 'No minimum' %><small class="muted admin-sub"><%= c.maxDiscount ? formatPrice(c.maxDiscount) + ' cap' : 'No discount cap' %></small></td>
+              <td data-label="Schedule">
+                <span class="sales-date-range"><%= c.startsDay || "Immediately" %><small>to <%= c.endsDay || "No expiry" %></small></span>
               </td>
-              <td data-label="Limits">
-                <%= c.usageLimit ? c.usageLimit + ' in total' : 'No total limit' %><br>
-                <small class="muted"><%= c.perUserLimit ? c.perUserLimit + ' per customer' : 'Unlimited per customer' %></small>
-              </td>
-              <td data-label="Used" class="cell-num"><strong><%= c.usedCount %></strong><% if (c.usesLeft !== null) { %><small class="muted admin-sub"><%= c.usesLeft %> left</small><% } %></td>
+              <td data-label="Usage"><strong><%= c.usedCount %></strong><span class="muted"><%= c.usageLimit ? ' / ' + c.usageLimit : ' uses' %></span><% if (c.usageLimit > 0) { %><progress class="sales-usage" value="<%= Math.min(c.usedCount, c.usageLimit) %>" max="<%= c.usageLimit %>" aria-label="Usage of <%= c.code %>"><%= c.usedCount %> of <%= c.usageLimit %></progress><% } %><small class="muted admin-sub"><%= c.perUserLimit ? c.perUserLimit + ' per customer' : 'No customer limit' %></small></td>
               <td data-label="Status"><span class="pill <%= pill[c.status] || 'pill-grey' %>" data-coupon-status><%= statusLabels[c.status] %></span></td>
-              <td class="cell-action"><div class="row-actions">
+              <td data-label="Actions" class="cell-action"><% if (canEdit) { %><div class="row-actions">
                 <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/coupons/<%= c.id %>/edit" aria-label="Edit <%= c.code %>"><%- icon('edit', 'i-xs') %> Edit</a>
                 <button type="button" class="btn btn-sm <%= c.isActive ? 'btn-danger-soft' : 'btn-secondary' %>"
                         data-coupon-toggle="<%= c.id %>" data-active="<%= c.isActive %>" data-code="<%= c.code %>"
                         aria-label="<%= c.isActive ? 'Disable' : 'Enable' %> <%= c.code %>"><%= c.isActive ? 'Disable' : 'Enable' %></button>
                 <button type="button" class="btn btn-ghost btn-sm btn-square" data-coupon-delete="<%= c.id %>" data-code="<%= c.code %>" aria-label="Delete <%= c.code %>"><%- icon('trash', 'i-xs') %></button>
-              </div></td>
+              </div><% } else { %><span class="muted">View only</span><% } %></td>
             </tr>
           <% }) %>
         </tbody>
@@ -80,7 +78,8 @@
     </div>
     <%- include('../partials/admin-pager') %>
   <% } else { %>
-    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>No coupons match</h2><p>Create one and it appears at checkout for every customer who qualifies.</p><a class="btn btn-primary" href="<%= adminPath %>/coupons/new"><%- icon('plus', 'i-sm') %> New coupon</a></div>
+    <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>No coupons match</h2><p>Create one and it appears at checkout for every customer who qualifies.</p><% if (canEdit) { %><a class="btn btn-primary" href="<%= adminPath %>/coupons/new"><%- icon('plus', 'i-sm') %> New coupon</a><% } %></div>
   <% } %>
 </section>
+</div>
 <%- include('../partials/admin-end') %>

@@ -53,7 +53,12 @@ function statusOf(coupon, now = new Date()) {
 // Money stays in paise; the *Rupees copies fill the form, which works in rupees.
 // The ISO days fill the date inputs.
 function toAdminCoupon(coupon, now = new Date()) {
-  const day = (date) => (date ? new Date(date).toISOString().slice(0, 10) : '');
+  const day = (date) =>
+    date
+      ? new Date(new Date(date).getTime() + 330 * 60 * 1000)
+          .toISOString()
+          .slice(0, 10)
+      : '';
   return {
     id: String(coupon._id),
     code: coupon.code,
@@ -114,6 +119,10 @@ function statusFilter(status, now) {
   if (status === 'used_up')
     return {
       isActive: true,
+      $and: [
+        {$or: [{startsAt: null}, {startsAt: {$lte: now}}]},
+        {$or: [{endsAt: null}, {endsAt: {$gte: now}}]},
+      ],
       usageLimit: {$gt: 0},
       $expr: {$gte: ['$usedCount', '$usageLimit']},
     };

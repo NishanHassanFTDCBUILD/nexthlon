@@ -2,7 +2,11 @@
 // Spread them into a query: Product.find({ ...LISTED_PRODUCT, category }).
 
 // Only listed products in listed categories are ever shown to shoppers.
-const LISTED_PRODUCT = Object.freeze({isListed: true, categoryListed: true});
+const LISTED_PRODUCT = Object.freeze({
+  isListed: true,
+  categoryListed: true,
+  giftCard: {$ne: true},
+});
 
 // Unlisted categories (and every product in them) are hidden from shoppers.
 const LISTED_CATEGORY = Object.freeze({isListed: true});

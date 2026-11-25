@@ -179,7 +179,7 @@ test('late: an order not shipped within the promise is late; a fresh or shipped 
     cookie: adminCookie,
   });
   assert.equal(page.status, 200);
-  assert.match(page.data, /order-late/);
+  assert.match(page.data, /Dispatch overdue/);
 });
 
 test('pick list: adds up units per product and size across the chosen orders, and prints', async () => {
