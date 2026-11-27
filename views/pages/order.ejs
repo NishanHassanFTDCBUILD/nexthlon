@@ -23,7 +23,7 @@
     <div class="order-actions">
       <% if (canRetryPayment) { %><button type="button" class="btn btn-primary btn-sm" data-retry-payment><%- icon('credit-card', 'i-sm') %> Retry payment · <%= formatPrice(order.total) %></button><% } %>
       <%# An online order that is not paid yet has no invoice number: the invoice comes with the payment. %>
-      <% const invoiceReady = !order.gst || (order.gst.invoiceNo && !order.gst.invoiceNo.startsWith('pending:')); %>
+      <% const invoiceReady = (order.paymentMethod !== 'razorpay' || ['paid', 'refunded', 'partially_refunded'].includes(order.paymentStatus)) && (!order.gst || (order.gst.invoiceNo && !order.gst.invoiceNo.startsWith('pending:'))); %>
       <% if (invoiceReady) { %><a class="btn btn-ghost btn-sm" href="/orders/<%= order.orderId %>/invoice"><%- icon('file-text', 'i-sm') %> Download invoice</a><% } %>
       <% (order.creditNotes || []).forEach(function (note, index) { if (String(note.number).startsWith('pending:')) return; %>
         <a class="btn btn-ghost btn-sm" href="/orders/<%= order.orderId %>/credit-notes/<%= index %>"><%- icon('file-text', 'i-sm') %> Credit note <%= note.number %></a>
@@ -40,20 +40,17 @@
       <span><%= order.paymentStatus === 'failed' ? 'The payment for this order did not go through.' : 'We are waiting for the payment for this order.' %> Your items are not reserved until it is paid<%= canRetryPayment ? ', so retry soon.' : '.' %></span>
     </div>
   <% } %>
+  <%- include('../partials/order-overview', { record: order }) %>
+  <% const walletRefund = (order.refunds || []).filter(function (refund) { return refund.method === 'wallet' && refund.status === 'processed'; }).reduce(function (sum, refund) { return sum + refund.amount; }, 0); if (walletRefund > 0) { %>
+    <div class="alert alert-info" role="status"><%- icon('wallet', 'i-sm') %><span><strong><%= formatPrice(walletRefund) %> credited to Nexthlon wallet.</strong> Use this balance for another purchase on Nexthlon. <a href="/account/wallet">View wallet</a></span></div>
+  <% } %>
   <div class="order-layout">
     <div class="order-main">
       <section class="section-box" aria-labelledby="track-title">
         <h2 id="track-title" class="panel-title">Tracking</h2>
-        <ol class="timeline">
-          <% timeline.forEach(function (step) { %>
-            <li class="timeline-step <%= step.done ? 'is-done' : '' %> <%= ['cancelled', 'return_requested', 'returned'].includes(step.status) ? 'is-alert' : '' %>" <%- step.status === order.orderStatus ? 'aria-current="step"' : '' %>>
-              <span class="timeline-dot" aria-hidden="true"><% if (step.done) { %><%- icon(step.status === 'cancelled' ? 'x' : 'check', 'i-xs') %><% } %></span>
-              <span class="timeline-text"><strong><%= step.label %></strong><span class="muted"><%= step.done ? timeText(step.at) : 'Pending' %></span></span>
-            </li>
-          <% }) %>
-        </ol>
+        <%- include('../partials/order-timeline', { timeText }) %>
         <% if (order.rto && order.rto.stage === 'initiated') { %>
-          <div class="alert alert-info track-rto" role="status"><%- icon('rotate-ccw') %><span>The courier couldn't deliver this parcel and is bringing it back to us. Once it arrives we cancel the order<%= order.paymentMethod === 'cod' && order.paymentStatus === 'pending' ? '' : ' and refund what you paid' %>.</span></div>
+          <div class="alert alert-info track-rto" role="status"><%- icon('rotate-ccw') %><span>The courier couldn't deliver this parcel and is bringing it back to us. Once it arrives we cancel the order<%= order.paymentMethod === 'cod' && order.paymentStatus === 'pending' ? '' : ' and credit the eligible amount paid to your wallet' %>.</span></div>
         <% } %>
         <% if (tracking) { %>
           <div class="track-card<%= ['shipped', 'out_for_delivery'].includes(order.orderStatus) ? ' is-live' : '' %>">
@@ -100,7 +97,7 @@
                 <% if (item.exchange) { %>
                   <span class="muted item-exchange">Size swap to <%= item.exchange.option %>: <%= { requested: 'waiting for confirmation', approved: 'confirmed, on its way', completed: 'done', declined: 'not approved' }[item.exchange.status] %></span>
                 <% } %>
-                <% if (['placed', 'confirmed'].includes(item.status) && activeItems.length > 1) { %>
+                <% if (['placed', 'confirmed'].includes(item.status) && activeItems.length > 1 && (order.paymentMethod !== 'razorpay' || ['paid', 'partially_refunded', 'refunded'].includes(order.paymentStatus))) { %>
                   <button type="button" class="link-btn cart-remove" data-open-dialog="cancel-dialog" data-cancel-scope="item" data-item-id="<%= item._id %>" data-item-name="<%= item.name %>">Cancel item</button>
                 <% } %>
               </div>
@@ -124,7 +121,7 @@
           <% if (order.couponDiscount) { %><div class="summary-savings"><dt>Coupon <%= order.couponCode %></dt><dd>−<%= formatPrice(order.couponDiscount) %></dd></div><% }%><% if (order.prepaidDiscount) { %><div class="summary-savings"><dt>Paid online</dt><dd>−<%= formatPrice(order.prepaidDiscount) %></dd></div><% } %>
           <div><dt>Delivery fee</dt><dd><%- order.deliveryFee ? formatPrice(order.deliveryFee) : '<span class="text-success">Free</span>' %></dd></div>
           <% if (order.walletUsed) { %><div><dt>Paid from wallet</dt><dd>−<%= formatPrice(order.walletUsed) %></dd></div><% } %>
-          <div class="summary-total"><dt><%= order.paymentMethod === 'cod' ? 'To pay on delivery' : 'Total' %></dt><dd><%= formatPrice(order.total) %></dd></div>
+          <div class="summary-total"><dt><%= order.paymentMethod === 'cod' ? (order.paymentStatus === 'pending' ? 'To pay on delivery' : 'Paid on delivery') : 'Total' %></dt><dd><%= formatPrice(order.total) %></dd></div>
           <% if (order.refundedAmount) { %><div class="summary-savings"><dt>Refunded</dt><dd><%= formatPrice(order.refundedAmount) %></dd></div><% } %>
         </dl>
       </section>
@@ -132,35 +129,33 @@
   </div>
 </div>
 
-<dialog class="modal" id="cancel-dialog" aria-labelledby="cancel-title">
+<dialog class="modal cancel-order-dialog" id="cancel-dialog" aria-labelledby="cancel-title" aria-describedby="cancel-description">
   <form class="form" data-cancel-form novalidate>
     <div class="modal-head">
-      <h2 id="cancel-title" data-cancel-title>Cancel this order?</h2>
+      <div class="cancel-order-heading"><h2 id="cancel-title" data-cancel-title tabindex="-1">Cancel this order?</h2><p>Order <%= order.orderId %></p></div>
       <button type="button" class="icon-btn" data-dialog-close><%- icon('x') %><span class="sr-only">Close</span></button>
     </div>
     <div class="modal-body">
       <div class="form-alert" data-form-alert aria-live="assertive"></div>
-      <p class="muted" data-cancel-text>The items go back on the shelf and you will not be charged.</p>
-      <div class="float-field">
+      <p class="muted" id="cancel-description" data-cancel-text>The items go back on the shelf and you will not be charged.</p>
+      <% if (['paid', 'partially_refunded'].includes(order.paymentStatus) || order.walletUsed > 0) { %>
+        <div class="cancel-wallet-card" data-cancel-wallet-policy><span class="cancel-wallet-icon"><%- icon('wallet', 'i-sm') %></span><div><strong>Credit to Nexthlon wallet</strong><p>Use your wallet credit for future purchases on Nexthlon only.</p><small>It cannot be withdrawn to a bank or used on other websites.</small><a href="/account/wallet">View wallet details <%- icon('chevron-right', 'i-xs') %></a></div></div>
+      <% } %>
+      <div class="field cancel-order-reason">
+        <label for="cancel-reason">Reason <span class="optional">(optional)</span></label>
+        <span class="select-wrap">
         <select id="cancel-reason" name="reason">
           <option value="">Prefer not to say</option>
           <% cancelReasons.forEach(function (reason) { %><option value="<%= reason %>"><%= reason %></option><% }) %>
         </select>
-        <label for="cancel-reason">Reason (optional)</label>
-        <%- icon('chevron-down', 'i-sm select-caret') %>
+        <%- icon('chevron-down', 'i-sm') %>
+        </span>
       </div>
-      <% if (order.paymentMethod === 'razorpay' && ['paid', 'partially_refunded'].includes(order.paymentStatus)) { %>
-        <fieldset class="refund-choice">
-          <legend>Refund to</legend>
-          <label class="choice"><input type="radio" name="refundMethod" value="wallet" checked><span>Nexthlon wallet (instant)</span></label>
-          <label class="choice"><input type="radio" name="refundMethod" value="original"><span>Original payment method (5 to 7 working days)</span></label>
-        </fieldset>
-      <% } %>
       <input type="hidden" name="itemId">
     </div>
     <div class="modal-foot">
-      <button type="button" class="btn btn-ghost" data-dialog-close>Keep it</button>
-      <button type="submit" class="btn btn-danger">Cancel</button>
+      <button type="button" class="btn btn-ghost" data-dialog-close>Keep order</button>
+      <button type="submit" class="btn btn-danger" data-cancel-submit-label>Cancel order</button>
     </div>
   </form>
 </dialog>
@@ -219,4 +214,4 @@
 <% } %>
 
 <% if (canRetryPayment) { %><%- include('../partials/pay-overlay') %><% } %>
-<%- include('../partials/account-end', { scripts: (canRetryPayment ? ['payment'] : []).concat(['exchange']), razorpay: canRetryPayment }) %>
+<%- include('../partials/account-end', { scripts: canRetryPayment ? ['payment'] : [], razorpay: canRetryPayment }) %>

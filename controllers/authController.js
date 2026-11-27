@@ -298,9 +298,6 @@ const adminLogout = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  noteLogin,
-  bringGuestCart,
-  sendSignedIn,
   signup,
   login,
   adminLogin,

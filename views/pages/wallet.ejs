@@ -11,7 +11,7 @@
   <div class="page-head">
     <div>
       <h1>Your wallet</h1>
-      <p class="muted">Your refunds, referral rewards and credit added by Nexthlon appear here. Use your balance at checkout, on its own or with another available payment method.</p>
+      <p class="muted">Your cancellation credits, return credits, referral rewards and credit added by Nexthlon appear here. Use your balance at checkout, on its own or with another available payment method.</p>
     </div>
   </div>
 
@@ -91,7 +91,7 @@
       <div class="empty-state">
         <%- include('../partials/empty-art', { art: 'wallet' }) %>
         <h2><%= filters.type === 'all' ? 'No wallet activity yet' : 'Nothing here yet' %></h2>
-        <p><%= filters.type === 'all' ? 'Refunds and referral rewards will show up here. Invite a friend to get started.' : 'Try showing all activity.' %></p>
+        <p><%= filters.type === 'all' ? 'Cancellation credits, return credits and referral rewards will show up here. Invite a friend to get started.' : 'Try showing all activity.' %></p>
         <% if (filters.type === 'all') { %>
           <button type="button" class="btn btn-primary" data-referral-share data-link="<%= referral.link %>" data-code="<%= referral.code %>"><%- icon('gift', 'i-sm') %> Invite a friend</button>
         <% } else { %>

@@ -122,10 +122,8 @@ const productSchema = new mongoose.Schema(
     highlights: {type: [String], default: []},
     // An optional short video shown under the photos (https MP4 or WebM). Empty for none.
     videoUrl: {type: String, default: '', maxlength: 500},
-    // A gift card product: its price is the value each card carries. Codes are issued when its order is paid.
+    // Legacy marker retained so retired gift-card products stay hidden and cannot be purchased.
     giftCard: {type: Boolean, default: false},
-    // A 360 spin: up to 36 photos of the product turning, in order (https image links). Empty for none.
-    spinFrames: {type: [String], default: []},
     specs: {type: Map, of: String, default: {}},
     ratingAverage: {type: Number, default: 0, min: 0, max: 5},
     ratingCount: {type: Number, default: 0, min: 0},
@@ -136,7 +134,7 @@ const productSchema = new mongoose.Schema(
     // Marks documents whose money is in paise (older ones stored rupees; see the migration below).
     pricesInPaise: {type: Boolean, default: true},
   },
-  {timestamps: true},
+  {timestamps: true, optimisticConcurrency: true},
 );
 
 productSchema.index({isListed: 1, categoryListed: 1, category: 1, price: 1});

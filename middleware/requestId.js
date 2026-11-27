@@ -32,6 +32,7 @@ function requestId(req, res, next) {
       method: req.method,
       path,
       status: res.statusCode,
+      code: res.locals && res.locals.cartRejection,
       ms,
       user: req.user ? String(req.user._id) : undefined,
     });

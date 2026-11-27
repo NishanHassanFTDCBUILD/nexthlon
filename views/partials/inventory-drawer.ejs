@@ -1,0 +1,27 @@
+<dialog class="stock-drawer" data-inventory-drawer aria-labelledby="stock-drawer-title">
+  <header class="stock-drawer-header"><div><p>Inventory</p><h2 id="stock-drawer-title">Update stock</h2></div><button type="button" class="stock-close" data-stock-close aria-label="Close stock editor"><%- icon('x','i-sm') %></button></header>
+  <form data-stock-drawer-form novalidate>
+    <div class="stock-drawer-content">
+      <div class="form-alert" data-form-alert role="alert"></div>
+      <fieldset class="stock-drawer-fields" data-stock-fieldset>
+        <label class="stock-field"><span>Product</span><select name="product" required><option value="">Choose a product</option></select></label>
+        <div data-stock-product-fields hidden>
+          <div class="stock-mode-switch" role="group" aria-label="Stock editor mode"><button type="button" data-stock-drawer-mode="existing" aria-pressed="true">Existing option</button><button type="button" data-stock-drawer-mode="new" aria-pressed="false">New size / color</button></div>
+          <p class="stock-drawer-hint" data-stock-mode-hint hidden></p>
+          <div class="stock-field-pair" data-stock-existing-dimensions><label class="stock-field"><span>Size</span><select name="size"></select></label><label class="stock-field"><span>Color</span><select name="colour"></select></label></div>
+          <p class="stock-drawer-hint" data-stock-general hidden>General product stock</p>
+          <div class="stock-field-pair" data-stock-new-dimensions hidden><label class="stock-field"><span>Size</span><input name="newSize" maxlength="20" list="stock-drawer-sizes" placeholder="e.g. 7" autocomplete="off"></label><label class="stock-field"><span>Color</span><input name="newColour" maxlength="30" list="stock-drawer-colours" placeholder="e.g. White" autocomplete="off"></label></div>
+          <datalist id="stock-drawer-sizes" data-stock-size-suggestions></datalist><datalist id="stock-drawer-colours" data-stock-colour-suggestions></datalist>
+          <div class="stock-operation" role="group" aria-label="Stock action" data-stock-operation><button type="button" data-stock-op="add" aria-pressed="true">Add stock</button><button type="button" data-stock-op="remove" aria-pressed="false">Remove</button><button type="button" data-stock-op="count" aria-pressed="false">Set count</button></div>
+          <label class="stock-field stock-amount"><span data-stock-amount-label>Units to add</span><input name="units" type="number" inputmode="numeric" min="1" max="100000" step="1" placeholder="0" required autocomplete="off"></label>
+          <div class="stock-balance-preview" aria-live="polite"><div><span>Current stock</span><strong data-stock-before>—</strong></div><%- icon('chevron-right','i-sm') %><div><span>After saving</span><strong data-stock-after>—</strong></div></div>
+          <p class="stock-drawer-hint" data-stock-effect></p>
+          <label class="stock-field" data-stock-reason-field><span>Reason</span><select name="reason" required><option value="restock">Restock received</option><option value="damage">Damaged stock</option><option value="return">Returned units</option><option value="stock_count">Physical stock count</option><option value="sale_correction">Sales correction</option><option value="other">Other</option></select></label>
+          <details class="stock-note"><summary>Add a note <span>(optional)</span></summary><label class="stock-field"><span class="sr-only">Stock adjustment note</span><textarea name="note" rows="2" maxlength="120" placeholder="Delivery reference or reason for the change"></textarea></label></details>
+        </div>
+      </fieldset>
+    </div>
+    <footer class="stock-drawer-footer"><p data-stock-drawer-status role="status" aria-live="polite"></p><div><button type="button" class="btn btn-secondary" data-stock-close>Cancel</button><button type="submit" class="btn btn-primary" data-stock-submit disabled>Save stock</button></div></footer>
+    <section class="stock-discard" data-stock-discard hidden aria-label="Unsaved changes"><p>Discard this stock adjustment?</p><div><button type="button" class="btn btn-secondary btn-sm" data-stock-keep>Keep editing</button><button type="button" class="btn btn-danger-soft btn-sm" data-stock-discard-confirm>Discard changes</button></div></section>
+  </form>
+</dialog>

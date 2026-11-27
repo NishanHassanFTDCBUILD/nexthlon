@@ -8,7 +8,7 @@
 //   - Photos are kept too (the newest 120), refreshed in the background.
 //   - Never: anything under /api/, anything from another site (payments, analytics), and anything
 //     that is not a GET. Signed-in pages are never stored, so a shared phone shows nobody else's data.
-const VERSION = 'nx-2026-11-19b';
+const VERSION = 'nx-2026-11-21-cart-confirmed';
 const STATIC = `${VERSION}-static`;
 const PHOTOS = `${VERSION}-photos`;
 const OFFLINE = `${VERSION}-offline`;

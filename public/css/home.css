@@ -626,7 +626,14 @@
   filter: blur(1.6px);
 }
 
-.showroom.is-3d .zg-card.is-gone {
+/* Only the visible card face takes clicks. The card and float boxes are flat planes in the 3D room:
+   when the face tilts, part of it falls behind them and they would catch the click meant for its buttons. */
+.showroom.is-3d .zg-card,
+.showroom.is-3d .zg-float {
+  pointer-events: none;
+}
+
+.showroom.is-3d .zg-card.is-gone .zg-glass {
   pointer-events: none;
 }
 
@@ -636,6 +643,7 @@
 }
 
 .showroom.is-3d .zg-glass {
+  pointer-events: auto;
   transition:
     opacity var(--duration-slow) var(--ease),
     filter var(--duration-slow) var(--ease);
@@ -1919,6 +1927,12 @@
   color: var(--ink-2);
 }
 
+.countdown-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .flip-unit {
   display: inline-flex;
   flex-direction: column;
@@ -2223,6 +2237,21 @@
 }
 
 @media (max-width: 720px) {
+  .countdown-clock {
+    width: min(100%, 300px);
+    gap: var(--space-xs);
+  }
+
+  .countdown-clock .flip-unit {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .countdown-clock .flip-digits {
+    min-width: 32px;
+    width: 100%;
+  }
+
   .will-3d .hero3d:not(.no-webgl, .is-static),
   .hero3d.has-webgl:not(.is-static) {
     height: 300vh;
@@ -2310,7 +2339,6 @@
 }
 
 /* Responsive composition: copy and WebGL share the viewport, never the same space. */
-
 @media (max-width: 999px) {
   /* Longer native scroll travel gives each completed shape a clear hold. */
   .will-3d .hero3d:not(.no-webgl, .is-static),

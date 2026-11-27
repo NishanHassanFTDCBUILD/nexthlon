@@ -398,17 +398,17 @@ go-ahead.
 
 ## Stage E: Growth (after launch)
 
-| Step   | What                                                                                                                                                                                                        | Size |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| [x] E1 | WhatsApp order updates and support chat. **Code done:** order events and the WhatsApp provider are ready; activate it with a WhatsApp Business account and the required settings.                           | M    |
-| [x] E2 | COD confirmation by OTP or WhatsApp, and a discount for paying online. **Code done:** configure MSG91 or WhatsApp credentials before enabling confirmations.                                                | S    |
-| [x] E3 | Back-in-stock alerts, reviews with photos, product Q&A. **Code done:** production use needs real product and review content.                                                                                | M    |
-| [x] E4 | Search upgrade: suggestions as you type, tolerance for typos, synonyms. **Code done:** search works with the built-in fallback; Atlas Search remains an optional production enhancement.                    | M    |
-| [x] E5 | Installable app (PWA) with push notifications. **Code done:** generate and configure VAPID keys to activate pushes.                                                                                         | M    |
-| [x] E6 | "Complete the kit" bundles and recommendations. **Done 2026-11-15:** product-page kits, server-priced add-all flow, and an admin Bundles screen for creating and publishing kits.                           | M    |
-| [x] E7 | Content hub: sport guides and athlete stories, for SEO. **Done 2026-11-15:** public guides hub, drafts and publication, plus an admin Guides writing screen. Content still needs to be written by the team. | M    |
-| [~] E8 | Amazon, Flipkart and Myntra listings with stock sync. **Feed and stock-sync code done;** direct marketplace connections need seller accounts and API access.                                                | L    |
-| [ ] E9 | Hindi language                                                                                                                                                                                              | L    |
+| Step       | What                                                                                                                                                                                                        | Size |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| Removed E1 | WhatsApp order updates and support chat removed by request. Customers use email, browser push and on-site tracking.                                                                                         | —    |
+| [x] E2     | Online-payment discount remains. COD confirmation codes and SMS/DLT messaging were removed by request.                                                                                                      | S    |
+| [x] E3     | Back-in-stock alerts, reviews with photos, product Q&A. **Code done:** production use needs real product and review content.                                                                                | M    |
+| [x] E4     | Search upgrade: suggestions as you type, tolerance for typos, synonyms. **Code done:** search works with the built-in fallback; Atlas Search remains an optional production enhancement.                    | M    |
+| [x] E5     | Installable app (PWA) with push notifications. **Code done:** generate and configure VAPID keys to activate pushes.                                                                                         | M    |
+| [x] E6     | "Complete the kit" bundles and recommendations. **Done 2026-11-15:** product-page kits, server-priced add-all flow, and an admin Bundles screen for creating and publishing kits.                           | M    |
+| [x] E7     | Content hub: sport guides and athlete stories, for SEO. **Done 2026-11-15:** public guides hub, drafts and publication, plus an admin Guides writing screen. Content still needs to be written by the team. | M    |
+| [~] E8     | Amazon, Flipkart and Myntra listings with stock sync. **Feed and stock-sync code done;** direct marketplace connections need seller accounts and API access.                                                | L    |
+| [ ] E9     | Hindi language                                                                                                                                                                                              | L    |
 
 Prompt for any growth step:
 

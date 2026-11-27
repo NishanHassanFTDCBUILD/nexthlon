@@ -1,10 +1,11 @@
-<%- include('../partials/head', { coreStyles: ['home'] }) %>
+<%- include('../partials/head', { coreStyles: ['home'], preload3d: ['home3d'] }) %>
 <%- include('../partials/header') %>
 
 <%
   const left = Math.max(0, new Date(dealEndsAt).getTime() - Date.now());
   const pad = function (n) { return String(n).padStart(2, '0'); };
-  const hh = pad(Math.floor(left / 3600000));
+  const dd = pad(Math.floor(left / 86400000));
+  const hh = pad(Math.floor(left / 3600000) % 24);
   const mm = pad(Math.floor(left / 60000) % 60);
   const ss = pad(Math.floor(left / 1000) % 60);
   const shopper = !currentUser || currentUser.role === 'customer';
@@ -262,11 +263,17 @@
       <div class="section-box deal-box">
         <div class="section-head deal-head">
           <div>
-            <span class="section-kicker"><%= adminDealEndsAt ? 'Ends ' + new Date(dealEndsAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : 'Ends at midnight' %></span>
+            <span class="section-kicker"><%= !dealCountdownVisible ? 'Selected offers' : adminDealEndsAt || dealCountdownCustom ? 'Ends ' + new Date(dealEndsAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ' IST' : 'Ends at midnight IST' %></span>
             <h2 id="deals-title">Deals of the day</h2>
           </div>
+          <% if (dealCountdownVisible) { %>
           <div class="countdown flip-countdown" data-countdown data-left="<%= left %>" data-ends="<%= new Date(dealEndsAt).toISOString() %>" role="timer" aria-label="Time left on today's deals">
-            <span class="countdown-label"><%- icon('clock', 'i-sm') %> Ends in</span>
+            <span class="countdown-label"><%- icon('clock', 'i-sm') %> <span data-countdown-label><%= left > 0 ? 'Ends in' : 'Countdown ended' %></span></span>
+            <span class="countdown-clock">
+            <span class="flip-unit" data-countdown-days <%= left >= 86400000 ? '' : 'hidden' %>>
+              <span class="flip-digits" data-countdown-d data-value="<%= dd %>"><%= dd %></span><small>days</small>
+            </span>
+            <span class="countdown-sep" data-countdown-day-sep aria-hidden="true" <%= left >= 86400000 ? '' : 'hidden' %>>:</span>
             <% [['h', hh, 'hours'], ['m', mm, 'minutes'], ['s', ss, 'seconds']].forEach(function ([key, value, unit], n) { %>
               <span class="flip-unit">
                 <span class="flip-digits" data-countdown-<%= key %> data-value="<%= value %>"><%= value %></span>
@@ -274,7 +281,9 @@
               </span>
               <% if (n < 2) { %><span class="countdown-sep" aria-hidden="true">:</span><% } %>
             <% }) %>
+            </span>
           </div>
+          <% } %>
           <a class="section-link" href="/products?sort=discount">See all deals <%- icon('chevron-right', 'i-sm') %></a>
         </div>
         <ul class="flip-grid">

@@ -8,7 +8,7 @@
     verify-done    the email is already confirmed
   It uses the sign-in page's look and its script (public/js/auth.js): same scene, same glass card, same fields.
 %>
-<%- include('../partials/head', { bodyClass: 'au-body', styles: ['auth'] }) %>
+<%- include('../partials/head', { bodyClass: 'au-body', styles: ['auth'], preload3d: ['auth3d'] }) %>
 
 <main id="main" class="au" data-auth data-mode="recovery">
   <section class="au-scene" data-auth-scene>

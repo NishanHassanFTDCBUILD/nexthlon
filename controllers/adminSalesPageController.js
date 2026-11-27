@@ -6,9 +6,10 @@ const ledgerService = require('../services/ledgerService');
 const Order = require('../models/Order');
 const adminCouponService = require('../services/adminCouponService');
 const dealService = require('../services/dealService');
+const siteSettingsService = require('../services/siteSettingsService');
+const homeService = require('../services/homeService');
 const rules = require('../utils/orderRules');
 const {linkBuilder} = require('../utils/queryString');
-const {pageOf} = require('../utils/paging');
 const {asyncHandler} = require('../utils/http');
 
 const base = (section) => `${config.adminPath}/${section}`;
@@ -104,30 +105,10 @@ const transaction = asyncHandler(async (req, res) => {
 
 const reconciliation = asyncHandler(async (req, res) => {
   const data = await ledgerService.reconciliation(req.query);
-  const {rows, pagination} = pageOf(data.issues, req.query);
   res.render('admin/reconciliation', {
     title: 'Reconciliation | Nexthlon Admin',
     ...data,
     ...labels,
-    issueTotal: data.issues.length,
-    issues: rows,
-    pagination,
-    link: linkBuilder(base('transactions/reconciliation'), {
-      days: data.days === 30 ? '' : data.days,
-      limit: pagination.limit === 20 ? '' : pagination.limit,
-    }),
-  });
-});
-
-const refunds = asyncHandler(async (req, res) => {
-  const data = await ledgerService.listRefunds(req.query);
-  const current = without(data.filters, {});
-  delete current.type;
-  res.render('admin/refunds', {
-    title: 'Refunds | Nexthlon Admin',
-    ...data,
-    ...labels,
-    link: linkBuilder(base('refunds'), current),
   });
 });
 
@@ -175,10 +156,21 @@ const coupon = asyncHandler(async (req, res) => {
 
 // ---------- Deals of the day ----------
 const deals = asyncHandler(async (req, res) => {
-  const data = await dealService.listDeals(req.query);
+  const [data, liveDeals] = await Promise.all([
+    dealService.listDeals(req.query),
+    dealService.liveDealProducts(),
+  ]);
+  const countdown = siteSettingsService.current();
   const current = without(data.filters, {sort: 'starts'});
   res.render('admin/deals', {
     title: 'Deals of the day | Nexthlon Admin',
+    countdown,
+    countdownEndsInput: dealService.toLocalInput(
+      countdown.dealsCountdownEndsAt,
+    ),
+    countdownAutoEndsAt: homeService
+      .resolveCountdown({}, liveDeals.endsAt)
+      .dealEndsAt.toISOString(),
     ...data,
     sorts: dealService.SORTS,
     dealLabels: dealService.STATUS_LABELS,
@@ -307,7 +299,6 @@ module.exports = {
   transactions,
   transaction,
   reconciliation,
-  refunds,
   coupons,
   couponNew,
   couponEdit,

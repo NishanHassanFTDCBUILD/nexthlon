@@ -544,6 +544,7 @@ function toPublicProduct(product) {
     },
     image: product.image,
     gallery: product.gallery,
+    videoUrl: product.videoUrl || '',
     description: product.description,
     highlights: product.highlights,
     specs: product.specs || {},

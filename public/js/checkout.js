@@ -226,21 +226,6 @@
   const form = page.querySelector('[data-place-order]');
   const placeButton = form.querySelector('[type="submit"]');
 
-  // A gift for someone else: show the fields, and send them with the order.
-  const giftToggle = form.querySelector('[data-gift-toggle]');
-  const giftFields = form.querySelector('[data-gift-fields]');
-  if (giftToggle && giftFields)
-    giftToggle.addEventListener('change', () => {
-      giftFields.hidden = !giftToggle.checked;
-    });
-  const giftRecipient = () =>
-    giftToggle && giftToggle.checked
-      ? {
-          name: form.elements.giftName.value.trim(),
-          email: form.elements.giftEmail.value.trim(),
-          message: form.elements.giftMessage.value.trim(),
-        }
-      : null;
   const summary = page.querySelector('[data-summary]');
   const cards = [...form.querySelectorAll('[data-pay-card]')];
   const methodInput = (name) =>
@@ -393,13 +378,6 @@
       }
     } else if (restBox) {
       restBox.hidden = quote.coveredByWallet;
-      const restCod = restBox.querySelector('input[value="cod"]');
-      const restOnline = restBox.querySelector('input[value="razorpay"]');
-      restCod.disabled = !quote.codAllowed;
-      if (restCod.checked && restCod.disabled) {
-        restCod.checked = false;
-        if (!restOnline.disabled) restOnline.checked = true;
-      }
       walletNote.textContent = quote.coveredByWallet
         ? `Your wallet covers this whole order. ${Nx.formatPrice(quote.walletBalance - t.walletUsed)} stays in your wallet.`
         : `${Nx.formatPrice(t.walletUsed)} comes from your wallet.`;
@@ -711,7 +689,6 @@
       paymentMethod: p.kind,
       useWallet: p.useWallet,
       source,
-      giftRecipient: giftRecipient(),
     });
     if (!reply) {
       // Prices, stock or the wallet may have changed: show the latest totals.

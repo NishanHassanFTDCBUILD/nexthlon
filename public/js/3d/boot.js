@@ -43,35 +43,21 @@ export function boot(container, canvas, build) {
       if (window.console) console.warn('3D scene skipped:', error.message);
     }
   };
-  // Building a scene compiles shaders and uploads textures: long tasks. They wait until the page has
-  // loaded and the browser is idle, so the first paint and the first tap are never held up by 3D.
-  // The CSS version shows meanwhile.
-  // On a phone that setup is most of a second of work, so it waits for a sign the visitor is staying:
-  // their first scroll or touch, or four seconds after the page loaded. The first screen is ready to
-  // use straight away, and the scene (which reacts to scrolling anyway) is in place by the time it moves.
+  // The scene starts right after the page's first paint, without waiting for every image to load:
+  // the text and buttons are already on screen, and the CSS version fades into the 3D one.
+  // On phones it gets a short idle window first (at most 300 ms), so a tap in that moment still answers.
   const touch =
     window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   const whenIdle = (run) => {
-    let done = false;
-    const go = () => {
-      if (done) return;
-      done = true;
-      ['scroll', 'pointerdown', 'keydown'].forEach((type) =>
-        window.removeEventListener(type, go),
-      );
-      'requestIdleCallback' in window
-        ? window.requestIdleCallback(run, {timeout: 1500})
-        : setTimeout(run, 400);
-    };
-    const afterLoad = () => {
-      if (!touch) return go();
-      ['scroll', 'pointerdown', 'keydown'].forEach((type) =>
-        window.addEventListener(type, go, {once: true, passive: true}),
-      );
-      setTimeout(go, 4000);
-    };
-    if (document.readyState === 'complete') afterLoad();
-    else window.addEventListener('load', afterLoad, {once: true});
+    const go = () =>
+      requestAnimationFrame(() => {
+        if (touch && 'requestIdleCallback' in window)
+          window.requestIdleCallback(run, {timeout: 300});
+        else setTimeout(run, 0);
+      });
+    if (document.readyState === 'loading')
+      document.addEventListener('DOMContentLoaded', go, {once: true});
+    else go();
   };
   if (!('IntersectionObserver' in window)) return whenIdle(start);
   const watcher = new IntersectionObserver(

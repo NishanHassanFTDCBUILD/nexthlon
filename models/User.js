@@ -19,6 +19,12 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {type: String, required: true, select: false},
     phone: {type: String, trim: true, default: ''},
+    fitProfile: {
+      sports: {type: [String], default: []},
+      clothing: {type: String, default: ''},
+      shoeSystem: {type: String, default: 'UK'},
+      shoeSize: {type: String, default: ''},
+    },
     role: {
       type: String,
       enum: ['customer', 'admin'],
@@ -80,12 +86,6 @@ const userSchema = new mongoose.Schema(
       newsletter: {type: Boolean, default: false},
     },
     // The last products this customer looked at, newest first (kept to RECENT_LIMIT).
-    // E2: phones confirmed with a code for Cash on Delivery ("919876543210"), so they are not asked again soon.
-    verifiedPhones: {
-      type: [new mongoose.Schema({phone: String, at: Date}, {_id: false})],
-      default: [],
-      select: false,
-    },
     recentlyViewed: {
       type: [
         {

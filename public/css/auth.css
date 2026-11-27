@@ -2081,7 +2081,7 @@
 
 @media (max-width: 960px) {
   .au-storefront .au-scene {
-    height: calc(var(--space-10) * 3);
+    height: clamp(280px, 40svh, 360px);
     min-height: 0;
   }
 

@@ -21,6 +21,9 @@ const inventoryBatchSchema = new mongoose.Schema(
     results: [
       {row: Number, productId: String, status: String, message: String},
     ],
+    lockedUntil: Date,
+    lockToken: String,
+    recoveryVersion: Number,
     applyBefore: {type: Date, required: true},
     expiresAt: {type: Date, required: true},
   },

@@ -5,13 +5,23 @@ const {RULES} = require('../config/catalog');
 const {paiseToRupees} = require('../utils/money');
 const {HttpError} = require('../utils/http');
 const {slugify} = require('../utils/slug');
-const {suggestTax} = require('../utils/gst');
 const {toPositiveInt} = require('./productService');
 const imageService = require('./imageService');
 const {runList} = require('../utils/listQuery');
 
 const PAGE_SIZE = 10;
 const STATUSES = ['all', 'active', 'low', 'unlisted', 'out'];
+const stockSnapshot = (product) =>
+  JSON.stringify({
+    stock: product.stock,
+    updatedAt: product.updatedAt
+      ? new Date(product.updatedAt).toISOString()
+      : null,
+    variants: (product.variants || []).map((v) => ({
+      id: String(v._id),
+      stock: v.stock,
+    })),
+  });
 const ADMIN_SORTS = {
   newest: {label: 'Newest first', order: {createdAt: -1, _id: -1}},
   oldest: {label: 'Oldest first', order: {createdAt: 1, _id: 1}},
@@ -54,6 +64,7 @@ function toAdminProduct(product) {
     bestOffer: product.bestOffer || 0,
     discountPercent: product.discountPercent,
     stock: product.stock,
+    stockSnapshot: stockSnapshot(product),
     options: (product.variants || []).map((v) => ({
       id: String(v._id),
       size: v.size || '',
@@ -71,30 +82,11 @@ function toAdminProduct(product) {
       image: row.image,
       colour: row.colour,
     })),
-    // GST as saved (empty when the suggested rate is used), plus the suggestion, for the form.
-    tax: {
-      hsn: (product.tax && product.tax.hsn) || '',
-      rate:
-        product.tax && Number.isInteger(product.tax.rate)
-          ? product.tax.rate
-          : null,
-      rateAbove:
-        product.tax && Number.isInteger(product.tax.rateAbove)
-          ? product.tax.rateAbove
-          : null,
-      aboveRupees:
-        product.tax && Number.isInteger(product.tax.above)
-          ? paiseToRupees(product.tax.above)
-          : '',
-    },
-    taxSuggestion: suggestTax(product.name, category ? category.name : ''),
     countryOfOrigin: product.countryOfOrigin || 'India',
     manufacturer: product.manufacturer || '',
     netQuantity: product.netQuantity || '',
     shipWeight: product.shipWeight || '',
     videoUrl: product.videoUrl || '',
-    giftCard: Boolean(product.giftCard),
-    spinFrames: (product.spinFrames || []).join(String.fromCharCode(10)),
     sku: product.sku || '',
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
@@ -389,6 +381,11 @@ async function persist(
     }
   } catch (error) {
     await imageService.deleteImages(newUrls);
+    if (error.name === 'DocumentNotFoundError' || error.name === 'VersionError')
+      throw new HttpError(
+        409,
+        'This product changed while saving. Reload before trying again.',
+      );
     throw error;
   }
   await imageService.deleteImages(plan.removed);
@@ -425,6 +422,17 @@ async function createProduct({value, errors, body, files}) {
 
 async function updateProduct(productId, {value, errors, body, files}) {
   const product = await findProduct(productId);
+  if (body.stockSnapshot !== stockSnapshot(product))
+    throw new HttpError(
+      409,
+      'This product changed since the form was opened. Reload before saving so newer stock is preserved.',
+    );
+  // Checkout uses atomic increments, so __v alone cannot detect a stock change.
+  product.$where = {
+    stock: product.stock,
+    updatedAt: product.updatedAt,
+    variants: (product.variants || []).map((v) => v.toObject()),
+  };
   const plan = planImages({
     current: imagesOf(product),
     keepRaw: body.keepImages,
@@ -491,6 +499,7 @@ async function restock(productId, add) {
 }
 
 module.exports = {
+  stockSnapshot,
   restock,
   PAGE_SIZE,
   ADMIN_SORTS,

@@ -220,7 +220,7 @@ const BUILDERS = {
         paragraphs: [
           `${firstName(user)}, the courier could not deliver order ${order.orderId} and is bringing it back to us.`,
           paid
-            ? 'Once it reaches us, we cancel the order and refund what you paid. You will get an email when the refund is done.'
+            ? 'Once it reaches us, we cancel the order and credit the eligible paid amount to your Nexthlon wallet. We will email you when the credit is recorded.'
             : 'Once it reaches us, the order is cancelled. Nothing was charged.',
           'Still want it? Reply to this email or contact us, and we will help you order it again.',
         ],
@@ -265,7 +265,7 @@ const BUILDERS = {
           ...(order.paymentStatus === 'pending' && order.paymentMethod === 'cod'
             ? []
             : [
-                'If you had already paid, the refund is on its way and you will get a separate email when it is done.',
+                'If you had already paid, the eligible amount is credited to your Nexthlon wallet. A separate email confirms the credit.',
               ]),
         ],
         sections: [
@@ -282,12 +282,14 @@ const BUILDERS = {
         `${formatPaise(part.amount)} ${part.method === 'original' ? 'to your original payment method (it can take 5 to 7 working days to show)' : 'to your Nexthlon wallet (available now)'}`,
     );
     return {
-      subject: `Refund of ${formatPaise(extra.amount)} for order ${order.orderId}`,
+      subject: `${(extra.parts || []).every((part) => part.method === 'wallet') ? 'Wallet credit' : 'Payment returned'} of ${formatPaise(extra.amount)} for order ${order.orderId}`,
       content: {
         preheader: `${formatPaise(extra.amount)} is on its way back to you.`,
-        heading: 'Your refund is on its way',
+        heading: (extra.parts || []).every((part) => part.method === 'wallet')
+          ? 'Your wallet credit is available'
+          : 'Your payment return is processing',
         paragraphs: [
-          `Hi ${firstName(user)}, we have refunded ${formatPaise(extra.amount)} for order ${order.orderId}.`,
+          `Hi ${firstName(user)}, we have returned ${formatPaise(extra.amount)} for order ${order.orderId}.`,
         ],
         sections: [
           {
@@ -332,7 +334,7 @@ const BUILDERS = {
         : `Update on your return for order ${order.orderId}`,
       content: {
         preheader: approved
-          ? 'Your refund follows.'
+          ? 'Your wallet credit follows.'
           : 'We could not accept this return.',
         heading: approved
           ? 'Your return was approved'
@@ -340,7 +342,7 @@ const BUILDERS = {
         paragraphs: approved
           ? [
               `Hi ${firstName(user)}, your return for order ${order.orderId} was approved.`,
-              'The refund is made now; you will get a separate email with where it went.',
+              'The eligible paid value is credited to your Nexthlon wallet. A separate email confirms the credit.',
             ]
           : [
               `Hi ${firstName(user)}, we looked at your return request for order ${order.orderId} and could not accept it.`,

@@ -66,6 +66,27 @@ test('only application-owned image keys can be sent to Cloudinary', async () => 
   );
 });
 
+test('product video uploads use the correct Cloudinary resource and round-trip', async () => {
+  const {provider, calls} = fake([]);
+  for (const [key, resource, contentType] of [
+    ['products/videos/demo.mp4', 'video', 'video/mp4'],
+  ]) {
+    await provider.put(key, Buffer.from('media'), {contentType});
+    assert.equal(
+      calls.at(-1).url,
+      'https://api.cloudinary.com/v1_1/democloud/' + resource + '/upload',
+    );
+    const url = provider.publicUrl(key);
+    assert.ok(url.includes('/' + resource + '/upload/'));
+    assert.equal(provider.keyFromUrl(url), key);
+    await provider.remove([key]);
+    assert.equal(
+      calls.at(-1).url,
+      'https://api.cloudinary.com/v1_1/democloud/' + resource + '/destroy',
+    );
+  }
+});
+
 test('upload is signed with the secret, which is never sent', async () => {
   const {provider, calls} = fake([{body: {public_id: 'x'}}]);
   await provider.put('products/abc-400.webp', Buffer.from('img'), {

@@ -1,0 +1,11 @@
+<section class="acct-section" aria-labelledby="account-services-title" data-workspace-directory>
+  <div class="acct-section-head"><div><span class="section-kicker">Manage your account</span><h2 id="account-services-title">Everything in one place</h2></div></div>
+  <div class="workspace-directory-tools"><label class="workspace-directory-search"><%- icon('search', 'i-sm') %><span class="sr-only">Find an account service</span><input type="search" placeholder="Find addresses, security, wallet…" data-directory-search maxlength="80"></label><span class="muted" data-directory-count role="status" aria-live="polite">11 services</span></div>
+  <div class="workspace-directory-tabs" role="group" aria-label="Account service category"><button type="button" class="is-active" data-directory-filter="all" aria-pressed="true">All services</button><% accountSections.filter(function (group) { return group.group; }).forEach(function (group) { %><button type="button" data-directory-filter="<%= group.group %>" aria-pressed="false"><%= group.group %></button><% }) %></div>
+  <div class="commerce-service-grid">
+    <% accountSections.forEach(function (group) { group.items.forEach(function (item) { if (item.key === 'overview') return; %>
+      <a class="commerce-service-card" href="<%= item.href %>" data-directory-item data-directory-category="<%= group.group %>"><span class="commerce-service-icon"><%- icon(item.icon) %></span><span><strong><%= item.label %></strong><small><%= item.description %></small></span><%- icon('chevron-right', 'i-sm') %></a>
+    <% }) }) %>
+  </div>
+  <p class="workspace-directory-empty" data-directory-empty hidden>No matching services. Try another search or choose All services.</p>
+</section>

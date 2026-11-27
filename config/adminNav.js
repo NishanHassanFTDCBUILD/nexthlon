@@ -17,10 +17,20 @@ const ADMIN_NAV = [
     items: [
       {key: 'orders', label: 'Orders', icon: 'package-check'},
       {key: 'returns', label: 'Returns', icon: 'rotate-ccw'},
-      {key: 'transactions', label: 'Transactions', icon: 'credit-card'},
-      {key: 'refunds', label: 'Refunds', icon: 'wallet'},
+      {
+        key: 'transactions',
+        label: 'Transactions',
+        icon: 'credit-card',
+        perm: 'reports.read',
+      },
       {key: 'coupons', label: 'Coupons', icon: 'ticket'},
       {key: 'deals', label: 'Deals of the day', icon: 'bolt'},
+      {
+        key: 'returns-report',
+        label: 'Return reasons',
+        icon: 'rotate-ccw',
+        perm: 'reports.read',
+      },
     ],
   },
   {
@@ -49,7 +59,12 @@ const ADMIN_NAV = [
     group: 'System',
     items: [
       {key: 'staff', label: 'Staff', icon: 'users', perm: 'staff.manage'},
-      {key: 'settings', label: 'Settings', icon: 'settings'},
+      {
+        key: 'settings',
+        label: 'Settings',
+        icon: 'settings',
+        perm: 'settings.write',
+      },
       {key: 'system', label: 'System status', icon: 'monitor'},
     ],
   },

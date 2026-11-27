@@ -1,0 +1,26 @@
+<%- include('../partials/account-start', {section: 'profile'}) %>
+<div class="profile-workspace">
+<header class="profile-heading"><div><span class="section-kicker">Account settings</span><h1>Your profile</h1><p>Make Nexthlon feel more like you.</p></div><a class="btn btn-secondary btn-sm" href="/account/security"><%- icon('lock', 'i-sm') %> Login &amp; security</a></header>
+<section class="profile-identity" aria-label="Profile summary"><span class="profile-monogram" aria-hidden="true" data-profile-initial><%= profile.name.trim().charAt(0).toUpperCase() %></span><div class="profile-identity-text"><h2 data-profile-name><%= profile.name %></h2><p><%= profile.email %></p></div><a class="profile-identity-link" href="#personal-details">Edit details <%- icon('edit', 'i-sm') %></a></section>
+<div class="profile-edit-grid">
+<section class="profile-card" id="personal-details" aria-labelledby="personal-title">
+<header class="profile-card-heading"><span class="profile-card-icon"><%- icon('users') %></span><div><h2 id="personal-title">Personal details</h2><p>Your name and contact number.</p></div></header>
+<form data-profile-details novalidate><div class="form-alert" data-form-alert role="alert"></div>
+<label class="profile-field"><span>Full name</span><input name="name" autocomplete="name" minlength="2" maxlength="60" value="<%= profile.name %>" required></label>
+<label class="profile-field"><span>Phone number</span><input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" value="<%= profile.phone || '' %>" placeholder="Your mobile number"></label>
+<div class="profile-email"><span>Sign-in email</span><strong><%= profile.email %></strong><a href="/account/security">Manage email <%- icon('chevron-right', 'i-xs') %></a></div>
+<footer class="profile-save-row"><span data-profile-status role="status" aria-live="polite"></span><button class="btn btn-primary" type="submit">Save details</button></footer>
+</form></section>
+<section class="profile-card" aria-labelledby="fit-title">
+<header class="profile-card-heading"><span class="profile-card-icon"><%- icon('award') %></span><div><h2 id="fit-title">Sports &amp; fit</h2><p>Your sports. Your preferred fit.</p></div></header>
+<form data-fit-profile novalidate><div class="form-alert" data-form-alert role="alert"></div>
+<fieldset class="profile-sports"><legend>Your sports <span>Optional</span></legend><div class="profile-sport-grid"><% fitOptions.SPORTS.forEach(sport => { %><label class="profile-sport"><input type="checkbox" name="sports" value="<%= sport %>" <%= (fit.sports || []).includes(sport) ? 'checked' : '' %>><span><%= sport %></span></label><% }) %></div></fieldset>
+<label class="profile-field"><span>Clothing size</span><select name="clothing"><% fitOptions.CLOTHING.forEach(size => { %><option value="<%= size %>" <%= (fit.clothing || '') === size ? 'selected' : '' %>><%= size || 'Choose a size' %></option><% }) %></select></label>
+<div class="profile-size-grid"><label class="profile-field"><span>Footwear system</span><select name="shoeSystem"><% fitOptions.SYSTEMS.forEach(system => { %><option <%= (fit.shoeSystem || 'UK') === system ? 'selected' : '' %>><%= system %></option><% }) %></select></label><label class="profile-field"><span>Footwear size</span><input name="shoeSize" type="number" inputmode="decimal" min="1" max="55" step="0.5" value="<%= fit.shoeSize || '' %>" placeholder="e.g. 8.5" aria-describedby="fit-size-hint"></label></div>
+<p class="profile-hint" id="fit-size-hint">Fit varies by brand. Check the product’s size guide before buying.</p>
+<footer class="profile-save-row"><button class="profile-clear" type="button" data-clear-fit>Clear preferences</button><button class="btn btn-primary" type="submit">Save preferences</button><span data-profile-status role="status" aria-live="polite"></span></footer>
+</form></section></div>
+<section aria-labelledby="profile-manage-title"><h2 class="profile-manage-title" id="profile-manage-title">More account settings</h2><div class="profile-settings-grid">
+<% [['pin', 'Delivery addresses', 'Manage where your orders arrive', '/account/addresses'], ['lock', 'Security & your data', 'Password, devices and privacy', '/account/security'], ['mail', 'Notifications', 'Choose the updates you receive', '/account/notifications']].forEach(item => { %><a class="profile-setting" href="<%= item[3] %>"><span class="profile-setting-icon"><%- icon(item[0], 'i-sm') %></span><span><strong><%= item[1] %></strong><small><%= item[2] %></small></span><%- icon('chevron-right', 'i-sm') %></a><% }) %>
+</div></section></div>
+<%- include('../partials/account-end') %>

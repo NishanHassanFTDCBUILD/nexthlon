@@ -3,7 +3,7 @@
 // message is stored. It reads only listed, in-stock products and the store's own settings (config/store).
 const Product = require('../models/Product');
 const {LISTED_PRODUCT} = require('../utils/queryFilters');
-const {STORE} = require('../config/store');
+const {TOPICS} = require('./assistantKnowledge');
 const {toPublicProduct, escapeRegex} = require('./productService');
 
 const MAX_MESSAGE = 300;
@@ -70,6 +70,20 @@ const STOP = new Set([
   'would',
   'like',
   'checkout',
+  'suggest',
+  'recommend',
+  'recommendations',
+  'give',
+  'options',
+  'pair',
+  'products',
+  'product',
+  'gear',
+  'catalog',
+  'catalogue',
+  'all',
+  'what',
+  'which',
   'k',
 ]);
 
@@ -101,74 +115,6 @@ const NEEDS = Object.freeze({
 });
 
 const GREETING = new Set(['hi', 'hello', 'hey', 'namaste']);
-
-// Questions about the store, answered with the store's own facts and a link to the full page.
-const TOPICS = Object.freeze([
-  {
-    words: [
-      'refund',
-      'refunds',
-      'return',
-      'returns',
-      'cancel',
-      'cancellation',
-      'cancelled',
-    ],
-    label: 'Refund and cancellation policy',
-    href: '/refund-policy',
-    answer:
-      'Our refund and cancellation policy explains when you can cancel, how to return an item, and how refunds are paid.',
-  },
-  {
-    words: ['shipping', 'delivery', 'deliver', 'dispatch', 'ship', 'courier'],
-    label: 'Shipping and delivery policy',
-    href: '/shipping-policy',
-    get answer() {
-      return `Delivery is free on orders of ₹${Math.round(STORE.freeDeliveryMin / 100).toLocaleString('en-IN')} or more. Below that a delivery fee of ₹${Math.round(STORE.deliveryFee / 100)} applies.`;
-    },
-  },
-  {
-    words: ['track', 'tracking', 'status'],
-    label: 'Track your order',
-    href: '/track',
-    answer:
-      'Enter your order number on the tracking page to see where your order is.',
-  },
-  {
-    words: ['cod', 'cash'],
-    label: 'Shipping and delivery policy',
-    href: '/shipping-policy',
-    answer:
-      'Cash on delivery is offered on some orders. Checkout shows whether it is available for your order and address.',
-  },
-  {
-    words: ['size', 'sizes', 'fit', 'measure', 'sizing'],
-    label: 'Size finder',
-    href: '/size-finder',
-    answer:
-      'The size finder helps you choose the right fit for shoes and clothing.',
-  },
-  {
-    words: ['gift', 'giftcard', 'voucher'],
-    label: 'Gift cards',
-    href: '/account/gift-card',
-    answer: 'Gift cards can be bought for yourself or for someone else.',
-  },
-  {
-    words: ['payment', 'pay', 'upi', 'card', 'cards', 'netbanking', 'razorpay'],
-    label: 'Shipping and delivery policy',
-    href: '/shipping-policy',
-    answer:
-      'You can pay online at checkout. Cash on delivery is available on some orders.',
-  },
-  {
-    words: ['contact', 'human', 'agent', 'support', 'help', 'person'],
-    label: 'Contact us',
-    href: '/contact',
-    answer:
-      'Our team can help with anything else. Send us a message and we will reply.',
-  },
-]);
 
 // "under ₹3,000", "below 3k", "over 500": the price limits, in whole rupees.
 function parsePrice(text) {
@@ -280,7 +226,8 @@ async function answer(message) {
     .slice(0, MAX_MESSAGE);
   if (!text) {
     return {
-      reply: 'Ask me about a product, or about delivery, returns or sizes.',
+      reply:
+        'Ask about Nexthlon products, delivery, returns, wallet credit, orders, payments or your account.',
       products: [],
       links: [],
       handoff: false,
@@ -291,28 +238,52 @@ async function answer(message) {
     .replace(/[^a-z\s]/g, ' ')
     .split(/\s+/)
     .filter(Boolean);
-  if (words.length <= 3 && words.some((w) => GREETING.has(w))) {
+  if (words.length && words.every((w) => GREETING.has(w))) {
     return {
       reply:
-        'Hi! Ask me to find something, like "running shoes under ₹2,000", or ask about delivery, returns or sizes.',
+        'Hi! I can explain Nexthlon products, delivery, returns, wallet credit, orders, payments and account features. Try "running shoes under ₹2,000" or choose a help topic. I cannot access private orders or make account changes here.',
       products: [],
       links: [],
       handoff: false,
     };
   }
-  const topic = TOPICS.find((t) => words.some((w) => t.words.includes(w)));
-  if (topic) {
+  let topics = TOPICS.filter((topic) => topic.match.test(text));
+  if (topics.length > 1)
+    topics = topics.filter((topic) => topic.id !== 'overview');
+  const ids = new Set(topics.map((topic) => topic.id));
+  topics = topics.filter(
+    (topic) =>
+      !(
+        (topic.id === 'payment' &&
+          (ids.has('payment-problem') || ids.has('withdrawal'))) ||
+        (topic.id === 'wallet' && ids.has('withdrawal')) ||
+        (topic.id === 'address' && ids.has('location'))
+      ),
+  );
+  if (topics.length) {
+    const selected = topics.slice(0, 3);
     return {
-      reply: topic.answer,
+      reply: selected.map((topic) => topic.answer()).join('\n\n'),
       products: [],
-      links: [{label: topic.label, href: topic.href}],
-      handoff: false,
+      links: [
+        ...new Map(
+          selected.map((topic) => [
+            topic.href,
+            {label: topic.label, href: topic.href},
+          ]),
+        ).values(),
+      ],
+      handoff:
+        ids.has('support') || ids.has('payment-problem') || ids.has('damage'),
     };
   }
 
   const {min, max} = parsePrice(text);
   const {words: shown, terms} = productTerms(text);
-  if (!terms.length && min === null && max === null) {
+  const browsing = /\b(products?|gear|catalog(?:ue)?|recommendations?)\b/i.test(
+    text,
+  );
+  if (!terms.length && min === null && max === null && !browsing) {
     return {
       reply:
         'I am not sure what you are looking for. Try "waterproof jacket under ₹3,000", or ask about delivery, returns or sizes.',

@@ -1,8 +1,54 @@
 # Nexthlon: what is left before going live
 
 This list is for anyone on the team. Each item says **what**, **why**, and **who** does it.
-Code work is finished and committed. What remains is mostly accounts, secrets, business details,
-and content, plus a few small website items.
+Implementation status is not a production sign-off. Changes must be checked, committed and
+deployed before the hosted site can be verified.
+
+## Update: 21 November 2026
+
+- Admin → Deals of the Day now includes a saved home-page countdown: automatic expiry,
+  custom IST end date/time, hide/show, quick durations, and a live flip-clock preview.
+  Product discounts continue to follow their individual deal schedules.
+- Gift-card sales, redemption, recipient options, admin pages and issuance emails were removed.
+  Historical order/wallet data was retained, and legacy gift-card products are excluded from purchase.
+- The latest full test run: **468 passed, 0 failed, 47 skipped** (database suites require
+  a dedicated test database). Both earlier local HTTP failures passed on this run.
+  JavaScript and CSS lint also passed. Production configuration and real-device/live-payment
+  checks below are still required.
+
+## Earlier local review: 20 November 2026
+
+- The home hero has a solid shaded dumbbell and a particle transition to the logo and athlete.
+  Phone screens (720px and below) use smaller dots and fewer particles; laptops keep the
+  original full particle density and dot size. Chrome layout checks at widths 320,
+  390, 768, 1024, 1440 and 1920 found no horizontal page overflow and kept the shopping actions
+  in the first screen. This does not replace testing checkout, touch gestures or real phones.
+- Targeted hero layout, geometry, motion, micro-interaction and template checks: 129 passed.
+- The wider local test run: 454 passed, 2 failed, 49 skipped. The upload test reports local
+  HTTP access denied (`EACCES`); the Cloudinary CSP subprocess returned no header. Re-run both
+  in an environment with working loopback access. Database suites were skipped because no
+  dedicated `TEST_MONGODB_URI` was configured; never point these at the shop's database.
+- ESLint and CSS lint passed before the hero changes; the changed hero files also pass.
+  Repository formatting still needs attention in `.claude/launch.json` and
+  `public/css/components.css`. No broad formatting of existing edits was performed.
+- Local production validation rejects the current localhost/non-HTTPS `SITE_URL`. The host
+  needs its real HTTPS address and production settings. Local payments use Razorpay test keys.
+- Cloudinary and Brevo are configured locally. A successful setup check without `--mail`
+  does not prove email delivery or a real checkout. Verify both on the deployed service.
+- Business `STORE_*` values are absent in the local environment. They can be overridden by
+  saved admin settings, so confirm the final business details and policy text in the actual
+  storefront rather than assuming they are absent or complete.
+- Shipping is currently manual. This can be used intentionally; Shiprocket and push
+  notifications are optional integrations, not prerequisites for a demonstration site.
+- The Render blueprint is configured for its free/demo plan. Review availability and job
+  processing requirements before using it for real customer orders. Docker was not built
+  in this review, and live payments, refunds, backups/restores and real-device performance
+  are still unverified.
+
+For a private/demo deployment: finish checks, commit all required files, configure the host's
+environment and reachable database, then verify `/healthz`, `/readyz`, login, email and a
+test-mode order. For a real shop: also finish live payment/webhook verification, business
+content, real-phone checkout, monitoring and a tested backup/restore process.
 
 Legend: **[You]** = the owner must do it (needs an account, card, or legal detail).
 **[Dev]** = a developer task in the code.

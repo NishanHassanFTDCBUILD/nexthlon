@@ -52,7 +52,6 @@ const PERMISSIONS = Object.freeze({
     'reviews.write',
     'settings.write',
     'reports.read',
-    'audit.read',
   ],
   catalogue: [
     'read',
@@ -71,7 +70,6 @@ const PERMISSIONS = Object.freeze({
 // GET requests are "read" unless a rule below says otherwise.
 const RULES = [
   [/^\/staff/, 'staff.manage'],
-  [/^\/audit/, 'audit.read'],
   [/^\/settings/, 'settings.write'],
   [/^\/reports/, 'reports.read'],
   [/^\/tickets/, 'support.write'],
@@ -79,9 +77,6 @@ const RULES = [
   [/^\/reviews/, 'reviews.write'],
   [/^\/views/, 'read'],
   [/^\/goals/, 'settings.write'],
-  [/^\/webhooks/, 'settings.write'],
-  [/^\/jobs/, 'settings.write'],
-  [/^\/gift-cards/, 'settings.write'],
   [/^\/products/, 'products.write'],
   [/^\/categories/, 'categories.write'],
   [/^\/inventory/, 'inventory.write'],
@@ -97,17 +92,15 @@ const RULES = [
   [/^\/orders\/[^/]+\/notes/, 'orders.note'],
   [/^\/orders\/[^/]+\/(shipments|ship)/, 'orders.ship'],
   [/^\/orders\/bulk-status/, 'orders.ship'],
+  [/^\/orders\/[^/]+\/assignment/, 'orders.ship'],
   [/^\/orders/, 'orders.write'],
 ];
 
 // Pages and lists that are narrower than the console itself. Every other GET is "read".
 const READ_GATES = [
+  [/^\/settings/, 'settings.write'],
   [/^\/goals/, 'reports.read'],
-  [/^\/webhooks/, 'settings.write'],
-  [/^\/jobs/, 'settings.write'],
-  [/^\/gift-cards/, 'settings.write'],
   [/^\/staff/, 'staff.manage'],
-  [/^\/audit/, 'audit.read'],
   [/^\/reports/, 'reports.read'],
   [/^\/transactions/, 'reports.read'],
 ];
@@ -126,7 +119,9 @@ function permissionFor(method, path) {
 
 function roleOf(user) {
   if (!user || user.role !== 'admin') return null;
-  return ROLES.includes(user.adminRole) ? user.adminRole : 'owner';
+  // The User schema and existing seeded accounts use '' for the legacy owner.
+  if (user.adminRole == null || user.adminRole === '') return 'owner';
+  return ROLES.includes(user.adminRole) ? user.adminRole : null;
 }
 
 // Can this role do this permission? null (owner only) is allowed for the owner alone.

@@ -5,12 +5,16 @@
   const paymentPill = { pending: 'pill-amber', paid: 'pill-green', failed: 'pill-red', refunded: 'pill-grey', partially_refunded: 'pill-blue' };
   const when = function (d) { return d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : ''; };
   const historyLabel = function (s) { return statusLabels[s] || { item_cancelled: 'Item cancelled', shipment_added: 'Shipment added', return_rejected: 'Return rejected', rto_initiated: 'Coming back (not delivered)', rto_received: 'Back with us' }[s] || s; };
-  const paidOnline = o.paymentMethod === 'razorpay' && ['paid', 'partially_refunded'].includes(o.paymentStatus);
   const charged = o.total + (o.walletUsed || 0);
 %>
 <%- include('../partials/admin-start', { section: 'orders', page: 'order' }) %>
-<div class="admin-order" data-admin-order="<%= o.orderId %>">
-  <header class="admin-top">
+<div class="sales-workspace sales-order-detail admin-order" data-admin-order="<%= o.orderId %>">
+  <%- include('../partials/admin-sales-nav', { salesSection: 'orders' }) %>
+  <% if (typeof packingAssignment !== 'undefined' && packingAssignment && ['placed', 'confirmed'].includes(o.orderStatus) && adminCan('orders.ship')) { const assigned = packingAssignment.packingOwner; const mine = assigned && String(assigned) === packingActor; %>
+  <section class="panel"><h2 class="panel-title">Packing responsibility</h2><p class="muted"><%= assigned ? 'Assigned to ' + packingAssignment.packingOwnerName : 'Available for packing' %></p>
+  <% if (!assigned || mine) { %><button type="button" class="btn btn-secondary btn-sm" data-packing-order="<%= o.orderId %>" data-packing-action="<%= mine ? 'release' : 'claim' %>"><%= mine ? 'Release to queue' : 'Assign to me' %></button><% } %></section>
+  <% } %>
+  <header class="admin-top sales-heading">
     <div>
       <a class="back-link" href="<%= adminPath %>/orders"><%- icon('chevron-left', 'i-xs') %> Orders</a>
       <h1><%= o.orderId %></h1>
@@ -29,9 +33,33 @@
     </div>
   </header>
 
-  <% if (next.length) { %>
+  <section class="admin-totals sales-metrics" aria-label="Order summary">
+    <div class="admin-total sales-metric-featured"><div class="sales-metric-top"><span>Order value</span><%- icon('package-check', 'i-sm') %></div><strong><%= formatPrice(charged) %></strong><small><%= o.items.reduce(function (n, item) { return n + item.quantity; }, 0) %> items in this order</small></div>
+    <div class="admin-total"><div class="sales-metric-top"><span>Payment</span><%- icon('credit-card', 'i-sm') %></div><strong class="sales-summary-word"><%= paymentLabels[o.paymentStatus] || o.paymentStatus %></strong><small><%= methodLabels[o.paymentMethod] %></small></div>
+    <div class="admin-total"><div class="sales-metric-top"><span>Amount returned / reserved</span><%- icon('wallet', 'i-sm') %></div><strong><%= formatPrice(o.refundedAmount || 0) %></strong><small>Includes recorded credits still processing</small></div>
+    <div class="admin-total"><div class="sales-metric-top"><span>Remaining paid balance</span><%- icon('rotate-ccw', 'i-sm') %></div><strong><%= formatPrice(refundable) %></strong><small>Paid amount not yet returned</small></div>
+  </section>
+  <nav class="sales-order-jump" aria-label="Order sections"><a href="#items-title">Items</a><a href="#ship-title">Delivery</a><a href="#pay-title">Payment</a><a href="#timeline-title">Activity</a><a href="#notes-title">Notes</a></nav>
+  <%- include('../partials/order-overview', { record: o, compact: true }) %>
+  <% if (typeof risk !== 'undefined' && risk) { %>
+  <section class="panel admin-block" aria-labelledby="order-risk-title">
+    <h2 id="order-risk-title" class="panel-title">Labels and risk</h2>
+    <p><span class="pill <%= risk.level === 'high' ? 'pill-red' : risk.level === 'medium' ? 'pill-amber' : 'pill-green' %>"><%= risk.level %> (<%= risk.score %>)</span></p>
+    <ul class="admin-reasons"><% risk.reasons.forEach(function (reason) { %><li><%= reason %></li><% }) %></ul>
+    <% if (adminCan('orders.write') && typeof tagOptions !== 'undefined') { %>
+    <form data-order-tags="">
+      <div class="form-alert" data-form-alert aria-live="polite"></div>
+      <fieldset class="order-tags"><legend>Order labels</legend>
+        <% tagOptions.forEach(function (tag) { %><label class="check"><input type="checkbox" name="tags" value="<%= tag %>" <%= (o.tags || []).includes(tag) ? 'checked' : '' %>><%= tag %></label><% }) %>
+      </fieldset>
+      <button type="submit" class="btn btn-secondary btn-sm">Save labels</button>
+    </form>
+    <% } %>
+  </section>
+  <% } %>
+  <% if (next.length && adminCan('orders.write')) { %>
     <form class="panel admin-status-bar" data-status-form>
-      <span><strong>Next step</strong> <small class="muted">Orders only move forward. Cash on delivery is marked paid on delivery.</small></span>
+      <span><strong>Next step</strong> <small class="muted">Moving ahead completes earlier tracking steps. Cash on delivery is marked paid on delivery.</small></span>
       <div class="admin-status-actions">
         <label class="sr-only" for="next-status">Move this order to</label>
         <select id="next-status" name="status">
@@ -48,30 +76,29 @@
       <section class="panel admin-block" aria-labelledby="items-title">
         <div class="dash-card-head"><h2 id="items-title">Items</h2><span class="muted"><%= o.items.length %> <%= o.items.length === 1 ? 'line' : 'lines' %></span></div>
         <form data-cancel-form>
+          <% if (cancellable.length && adminCan('orders.write')) { %><div class="sales-item-selection"><label class="check"><input type="checkbox" data-cancel-select-all> Select all eligible items</label><span class="muted" data-cancel-count>0 selected</span></div><% } %>
           <ul class="admin-items">
-            <% o.items.forEach(function (item) { const can = cancellable.includes(String(item._id)); %>
+            <% o.items.forEach(function (item) { const can = adminCan('orders.write') && cancellable.includes(String(item._id)); %>
               <li class="<%= item.status === 'cancelled' ? 'is-cancelled' : '' %>">
                 <% if (can) { %><input type="checkbox" name="itemIds" value="<%= item._id %>" aria-label="Select <%= item.name %> to cancel"><% } else { %><span class="admin-items-gap"></span><% } %>
                 <img src="<%= sizedUrl(item.image, 200) %>" alt="" width="48" height="48" loading="lazy">
                 <span class="admin-items-name"><a href="/products/<%= item.slug %>" data-nav-skip target="_blank" rel="noopener"><%= item.name %></a><% if (item.option) { %><small><strong><%= item.option %></strong><% if (item.sku) { %> · SKU <%= item.sku %><% } %></small><% } %><small class="muted"><%= item.quantity %> × <%= formatPrice(item.price) %><% if (item.mrp > item.price) { %> · M.R.P. <s><%= formatPrice(item.mrp) %></s><% } %></small></span>
                 <span class="status-pill status-<%= item.status %>"><span class="status-dot" aria-hidden="true"></span><%= statusLabels[item.status] %></span>
                 <% if (item.exchange) { %><span class="admin-items-exchange"><small>Size swap to <strong><%= item.exchange.option %></strong> · <%= item.exchange.status %></small>
-                  <% if (item.exchange.status === 'requested') { %><button type="button" class="btn btn-ghost btn-xs" data-exchange-action="approve" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Approve</button> <button type="button" class="btn btn-ghost btn-xs" data-exchange-action="decline" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Decline</button><% } %>
-                  <% if (item.exchange.status === 'approved') { %><button type="button" class="btn btn-ghost btn-xs" data-exchange-action="complete" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Mark swapped</button><% } %>
+                  <% if (item.exchange.status === 'requested' && adminCan('orders.write')) { %><button type="button" class="btn btn-ghost btn-xs" data-exchange-action="approve" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Approve</button> <button type="button" class="btn btn-ghost btn-xs" data-exchange-action="decline" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Decline</button><% } %>
+                  <% if (item.exchange.status === 'approved' && adminCan('orders.write')) { %><button type="button" class="btn btn-ghost btn-xs" data-exchange-action="complete" data-order="<%= o.orderId %>" data-item="<%= item._id %>">Mark swapped</button><% } %>
                 </span><% } %>
                 <strong class="admin-items-total"><%= formatPrice(item.lineTotal) %></strong>
               </li>
             <% }) %>
           </ul>
-          <% if (cancellable.length) { %>
+          <% if (cancellable.length && adminCan('orders.write')) { %>
             <div class="admin-inline-form">
               <label class="admin-field"><span>Reason</span>
                 <select name="reason"><option value="Cancelled by Nexthlon">Cancelled by Nexthlon</option><option value="Out of stock">Out of stock</option><option value="Address not serviceable">Address not serviceable</option><option value="Suspected fraud">Suspected fraud</option><% cancelReasons.forEach(function (r) { %><option value="<%= r %>">Customer: <%= r %></option><% }) %></select></label>
-              <% if (paidOnline && canReverse) { %>
-                <label class="admin-field"><span>Refund to</span><select name="refundMethod"><option value="wallet">Wallet (instant)</option><option value="original">Original payment</option></select></label>
-              <% } %>
-              <button class="btn btn-danger-soft btn-sm" type="submit" data-cancel-submit><%- icon('x', 'i-sm') %> Cancel selected</button>
-              <small class="muted">No items ticked cancels everything that can still be cancelled.</small>
+              <p class="muted">Paid cancellations credit the customer’s Nexthlon wallet.</p>
+              <button class="btn btn-danger-soft btn-sm" type="submit" data-cancel-submit disabled><%- icon('x', 'i-sm') %> Cancel selected</button>
+              <small class="muted">Select the items to cancel. Stock is restored and any eligible paid amount is credited to the wallet after confirmation.</small>
             </div>
           <% } %>
         </form>
@@ -85,22 +112,20 @@
           <dl class="admin-facts">
             <div><dt>Reason</dt><dd><%= o.returnReason || 'Not given' %></dd></div>
             <div><dt>Delivered</dt><dd><%= o.deliveredAt ? formatDate(o.deliveredAt) : '—' %></dd></div>
-            <% if (returnItems.length) { %><div><dt>Refund if approved</dt><dd><%= formatPrice(returnValue) %></dd></div><% } %>
-            <% if (o.returnDecision && o.returnDecision.refunded) { %><div><dt>Refunded</dt><dd><%= formatPrice(o.returnDecision.refunded) %> to <%= o.returnDecision.refundMethod === 'original' ? 'card/UPI' : 'wallet' %></dd></div><% } %>
+            <% if (returnItems.length) { %><div><dt>Wallet credit if approved</dt><dd><%= formatPrice(returnValue) %></dd></div><% } %>
+            <% if (o.returnDecision && o.returnDecision.refunded) { %><div><dt>Money returned</dt><dd><%= formatPrice(o.returnDecision.refunded) %> to <%= o.returnDecision.refundMethod === 'original' ? 'card/UPI' : 'wallet' %></dd></div><% } %>
           </dl>
           <% if (o.returnNote) { %><p class="admin-quote">“<%= o.returnNote %>”</p><% } %>
           <% if (o.returnPhotos && o.returnPhotos.length) { %>
             <div class="admin-photos"><% o.returnPhotos.forEach(function (src, i) { %><a href="<%= src %>" target="_blank" rel="noopener" data-nav-skip><img src="<%= src %>" alt="Return photo <%= i + 1 %>" width="96" height="96" loading="lazy"></a><% }) %></div>
           <% } %>
           <% if (o.returnDecision && o.returnDecision.note) { %><p class="muted">Note to the customer: <%= o.returnDecision.note %></p><% } %>
-          <% if (returnItems.length) { %>
+          <% if (returnItems.length && adminCan('refunds.write')) { %>
             <form class="admin-decision" data-return-form>
               <label class="admin-field admin-field-wide"><span>Note to the customer <small class="muted">(needed when rejecting)</small></span><textarea name="note" rows="2" maxlength="500"></textarea></label>
-              <% if (canReverse && paidOnline) { %>
-                <label class="admin-field"><span>Refund to</span><select name="refundMethod"><option value="wallet">Wallet (instant)</option><option value="original">Original payment</option></select></label>
-              <% } %>
+              <p class="muted">Approved return value is credited to the customer’s Nexthlon wallet.</p>
               <div class="admin-decision-actions">
-                <button class="btn btn-primary btn-sm" type="submit" name="decision" value="approve"><%- icon('check', 'i-sm') %> Approve, restock and refund</button>
+                <button class="btn btn-primary btn-sm" type="submit" name="decision" value="approve"><%- icon('check', 'i-sm') %> Approve, restock and credit wallet</button>
                 <button class="btn btn-danger-soft btn-sm" type="submit" name="decision" value="reject"><%- icon('x', 'i-sm') %> Reject</button>
               </div>
             </form>
@@ -123,21 +148,21 @@
           </ul>
         <% } else { %><p class="muted">No shipment yet.</p><% } %>
         <% const canShipNow = shippingProvider === 'shiprocket' && next.includes('shipped') && !o.shipments.some(function (s) { return s.provider === 'shiprocket'; }) && !(o.paymentMethod === 'razorpay' && !['paid', 'partially_refunded'].includes(o.paymentStatus)); %>
-        <% if (canShipNow) { %>
+        <% if (canShipNow && adminCan('orders.ship')) { %>
           <form class="ship-now" data-ship-now-form>
             <p><strong>Ship with one click.</strong> <span class="muted">Books the parcel on Shiprocket, takes the AWB, asks for a pickup, prints the label and marks the order as shipped. The customer gets the shipped email with tracking.</span></p>
             <button class="btn btn-primary btn-sm" type="submit"><%- icon('truck', 'i-sm') %> Ship with Shiprocket</button>
           </form>
         <% } %>
-        <% if (['shipped', 'out_for_delivery'].includes(o.orderStatus) && !(o.rto && o.rto.stage === 'received')) { %>
+        <% if (['shipped', 'out_for_delivery'].includes(o.orderStatus) && !(o.rto && o.rto.stage === 'received') && adminCan('orders.write')) { %>
           <form class="admin-inline-form rto-form" data-rto-form novalidate>
-            <p class="field-wide"><strong>Refused or not delivered?</strong> <span class="muted"><%= o.rto && o.rto.stage === 'initiated' ? 'Coming back to us since ' + when(o.rto.at) + '. When it arrives, mark it as back: the items are cancelled, stock returns and a paid order is refunded.' : 'Mark it when the courier starts bringing it back (the customer is told), and again when it reaches you.' %></span></p>
+            <p class="field-wide"><strong>Refused or not delivered?</strong> <span class="muted"><%= o.rto && o.rto.stage === 'initiated' ? 'Coming back to us since ' + when(o.rto.at) + '. When it arrives, mark it as back: the items are cancelled, stock returns and a paid order is credited to the customer’s wallet.' : 'Mark it when the courier starts bringing it back (the customer is told), and again when it reaches you.' %></span></p>
             <label class="admin-field"><span>Reason <span class="optional">(optional)</span></span><input name="reason" maxlength="200" placeholder="e.g. Customer refused the parcel"></label>
             <% if (!(o.rto && o.rto.stage === 'initiated')) { %><button class="btn btn-ghost btn-sm" type="submit" value="initiated"><%- icon('rotate-ccw', 'i-sm') %> Coming back</button><% } %>
             <button class="btn btn-danger-soft btn-sm" type="submit" value="received"><%- icon('package-check', 'i-sm') %> Back with us</button>
           </form>
         <% } %>
-        <% if (!['cancelled', 'returned'].includes(o.orderStatus)) { %>
+        <% if (!['cancelled', 'returned'].includes(o.orderStatus) && adminCan('orders.ship')) { %>
           <form class="admin-inline-form" data-shipment-form novalidate>
             <label class="admin-field"><span>Courier</span><input name="courier" maxlength="60" required placeholder="e.g. Delhivery" list="couriers"></label>
             <datalist id="couriers"><option value="Delhivery"><option value="Blue Dart"><option value="DTDC"><option value="Ekart"><option value="India Post"><option value="Shadowfax"></datalist>
@@ -175,63 +200,37 @@
       </section>
 
       <section class="panel admin-block" aria-labelledby="pay-title">
-        <div class="dash-card-head"><h2 id="pay-title">Payment</h2></div>
+        <div class="dash-card-head"><h2 id="pay-title">Payment and credits</h2></div>
         <dl class="summary-list">
           <div><dt>Items</dt><dd><%= formatPrice(o.subtotal) %></dd></div>
           <% if (o.couponDiscount) { %><div class="summary-savings"><dt>Coupon <%= o.couponCode %></dt><dd>−<%= formatPrice(o.couponDiscount) %></dd></div><% } %><% if (o.prepaidDiscount) { %><div class="summary-savings"><dt>Online payment discount</dt><dd>−<%= formatPrice(o.prepaidDiscount) %></dd></div><% } %>
           <div><dt>Delivery</dt><dd><%= o.deliveryFee ? formatPrice(o.deliveryFee) : 'Free' %></dd></div>
           <% if (o.walletUsed) { %><div><dt>From wallet</dt><dd><%= formatPrice(o.walletUsed) %></dd></div><% } %>
           <div class="summary-total"><dt><%= o.paymentMethod === 'cod' ? 'To collect' : 'Charged' %></dt><dd><%= formatPrice(o.total) %></dd></div>
-          <% if (o.refundedAmount) { %><div class="summary-savings"><dt>Refunded</dt><dd><%= formatPrice(o.refundedAmount) %></dd></div><% } %>
+          <% if (o.refundedAmount) { %><div class="summary-savings"><dt>Money returned</dt><dd><%= formatPrice(o.refundedAmount) %></dd></div><% } %>
         </dl>
         <% if (o.razorpay && (o.razorpay.paymentId || o.razorpay.orderId)) { %>
           <p class="admin-ref"><small class="muted">Razorpay payment</small><code><%= o.razorpay.paymentId || '—' %></code><small class="muted">Razorpay order</small><code><%= o.razorpay.orderId || '—' %></code></p>
         <% } %>
         <% if (o.refunds.length) { %>
-          <h3 class="admin-h3">Refunds</h3>
+          <h3 class="admin-h3">Money returned</h3>
           <ul class="admin-list">
             <% o.refunds.forEach(function (r) { %><li><strong><%= formatPrice(r.amount) %></strong> to <%= r.method === 'original' ? 'card/UPI' : 'wallet' %> <span class="pill <%= r.status === 'processed' ? 'pill-green' : r.status === 'pending' ? 'pill-amber' : 'pill-red' %>"><%= r.status %></span><small class="muted"><%= when(r.at) %><%= r.reason ? ' · ' + r.reason : '' %></small></li><% }) %>
           </ul>
         <% } %>
-        <% if (refundable > 0) { %>
-          <details class="admin-refund">
-            <summary><%- icon('wallet', 'i-sm') %> Issue a refund <small class="muted">(up to <%= formatPrice(refundable) %>)</small></summary>
-            <form class="admin-stack-form" data-refund-form data-max="<%= refundable %>" novalidate>
-              <div class="form-alert" data-form-alert aria-live="polite"></div>
-              <label class="admin-field"><span>Amount (₹)</span><input name="amount" type="number" min="1" step="0.01" max="<%= refundable / 100 %>" inputmode="decimal" required></label>
-              <p class="field-error" data-error-for="amount"></p>
-              <label class="admin-field"><span>Refund to</span><select name="method"><option value="wallet">Customer wallet (instant)</option><% if (canReverse && paidOnline) { %><option value="original">Original payment (5 to 7 days)</option><% } %></select></label>
-              <label class="admin-field"><span>Reason</span><input name="reason" maxlength="200" required placeholder="e.g. Late delivery goodwill"></label>
-              <p class="field-error" data-error-for="reason"></p>
-              <button class="btn btn-primary btn-sm" type="submit">Refund</button>
-            </form>
-          </details>
-        <% } %>
+
       </section>
 
-      <section class="panel admin-block order-risk-panel" aria-labelledby="labels-title">
-        <div class="dash-card-head"><h2 id="labels-title"><%- icon('sparkles', 'i-sm') %> Labels and risk</h2><span class="muted">For the packing team</span></div>
-        <% if (risk.applies) { %>
-          <p class="order-risk-line">Cash on delivery risk: <span class="pill <%= risk.level === 'high' ? 'pill-red' : risk.level === 'medium' ? 'pill-amber' : 'pill-green' %>"><%= risk.level %> (<%= risk.score %>)</span></p>
-          <% if (risk.reasons.length) { %><ul class="muted order-risk-reasons"><% risk.reasons.forEach(function (reason) { %><li><%= reason %></li><% }) %></ul><% } %>
-        <% } else { %><p class="muted">Paid online, so no cash on delivery risk applies.</p><% } %>
-        <form class="order-tags-form" data-order-tags="<%= order.orderId %>" novalidate>
-          <fieldset class="order-tags"><legend>Labels</legend>
-            <% tagOptions.forEach(function (tag) { %><label class="check"><input type="checkbox" name="tags" value="<%= tag %>" <%= (order.tags || []).includes(tag) ? 'checked' : '' %>> <span><%= tag %></span></label><% }) %>
-          </fieldset>
-          <button class="btn btn-secondary btn-sm" type="submit">Save labels</button>
-        </form>
-      </section>
       <section class="panel admin-block" aria-labelledby="notes-title">
         <div class="dash-card-head"><h2 id="notes-title"><%- icon('edit', 'i-sm') %> Internal notes</h2><span class="muted">Only admins see these</span></div>
         <% if (o.notes.length) { %>
           <ul class="admin-notes"><% o.notes.slice().reverse().forEach(function (n) { %><li><p><%= n.body %></p><small class="muted"><%= n.byName || 'Admin' %> · <%= when(n.at) %></small></li><% }) %></ul>
         <% } %>
-        <form class="admin-stack-form" data-note-form novalidate>
+        <% if (adminCan('orders.note')) { %><form class="admin-stack-form" data-note-form novalidate>
           <label class="sr-only" for="order-note">New note</label>
           <textarea id="order-note" name="body" rows="2" maxlength="1000" required placeholder="Add a note for the team"></textarea>
           <button class="btn btn-secondary btn-sm" type="submit">Add note</button>
-        </form>
+        </form><% } %>
       </section>
     </aside>
   </div>

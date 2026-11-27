@@ -44,6 +44,20 @@
   <%# The fonts come from this site (tokens.css). The two the first screen needs (body text and the 800 headline weight) load straight away. %>
   <link rel="preload" href="/fonts/inter-400-800-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/barlow-condensed-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <%# Pages with a 3D scene (preload3d: ['home3d'] or ['auth3d']) fetch its code and every file it imports
+       now, in parallel with the page, instead of one import level at a time after the page is parsed.
+       The 3d/ files are imported without a version, so they are preloaded at that same plain URL. %>
+  <%# The import map points the plain module paths at their versioned URLs (utils/assets.js), so
+       returning visitors load the 3D code from cache with no request. It must come before any module. %>
+  <% if (typeof moduleImportMap !== 'undefined') { %><script type="importmap"<% if (typeof cspNonce !== 'undefined') { %> nonce="<%= cspNonce %>"<% } %>><%- moduleImportMap() %></script><% } %>
+  <% const deps3d = {
+       home3d: ['scene', 'boot', 'interaction', 'math', 'gl', 'dumbbell', 'shapes', 'hero-layout'],
+       auth3d: ['scene', 'boot', 'interaction', 'math', 'gl', 'shapes'],
+     };
+     (typeof preload3d !== 'undefined' ? preload3d : []).forEach(function (name) { %>
+  <link rel="modulepreload" href="<%= asset('/js/' + name + '.js') %>">
+  <% (deps3d[name] || []).forEach(function (dep) { %><link rel="modulepreload" href="<%= asset('/js/3d/' + dep + '.js') %>">
+  <% }); }); %>
   <%# All of the page's stylesheets in one request, in cascade order (utils/assets.js):
        tokens, components, style; page styles that belong before the motion layer (coreStyles, e.g.
        the home page's home.css); the motion layer (My Account pages turn it off with

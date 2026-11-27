@@ -414,41 +414,24 @@ test('shipments, internal notes and the two PDFs', async () => {
   );
 });
 
-test('manual refunds never exceed what was paid, and are audit-logged', async () => {
-  const order = await makeOrder({
-    orderStatus: 'delivered',
-    paymentStatus: 'paid',
-    deliveredAt: new Date(),
-  });
-  const url = `/api/admin/orders/${order.orderId}/refunds`;
+test('standalone refund endpoints are removed', async () => {
   assert.equal(
     (
-      await call('POST', url, {
-        body: {amount: '100', method: 'wallet', reason: 'x'},
+      await call('POST', '/api/admin/orders/NX-2026-400001/refunds', {
+        body: {},
         cookie: adminCookie,
       })
     ).status,
-    400,
-  ); // no reason
-  assert.equal(
-    (
-      await call('POST', url, {
-        body: {amount: '999999', method: 'wallet', reason: 'Too much'},
-        cookie: adminCookie,
-      })
-    ).status,
-    400,
+    404,
   );
-  const ok = await call('POST', url, {
-    body: {amount: '500', method: 'wallet', reason: 'Late delivery goodwill'},
-    cookie: adminCookie,
-  });
-  assert.equal(ok.status, 201);
-  const after = await Order.findById(order._id);
-  assert.equal(after.refundedAmount, 50000);
-  assert.equal(after.paymentStatus, 'partially_refunded');
-  const log = await AuditLog.findOne({action: 'order.refund'}).lean();
-  assert.equal(log.after.amount, 50000);
+  assert.equal(
+    (await call('GET', '/api/admin/refunds', {cookie: adminCookie})).status,
+    404,
+  );
+  assert.equal(
+    (await call('GET', ADMIN + '/refunds', {cookie: adminCookie})).status,
+    404,
+  );
 });
 
 test('returns: approve restocks and refunds; reject needs a note and keeps the items delivered', async () => {
@@ -638,12 +621,6 @@ test('money ledger: every movement, totals, one entry, filters and reconciliatio
     200,
   );
 
-  const refunds = await call('GET', '/api/admin/refunds?status=processed', {
-    cookie: adminCookie,
-  });
-  assert.ok(refunds.data.refunds.length >= 2);
-  assert.ok(refunds.data.refunds.every((r) => r.status === 'processed'));
-
   const rec = await call(
     'GET',
     '/api/admin/transactions/reconciliation?days=7',
@@ -659,7 +636,7 @@ test('money ledger: every movement, totals, one entry, filters and reconciliatio
   );
   assert.ok(rec.data.issues.some((i) => i.kind === 'cod_not_collected'));
   assert.ok(rec.data.mismatchedDays >= 1);
-  for (const page of ['transactions', 'transactions/reconciliation', 'refunds'])
+  for (const page of ['transactions', 'transactions/reconciliation'])
     assert.equal(
       (await call('GET', `${ADMIN}/${page}`, {cookie: adminCookie})).status,
       200,

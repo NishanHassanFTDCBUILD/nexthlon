@@ -1,37 +1,37 @@
-// Product video (admin): upload an MP4 or WebM file for this product. The link in the form is filled in with the
-// stored address, and the product keeps it once the form is saved.
+// Initialized by the product form for both full loads and admin navigation.
 (function () {
   'use strict';
-
-  const input = document.querySelector('[data-video-file]');
-  if (!input) return;
-  const status = document.querySelector('[data-video-status]');
-  const link = document.getElementById('p-video');
-
-  input.addEventListener('change', async () => {
-    const file = input.files && input.files[0];
-    if (!file) return;
-    const url = input.dataset.uploadUrl;
-    status.textContent = 'Uploading…';
-    const body = new FormData();
-    body.append('video', file);
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        body,
-        credentials: 'same-origin',
-      });
-      const reply = await response.json().catch(() => ({}));
-      if (!response.ok)
-        throw new Error(reply.message || 'The video could not be uploaded.');
-      link.value = reply.videoUrl;
-      status.textContent = 'Uploaded. The video is set on this product.';
-      Nx.toast(reply.message);
-    } catch (error) {
-      status.textContent = error.message;
-      Nx.toast(error.message, 'error');
-    } finally {
-      input.value = '';
-    }
-  });
+  window.NxProductMedia = (root, signal) => {
+    const input = root.querySelector('[data-video-file]');
+    if (!input) return;
+    const link = root.querySelector('#p-video');
+    const preview = root.querySelector('[data-video-preview]');
+    const status = root.querySelector('[data-video-status]');
+    link.type = 'text';
+    let objectUrl;
+    const update = () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      const file = input.files[0];
+      input.setCustomValidity(
+        file && file.size > 25 * 1024 * 1024
+          ? 'Choose an MP4 or WebM video up to 25 MB.'
+          : '',
+      );
+      objectUrl = file ? URL.createObjectURL(file) : null;
+      const src = objectUrl || link.value.trim();
+      preview.hidden = !src;
+      if (src) preview.src = src;
+      else preview.removeAttribute('src');
+      status.textContent = file
+        ? file.name + ' — ready to upload when you save.'
+        : 'MP4 or WebM, up to 25 MB. Appears alongside product photos.';
+    };
+    input.addEventListener('change', update, {signal});
+    link.addEventListener('change', update, {signal});
+    update();
+    signal.addEventListener('abort', () => {
+      preview.pause();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    });
+  };
 })();

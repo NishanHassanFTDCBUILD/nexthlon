@@ -209,6 +209,8 @@ const noteSchema = new mongoose.Schema({
 const returnDecisionSchema = new mongoose.Schema(
   {
     status: {type: String, enum: ['approved', 'rejected'], required: true},
+    itemIds: {type: [mongoose.Schema.Types.ObjectId], default: []},
+    requestedValue: {type: Number, min: 0, default: null},
     note: {type: String, default: '', maxlength: 500},
     refundMethod: {type: String, enum: ['wallet', 'original', ''], default: ''},
     refunded: {type: Number, default: 0, min: 0},
@@ -221,6 +223,13 @@ const returnDecisionSchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     orderId: {type: String, required: true, unique: true},
+    packingOwner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    packingOwnerName: {type: String, default: '', maxlength: 60},
+    packingClaimedAt: {type: Date, default: null},
     user: {type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true},
     items: {type: [orderItemSchema], validate: (list) => list.length > 0},
     address: {type: addressSnapshotSchema, required: true},
@@ -237,7 +246,7 @@ const orderSchema = new mongoose.Schema(
     total: {type: Number, required: true, min: 0},
     // Where the items came from: the cart, or a single "Buy now" product (the cart is then left alone).
     source: {type: String, enum: ['cart', 'buynow'], default: 'cart'},
-    // A gift card order sent to someone else: their name, the email the codes go to, and a short message.
+    // Historical recipient snapshot retained for orders placed before gifting was removed.
     giftRecipient: {
       type: new mongoose.Schema(
         {name: String, email: String, message: String},

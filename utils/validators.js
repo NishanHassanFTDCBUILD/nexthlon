@@ -191,19 +191,13 @@ function readPercent(value, max = 90) {
 // (the service checks that it exists).
 // An https link to an MP4 or WebM file: no spaces, and the path (before any ?query or #part) ends in the extension.
 function isVideoLink(url) {
+  if (/^\/uploads\/products\/videos\/[a-z0-9_-]+\.(mp4|webm)$/i.test(url))
+    return true;
   if (!url.startsWith('https://') || url.length > 500) return false;
   if (url.split('').some((ch) => ch === ' ' || ch === '\t' || ch === '\n'))
     return false;
   const path = url.split('?')[0].split('#')[0].toLowerCase();
   return path.endsWith('.mp4') || path.endsWith('.webm');
-}
-
-// An https link to a still image (JPG, PNG or WebP): no spaces, a sane length.
-function isImageLink(url) {
-  if (!url.startsWith('https://') || url.length > 500) return false;
-  if (url.split('').some((ch) => ch === ' ' || ch === '	')) return false;
-  const path = url.split('?')[0].split('#')[0].toLowerCase();
-  return ['.jpg', '.jpeg', '.png', '.webp'].some((ext) => path.endsWith(ext));
 }
 
 function validateProduct(body = {}) {
@@ -242,12 +236,6 @@ function validateProduct(body = {}) {
     errors.mrp = 'M.R.P. must be the same as or higher than the price.';
   if (value.offerPercent === null)
     errors.offerPercent = 'Enter an offer from 0 to 90 percent.';
-  // GST and the legally required details (B4). Left out entirely means "keep what is there".
-  if (body.hsn !== undefined || body.gstRate !== undefined) {
-    const tax = readProductTax(body);
-    if (tax.errors) Object.assign(errors, tax.errors);
-    else value.tax = tax.value;
-  }
   for (const [field, max, label] of [
     ['countryOfOrigin', 60, 'country of origin'],
     ['manufacturer', 300, 'manufacturer or importer'],
@@ -282,23 +270,6 @@ function validateProduct(body = {}) {
         'Use an https link to an MP4 or WebM video, up to 500 characters.';
     else value.videoUrl = url;
   }
-  // A gift card product (a checkbox): its price is the value each card carries.
-  if (body.giftCard !== undefined)
-    value.giftCard =
-      body.giftCard === true ||
-      body.giftCard === 'on' ||
-      body.giftCard === 'true';
-  // A 360 spin: one https image link per line, 36 at most. Empty removes it.
-  if (body.spinFrames !== undefined) {
-    const lines = Array.isArray(body.spinFrames)
-      ? body.spinFrames
-      : String(body.spinFrames).split(String.fromCharCode(10));
-    const frames = lines.map((line) => String(line).trim()).filter(Boolean);
-    if (frames.length > 36 || frames.some((url) => !isImageLink(url)))
-      errors.spinFrames =
-        'List up to 36 https links to images (JPG, PNG or WebP), one per line.';
-    else value.spinFrames = frames;
-  }
   if (value.countryOfOrigin === '')
     errors.countryOfOrigin = 'Enter the country of origin (for example India).';
   // Sizes and colours. Left out (an older form or an API call without them) means "keep what is there".
@@ -314,34 +285,6 @@ function validateProduct(body = {}) {
   } else if (value.stock === null)
     errors.stock = 'Enter stock as a whole number, 0 or more.';
   return {errors, value};
-}
-
-// A product's GST: HSN (4, 6 or 8 digits), the rate, and optionally a higher rate for pieces above a
-// value in rupees (footwear and clothing). All empty means "use the suggested rate" (utils/gst.js).
-const GST_SLABS = [0, 5, 18, 40];
-function readProductTax(body) {
-  const errors = {};
-  const hsn = text(body.hsn).replace(/\s+/g, '');
-  const rateRaw = text(body.gstRate);
-  const aboveRateRaw = text(body.gstRateAbove);
-  const aboveRaw = text(body.gstAbove);
-  if (!hsn && !rateRaw)
-    return {value: {hsn: '', rate: null, rateAbove: null, above: null}};
-  const rate = rateRaw === '' ? null : Number(rateRaw);
-  const rateAbove = aboveRateRaw === '' ? null : Number(aboveRateRaw);
-  const above = aboveRaw === '' ? null : rupeesToPaise(aboveRaw);
-  if (!/^(\d{4}|\d{6}|\d{8})$/.test(hsn))
-    errors.hsn = 'Enter the HSN code: 4, 6 or 8 digits (for example 6404).';
-  if (!GST_SLABS.includes(rate)) errors.gstRate = 'Choose the GST rate.';
-  if (rateAbove !== null && !GST_SLABS.includes(rateAbove))
-    errors.gstRateAbove = 'Choose the higher GST rate, or leave it empty.';
-  if ((rateAbove === null) !== (above === null))
-    errors.gstAbove =
-      'Give both the higher rate and the value it starts above, or neither.';
-  else if (above !== null && (above <= 0 || above > MAX_PRICE))
-    errors.gstAbove = 'Enter the value in rupees, for example 2500.';
-  if (Object.keys(errors).length) return {errors};
-  return {value: {hsn, rate, rateAbove, above}};
 }
 
 // The admin's size and colour rows: [{ id, size, colour, sku, stock }], sent as JSON text.
@@ -517,28 +460,6 @@ function readFlag(value) {
 
 // Checkout: which address, how to pay and whether to use the wallet. Prices, the coupon and
 // every total are worked out on the server.
-// A gift for someone else: a name, a valid email for the codes, and an optional short message. Anything else is ignored.
-function readGiftRecipient(raw) {
-  if (!raw || typeof raw !== 'object') return null;
-  const name = text(raw.name);
-  const email = String(raw.email || '')
-    .trim()
-    .toLowerCase();
-  if (
-    !name ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ||
-    email.length > 254
-  )
-    return null;
-  return {
-    name: name.slice(0, 60),
-    email,
-    message: String(raw.message || '')
-      .trim()
-      .slice(0, 200),
-  };
-}
-
 function validatePlaceOrder(body = {}) {
   const errors = {};
   const value = {
@@ -546,7 +467,6 @@ function validatePlaceOrder(body = {}) {
     paymentMethod: text(body.paymentMethod),
     useWallet: readFlag(body.useWallet),
     source: text(body.source) === 'buynow' ? 'buynow' : 'cart',
-    giftRecipient: readGiftRecipient(body.giftRecipient),
   };
   if (!OBJECT_ID.test(value.addressId))
     errors.addressId = 'Choose a delivery address.';
@@ -557,8 +477,7 @@ function validatePlaceOrder(body = {}) {
 // Cancelling: an optional reason from the list; anything else is dropped.
 function validateCancel(body = {}) {
   const reason = text(body.reason);
-  const refundMethod =
-    text(body.refundMethod) === 'original' ? 'original' : 'wallet';
+  const refundMethod = 'wallet';
   return {
     errors: {},
     value: {
@@ -770,9 +689,7 @@ function validateAdminCancel(body = {}) {
   if (itemIds.length > 50 || !itemIds.every((id) => OBJECT_ID.test(id)))
     errors.itemIds = 'Pick the items to cancel.';
   const reason = text(body.reason).slice(0, 200);
-  const refundMethod = REFUND_METHODS.includes(body.refundMethod)
-    ? body.refundMethod
-    : 'wallet';
+  const refundMethod = 'wallet';
   return {errors, value: {itemIds, reason, refundMethod}};
 }
 
@@ -852,9 +769,7 @@ function validateReturnDecision(body = {}) {
   const note = longText(body.note).slice(0, 500);
   if (decision === 'reject' && note.length < 5)
     errors.note = 'Tell the customer why (at least 5 characters).';
-  const refundMethod = REFUND_METHODS.includes(body.refundMethod)
-    ? body.refundMethod
-    : 'wallet';
+  const refundMethod = 'wallet';
   return {errors, value: {decision, note, refundMethod}};
 }
 
@@ -882,7 +797,11 @@ function readDay(value, endOfDay = false) {
   const at = new Date(`${raw}T${endOfDay ? '18:29:59.999Z' : '00:00:00.000Z'}`);
   // Written as UTC minus the 5.5 hour offset, so the day is an Indian calendar day.
   const shifted = new Date(at.getTime() - (endOfDay ? 0 : 330 * 60 * 1000));
-  return Number.isNaN(shifted.getTime()) ? NaN : shifted;
+  if (Number.isNaN(shifted.getTime())) return NaN;
+  const day = new Date(shifted.getTime() + 330 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  return day === raw ? shifted : NaN;
 }
 
 // The admin coupon form. Percent coupons carry a whole percent in "value"; flat ones carry paise.
@@ -994,7 +913,22 @@ function validateStockChange(body = {}) {
   const optionId = OBJECT_ID.test(text(body.optionId))
     ? text(body.optionId)
     : null;
-  return {errors, value: {action, units, note, reason, optionId}};
+  const value = {action, units, note, reason, optionId};
+  if (body.expectedStock !== undefined) {
+    const expected = String(body.expectedStock);
+    if (!/^\d{1,6}$/.test(expected) || Number(expected) > 100000)
+      errors.expectedStock = 'Refresh the stock row before saving.';
+    else value.expectedStock = Number(expected);
+  }
+  if (body.requestId !== undefined) {
+    if (
+      typeof body.requestId !== 'string' ||
+      !/^[a-zA-Z0-9:_-]{16,100}$/.test(body.requestId)
+    )
+      errors.requestId = 'Invalid stock request. Refresh and try again.';
+    else value.requestId = body.requestId;
+  }
+  return {errors, value};
 }
 
 // A date and time from a datetime-local input ("2026-11-19T09:30"), read as Indian time.

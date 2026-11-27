@@ -16,12 +16,11 @@ const {readListQuery} = require('../utils/listQuery');
 
 const PAGE_SIZE = 20;
 const MAX_STOCK = 100000;
-const STATUSES = ['all', 'out', 'low', 'reorder', 'healthy', 'unlisted'];
+const STATUSES = ['all', 'out', 'low', 'healthy', 'unlisted'];
 const STATUS_LABELS = {
   all: 'All',
   out: 'Out of stock',
   low: 'Low stock',
-  reorder: 'Reorder now',
   healthy: 'Well stocked',
   unlisted: 'Unlisted',
 };
@@ -34,11 +33,6 @@ const SORTS = {
   },
   name_asc: {label: 'Name: A to Z', order: {name: 1}},
   updated: {label: 'Recently changed', order: {updatedAt: -1}},
-};
-// "Reorder now": a product with its own reorder level, at or below it. ($gt null skips products
-// with no level: a missing or null field is never greater than null.)
-const AT_REORDER_LEVEL = {
-  $and: [{$gt: ['$reorderLevel', null]}, {$lte: ['$stock', '$reorderLevel']}],
 };
 // What the three "needs attention" bands mean, in one place.
 // Worked out on each use, because the low-stock level is an admin setting.
@@ -77,7 +71,6 @@ function readInventoryList(query = {}) {
         labels: STATUS_LABELS,
         match: (value) => {
           if (value === 'unlisted') return {isListed: false};
-          if (value === 'reorder') return {$expr: AT_REORDER_LEVEL};
           return BANDS[value] ? {isListed: true, ...BANDS[value]} : {};
         },
       },
@@ -98,6 +91,8 @@ function toRow(product) {
   const options = (product.variants || []).map((option) => ({
     id: String(option._id),
     label: optionLabel(option),
+    size: option.size || '',
+    colour: option.colour || '',
     sku: option.sku || '',
     stock: option.stock,
     state: stateOf(option),
@@ -107,6 +102,7 @@ function toRow(product) {
     id: String(product._id),
     name: product.name,
     brand: product.brand || '',
+    sku: product.sku || '',
     image: product.image,
     category:
       product.category && product.category.name ? product.category.name : '',
@@ -156,7 +152,6 @@ async function totals() {
         listed: {$sum: {$cond: [{$ne: ['$isListed', false]}, 1, 0]}},
         units: {$sum: '$stock'},
         value: {$sum: {$multiply: ['$stock', '$price']}},
-        reorder: {$sum: {$cond: [AT_REORDER_LEVEL, 1, 0]}},
         out: {
           $sum: {
             $cond: [
@@ -189,24 +184,10 @@ async function totals() {
     listed: 0,
     units: 0,
     value: 0,
-    reorder: 0,
     out: 0,
     low: 0,
   };
-  delete base._id;
-  // Shoppers waiting for a back-in-stock email, over the whole catalogue.
-  const [alerts] = await StockAlert.aggregate([
-    {$match: {notifiedAt: null}},
-    {$count: 'n'},
-  ]);
-  const waiting = alerts ? alerts.n : 0;
-  return {
-    ...base,
-    healthy: Math.max(0, base.listed - base.out - base.low),
-    unlisted: Math.max(0, base.products - base.listed),
-    waiting,
-    lowStockLimit: RULES.lowStockLimit,
-  };
+  return {...base, lowStockLimit: RULES.lowStockLimit};
 }
 
 async function listInventory(query = {}) {
@@ -264,18 +245,42 @@ async function listInventory(query = {}) {
   };
 }
 
+async function currentStock(productId) {
+  const product = await Product.findById(productId)
+    .populate('category', 'name')
+    .lean();
+  if (!product) throw new HttpError(404, 'Product not found.');
+  const [sold, sums] = await Promise.all([soldLast30([product._id]), totals()]);
+  const units = sold.get(String(product._id)) || 0;
+  return {
+    product: {
+      ...toRow(product),
+      soldLast30: units,
+      daysOfCover: daysOfCover(product.stock, units),
+      reorderLevel: product.reorderLevel ?? null,
+      needsReorder:
+        product.reorderLevel != null && product.stock <= product.reorderLevel,
+    },
+    totals: sums,
+  };
+}
+
 // One size's (or colour's) stock. The size and the product total change together in one atomic update,
 // so the total always stays the sum of the sizes, even while orders are taking units.
 //   add / remove: $inc on both, only if the size has room / has the units.
 //   count: sets the size to an exact number; the total moves by the difference. The update only applies
-//   if the size still holds the number just read, and is retried when an order got in between.
-async function adjustOptionStock(before, optionId, {action, units, note}) {
+//   if the size still holds the number just read; otherwise the admin must refresh.
+async function adjustOptionStock(
+  before,
+  optionId,
+  {action, units, note, expectedStock, session = null},
+) {
   const productId = before._id;
   const find = () =>
     (before.variants || []).find(
       (option) => String(option._id) === String(optionId),
     );
-  let option = find();
+  const option = find();
   if (!option)
     throw new HttpError(
       400,
@@ -284,17 +289,27 @@ async function adjustOptionStock(before, optionId, {action, units, note}) {
       'option_required',
     );
   const label = optionLabel(option);
-  let product = null;
+  if (
+    action === 'count' &&
+    expectedStock != null &&
+    option.stock !== expectedStock
+  )
+    throw new HttpError(
+      409,
+      'Stock changed since you opened this row. Refresh it before setting a count.',
+    );
+  let product;
   if (action === 'add') {
     product = await Product.findOneAndUpdate(
       {
         _id: productId,
+        stock: {$lte: MAX_STOCK - units},
         variants: {
           $elemMatch: {_id: option._id, stock: {$lte: MAX_STOCK - units}},
         },
       },
       {$inc: {'variants.$.stock': units, stock: units}},
-      {new: true},
+      {new: true, session},
     );
     if (!product)
       throw new HttpError(
@@ -308,7 +323,7 @@ async function adjustOptionStock(before, optionId, {action, units, note}) {
         variants: {$elemMatch: {_id: option._id, stock: {$gte: units}}},
       },
       {$inc: {'variants.$.stock': -units, stock: -units}},
-      {new: true},
+      {new: true, session},
     );
     if (!product) {
       const fresh = await Product.findById(productId).select('variants').lean();
@@ -323,30 +338,18 @@ async function adjustOptionStock(before, optionId, {action, units, note}) {
       );
     }
   } else {
-    for (let attempt = 0; attempt < 5 && !product; attempt += 1) {
-      if (attempt) {
-        before = await Product.findById(productId)
-          .select('name stock variants')
-          .lean();
-        option = find();
-        if (!option)
-          throw new HttpError(
-            400,
-            'That size or colour was removed. Reload the page.',
-          );
-      }
-      product = await Product.findOneAndUpdate(
-        {
-          _id: productId,
-          variants: {$elemMatch: {_id: option._id, stock: option.stock}},
-        },
-        {
-          $set: {'variants.$.stock': units},
-          $inc: {stock: units - option.stock},
-        },
-        {new: true},
-      );
-    }
+    product = await Product.findOneAndUpdate(
+      {
+        _id: productId,
+        stock: {$lte: MAX_STOCK - units + option.stock},
+        variants: {$elemMatch: {_id: option._id, stock: option.stock}},
+      },
+      {
+        $set: {'variants.$.stock': units},
+        $inc: {stock: units - option.stock},
+      },
+      {new: true, session},
+    );
     if (!product)
       throw new HttpError(
         409,
@@ -371,17 +374,43 @@ async function adjustOptionStock(before, optionId, {action, units, note}) {
 // for the audit log.
 async function adjustStock(
   productId,
-  {action, units, note = '', optionId = null},
+  {
+    action,
+    units,
+    note = '',
+    optionId = null,
+    expectedStock = null,
+    session = null,
+  },
 ) {
   if (!mongoose.isValidObjectId(productId))
     throw new HttpError(404, 'Product not found.');
-  const before = await Product.findById(productId)
-    .select('name stock variants')
-    .lean();
+  const query = Product.findById(productId).select('name stock variants');
+  const before = await (session ? query.session(session) : query).lean();
   if (!before) throw new HttpError(404, 'Product not found.');
   // Stock of a product with sizes lives on each size; its total is their sum (models/Product.js).
   if (before.variants && before.variants.length)
-    return adjustOptionStock(before, optionId, {action, units, note});
+    return adjustOptionStock(before, optionId, {
+      action,
+      units,
+      note,
+      expectedStock,
+      session,
+    });
+  if (optionId)
+    throw new HttpError(
+      409,
+      'This size or color no longer exists. Reload Inventory before changing stock.',
+    );
+  if (
+    action === 'count' &&
+    expectedStock != null &&
+    before.stock !== expectedStock
+  )
+    throw new HttpError(
+      409,
+      'Stock changed since you opened this row. Refresh it before setting a count.',
+    );
 
   let filter = {_id: productId, 'variants.0': {$exists: false}};
   let update;
@@ -393,13 +422,20 @@ async function adjustStock(
     filter = {...filter, stock: {$gte: units}};
     update = {$inc: {stock: -units}};
   } else {
+    filter.stock = before.stock;
     update = {$set: {stock: units}};
   }
 
   const product = await Product.findOneAndUpdate(filter, update, {
     new: true,
+    session,
   }).populate('category', 'name');
   if (!product) {
+    if (action === 'count')
+      throw new HttpError(
+        409,
+        'Stock changed while saving. Refresh the row and try again.',
+      );
     if (action === 'remove')
       throw new HttpError(
         400,
@@ -418,23 +454,12 @@ async function adjustStock(
   };
 }
 
-// The products ticked on the page (?ids=a,b,c), for "Export selected". Up to one page's worth.
-function selectedIds(raw) {
-  if (typeof raw !== 'string' || !raw) return null;
-  const ids = [
-    ...new Set(raw.split(',').filter((id) => mongoose.isValidObjectId(id))),
-  ].slice(0, 100);
-  return ids.length ? ids.map((id) => new mongoose.Types.ObjectId(id)) : null;
-}
-
-// Every product that matches the filters, for the CSV export (no paging). With ?ids=, only those.
+// Every product that matches the filters, for the CSV export (no paging).
 function cursorFor(query = {}) {
   const filters = readFilters(query);
-  const ids = selectedIds(query.ids);
-  const filter = ids ? {_id: {$in: ids}} : filterFrom(filters);
   return {
     filters,
-    cursor: Product.find(filter)
+    cursor: Product.find(filterFrom(filters))
       .sort(SORTS[filters.sort].order)
       .select(
         'name brand sku stock variants basePrice price isListed category updatedAt',
@@ -499,6 +524,7 @@ async function setReorderLevel(productId, level) {
 }
 
 module.exports = {
+  currentStock,
   setReorderLevel,
   soldLast30,
   daysOfCover,

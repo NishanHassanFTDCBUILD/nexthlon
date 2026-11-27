@@ -202,21 +202,14 @@ test('analytics: totals, the series behind each chart, and the carts-to-orders f
 
   // Everything the section promises is in the answer.
   const cards = Object.fromEntries(data.cards.map((c) => [c.key, c.value]));
-  assert.deepEqual(
-    Object.keys(cards).sort(),
-    [
-      'aov',
-      'buyers',
-      'cartToOrder',
-      'customers',
-      'newCustomers',
-      'orders',
-      'revenue',
-      'units',
-    ]
-      .filter((k) => k !== 'customers')
-      .sort(),
-  );
+  assert.deepEqual(Object.keys(cards).sort(), [
+    'aov',
+    'buyers',
+    'newCustomers',
+    'orders',
+    'revenue',
+    'units',
+  ]);
   assert.equal(cards.orders, 2);
   // Only the paid order counts as revenue: 2 shoes at the selling price.
   assert.equal(cards.revenue, shoe.price * 2);
@@ -259,10 +252,11 @@ test('analytics: totals, the series behind each chart, and the carts-to-orders f
     100,
   );
 
-  // Conversion: orders against shoppers who filled a basket.
+  // Payment: of the orders placed, how many were paid (one of the two).
   assert.equal(data.funnel.orders, 2);
   assert.equal(data.funnel.paid, 1);
-  assert.equal(typeof data.funnel.cartToOrder, 'number');
+  assert.equal(data.funnel.orderToPaid, 50);
+  assert.equal(data.funnel.carts, undefined);
 });
 
 test('analytics: the grouping can be day, week or month, and silly values fall back', async () => {
@@ -272,8 +266,9 @@ test('analytics: the grouping can be day, week or month, and silly values fall b
   assert.equal((await group('range=30d&by=day')).unit, 'day');
   assert.equal((await group('range=30d&by=week')).unit, 'week');
   assert.equal((await group('range=year&by=month')).unit, 'month');
-  // A week needs at least a week of range, so "today" ignores it.
-  assert.equal((await group('range=today&by=week')).key, 'auto');
+  // The grouping the admin picks is the one shown, even on a short range.
+  assert.equal((await group('range=today&by=week')).key, 'week');
+  assert.equal((await group('range=year&by=day')).key, 'day');
   // Junk is ignored rather than trusted.
   assert.equal((await group('range=30d&by=%24ne')).key, 'auto');
 
@@ -294,7 +289,8 @@ test('analytics: the page renders and the CSV holds every block', async () => {
   assert.match(page.data, /data-chart="payments"/);
   assert.match(page.data, /data-chart="newReturning"/);
   assert.match(page.data, /data-chart="categories"/);
-  assert.match(page.data, /id="an-funnel-title">Conversion</);
+  assert.match(page.data, /id="an-funnel-title">Orders paid</);
+  assert.doesNotMatch(page.data, /carts? that became|Shoppers with items/i);
   // No chart library, and no inline script (the CSP forbids one).
   assert.doesNotMatch(page.data, /chart\.js|cdn\./i);
   assert.doesNotMatch(page.data, /<script>[^<]/);
@@ -320,7 +316,7 @@ test('analytics: the page renders and the CSV holds every block', async () => {
     'Top products by units',
     'Top categories',
     'Payment methods',
-    'Conversion (carts to orders)',
+    'Payments',
   ]) {
     assert.ok(
       csv.data.includes(heading),
@@ -370,7 +366,7 @@ test('inventory: bands, filters, stock value and the CSV export', async () => {
     cookie: adminCookie,
   });
   assert.equal(page.status, 200);
-  assert.match(page.data, /data-inv-form="/);
+  assert.match(page.data, /data-inventory-edit=/);
   assert.match(page.data, /Section Socks/);
 
   const csv = await call('GET', '/api/admin/inventory/export.csv', {
@@ -383,8 +379,17 @@ test('inventory: bands, filters, stock value and the CSV export', async () => {
 });
 
 test('inventory: add, remove and set the exact count, and stock can never go negative', async () => {
-  const change = (id, body) =>
-    call('PATCH', `/api/admin/inventory/${id}`, {body, cookie: adminCookie});
+  const change = async (id, body) =>
+    call('PATCH', `/api/admin/inventory/${id}`, {
+      body: {
+        ...body,
+        requestId: require('node:crypto').randomUUID(),
+        ...(body.action === 'count'
+          ? {expectedStock: (await Product.findById(id)).stock}
+          : {}),
+      },
+      cookie: adminCookie,
+    });
 
   const added = await change(socks._id, {action: 'add', units: 7});
   assert.equal(added.status, 200);
@@ -468,7 +473,7 @@ test('inventory: a product with sizes is changed one size at a time, on the page
   const s9 = String(sized.variants[1]._id);
   const change = (body) =>
     call('PATCH', `/api/admin/inventory/${sized._id}`, {
-      body,
+      body: {...body, requestId: require('node:crypto').randomUUID()},
       cookie: adminCookie,
     });
 
@@ -479,7 +484,7 @@ test('inventory: a product with sizes is changed one size at a time, on the page
   // Each size has its own number field, holding its stock.
   assert.match(
     page.data,
-    /value="0" data-stock="0" data-option-id="[a-f0-9]{24}" data-inv-field aria-label="Stock of [^"]*Size 9"/,
+    /data-inventory-option="[a-f0-9]{24}" aria-label="Edit stock for [^"]*Size 9"/,
   );
 
   const edit = await call('GET', `${ADMIN}/products/${sized._id}/edit`, {

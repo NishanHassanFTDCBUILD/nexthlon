@@ -21,7 +21,10 @@ const MAX_PER_PRODUCT = RULES.maxPerProduct;
 // Hidden products, and products in hidden categories, count as no longer sold.
 function isSold(product) {
   return Boolean(
-    product && product.isListed !== false && product.categoryListed !== false,
+    product &&
+    product.isListed !== false &&
+    product.categoryListed !== false &&
+    product.giftCard !== true,
   );
 }
 
@@ -29,7 +32,8 @@ function isSold(product) {
 // option was chosen, or it was deleted). Without options: the product's. Called without an option id at
 // all (undefined), it is the product as a whole (all its options together), for lists and wishlists.
 function stockFor(product, optionId) {
-  if (optionId === undefined || !hasOptions(product)) return product.stock;
+  if (optionId === undefined) return product.stock;
+  if (!hasOptions(product)) return optionId ? 0 : product.stock;
   const option = findOption(product, optionId);
   return option ? option.stock : 0;
 }
@@ -47,6 +51,8 @@ function limitFor(product, optionId) {
 // optionId: the chosen size/colour (null when none was chosen).
 function quantityProblem(product, quantity, optionId = null) {
   if (!isSold(product)) return 'This product is no longer available.';
+  if (optionId && !hasOptions(product))
+    return 'That size or colour is no longer available. Please choose the product again.';
   if (hasOptions(product) && !optionId) return 'Choose a size first.';
   if (hasOptions(product) && !findOption(product, optionId))
     return 'That size is no longer available. Please choose another.';
@@ -66,6 +72,7 @@ function quantityProblem(product, quantity, optionId = null) {
 // Why a line cannot be bought right now, for the cart page.
 function reasonFor(product, optionId) {
   if (!isSold(product)) return 'No longer sold';
+  if (optionId && !hasOptions(product)) return 'Chosen size or colour removed';
   if (hasOptions(product) && !findOption(product, optionId))
     return 'Choose a size again';
   return 'Out of stock';
@@ -106,7 +113,13 @@ function buildCartView(lines = [], {freeDelivery = false} = {}) {
       slug: product.slug,
       name: product.name,
       brand: product.brand,
-      image: product.image,
+      image:
+        option && option.colour
+          ? (product.colourPhotos || []).find(
+              (photo) =>
+                photo.colour.toLowerCase() === option.colour.toLowerCase(),
+            )?.image || product.image
+          : product.image,
       price: product.price,
       mrp: product.mrp,
       discountPercent: product.discountPercent || 0,

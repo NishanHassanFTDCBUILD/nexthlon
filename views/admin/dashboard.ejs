@@ -24,7 +24,7 @@
   const todayLabel = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', day: 'numeric', month: 'long' });
   const todo = panels.actions.filter(function (a) { return a.count > 0; });
   // Each number opens the list it counts (the whole tile is one link).
-  const kpiLinks = { revenue: 'analytics', orders: 'orders', aov: 'analytics', customers: 'customers', conversion: 'analytics', refunds: 'refunds', credits: 'customers', coupons: 'coupons' };
+  const kpiLinks = { revenue: 'analytics', orders: 'orders', aov: 'analytics', customers: 'customers', conversion: 'analytics', refunds: 'transactions?type=refund', credits: 'customers', coupons: 'coupons' };
   const kpiIcons = { revenue: 'wallet', orders: 'package-check', aov: 'tag', customers: 'users', conversion: 'trending-up', refunds: 'rotate-ccw', credits: 'gift', coupons: 'ticket' };
 %>
 <%- include('../partials/admin-start', { section: 'dashboard' }) %>
@@ -208,18 +208,18 @@
     </section>
 
     <section class="panel dash-card" aria-labelledby="restock-title">
-      <div class="dash-card-head"><h2 id="restock-title">Low and out of stock</h2><a class="section-link" href="<%= adminPath %>/products?status=low">See all <%- icon('chevron-right', 'i-sm') %></a></div>
+      <div class="dash-card-head"><h2 id="restock-title">Low and out of stock</h2><a class="section-link" href="<%= adminPath %>/inventory?sort=stock_asc">Open inventory <%- icon('chevron-right', 'i-sm') %></a></div>
       <% if (panels.stockList.length) { %>
         <ul class="dash-stock">
           <% panels.stockList.forEach(function (p) { %>
             <li>
               <img src="<%= sizedUrl(p.image, 200) %>" alt="" width="40" height="40" loading="lazy">
               <span class="dash-stock-name"><a href="<%= adminPath %>/products/<%= p.id %>/edit"><%= p.name %></a><span class="pill <%= p.stock ? 'pill-amber' : 'pill-red' %>" data-stock-label><%= p.stock ? p.stock + ' left' : 'Out of stock' %></span></span>
-              <form class="dash-restock" data-restock="<%= p.id %>" novalidate>
+              <% if (typeof adminCan !== 'function' || adminCan('inventory.write')) { %><% if (p.hasOptions) { %><a class="btn btn-secondary btn-sm" href="<%= adminPath %>/inventory?q=<%= encodeURIComponent(p.name) %>">Adjust sizes</a><% } else { %><form class="dash-restock" data-restock="<%= p.id %>" novalidate>
                 <label class="sr-only" for="restock-<%= p.id %>">Units to add to <%= p.name %></label>
                 <input id="restock-<%= p.id %>" name="add" type="number" inputmode="numeric" min="1" max="10000" step="1" placeholder="+ units" required>
                 <button class="btn btn-secondary btn-sm" type="submit">Restock</button>
-              </form>
+              </form><% } } %>
             </li>
           <% }) %>
         </ul>

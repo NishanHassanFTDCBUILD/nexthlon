@@ -1,21 +1,31 @@
 <%# Shopping assistant (public/js/assistant.js): a round "Ask Nexthlon" button that opens a small chat. Questions are sent once and not stored. %>
-<button type="button" class="assistant-fab" data-assistant-open aria-controls="assistant-panel" aria-expanded="false">
+<button type="button" class="assistant-fab" data-assistant-open aria-label="Open Nexthlon assistant" aria-controls="assistant-panel" aria-expanded="false">
   <%- icon('search', 'i-sm') %><span>Ask Nexthlon</span>
 </button>
 <section class="assistant-panel" id="assistant-panel" role="dialog" aria-labelledby="assistant-title" hidden>
   <header class="assistant-head">
     <div>
       <h2 id="assistant-title">Ask Nexthlon</h2>
-      <p class="assistant-note">Find a product, or ask about delivery, returns or sizes.</p>
+      <p class="assistant-note">Product search and help with Nexthlon policies and account features.</p>
     </div>
     <button type="button" class="icon-btn" data-assistant-close aria-label="Close the assistant"><%- icon('x') %></button>
   </header>
-  <div class="assistant-log" data-assistant-log aria-live="polite">
-    <p class="assistant-bubble is-bot">Hi! Try "waterproof jacket for a monsoon trek under ₹3,000".</p>
+  <div class="assistant-log" data-assistant-log role="log" aria-label="Nexthlon help conversation" aria-live="polite">
+    <p class="assistant-bubble is-bot">Hi! Ask about Nexthlon, find gear by sport or budget, or choose a topic below. I can explain store features and policies; personal orders and balances stay in Your account.</p>
+    <div class="assistant-prompts" aria-label="Suggested questions">
+      <% [
+        ['About Nexthlon', 'What is Nexthlon?'],
+        ['Delivery', 'What are the delivery charges and times?'],
+        ['Returns', 'How do returns and wallet credit work?'],
+        ['Track an order', 'How can I track my order?'],
+        ['Payments', 'What payment methods can I use?'],
+        ['Account help', 'How do I contact support for account help?']
+      ].forEach(function (prompt) { %><button type="button" class="assistant-link" data-assistant-question="<%= prompt[1] %>"><%= prompt[0] %></button><% }); %>
+    </div>
   </div>
   <form class="assistant-form" data-assistant-form>
     <label class="sr-only" for="assistant-input">Ask a question</label>
-    <input id="assistant-input" name="message" maxlength="300" autocomplete="off" placeholder="e.g. running shoes under ₹2,000">
+    <input id="assistant-input" name="message" maxlength="300" autocomplete="off" enterkeyhint="send" placeholder="Ask about products, orders or store help">
     <button type="submit" class="btn btn-primary btn-sm">Send</button>
   </form>
 </section>

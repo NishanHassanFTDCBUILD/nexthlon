@@ -25,6 +25,8 @@
 
   // ---------- The list ----------
   Pages.define('admin-deals', (root, signal) => {
+    const countdown = root.querySelector('[data-deal-countdown]');
+    if (countdown) setUpCountdown(countdown, signal);
     root.addEventListener(
       'click',
       async (event) => {
@@ -103,6 +105,105 @@
       }
     }
   });
+
+  function setUpCountdown(form, signal) {
+    const mode = form.querySelector('[data-countdown-mode]');
+    const end = form.querySelector('[data-countdown-end]');
+    const endField = form.querySelector('[data-countdown-end-field]');
+    const preview = form.querySelector('[data-countdown-preview]');
+    const note = form.querySelector('[data-countdown-preview-note]');
+    const feedback = form.querySelector('[data-countdown-feedback]');
+    const button = form.querySelector('[type="submit"]');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      const custom = mode.value === 'custom';
+      const hidden = mode.value === 'hidden';
+      endField.hidden = !custom;
+      end.required = custom;
+      preview.hidden = hidden;
+      const ends = Date.parse(
+        custom ? `${end.value}:00+05:30` : form.dataset.autoEnds,
+      );
+      const left = Math.max(0, Number.isFinite(ends) ? ends - Date.now() : 0);
+      const values = {
+        d: Math.floor(left / 86400000),
+        h: Math.floor(left / 3600000) % 24,
+        m: Math.floor(left / 60000) % 60,
+        s: Math.floor(left / 1000) % 60,
+      };
+      for (const [key, value] of Object.entries(values)) {
+        const digit = preview.querySelector(`[data-preview-digit="${key}"]`);
+        const text = String(value).padStart(2, '0');
+        if (digit.textContent === text) continue;
+        digit.textContent = text;
+        if (!reduced.matches && digit.animate)
+          digit.animate(
+            [
+              {transform: 'rotateX(-65deg)', opacity: 0.35},
+              {transform: 'rotateX(0)', opacity: 1},
+            ],
+            {duration: 300, easing: 'ease-out'},
+          );
+      }
+      const previewNote = hidden
+        ? 'The countdown will be hidden.'
+        : !Number.isFinite(ends)
+          ? 'Choose an end date and time.'
+          : left === 0
+            ? 'This countdown has ended. It will remain at zero until you change it.'
+            : custom
+              ? 'Custom end time in IST.'
+              : 'Uses the next live deal expiry, or midnight IST.';
+      if (note.textContent !== previewNote) note.textContent = previewNote;
+    };
+    form.addEventListener('change', update, {signal});
+    form.addEventListener('input', update, {signal});
+    form.addEventListener(
+      'click',
+      (event) => {
+        const quick = event.target.closest('[data-countdown-quick]');
+        if (!quick) return;
+        mode.value = 'custom';
+        const date = new Date(
+          Date.now() +
+            Number(quick.dataset.countdownQuick) * 3600000 +
+            330 * 60000,
+        );
+        end.value = date.toISOString().slice(0, 16);
+        update();
+      },
+      {signal},
+    );
+    form.addEventListener(
+      'submit',
+      async (event) => {
+        event.preventDefault();
+        if (button.disabled) return;
+        feedback.textContent = '';
+        Nx.clearErrors(form);
+        Nx.busy(button, true, 'Saving…');
+        try {
+          const reply = await Nx.api('/api/admin/deals/countdown', {
+            method: 'PATCH',
+            body: {
+              dealsCountdownMode: mode.value,
+              dealsCountdownEndsAt: mode.value === 'custom' ? end.value : '',
+            },
+          });
+          feedback.textContent = reply.message;
+        } catch (error) {
+          feedback.textContent = error.message;
+          Nx.showErrors(form, error.fieldErrors || {});
+        } finally {
+          Nx.busy(button, false);
+        }
+      },
+      {signal},
+    );
+    const timer = setInterval(update, 1000);
+    signal.addEventListener('abort', () => clearInterval(timer), {once: true});
+    update();
+  }
 
   // ---------- The create / edit form ----------
   // A product picker (search, click to add or remove), a deal price on each chosen product, and

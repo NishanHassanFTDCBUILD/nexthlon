@@ -14,9 +14,6 @@
     <h1>Staff</h1>
     <p class="muted"><%= staff.length %> <%= staff.length === 1 ? 'account' : 'accounts' %>, <%= active %> active. Each role sees only the parts of the console it needs.</p>
   </div>
-  <div class="admin-top-actions">
-    <a class="btn btn-ghost btn-sm" href="<%= adminPath %>/audit"><%- icon('history', 'i-sm') %> Audit log</a>
-  </div>
 </header>
 
 <section class="panel staff-add" aria-labelledby="staff-add-title">
@@ -92,7 +89,6 @@
       </tbody>
     </table>
   </div>
-  <%- include('../partials/admin-pager') %>
 </section>
 
 <section class="panel staff-roles" aria-labelledby="roles-title">

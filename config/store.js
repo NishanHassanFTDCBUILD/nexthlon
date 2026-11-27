@@ -8,11 +8,8 @@ const setting = (name, placeholder) =>
 
 const STORE = {
   brandName: 'Nexthlon',
-  legalName: setting('STORE_LEGAL_NAME', '[Your registered business name]'),
-  address: setting(
-    'STORE_ADDRESS',
-    '[Building, street], [City], [State] [PIN code], India',
-  ),
+  legalName: setting('STORE_LEGAL_NAME', 'Nexthlon'),
+  address: setting('STORE_ADDRESS', 'Kozhikode'),
   gstin: setting('STORE_GSTIN', '[Your GSTIN]'),
   // The state the business is registered for GST in. A buyer in the same state pays CGST + SGST,
   // anyone else IGST (utils/gst.js). Kerala until set.
@@ -39,7 +36,7 @@ const STORE = {
   refundDays: '5 to 7 working days',
   dispatchDays: '1 to 2 working days',
   deliveryDays: '3 to 7 working days',
-  policyUpdated: '4 November 2026',
+  policyUpdated: '22 November 2026',
 };
 
 // Topics a shopper can pick on the contact form.

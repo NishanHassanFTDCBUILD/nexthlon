@@ -46,6 +46,12 @@ const analyticsHosts = {
   connect: [...analyticsHostsBase.connect, ...metaHosts.connect],
   img: [...analyticsHostsBase.img, ...metaHosts.img],
 };
+// A fresh random nonce per page: the one inline script the pages carry (the module import map in
+// head.ejs) is allowed by it, while every other inline script stays blocked.
+app.use((req, res, next) => {
+  res.locals.cspNonce = require('crypto').randomBytes(16).toString('base64');
+  next();
+});
 app.use(
   helmet({
     //enables CSP configuration
@@ -57,6 +63,7 @@ app.use(
         // (razorpay-risk-detection) from cdn.razorpay.com. Blocking that script breaks payments.
         'script-src': [
           "'self'",
+          (req, res) => `'nonce-${res.locals.cspNonce}'`,
           'https://checkout.razorpay.com',
           'https://cdn.razorpay.com',
           ...analyticsHosts.script,
@@ -72,6 +79,8 @@ app.use(
         // Product videos come from the photo bucket's address, like photos (see img-src).
         'media-src': [
           "'self'",
+          'blob:',
+          'https:',
           ...(config.storage.origin ? [config.storage.origin] : []),
         ],
         // Photos: this site, Unsplash (the sample products), Razorpay's logo, and the photo bucket's address.
@@ -186,6 +195,7 @@ app.get('/api/health', (req, res) =>
 app.use('/api', originCheck);
 app.use('/api', require('./routes/authRoutes'));
 app.use('/api', require('./routes/productRoutes'));
+// "Ask Nexthlon": the shopping assistant (services/shoppingAssistantService.js).
 app.use('/api/assistant', require('./routes/assistantRoutes'));
 app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/push', require('./routes/pushRoutes'));
@@ -210,8 +220,8 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use(config.adminPath, require('./routes/adminPageRoutes'));
 // robots.txt and sitemap.xml for search engines (D1).
 app.use('/', require('./routes/seoRoutes'));
-// Opening any store page ends an admin session still open in this browser (middleware/adminExit.js).
-app.use('/', require('./middleware/adminExit').endAdminOnStore);
+// Store previews do not revoke admin sessions. Store and console authentication
+// use separate cookies and audiences; only an explicit logout ends either session.
 app.use('/', require('./routes/pageRoutes'));
 
 app.use(notFound);

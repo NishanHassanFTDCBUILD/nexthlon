@@ -271,7 +271,7 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
         {
           reason: 'Sold out before the payment finished',
           by: 'system',
-          refundMethod: 'original',
+          refundMethod: 'wallet',
         },
       );
     }
@@ -281,7 +281,7 @@ async function markPaid(razorpayOrderId, razorpayPaymentId, source) {
         paid.total + (paid.walletUsed || 0) - paid.refundedAmount;
       if (remaining > 0)
         await refundService.issueRefund(paid, Math.min(paid.total, remaining), {
-          method: 'original',
+          method: 'wallet',
           reason: 'Paid after the order was cancelled',
           key: 'late-payment:' + razorpayPaymentId,
         });

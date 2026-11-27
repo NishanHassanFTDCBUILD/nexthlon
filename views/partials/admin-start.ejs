@@ -11,8 +11,9 @@
 %>
 <% if (typeof partial !== 'undefined' && partial) { %>
 <div <%- contentAttrs %> data-page-title="<%= title %>">
+<%- include('admin-workspace-context', { activeSection }) %>
 <% } else { %>
-<%- include('head', { styles: ['account', 'admin'], bodyClass: 'admin-body' }) %>
+<%- include('head', { styles: ['account', 'admin', 'admin-sales', 'commerce'], bodyClass: 'admin-body' }) %>
 <a class="skip-link" href="#main">Skip to content</a>
 <div class="admin-shell">
   <%- include('admin-sidebar', { activeSection: activeSection }) %>
@@ -21,4 +22,5 @@
     <main id="main" class="admin-main" data-nav-main="admin">
       <div class="admin-loading" role="status"><span class="admin-loading-spin" aria-hidden="true"></span>Loading…</div>
       <div <%- contentAttrs %>>
+        <%- include('admin-workspace-context', { activeSection }) %>
 <% } %>

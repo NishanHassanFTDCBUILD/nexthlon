@@ -15,32 +15,10 @@
 <% if (typeof partial !== 'undefined' && partial) { %>
 <div <%- contentAttrs %> data-page-title="<%= title %>">
 <% } else { %>
-<%- include('head', { styles: ['account'], bodyClass: 'acct-body' }) %>
+<%- include('head', { styles: ['account', 'commerce'], bodyClass: 'acct-body' }) %>
 <%- include('header') %>
 <%
-  const accountNav = [
-    { group: '', items: [{ key: 'overview', href: '/account', icon: 'grid', label: 'Overview' }] },
-    { group: 'Orders', items: [
-      { key: 'orders', href: '/account/orders', icon: 'package-check', label: 'Your orders' },
-      { key: 'buy-again', href: '/account/buy-again', icon: 'rotate-ccw', label: 'Buy it again' }
-    ] },
-    { group: 'Payments', items: [
-      { key: 'wallet', href: '/account/wallet', icon: 'wallet', label: 'Wallet' },
-      { key: 'gift-card', href: '/account/gift-card', icon: 'gift', label: 'Gift card' },
-      { key: 'coupons', href: '/account/coupons', icon: 'ticket', label: 'Coupons & offers' }
-    ] },
-    { group: 'Shopping', items: [
-      { key: 'lists', href: '/account/lists', icon: 'heart', label: 'Wishlist & lists' },
-      { key: 'recent', href: '/account/recent', icon: 'history', label: 'Recently viewed' }
-    ] },
-    { group: 'Account', items: [
-      { key: 'addresses', href: '/account/addresses', icon: 'pin', label: 'Addresses' },
-      { key: 'security', href: '/account/security', icon: 'lock', label: 'Login & security' },
-      { key: 'notifications', href: '/account/notifications', icon: 'mail', label: 'Notifications' },
-      { key: 'referral', href: '/account/referral', icon: 'gift', label: 'Refer a friend' },
-      { key: 'help', href: '/account/help', icon: 'headset', label: 'Help & support' }
-    ] }
-  ];
+  const accountNav = accountSections;
 %>
 <main id="main" class="container page acct" data-acct>
   <%- include('verify-banner') %>

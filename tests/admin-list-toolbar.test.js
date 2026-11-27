@@ -11,7 +11,6 @@ for (const section of [
   'users',
   'returns',
   'transactions',
-  'refunds',
 ]) {
   test(`list page ${section}: shared panel renders with active chips and preserved page size`, async () => {
     const filters = {
@@ -30,6 +29,8 @@ for (const section of [
         partial: true,
         title: 'Test',
         adminPath: '/private',
+        adminCan: (permission) =>
+          require('../utils/permissions').can('owner', permission),
         filters,
         sorts: {newest: {label: 'Newest'}},
         totals: {
@@ -55,6 +56,9 @@ for (const section of [
         categories: [],
         coupons: [],
         deals: [],
+        countdown: {dealsCountdownMode: 'auto', dealsCountdownEndsAt: ''},
+        countdownEndsInput: '',
+        countdownAutoEndsAt: '2026-11-21T18:30:00.000Z',
         customers: [],
         returns: [],
         transactions: [],

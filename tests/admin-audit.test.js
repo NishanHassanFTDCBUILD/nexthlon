@@ -146,6 +146,9 @@ test('audit: a product edit keeps the price before and after', async () => {
   const res = await call('PATCH', `/api/admin/products/${shoe._id}`, {
     cookie: adminCookie,
     body: {
+      stockSnapshot: require('../services/adminProductService').stockSnapshot(
+        await Product.findById(shoe._id),
+      ),
       name: 'Audit Shoe',
       description: 'Light trail shoe for everyday runs.',
       category: String(shoe.category),

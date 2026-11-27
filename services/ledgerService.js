@@ -61,7 +61,7 @@ function istDay(text) {
   const date = new Date(
     Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) - IST_MS,
   );
-  return Number.isNaN(date.getTime()) ? null : date;
+  return Number.isNaN(date.getTime()) || isoDay(date) !== text ? null : date;
 }
 const isoDay = (date) =>
   new Date(date.getTime() + IST_MS).toISOString().slice(0, 10);
@@ -154,7 +154,9 @@ function branches(sourceId = null) {
       common('refund', {
         id: {$concat: ['ref_', str('$_id'), '_', str('$n')]},
         at: '$refunds.at',
-        direction: {$literal: 'out'},
+        direction: {
+          $cond: [{$eq: ['$refunds.status', 'processed']}, 'out', 'none'],
+        },
         method: '$refunds.method',
         amount: '$refunds.amount',
         status: '$refunds.status',
@@ -431,18 +433,18 @@ async function getTransaction(id) {
 
 // ---------- Refunds ----------
 async function listRefunds(query = {}) {
-  const list = readLedgerList({...query, type: 'refund'});
-  const {filters, size} = list;
   const statuses = ['pending', 'processed', 'failed'];
   const status = statuses.includes(query.status) ? query.status : 'all';
+  const list = readLedgerList({...query, type: 'refund', status});
+  const {filters, size} = list;
   const match = await matchStage({...filters, status: 'all'});
-  if (status !== 'all') match.status = status;
   const [result] = await Order.aggregate([
     ...unionPipeline(null, ['refund']),
     {$match: match},
     {
       $facet: {
         rows: [
+          ...(status === 'all' ? [] : [{$match: {status}}]),
           {$sort: list.order},
           {$skip: list.skip},
           {$limit: size},
@@ -457,7 +459,10 @@ async function listRefunds(query = {}) {
             },
           },
         ],
-        count: [{$count: 'n'}],
+        count: [
+          ...(status === 'all' ? [] : [{$match: {status}}]),
+          {$count: 'n'},
+        ],
       },
     },
   ]);
@@ -471,7 +476,7 @@ async function listRefunds(query = {}) {
       ]),
     ),
     filters: {...filters, status},
-    chips: list.chips,
+    chips: list.chips.filter((chip) => chip.key !== 'type'),
     sorts: list.sorts,
     pagination: list.pagination(total),
   };

@@ -1,6 +1,5 @@
 // Console tools for every admin page: keyboard shortcuts with a help sheet, a density switch
-// (comfortable or compact rows, remembered in this browser), and saved list views (kept on the server,
-// per admin: see controllers/adminViewController.js).
+// (comfortable or compact rows, remembered in this browser).
 (function () {
   'use strict';
 
@@ -107,119 +106,6 @@
     }
   });
 
-  // ---------- Saved views ----------
-  // A bar above every list page: the views kept for this list, and "Save this view" for the current filters.
-  function listPath() {
-    return window.location.pathname.replace(/\/$/, '');
-  }
-
-  function onListPage() {
-    return !!document.querySelector(
-      '.admin-content .admin-filterbar, .admin-content .admin-table-panel',
-    );
-  }
-
-  async function renderViews() {
-    const content = document.querySelector('.admin-content');
-    if (!content) return;
-    const existing = content.querySelector('[data-saved-views]');
-    if (!onListPage()) {
-      if (existing) existing.remove();
-      return;
-    }
-    if (existing && existing.dataset.path === listPath()) return;
-    if (existing) existing.remove();
-
-    const bar = document.createElement('section');
-    bar.className = 'saved-views';
-    bar.dataset.savedViews = '';
-    bar.dataset.path = listPath();
-    bar.setAttribute('aria-label', 'Saved views');
-    bar.innerHTML =
-      '<span class="saved-views-label">Saved views</span>' +
-      '<ul class="saved-views-list"></ul>' +
-      '<form class="saved-views-save" novalidate>' +
-      '<label class="sr-only" for="view-name">Name this view</label>' +
-      '<input id="view-name" name="name" maxlength="40" placeholder="Name this view" autocomplete="off">' +
-      '<button class="btn btn-ghost btn-sm" type="submit">Save this view</button>' +
-      '</form>';
-    content.prepend(bar);
-
-    const list = bar.querySelector('.saved-views-list');
-    try {
-      const reply = await window.Nx.api(
-        `/api/admin/views?path=${encodeURIComponent(listPath())}`,
-      );
-      if (!reply.views.length) {
-        list.innerHTML =
-          '<li class="muted">None yet. Filter the list, then name and save it.</li>';
-      }
-      reply.views.forEach((view) => {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.className = 'saved-view';
-        a.href = `${listPath()}?${view.query}`;
-        a.textContent = view.name;
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'saved-view-remove';
-        del.dataset.viewRemove = view.id;
-        del.setAttribute('aria-label', `Remove the view ${view.name}`);
-        del.textContent = '×';
-        li.append(a, del);
-        list.append(li);
-      });
-    } catch {
-      list.innerHTML =
-        '<li class="muted">Saved views could not load. Try again later.</li>';
-    }
-  }
-
-  document.addEventListener('submit', async (event) => {
-    const form = event.target.closest('.saved-views-save');
-    if (!form) return;
-    event.preventDefault();
-    const name = form.elements.name.value.trim();
-    try {
-      const reply = await window.Nx.api('/api/admin/views', {
-        method: 'POST',
-        body: {
-          path: listPath(),
-          name,
-          query: window.location.search.replace(/^\?/, ''),
-        },
-      });
-      window.Nx.toast(reply.message);
-      form.reset();
-      document.querySelector('[data-saved-views]').dataset.path = '';
-      renderViews();
-    } catch (error) {
-      window.Nx.toast(error.message, 'error');
-    }
-  });
-
-  document.addEventListener('click', async (event) => {
-    const remove = event.target.closest('[data-view-remove]');
-    if (!remove) return;
-    event.preventDefault();
-    try {
-      await window.Nx.api(
-        `/api/admin/views/${encodeURIComponent(remove.dataset.viewRemove)}`,
-        {method: 'DELETE'},
-      );
-      remove.closest('li').remove();
-    } catch (error) {
-      window.Nx.toast(error.message, 'error');
-    }
-  });
-
-  // Sections load without a reload, so look again whenever the content changes.
-  const observer = new MutationObserver(() => renderViews());
-  const content = document.querySelector('.admin-content');
-  if (content) observer.observe(content, {childList: true});
-  window.addEventListener('popstate', () => renderViews());
-  renderViews();
-
   // ---------- Side drawer: quick look at an order ----------
   const drawer = document.getElementById('admin-drawer');
   const backdrop = document.querySelector(
@@ -265,21 +151,12 @@
             `<li><strong>${esc(i.name)}</strong>${i.option ? ` · ${esc(i.option)}` : ''} × ${i.quantity} <span class="muted">${money(i.lineTotal)}</span></li>`,
         )
         .join('');
-      const tags = (o.tags || [])
-        .map((t) => `<span class="pill pill-grey">${esc(t)}</span>`)
-        .join(' ');
-      const risk =
-        data.risk && data.risk.applies
-          ? `<p>Cash on delivery risk: <strong>${esc(data.risk.level)}</strong></p>`
-          : '';
       body.innerHTML =
         `<h3>${esc(o.orderId)}</h3>` +
-        `<p><span class="pill pill-grey">${esc(String(o.orderStatus).replace(/_/g, ' '))}</span> ${esc(o.paymentMethod === 'cod' ? 'Cash on delivery' : 'Paid online')}</p>` +
+        `<p><span class="pill pill-grey">${esc(String(o.orderStatus).replace(/_/g, ' '))}</span> ${esc({cod: 'Cash on delivery', razorpay: 'Razorpay', wallet: 'Wallet'}[o.paymentMethod] || o.paymentMethod)} · ${esc(String(o.paymentStatus || '').replace(/_/g, ' '))}</p>` +
         `<p class="muted">${esc(o.address && o.address.fullName)} · ${esc(o.address && o.address.city)}, ${esc(o.address && o.address.state)}</p>` +
         `<ul class="drawer-items">${items}</ul>` +
-        `<p><strong>Total ${money(o.total)}</strong></p>` +
-        risk +
-        (tags ? `<p>${tags}</p>` : '');
+        `<p><strong>Order value ${money(o.total + (o.walletUsed || 0))}</strong></p>`;
     } catch (error) {
       body.textContent = error.message;
     }
@@ -329,11 +206,13 @@
 
   // ---------- Inline edit with undo ----------
   // A value shown with an Edit button: change it in place, save, and a short "Undo" restores the old one.
+  const inlinePending = new WeakSet();
   document.addEventListener('click', async (event) => {
     const edit = event.target.closest('[data-inline-edit]');
     if (edit) {
       event.preventDefault();
       const cell = edit.closest('[data-inline-cell]');
+      if (inlinePending.has(cell)) return;
       const input = document.createElement('input');
       input.type = 'number';
       input.inputMode = 'numeric';
@@ -359,6 +238,7 @@
     if (saveBtn) {
       const input = saveBtn.parentElement.querySelector('input');
       const cell = saveBtn.closest('[data-inline-cell]');
+      if (inlinePending.has(cell)) return;
       const next = Number(input.value);
       const previous = cell.dataset.current;
       if (
@@ -373,12 +253,17 @@
         input.focus();
         return;
       }
+      inlinePending.add(cell);
+      window.Nx.busy(saveBtn, true, 'Saving.');
+      input.disabled = true;
       try {
         const reply = await window.Nx.api(input.dataset.endpoint, {
           method: 'PATCH',
           body: {[input.dataset.field]: next},
         });
         renderInline(cell, next, input.dataset);
+        if (cell.nextElementSibling?.classList.contains('inline-undo'))
+          cell.nextElementSibling.remove();
         const status = document.createElement('span');
         status.className = 'inline-undo';
         status.setAttribute('role', 'status');
@@ -392,6 +277,10 @@
         setTimeout(() => status.remove(), 8000);
       } catch (error) {
         window.Nx.toast(error.message, 'error');
+      } finally {
+        inlinePending.delete(cell);
+        input.disabled = false;
+        window.Nx.busy(saveBtn, false);
       }
       return;
     }
@@ -399,6 +288,10 @@
     if (undo) {
       const status = undo.closest('.inline-undo');
       const cell = status.previousElementSibling;
+      if (!cell?.matches('[data-inline-cell]') || inlinePending.has(cell))
+        return;
+      inlinePending.add(cell);
+      window.Nx.busy(undo, true, 'Undoing.');
       try {
         await window.Nx.api(status.dataset.endpoint, {
           method: 'PATCH',
@@ -414,6 +307,9 @@
         window.Nx.toast('Change undone.');
       } catch (error) {
         window.Nx.toast(error.message, 'error');
+      } finally {
+        inlinePending.delete(cell);
+        window.Nx.busy(undo, false);
       }
     }
   });

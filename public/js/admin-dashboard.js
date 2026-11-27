@@ -984,6 +984,7 @@
         const form = event.target.closest('[data-restock]');
         if (!form) return;
         event.preventDefault();
+        if (form.dataset.pending === 'true') return;
         const input = form.elements.add;
         const add = Number(input.value);
         if (!Number.isInteger(add) || add < 1 || add > 10000) {
@@ -992,20 +993,28 @@
           return;
         }
         const button = form.querySelector('button');
+        if (form.dataset.requestUnits !== String(add)) {
+          form.dataset.requestId = window.crypto.randomUUID();
+          form.dataset.requestUnits = String(add);
+        }
+        form.dataset.pending = 'true';
         Nx.busy(button, true, 'Saving…');
         try {
           const reply = await Nx.api(
             `/api/admin/products/${encodeURIComponent(form.dataset.restock)}/stock`,
-            {method: 'PATCH', body: {add}},
+            {method: 'PATCH', body: {add, requestId: form.dataset.requestId}},
           );
           const label = form.closest('li').querySelector('[data-stock-label]');
           label.textContent = `${reply.product.stock} in stock`;
           label.className = 'pill pill-green';
           input.value = '';
+          delete form.dataset.requestId;
+          delete form.dataset.requestUnits;
           Nx.toast(reply.message);
         } catch (error) {
           Nx.toast(error.message, 'error');
         } finally {
+          delete form.dataset.pending;
           Nx.busy(button, false);
         }
       },
@@ -1061,6 +1070,11 @@
       }
     }
     render(true);
+    // Trend lines in the headline cards (the same series as the chart).
+    Object.entries(data.sparks || {}).forEach(([key, values]) => {
+      const el = root.querySelector(`[data-spark="${key}"]`);
+      if (el) sparkline(el, values);
+    });
 
     // Redraw (without motion) when the width changes.
     let lastWidth = root.clientWidth;

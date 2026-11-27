@@ -15,53 +15,62 @@ const {LISTED_PRODUCT} = require('../utils/queryFilters');
 // lines: [{ product: id, variant?: id, quantity, name }]
 async function takeStock(lines, session = null) {
   const taken = [];
-  for (const line of lines) {
-    const result = line.variant
-      ? await Product.updateOne(
-          {
-            _id: line.product,
-            ...LISTED_PRODUCT,
-            variants: {
-              $elemMatch: {_id: line.variant, stock: {$gte: line.quantity}},
+  try {
+    for (const line of lines) {
+      const result = line.variant
+        ? await Product.updateOne(
+            {
+              _id: line.product,
+              ...LISTED_PRODUCT,
+              variants: {
+                $elemMatch: {_id: line.variant, stock: {$gte: line.quantity}},
+              },
             },
-          },
-          {$inc: {'variants.$.stock': -line.quantity, stock: -line.quantity}},
-          {session},
-        )
-      : await Product.updateOne(
-          {_id: line.product, ...LISTED_PRODUCT, stock: {$gte: line.quantity}},
-          {$inc: {stock: -line.quantity}},
-          {session},
+            {$inc: {'variants.$.stock': -line.quantity, stock: -line.quantity}},
+            {session},
+          )
+        : await Product.updateOne(
+            {
+              _id: line.product,
+              ...LISTED_PRODUCT,
+              'variants.0': {$exists: false},
+              stock: {$gte: line.quantity},
+            },
+            {$inc: {stock: -line.quantity}},
+            {session},
+          );
+      if (result.modifiedCount !== 1) {
+        const left = await Product.findById(line.product)
+          .select('stock variants')
+          .session(session)
+          .lean();
+        const option =
+          line.variant && left
+            ? (left.variants || []).find(
+                (v) => String(v._id) === String(line.variant),
+              )
+            : null;
+        const stock = line.variant
+          ? option
+            ? option.stock
+            : 0
+          : left
+            ? left.stock
+            : 0;
+        throw new HttpError(
+          409,
+          stock > 0
+            ? `Only ${stock} of ${line.name} left now. Please update your cart.`
+            : `${line.name} just sold out. Please remove it from your cart.`,
+          null,
+          'items_unavailable',
         );
-    if (result.modifiedCount !== 1) {
-      if (!session) await returnStock(taken);
-      const left = await Product.findById(line.product)
-        .select('stock variants')
-        .session(session)
-        .lean();
-      const option =
-        line.variant && left
-          ? (left.variants || []).find(
-              (v) => String(v._id) === String(line.variant),
-            )
-          : null;
-      const stock = line.variant
-        ? option
-          ? option.stock
-          : 0
-        : left
-          ? left.stock
-          : 0;
-      throw new HttpError(
-        409,
-        stock > 0
-          ? `Only ${stock} of ${line.name} left now. Please update your cart.`
-          : `${line.name} just sold out. Please remove it from your cart.`,
-        null,
-        'items_unavailable',
-      );
+      }
+      taken.push(line);
     }
-    taken.push(line);
+  } catch (error) {
+    if (!session) await returnStock(taken);
+    throw error;
   }
   return taken;
 }
@@ -79,7 +88,7 @@ async function returnStock(lines, session = null) {
       );
     } else {
       await Product.updateOne(
-        {_id: line.product},
+        {_id: line.product, 'variants.0': {$exists: false}},
         {$inc: {stock: line.quantity}},
         {session},
       );
@@ -120,7 +129,10 @@ async function moveOnce(lines, key, direction, reservedBy = null) {
           ...(direction < 0 ? {stock: {$gte: line.quantity}} : {}),
         },
       };
-    } else if (direction < 0) filter.stock = {$gte: line.quantity};
+    } else {
+      filter['variants.0'] = {$exists: false};
+      if (direction < 0) filter.stock = {$gte: line.quantity};
+    }
     const change = {stock: direction * line.quantity};
     if (line.variant) change['variants.$.stock'] = direction * line.quantity;
     const result = await Product.updateOne(filter, {

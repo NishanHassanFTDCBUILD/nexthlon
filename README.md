@@ -1,8 +1,225 @@
 # Nexthlon
 
-A sports gear store: Express, EJS, MongoDB, JWT and Razorpay, with plain CSS and vanilla JavaScript (no frontend libraries).
+**A full-stack sports gear store for India, built from scratch.** Shop, pay by UPI, card, wallet or cash on delivery, track every order, and run the whole business from a private admin console.
 
-## Admin console
+[![Tests](https://github.com/NishanHassanFTDCBUILD/nexthlon/actions/workflows/test.yml/badge.svg)](https://github.com/NishanHassanFTDCBUILD/nexthlon/actions/workflows/test.yml)
+![Node.js](https://img.shields.io/badge/Node.js-20.19%2B-339933?logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%208-47A248?logo=mongodb&logoColor=white)
+![Razorpay](https://img.shields.io/badge/Payments-Razorpay-0C2451?logo=razorpay&logoColor=white)
+
+Nexthlon is my first e-commerce website. I built it at 15 to learn how real online stores work: how a cart remembers what you added, how a payment is proved real, and how an owner sees orders come in. There is no website builder or shop template: the server, database models, pages, payment flow, animations and admin console are all written by hand.
+
+## Contents
+
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Project structure](#project-structure)
+- [Getting started](#getting-started)
+- [Scripts](#scripts)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Security](#security)
+- [Documentation](#documentation)
+- [Technical reference](#technical-reference)
+
+## Screenshots
+
+| Home                                                                                       | Products                                                                           |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| ![Home page with the 3D particle hero](docs/screenshots/desktop/home.jpg)                  | ![Product list with filters](docs/screenshots/desktop/products.jpg)                |
+| **Checkout**                                                                               | **Order tracking**                                                                 |
+| ![Checkout with delivery address and price details](docs/screenshots/desktop/checkout.jpg) | ![Order page with the tracking timeline](docs/screenshots/desktop/order.jpg)       |
+| **Admin dashboard**                                                                        | **Phone**                                                                          |
+| ![Admin dashboard with KPIs and charts](docs/screenshots/desktop/admin-dashboard.jpg)      | <img src="docs/screenshots/phone/home.jpg" alt="Home page on a phone" width="240"> |
+
+Every page is captured on desktop and phone in [docs/screenshots](docs/screenshots).
+
+## Features
+
+### Store
+
+- 3D home page and 3D showroom drawn with my own WebGL code (no 3D library)
+- Product list with categories, filters, sorting and paging; search that understands similar words
+- Product pages with a zoomable gallery, video, sizes with their own stock, and reviews from verified buyers
+- Size finder, buying guides, bundles and deals with a live countdown
+- Cart for guests and members (a guest cart merges at sign-in), fly-to-cart animation, Buy now
+- Wishlist, shareable shopping lists, price-drop and back-in-stock alerts
+- A shopping assistant chat
+- Dark and light theme, a layout for every screen size, installable as an app with an offline page
+
+### Checkout and payments
+
+- Online payment with Razorpay (UPI, cards, netbanking): the server checks Razorpay's signature before an order is marked paid, and a webhook completes the order if the shopper's connection drops
+- Store wallet (pays all or part of an order), cash on delivery with limits
+- Coupons checked on the server three times; a usage limit can never be exceeded
+- Every price is worked out on the server in paise, so the browser cannot change what is paid
+
+### After the order
+
+- Order timeline for members, and tracking for guests by order number and phone
+- Courier tracking updates by webhook
+- Cancel an order or single items, return with photos, swap for another size
+- Refunds to the wallet or back to the original payment
+- PDF invoices, and emails for every step, sent by background jobs with retries
+
+### My Account
+
+- Overview, profile and addresses, orders and buy again, wallet, coupons, recently viewed
+- Security: change password, see logged-in devices, log out of all devices
+- Notifications, referral rewards, help tickets, my reviews
+- Sign in with email, Google or Facebook; password reset by one-time email link
+
+### Admin console
+
+- Private address (`ADMIN_PATH`); everyone else gets a normal 404
+- Dashboard with 8 KPIs and hand-drawn SVG charts; analytics with CSV export
+- Orders (bulk status, invoices, packing slips), returns, transactions with daily Razorpay reconciliation, coupons, deals
+- Products with photos and video, categories, inventory with stock corrections and imports
+- Customers, questions, reviews, support inbox
+- Staff with roles, store settings, system status, an audit log of every change, optional two-step sign-in
+
+## Tech stack
+
+| Layer    | Technology                                                                |
+| -------- | ------------------------------------------------------------------------- |
+| Server   | Node.js 20.19+, Express 4                                                 |
+| Pages    | EJS templates rendered on the server                                      |
+| Frontend | Plain CSS with design tokens, vanilla JavaScript, WebGL for 3D            |
+| Database | MongoDB with Mongoose                                                     |
+| Auth     | JWT access tokens and rotating refresh tokens in HttpOnly cookies, bcrypt |
+| Payments | Razorpay                                                                  |
+| Images   | Multer uploads, Sharp (WebP in 5 sizes), local disk or Cloudinary         |
+| Email    | Nodemailer (SMTP) or Brevo                                                |
+| PDFs     | PDFKit                                                                    |
+| Security | Helmet, express-rate-limit, origin checks                                 |
+| Quality  | ESLint, Prettier, Stylelint, Husky, Node's test runner, GitHub Actions    |
+| Hosting  | Docker on Render, MongoDB Atlas                                           |
+
+## Project structure
+
+```
+nexthlon/
+├── server.js            Starts the server and shuts it down cleanly
+├── app.js               Express app: security, middleware and routes
+├── config/              Settings, environment checks, navigation
+├── routes/              URL → controller maps (pages and /api)
+├── controllers/         Read and check each request, call a service
+├── services/            Business logic: cart, checkout, payments, orders, refunds…
+├── models/              Mongoose schemas (users, products, orders, wallets…)
+├── middleware/          Auth, rate limits, CSRF origin check, caching, SEO
+├── events/ jobs/        Background jobs: emails and notifications with retries
+├── providers/           Swappable adapters: storage, email, shipping
+├── utils/               Pricing, validators, order rules, helpers
+├── views/               EJS pages and partials (store, account, admin)
+├── public/              CSS, JavaScript, 3D scenes, fonts, images, service worker
+├── scripts/             Seeding, database checks, backups, workers
+├── tests/               Automated tests
+└── docs/                Guides, deployment steps and screenshots
+```
+
+A request flows `middleware → routes → controllers → services → models → MongoDB`. The business rules live in the services, so each one is written once.
+
+## Getting started
+
+### Requirements
+
+- Node.js 20.19 or newer
+- MongoDB (a local install, or a free MongoDB Atlas cluster)
+- Optional: Razorpay test keys, SMTP or Brevo for email, Cloudinary for photos
+
+### Run it locally
+
+```bash
+git clone https://github.com/NishanHassanFTDCBUILD/nexthlon.git
+cd nexthlon
+npm install
+cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
+```
+
+Open `.env` and set at least `MONGODB_URI` and `JWT_SECRET` (the file explains every setting). Then:
+
+```bash
+npm run setup:check         # checks your settings
+npm run seed:admin          # creates the first admin from ADMIN_* in .env
+npm run seed:products       # adds sample products
+npm run seed:coupons        # adds sample coupons
+npm run dev                 # http://localhost:3000
+```
+
+The admin console is at `http://localhost:3000<ADMIN_PATH>/login` (`/admin` when `ADMIN_PATH` is empty). Without SMTP, emails are printed to the console. Without Razorpay keys, online payment is switched off and cash on delivery still works.
+
+## Scripts
+
+| Command                                                 | What it does                                   |
+| ------------------------------------------------------- | ---------------------------------------------- |
+| `npm run dev`                                           | Start with auto-reload (nodemon)               |
+| `npm start`                                             | Start for production                           |
+| `npm test`                                              | Run the tests                                  |
+| `npm run check`                                         | Lint JS and CSS, check formatting, run tests   |
+| `npm run lint` / `lint:css` / `format`                  | ESLint, Stylelint, Prettier                    |
+| `npm run seed:admin` / `seed:products` / `seed:coupons` | Add starter data                               |
+| `npm run db:check`                                      | Test the database connection and permissions   |
+| `npm run db:indexes`                                    | Create the database indexes                    |
+| `npm run db:backup` / `db:restore`                      | Back up or restore the database                |
+| `npm run worker`                                        | Run background jobs in their own process       |
+| `npm run jobs:status` / `jobs:retry`                    | Inspect or retry the job queue                 |
+| `npm run emails:preview`                                | Preview every email                            |
+| `npm run images:migrate`                                | Make image sizes, or move photos to Cloudinary |
+| `npm run screenshots`                                   | Capture every page on desktop and phone        |
+
+## Testing
+
+```bash
+npm test
+```
+
+Unit tests run on their own. Set `TEST_MONGODB_URI` to a database whose name contains `test` to run the database tests too. GitHub Actions runs everything on Node 22 and 24, builds the Docker image and audits dependencies on every push to `main` and every pull request.
+
+## Deployment
+
+The project deploys to [Render](https://render.com) from [render.yaml](render.yaml): connect the repository as a Blueprint, fill in the secret settings, and every push to `main` redeploys automatically. It runs as one Docker container with MongoDB Atlas as the database and Cloudinary for photos.
+
+```bash
+docker build -t nexthlon .
+docker run --rm -p 3000:3000 --env-file .env nexthlon
+```
+
+Step-by-step guides: [docs/DEPLOY.md](docs/DEPLOY.md) and [docs/HOSTING-SETUP.md](docs/HOSTING-SETUP.md). Health checks: `/healthz` (process alive) and `/readyz` (database reachable).
+
+## Security
+
+- Short-lived access tokens with rotating refresh tokens; a reused refresh token signs out that whole login (stolen-token detection)
+- Separate cookies and token audiences for customers and admins
+- Passwords hashed with bcrypt; refresh and reset tokens stored only as hashes
+- Origin check on every request that changes data (CSRF protection)
+- Rate limits on sign-in, orders, refunds and password resets
+- Strict security headers and content policy (Helmet)
+- Razorpay signatures checked with constant-time comparison; card and UPI details never reach the server
+- All settings validated at startup; secrets live only in environment variables, never in Git
+
+## Documentation
+
+| Guide                                                          | About                          |
+| -------------------------------------------------------------- | ------------------------------ |
+| [docs/COMMERCE-ARCHITECTURE.md](docs/COMMERCE-ARCHITECTURE.md) | How the code is organised      |
+| [docs/BACKEND-GUIDE.md](docs/BACKEND-GUIDE.md)                 | The server side                |
+| [docs/FRONTEND-GUIDE.md](docs/FRONTEND-GUIDE.md)               | Pages, CSS and JavaScript      |
+| [docs/ANIMATION-GUIDE.md](docs/ANIMATION-GUIDE.md)             | The 3D scenes and motion       |
+| [docs/DEPLOY.md](docs/DEPLOY.md)                               | Going live on Render           |
+| [docs/SCALING.md](docs/SCALING.md)                             | Running more than one instance |
+| [docs/ROADMAP.md](docs/ROADMAP.md)                             | What is done and what is next  |
+
+## Author
+
+Built by [NishanHassanFTDCBUILD](https://github.com/NishanHassanFTDCBUILD) as my first e-commerce project, at 15.
+
+## Technical reference
+
+The sections below explain how specific parts work in detail.
+
+### Admin console
 
 The admin console lives at a private address set by `ADMIN_PATH` in `.env` (for example `/nx-console-7f3k`; it falls back to `/admin` if empty).
 
@@ -14,7 +231,7 @@ The admin console lives at a private address set by `ADMIN_PATH` in `.env` (for 
 - Admins have their own session: the `nx_admin` access cookie (JWT audience `nexthlon-admin`, 15 minutes) renewed by the `nx_admin_refresh` cookie (1 day). Both are HttpOnly and SameSite=Strict. The store uses `nx_token` and `nx_refresh`, and neither pair works in the other area.
 - Admin pages send `noindex, nofollow`, and `robots.txt` never mentions the console.
 
-### The sections
+#### The sections
 
 The sidebar is the whole console: there are no placeholder pages, so any other admin URL is an
 ordinary 404.
@@ -57,7 +274,7 @@ ordinary 404.
   there is, what is switched on (Razorpay, SMTP, secure cookies, production mode) and the session
   lifetimes. Read-only, and it never prints a key.
 
-### Coupons
+#### Coupons
 
 `<ADMIN_PATH>/coupons` lists every coupon with its code, type (percent or flat ₹), value, minimum
 order, cap, start and expiry dates, both usage limits, how many times it has been used and one word
@@ -78,7 +295,7 @@ order is saved (`services/couponService.js` with `utils/pricing.js` → `couponP
 lists the coupons that customer could use. The total-uses count is claimed with one atomic update,
 so a limit can never be exceeded, and a cancelled or unpaid order releases the use again.
 
-### Removed from the console
+#### Removed from the console
 
 Categories, brands, segments, offers, flash sales, email campaigns, gift cards, loyalty, the home
 page CMS, banners, the sales report, exports, delivery zones, admin roles, the audit-log viewer and
@@ -93,7 +310,7 @@ too: the product page has no Q&A section and the `/api/products/:id/questions` a
 customers whose order was delivered can review, once per product, and they can edit or delete their
 own review from My Account → Reviews. There is no admin screen to hide or delete reviews.
 
-### Admin dashboard
+#### Admin dashboard
 
 `<ADMIN_PATH>/dashboard` has a date range picker (Today, 7 days, 30 days, This month, This year, Custom; India time) that updates everything. It shows:
 
@@ -102,7 +319,7 @@ own review from My Account → Reviews. There is no admin screen to hide or dele
 - Panels: recent orders, what needs attention, quick restock, recent customers and stock health.
 - "Export sales" downloads a CSV of the range's orders (`/api/admin/reports/sales.csv`, with spreadsheet formulas neutralised).
 
-### Sales: orders, returns, money
+#### Sales: orders, returns, money
 
 - `<ADMIN_PATH>/orders` lists orders with status tabs, filters (method, payment, dates, amount, city), search (order number, name, email, phone), sorting, show/hide columns, bulk status changes and CSV/Excel export.
 - `<ADMIN_PATH>/orders/:orderId` shows one order. Status only moves forward. You can also cancel items, add a shipment, write internal notes, issue a manual refund (never more than was paid), and download the invoice and packing slip PDFs.
@@ -115,7 +332,7 @@ own review from My Account → Reviews. There is no admin screen to hide or dele
 - Emails go through a provider chosen by `MAIL_DRIVER`: `smtp` (nodemailer) or `brevo` (HTTPS API, `BREVO_API_KEY`). Order emails (confirmed, shipped with tracking, out for delivery, delivered, cancelled, refunded, returns) are sent by background jobs: events saved in MongoDB, retried with growing waits, sent exactly once (`EmailLog`). Run `npm run emails:preview` to see them, `npm run jobs:status` / `jobs:retry` to inspect the queue, `npm run worker` for a stand-alone worker (`JOBS_ENABLED=false` on the web copies). SMTP uses `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `MAIL_FROM`. Without SMTP they are printed to the console in development; in production sending fails with a clear message.
 - Every admin change is written to the audit log. Refunds, return decisions and reminders are rate limited.
 
-## Login: access token + refresh token
+### Login: access token + refresh token
 
 Two tokens, each with one job.
 
@@ -152,7 +369,7 @@ Every refresh token is revoked when the password changes, when an admin blocks t
 "Log out of all devices", and when the account is deleted. Signing out revokes just that device.
 `tokenVersion` on the user is kept as well, so old access tokens die at the same moment.
 
-## Environment variables
+### Environment variables
 
 Names only; copy `.env.example` to `.env` and fill them in:
 `NODE_ENV`, `PORT`, `MONGODB_URI`, `JWT_SECRET`, `ACCESS_TOKEN_EXPIRES_IN`, `REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_REFRESH_TOKEN_EXPIRES_IN`, `ADMIN_PATH`, `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_DRIVER`, `BREVO_API_KEY`, `JOBS_ENABLED`, `JOBS_CONCURRENCY`, `CART_RECOVERY_AUTO`, `SITE_URL`, `TRUST_PROXY`, `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `APP_RELEASE`, `MONGODB_MAX_POOL`, `STORAGE_DRIVER`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `LOG_LEVEL`, `LOG_FORMAT`.
@@ -161,12 +378,12 @@ Every variable is checked when the server starts (`config/schema.js`). A bad or 
 the server with **all** the problems listed at once; settings that work but look wrong for production
 (the default `/admin` path, no email, Razorpay test keys, no error alerts) are printed as warnings.
 
-## Deploying
+### Deploying
 
 The app is one Node process plus MongoDB. It needs **Node 20.19 or newer** and a MongoDB database
 (MongoDB Atlas is the easy choice; use its `mongodb+srv://` connection string).
 
-### Settings for production
+#### Settings for production
 
 Set these as environment variables on the host (never commit a `.env`):
 
@@ -185,7 +402,7 @@ Set these as environment variables on the host (never commit a `.env`):
 `TRUST_PROXY` matters. Behind a host's load balancer, the app sees the **balancer's** address unless it
 is told how many proxies to trust, so every visitor would share one rate limit. Set it to the real number.
 
-### Docker
+#### Docker
 
 ```bash
 docker build -t nexthlon .
@@ -196,14 +413,14 @@ The image runs as a normal user, holds no secrets, and has a health check. With 
 to Cloudinary and the container needs no volume. With the default `local` they are written to
 `/app/public/uploads`: mount a volume there, or they disappear on every deploy.
 
-### Health checks
+#### Health checks
 
 | URL        | Meaning                                              | Use it for                         |
 | ---------- | ---------------------------------------------------- | ---------------------------------- |
 | `/healthz` | the process is alive (never touches the database)    | restart checks, `docker ps`        |
 | `/readyz`  | MongoDB answers, and the server is not shutting down | load balancers and uptime monitors |
 
-### Logs, request IDs and alerts
+#### Logs, request IDs and alerts
 
 - Every request gets an ID, sent back as `X-Request-Id`. It appears in every log line (`req=...`), in
   error alerts, and as the **Reference** on the error page, so a customer's problem can be found.
@@ -213,19 +430,19 @@ to Cloudinary and the container needs no volume. With the default `local` they a
 - With `SENTRY_DSN` set, server errors are sent to Sentry with the request ID. Cookies, headers, request
   bodies and visitors' details are removed first.
 
-### Stopping and restarting
+#### Stopping and restarting
 
 On `SIGTERM` (every deploy) the server stops taking new visitors, `/readyz` answers 503 so the load
 balancer moves traffic away, requests in progress finish, the database closes, and it exits. If that takes
 longer than 10 seconds it exits anyway.
 
-### Tests and CI
+#### Tests and CI
 
 `npm test` runs the unit tests. Set `TEST_MONGODB_URI` (a database whose name contains `test`) to run the
 database tests too. GitHub Actions (`.github/workflows/test.yml`) runs all of them on Node 22 and 24, builds
 the Docker image, and audits the dependencies on every push and pull request.
 
-### Database and photos
+#### Database and photos
 
 **Step by step, with every setting: [docs/HOSTING-SETUP.md](docs/HOSTING-SETUP.md)** (MongoDB Atlas and Cloudinary).
 
@@ -239,7 +456,7 @@ the Docker image, and audits the dependencies on every push and pull request.
   copies, and moves photos from the server's disk to Cloudinary after you switch `STORAGE_DRIVER` to `cloudinary`. It
   rewrites the addresses in products, categories, orders and return photos, and leaves the old files in place.
 
-## Forgotten passwords and email confirmation
+### Forgotten passwords and email confirmation
 
 **Forgot password** (`/forgot-password`). A one-time link by email, valid 30 minutes, newest link only
 (`models/AuthToken.js` keeps only a hash). The reply is identical for every address and does not wait for the

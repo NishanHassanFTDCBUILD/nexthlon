@@ -1,0 +1,8 @@
+<%
+  const workspaceGroups = (typeof adminNav !== 'undefined' ? adminNav : []);
+  const workspaceItem = workspaceGroups.flatMap(function (group) { return group.items.map(function (item) { return { ...item, group: group.group }; }); }).find(function (item) { return item.key === activeSection; });
+%>
+<div class="commerce-workspace-context">
+  <nav aria-label="Breadcrumb"><a href="<%= adminPath %>/dashboard">Console</a><% if (workspaceItem) { %><%- icon('chevron-right', 'i-xs') %><span><%= workspaceItem.group %></span><%- icon('chevron-right', 'i-xs') %><strong><%= workspaceItem.label %></strong><% } %></nav>
+  <details class="commerce-workspace-directory" data-workspace-directory><summary>Browse workspaces <%- icon('grid', 'i-sm') %></summary><label class="workspace-directory-search"><%- icon('search', 'i-sm') %><span class="sr-only">Find an admin workspace</span><input type="search" placeholder="Find products, orders, customers…" data-directory-search maxlength="80"></label><div class="commerce-directory-grid"><% workspaceGroups.forEach(function (group) { %><section data-directory-group><h2><%= group.group %></h2><% group.items.forEach(function (item) { %><a href="<%= adminPath %>/<%= item.key %>" data-directory-item <%- item.key === activeSection ? 'aria-current="page"' : '' %>><%- icon(item.icon, 'i-sm') %><%= item.label %></a><% }) %></section><% }) %></div><p class="workspace-directory-empty" data-directory-empty hidden>No matching workspaces.</p></details>
+</div>

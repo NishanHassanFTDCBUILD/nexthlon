@@ -1,30 +1,22 @@
-<%# Template text. Replace every [bracketed] value and check the time limits match how you really work. %>
-<%- include('../partials/info-start', { heading: 'Cancellation and refund policy', lead: 'How to cancel an order, return an item and get your money back.', updated: true }) %>
-<article class="doc section-box" data-toc>
-  <div class="doc-summary">
-    <div><strong><%= store.returnDays %> days</strong><span>to ask for a return after delivery</span></div>
-    <div><strong><%= store.refundDays %></strong><span>for the refund to reach you</span></div>
-    <div><strong>Wallet or original method</strong><span>available options depend on how you paid</span></div>
-  </div>
-
+<%- include('../partials/info-start', { heading: 'Cancellation, returns and wallet credit', lead: 'How cancellations and approved returns credit your Nexthlon wallet.', updated: true }) %>
+<article class="doc section-box">
   <h2>1. Cancelling an order</h2>
-  <p>You can cancel any time before the order is shipped, from your account or by contacting us. Once it has shipped it cannot be cancelled, but you can return it after delivery.</p>
-
+  <p>You can cancel eligible items before shipment from My orders or by contacting support. Once shipped, an item cannot be cancelled; eligible items may be returned after delivery.</p>
+  <p>For a paid cancellation, the eligible amount already paid is credited to your Nexthlon wallet. This includes amounts paid online and from your wallet. An unpaid Cash on Delivery cancellation does not create credit for cash that was never collected. For partial cancellations, only the eligible paid value of the cancelled items is credited, with applicable discounts and delivery charges accounted for.</p>
   <h2>2. Returns</h2>
   <ul>
-    <li>Ask for a return within <%= store.returnDays %> days of delivery.</li>
-    <li>Items must be unused, with tags, in their original packaging, with all accessories.</li>
-    <li>Hygiene-sensitive items, including swimwear, mouthguards and opened nutrition products, cannot be returned unless damaged or faulty.</li>
-    <li>We arrange a pickup where available. Otherwise we tell you where to send the item.</li>
+    <li>Request an eligible return within <%= store.returnDays %> days of delivery.</li>
+    <li>Items should be unused, with tags, original packaging and all accessories.</li>
+    <li>Hygiene-sensitive items, including swimwear, mouthguards and opened nutrition products, are not eligible for change-of-mind returns. Faulty, damaged or incorrect goods are handled separately.</li>
+    <li>We arrange pickup where available, or provide instructions for sending the item back.</li>
   </ul>
-
-  <h2>3. Damaged, faulty or wrong items</h2>
-  <p>If an item arrives damaged or is not what you ordered, tell us within 48 hours of delivery and send photos. We will replace it or refund you in full, including any delivery charge.</p>
-
-  <h2>4. Refunds</h2>
-  <p>Once we receive and check the returned item, we start the refund within 2 working days. Refunds go to your Nexthlon wallet by default. For an online payment, you can choose a refund to the original card, UPI or bank payment method; this usually takes <%= store.refundDays %>. Cash on Delivery payments and amounts paid from the Nexthlon wallet are refunded to your Nexthlon wallet. A mixed payment is split between the original payment method and wallet when you choose the original method. If the payment provider is unavailable, the refund stays pending while we confirm its status; we do not automatically switch an original-method refund to a wallet credit.</p>
-
+  <p>Once a return is approved, its eligible paid value is credited to your Nexthlon wallet. You can track the order and the credit under My orders and Wallet. If processing is interrupted, the saved credit is retried; submitting the same cancellation again does not create an extra credit.</p>
+  <h2>3. Using your wallet balance</h2>
+  <p>Wallet credit can be used to buy other available products on Nexthlon. Choose to use your wallet at checkout; any remaining amount can be paid using an available payment method. Wallet credit is store credit, cannot be transferred to another account and cannot be withdrawn as cash or to a bank, card or UPI through the store.</p>
+  <p>The standard cancellation and approved-return flow issues wallet credit rather than offering a choice of the original payment method. Existing payment reversals already in progress continue to be tracked separately.</p>
+  <h2>4. Faulty, damaged, incorrect items and payment problems</h2>
+  <p>Contact us promptly if an item arrives damaged, faulty or different from your order; photos help us investigate. Contact support for duplicate or failed payments as well. Nothing in this policy limits any rights or remedies required by applicable law.</p>
   <h2>5. Need help?</h2>
   <p>Email <%= store.supportEmail %>, call <%= store.supportPhone %> (<%= store.supportHours %>) or use our <a href="/contact">contact form</a>.</p>
 </article>
-<%- include('../partials/info-end', { scripts: ['doc-toc'] }) %>
+<%- include('../partials/info-end') %>

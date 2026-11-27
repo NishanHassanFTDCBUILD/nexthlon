@@ -2,6 +2,7 @@ const productService = require('./productService');
 const Product = require('../models/Product');
 const {LISTED_PRODUCT} = require('../utils/queryFilters');
 const memo = require('../utils/memo');
+const siteSettingsService = require('./siteSettingsService');
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -11,6 +12,23 @@ function dealEndsAt(now = new Date()) {
   const istNow = now.getTime() + IST_OFFSET_MS;
   const nextIstMidnight = Math.floor(istNow / DAY_MS) * DAY_MS + DAY_MS;
   return new Date(nextIstMidnight - IST_OFFSET_MS);
+}
+
+function resolveCountdown(settings = {}, adminEndsAt = null, now = new Date()) {
+  const custom = settings.dealsCountdownMode === 'custom';
+  const customDate = new Date(settings.dealsCountdownEndsAt || NaN);
+  const hasCustom = custom && Number.isFinite(customDate.getTime());
+  const adminDate = adminEndsAt ? new Date(adminEndsAt) : null;
+  return {
+    dealCountdownVisible: settings.dealsCountdownMode !== 'hidden',
+    dealCountdownCustom: hasCustom,
+    // Expired custom timers stay at zero; they never restart on a refresh.
+    dealEndsAt: hasCustom
+      ? customDate
+      : adminDate && adminDate > now
+        ? adminDate
+        : dealEndsAt(now),
+  };
 }
 
 // ---------- "Pick your sport": the 3D sport carousel ring ----------
@@ -233,12 +251,13 @@ async function getHomePage(now = new Date()) {
   return {
     ...sections,
     adminDealEndsAt: adminEnds,
-    dealEndsAt: adminEnds || dealEndsAt(now),
+    ...resolveCountdown(siteSettingsService.current(), adminEnds, now),
   };
 }
 
 module.exports = {
   dealEndsAt,
+  resolveCountdown,
   buildSportRing,
   portraitImage,
   buildFeatured,

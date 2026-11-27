@@ -1,0 +1,9 @@
+<%- include('../partials/admin-start', {section: 'inventory'}) %>
+<header class="admin-top"><div><span class="section-kicker">Inventory</span><h1>Restock recovery</h1><p class="muted">Your latest 30 imports. Recovery checks each adjustment receipt and skips stock already added.</p></div><a class="btn btn-secondary" href="<%= adminPath %>/inventory">Back to inventory</a></header>
+<% if (!batches.length) { %><section class="panel">No restock imports yet.</section><% } %>
+<% batches.forEach(batch => { const canRecover = batch.recoveryVersion === 1 && ((batch.status === 'applying' && batch.lockedUntil && new Date(batch.lockedUntil) <= new Date()) || (batch.status === 'completed' && batch.results.some(row => row.status === 'review'))); %>
+<section class="panel"><h2 class="panel-title"><%= formatDate(batch.createdAt) %> · <%= batch.status %></h2><p class="muted"><%= batch.results.filter(row => row.status === 'applied').length %> of <%= batch.rows.length %> rows confirmed</p>
+<% if (canRecover) { %><button class="btn btn-secondary btn-sm" data-recovery-url="/api/admin/inventory/restock/<%= batch._id %>/apply">Recover remaining rows</button><% } %>
+<% if (batch.recoveryVersion !== 1 && (batch.status === 'applying' || batch.results.some(row => row.status === 'review'))) { %><p class="muted">Legacy import: check stock history manually before making any new adjustment.</p><% } %>
+<details><summary>Row outcomes</summary><ul><% batch.rows.forEach((row, index) => { const result = batch.results.find(item => item.row === index + 2); %><li><%= row.name %> · +<%= row.units %> · <%= result ? result.status + ': ' + result.message : 'Not yet confirmed' %></li><% }) %></ul></details></section><% }) %>
+<%- include('../partials/admin-end') %>

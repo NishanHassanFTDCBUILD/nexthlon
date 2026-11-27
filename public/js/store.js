@@ -40,9 +40,8 @@
   };
 
   // ---------- Fly to cart ----------
-  // The product flies as a small 3D card to the header cart icon the moment the button is pressed, at the
-  // same time as the request (so it never waits for the server), and the cart icon catches it in a burst
-  // of WebGL sparks. If the server says no, the card flies back to where it came from.
+  // Once the server confirms the add, the product flies as a small 3D card to the header cart icon.
+  // Rejected adds show the server's explanation instead of a flight that instantly reverses.
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const NO_FLIGHT = {landed: Promise.resolve(), abort() {}};
 
@@ -182,24 +181,31 @@
   // opacity only.
   // Returns { landed, abort }: landed resolves when the card reaches the cart (or straight away when
   // there is no flight); abort() flies it back to where it came from, where it fades out in a grey puff.
-  Nx.startFlight = function startFlight(source, src) {
+  Nx.startFlight = function startFlight(source, src, fallback) {
     if (
       !source ||
       reducedMotion.matches ||
       typeof window.requestAnimationFrame !== 'function'
     )
       return NO_FLIGHT;
-    const from = source.getBoundingClientRect();
     const photo =
       src || (source.tagName === 'IMG' ? source.currentSrc || source.src : '');
+    // A card's photo can be above the viewport while its add button is still visible (especially in
+    // the showroom on a phone). Keep the product photo, but launch it from the visible button.
+    const visibleBox = (element) => {
+      if (!element) return null;
+      const box = element.getBoundingClientRect();
+      const left = Math.max(0, box.left);
+      const top = Math.max(0, box.top);
+      const right = Math.min(window.innerWidth, box.right);
+      const bottom = Math.min(window.innerHeight, box.bottom);
+      return right > left && bottom > top
+        ? {left, top, width: right - left, height: bottom - top}
+        : null;
+    };
+    const from = visibleBox(source) || visibleBox(fallback);
     // Nothing to fly from (no photo, or the photo is off screen): the cart icon still catches the item.
-    if (
-      !from.width ||
-      !photo ||
-      from.bottom < 0 ||
-      from.top > window.innerHeight
-    )
-      return NO_FLIGHT;
+    if (!from || !photo) return NO_FLIGHT;
     const durationMs = Nx.motionMs('--duration-slower', 700);
     const target = cartTarget(durationMs + 1200);
     if (!target) return NO_FLIGHT;
@@ -228,7 +234,20 @@
     const dy = target.y - sy;
     const lift = Math.max(90, Math.hypot(dx, dy) * 0.32);
     const cx = dx * 0.35;
-    const cy = Math.min(0, dy) - lift;
+    // The highest point may not rise above the cart icon (or 40px from the top): from a photo high on the
+    // screen, such as the showroom's, the full lift would carry the card off the top mid-flight.
+    const curveTop = (c) => {
+      let top = 0;
+      for (let i = 1; i <= 20; i += 1) {
+        const p = i / 20;
+        top = Math.min(top, 2 * (1 - p) * p * c + p * p * dy);
+      }
+      return top;
+    };
+    const lowest = Math.min(0, dy);
+    const ceiling = Math.min(target.y, 40) - sy;
+    let cy = lowest - lift;
+    while (cy < lowest && curveTop(cy) < ceiling) cy = Math.min(lowest, cy + 8);
     const side = dx >= 0 ? 1 : -1;
     const ease = easing();
     const seconds = durationMs / 1000;
@@ -238,12 +257,14 @@
     let finished = false;
     let settle = null;
     let stopFrames = null;
+    let animation = null;
+    let cleanupTimer = null;
     const arrived = new Promise((resolve) => {
       settle = resolve;
     });
 
     // Places the card at eased progress p, and returns where it is (for the sparks).
-    const place = (p) => {
+    const place = (p, write = true) => {
       const u = 1 - p;
       const x = 2 * u * p * cx + p * p * dx;
       const y = 2 * u * p * cy + p * p * dy;
@@ -263,8 +284,11 @@
             ? 1
             : 1 - (p - 0.9) * 6
           : clampTo(p / 0.35, 0, 1);
-      card.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) perspective(600px) rotateX(${rotateX.toFixed(1)}deg) rotateY(${rotateY.toFixed(1)}deg) rotateZ(${rotateZ.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
-      card.style.opacity = String(Math.round(opacity * 100) / 100);
+      const transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) perspective(600px) rotateX(${rotateX.toFixed(1)}deg) rotateY(${rotateY.toFixed(1)}deg) rotateZ(${rotateZ.toFixed(1)}deg) scale(${scale.toFixed(3)})`;
+      if (write) {
+        card.style.transform = transform;
+        card.style.opacity = String(Math.round(opacity * 100) / 100);
+      }
       // The light sweeps across as the card turns.
       sheen.style.transform = `translateX(${(-70 + 140 * p + side * arc * 12).toFixed(1)}%)`;
       return {
@@ -273,6 +297,8 @@
         vx: vx * direction,
         vy: vy * direction,
         size: size * scale,
+        transform,
+        opacity,
       };
     };
 
@@ -280,47 +306,81 @@
       if (finished) return;
       finished = true;
       if (stopFrames) stopFrames();
+      clearTimeout(cleanupTimer);
+      if (animation) animation.cancel();
       const fx = cartFx();
-      if (landedOnCart) {
-        catchAt(target.icon);
-        if (fx) fx.burst(target.x, target.y);
-      } else if (fx) {
-        fx.puff(sx, sy);
+      try {
+        if (landedOnCart) {
+          catchAt(target.icon);
+          if (fx) fx.burst(target.x, target.y);
+        } else if (fx) {
+          fx.puff(sx, sy);
+        }
+      } catch {
+        /* Optional sparks must not interrupt cleanup or the cart result. */
+      } finally {
+        card.remove();
+        settle();
       }
-      card.remove();
-      settle();
     };
 
     place(0);
+    // The browser runs the photo's flight on its compositor. It must not depend on the WebGL
+    // scene's ticker, which may be paused while the hero/showroom is outside the viewport.
+    if (typeof card.animate === 'function') {
+      const keyframes = Array.from({length: 41}, (_, index) => {
+        const offset = index / 40;
+        const {transform, opacity} = place(ease(offset), false);
+        return {offset, transform, opacity};
+      });
+      try {
+        animation = card.animate(keyframes, {
+          duration: durationMs,
+          easing: 'linear',
+          fill: 'both',
+        });
+        animation.finished.then(
+          () => end(direction > 0),
+          () => end(false),
+        );
+      } catch {
+        animation = null;
+      }
+    }
     stopFrames = everyFrame((dt) => {
       if (finished) return false;
       // Going back is a little quicker than going out.
-      t = clampTo(
-        t + (direction * dt) / (direction > 0 ? seconds : seconds * 0.6),
-        0,
-        1,
-      );
-      const at = place(ease(t));
+      t = animation
+        ? clampTo(Number(animation.currentTime) / durationMs, 0, 1)
+        : clampTo(
+            t + (direction * dt) / (direction > 0 ? seconds : seconds * 0.6),
+            0,
+            1,
+          );
+      const at = place(ease(t), !animation);
       const fx = cartFx();
       if (fx && direction > 0 && t > 0.08 && t < 0.97)
         fx.trail(at.x, at.y, at.vx, at.vy, at.size);
-      if (direction > 0 && t >= 1) end(true);
-      else if (direction < 0 && t <= 0) end(false);
+      if (!animation) {
+        if (direction > 0 && t >= 1) end(true);
+        else if (direction < 0 && t <= 0) end(false);
+      }
       return !finished;
     });
 
     // Browsers pause frames in background tabs: the cart count and message never wait on the flight
     // for longer than it should take.
-    const landed = Promise.race([
-      arrived,
-      new Promise((resolve) => setTimeout(resolve, durationMs + 250)),
-    ]);
+    cleanupTimer = setTimeout(() => end(direction > 0), durationMs + 250);
     return {
-      landed,
+      landed: arrived,
       abort() {
         // Already on the cart: nothing to undo on screen (the count is simply not changed).
         if (finished) return;
         direction = -1;
+        if (animation) {
+          animation.playbackRate = -1.6;
+          animation.play();
+        }
       },
     };
   };
@@ -357,6 +417,7 @@
     if (!state) return;
     button.classList.add(`is-${state}`);
     const label = button.querySelector('.sr-only');
+    const visibleLabel = button.querySelector('[data-card-cart-label]');
     if (label && !button.dataset.label)
       button.dataset.label = label.textContent;
     if (label)
@@ -364,12 +425,36 @@
         state === 'max'
           ? 'The most you can buy is already in your cart'
           : 'Added to your cart';
+    if (visibleLabel)
+      visibleLabel.textContent =
+        state === 'max' ? 'Max in cart' : 'Added to cart';
     if (state === 'added') {
       setTimeout(() => {
         button.classList.remove('is-added');
         if (label && button.dataset.label)
           label.textContent = button.dataset.label;
+        if (visibleLabel) visibleLabel.textContent = 'Add to cart';
       }, 1800);
+    }
+  }
+
+  function cartFeedback(button, message = '') {
+    if (!button || typeof button.closest !== 'function') return;
+    const host = button.closest(
+      '.product-body, .zg-page-info, .zg-glass, [data-flip-card], [data-add-to-cart]',
+    );
+    if (!host) return;
+    let note = host.querySelector('[data-cart-feedback]');
+    if (!note && message) {
+      note = document.createElement('p');
+      note.className = 'cart-add-feedback';
+      note.setAttribute('data-cart-feedback', '');
+      note.setAttribute('role', 'status');
+      host.append(note);
+    }
+    if (note) {
+      note.textContent = message;
+      note.hidden = !message;
     }
   }
 
@@ -407,11 +492,18 @@
       button.disabled = true;
       button.setAttribute('aria-busy', 'true');
     }
-    const flight = Nx.startFlight(source, src);
+    let flight = NO_FLIGHT;
+    cartFeedback(button);
     try {
       const body = {productId, quantity};
       if (variantId) body.variantId = variantId;
       const result = await Nx.api('/api/cart/items', {method: 'POST', body});
+      // Decorative effects must never leave the button disabled or stop a cart request.
+      try {
+        flight = Nx.startFlight(source, src, button);
+      } catch {
+        /* Adding to the cart still works if a browser cannot draw the flight. */
+      }
       await flight.landed;
       Nx.setCartCount(result.cart.summary.count);
       Nx.toast(result.message, 'success', {
@@ -443,6 +535,10 @@
       return {ok: true, cart: result.cart};
     } catch (error) {
       flight.abort();
+      cartFeedback(
+        button,
+        error.message || 'Could not add this product. Please try again.',
+      );
       if (error.code === 'option_required' && href) {
         // A product with sizes, added from a card: open its page, where the size is chosen.
         window.location.assign(href);
@@ -467,15 +563,17 @@
     }
   };
 
+  // Standard and showroom cards share this handler, including cards inserted after page load.
+  // Adding must work before the lazy-loaded showroom/WebGL module has initialized.
   // Any [data-cart-add="<product id>"] button adds one to the cart. The photo flies from the card the
   // button sits in; data-cart-src names a different photo, data-cart-from="card" flies the whole card's
   // box (for cards whose photo is on a hidden face).
   document.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-cart-add]');
+    const button = event.target.closest('[data-cart-add], [data-zg-add]');
     if (!button || button.disabled) return;
     event.preventDefault();
     const card = button.closest(
-      '[data-cart-card], .product-card, [data-flip-card], .acct-buy-card, li, article',
+      '[data-cart-card], .product-card, [data-zg-card], [data-flip-card], .acct-buy-card, li, article',
     );
     const photo = card && card.querySelector('img');
     const source =
@@ -484,7 +582,7 @@
       button.dataset.cartSrc || (photo ? photo.currentSrc || photo.src : '');
     const link = card && card.querySelector('a[href^="/products/"]');
     Nx.addToCart({
-      productId: button.dataset.cartAdd,
+      productId: button.dataset.cartAdd || (card && card.dataset.id),
       source,
       src,
       button,
@@ -571,11 +669,11 @@
     if ((role === 'guest' || role === 'customer') && p.stock > 0) {
       const add = document.createElement('button');
       add.type = 'button';
-      add.className = 'card-add';
+      add.className = 'card-add card-add-inline';
       add.dataset.cartAdd = p.id;
-      add.innerHTML = `${iconSvg('cart', 'card-add-cart')}${iconSvg('check', 'card-add-done')}<span class="sr-only"></span>`;
+      add.innerHTML = `${iconSvg('cart', 'card-add-cart')}${iconSvg('check', 'card-add-done')}<span data-card-cart-label aria-hidden="true">Add to cart</span><span class="sr-only"></span>`;
       add.querySelector('.sr-only').textContent = `Add ${p.name} to cart`;
-      card.querySelector('.product-media').append(add);
+      card.querySelector('.product-body').append(add);
     }
     const foot = card.querySelector('.product-foot');
     foot.append(stockLabel(p.stock));

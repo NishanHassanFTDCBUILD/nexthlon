@@ -24,24 +24,12 @@ router.get('/about', publicCache, pages.infoPage('about'));
 router.get('/contact', publicCache, pages.infoPage('contact'));
 router.get('/track', publicCache, pages.infoPage('track'));
 // Styleguide: the design tokens and components, for the team (rendered from the live stylesheets).
-// Frequently asked questions: the answers come from config/faq.js.
-router.get('/faq', publicCache, (req, res) =>
-  res.render('pages/faq', {
-    title: 'Frequently asked questions | Nexthlon',
-    faqs: require('../config/faq'),
-  }),
-);
-// Shown to the team while developing. On the live store it is not published: the normal 404 page answers.
-router.get('/styleguide', publicCache, (req, res, next) => {
-  if (require('../config/env').isProduction) return next();
-  return res.render('pages/styleguide', {
+router.get('/styleguide', publicCache, (req, res) =>
+  res.render('pages/styleguide', {
     title: 'Styleguide | Nexthlon',
     pageKey: 'styleguide',
     topics: [],
-  });
-});
-router.get('/account/gift-card', accountPage, (req, res) =>
-  res.render('account/gift-card', {title: 'Gift card | Nexthlon'}),
+  }),
 );
 // Find my shoe size (a plain form on the server; no script).
 router.get(
@@ -64,6 +52,14 @@ router.get('/reset-password', recovery.resetPage);
 router.get('/verify-email', recovery.verifyPage);
 // My Account. The older short URLs (/profile, /orders, /wallet, /wishlist) still work.
 router.get('/account', accountPage, account.overview);
+router.get('/account/profile', accountPage, (req, res) =>
+  res.render('account/profile', {
+    title: 'Your profile | Nexthlon',
+    profile: req.user,
+    fit: req.user.fitProfile || {},
+    fitOptions: require('../config/fitProfile'),
+  }),
+);
 router.get(['/account/addresses', '/profile'], accountPage, pages.profile);
 router.get('/account/buy-again', accountPage, account.buyAgain);
 router.get('/account/coupons', accountPage, account.coupons);
@@ -80,7 +76,11 @@ router.get('/cart', customerPage, pages.cart);
 router.get('/checkout', customerPage, pages.checkout);
 router.get(['/account/orders', '/orders'], accountPage, pages.orders);
 router.get(['/account/wallet', '/wallet'], accountPage, pages.wallet);
-router.get('/orders/:orderId', accountPage, pages.orderDetail);
+router.get(
+  ['/orders/:orderId', '/account/orders/:orderId'],
+  accountPage,
+  pages.orderDetail,
+);
 router.get('/orders/:orderId/success', customerPage, pages.orderSuccess);
 router.get('/orders/:orderId/invoice', customerPage, pages.orderInvoice);
 router.get(

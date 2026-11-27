@@ -12,10 +12,10 @@
 
 <section class="admin-totals" aria-label="Summary">
   <div class="admin-total <%= mismatchedDays ? 'is-out' : 'is-in' %>"><span>Days that don't match</span><strong><%= mismatchedDays %></strong><small class="muted">out of <%= days %></small></div>
-  <div class="admin-total <%= issueTotal ? 'is-out' : 'is-in' %>"><span>Orders to check</span><strong><%= issueTotal %></strong><small class="muted">listed below</small></div>
+  <div class="admin-total <%= issues.length ? 'is-out' : 'is-in' %>"><span>Orders to check</span><strong><%= issues.length %></strong><small class="muted">listed below</small></div>
 </section>
 
-<% if (issueTotal) { %>
+<% if (issues.length) { %>
   <section class="panel panel-flush admin-table-panel" aria-labelledby="issues-title">
     <div class="dash-card-head dash-pad"><h2 id="issues-title"><%- icon('alert', 'i-sm') %> Orders to check</h2></div>
     <div class="table-wrap admin-table-scroll">
@@ -34,7 +34,6 @@
         </tbody>
       </table>
     </div>
-    <%- include('../partials/admin-pager') %>
   </section>
 <% } else { %>
   <div class="alert alert-info admin-ok" role="status"><%- icon('check') %><span>Every online order in this period matches its recorded payment, and every delivered cash order is marked paid.</span></div>

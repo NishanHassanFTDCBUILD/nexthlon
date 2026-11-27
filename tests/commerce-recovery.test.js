@@ -201,6 +201,37 @@ function fixture(t, overrides = {}) {
   return {counters, fail, doc, state: () => state};
 }
 
+for (const [
+  label,
+  paymentMethod,
+  total,
+  walletUsed,
+  paymentStatus,
+  expected,
+] of [
+  ['online', 'razorpay', 10000, 0, 'paid', 10000],
+  ['wallet', 'wallet', 0, 10000, 'paid', 10000],
+  ['mixed', 'razorpay', 6000, 4000, 'paid', 10000],
+  ['unpaid COD', 'cod', 10000, 0, 'pending', 0],
+]) {
+  test(
+    label + ' cancellation forces wallet credit and retry cannot duplicate it',
+    async (t) => {
+      const f = fixture(t, {paymentMethod, total, walletUsed, paymentStatus});
+      const order = f.doc();
+      await orders.cancelItems(order, [...order.items], {
+        by: 'admin',
+        refundMethod: 'original',
+      });
+      await settlements.resume(id);
+      assert.equal(f.counters.gatewayCalls, 0);
+      assert.equal(f.counters.credited, expected);
+      assert.equal(f.state().refundedAmount, expected);
+      assert.equal(f.state().settlements[0].method, 'wallet');
+    },
+  );
+}
+
 test('refund retry after order history failure credits the wallet once', async (t) => {
   const f = fixture(t);
   f.fail.record = true;
@@ -326,19 +357,48 @@ test('return approval is saved before stock or refund work and resumes after fai
   await assert.rejects(
     admin.decideReturn(
       'NX-2026-000001',
-      {decision: 'approve', refundMethod: 'wallet'},
+      {decision: 'approve', refundMethod: 'original'},
       {_id: user},
     ),
   );
   assert.equal(f.state().orderStatus, 'returned');
   const reply = await admin.decideReturn(
     'NX-2026-000001',
-    {decision: 'approve', refundMethod: 'wallet'},
+    {decision: 'approve', refundMethod: 'original'},
     {_id: user},
   );
   assert.equal(reply.order.paymentStatus, 'refunded');
+  assert.equal(f.state().returnDecision.refundMethod, 'wallet');
+  assert.equal(f.counters.gatewayCalls, 0);
   assert.equal(f.counters.stockReturned, 1);
   assert.equal(f.counters.credited, 10000);
+});
+
+test('payment received after cancellation credits the wallet exactly once', async (t) => {
+  const f = fixture(t, {
+    paymentMethod: 'razorpay',
+    paymentStatus: 'pending',
+    orderStatus: 'cancelled',
+    stockReserved: false,
+    items: [
+      {
+        _id: '64b000000000000000000003',
+        product: '64b000000000000000000004',
+        name: 'Ball',
+        price: 10000,
+        mrp: 10000,
+        quantity: 1,
+        lineTotal: 10000,
+        status: 'cancelled',
+      },
+    ],
+  });
+  await payments.markPaid('order_test', 'pay_test', 'webhook');
+  await payments.markPaid('order_test', 'pay_test', 'webhook');
+  assert.equal(f.counters.credited, 10000);
+  assert.equal(f.counters.gatewayCalls, 0);
+  assert.equal(f.state().refunds[0].method, 'wallet');
+  assert.equal(f.state().paymentFulfilled, true);
 });
 
 test('payment retry completes invoice work without decrementing stock twice', async (t) => {

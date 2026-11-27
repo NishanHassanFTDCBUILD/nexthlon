@@ -103,18 +103,27 @@ const setListed = asyncHandler(async (req, res) => {
 const restock = asyncHandler(async (req, res) => {
   const {errors, value} = validateRestock(req.body || {});
   if (hasErrors(errors)) throw new HttpError(400, errors.add, errors);
-  const {product, before, after} = await adminProductService.restock(
-    req.params.productId,
-    value.add,
-  );
-  if (after > before) stockAlertService.kick();
-  await auditService.record({
-    ...auditService.fromRequest(req),
-    action: 'product.restock',
-    target: `product:${product.id}`,
-    before: {stock: before},
-    after: {stock: after},
+  const checked = require('../utils/validators').validateStockChange({
+    action: 'add',
+    units: value.add,
+    reason: 'restock',
+    requestId: req.body.requestId,
   });
+  if (!checked.value.requestId || hasErrors(checked.errors))
+    throw new HttpError(
+      400,
+      'A valid adjustment reference is required. Reload the dashboard.',
+    );
+  const {before, after, replayed} =
+    await require('../services/inventoryAdjustmentService').apply(
+      auditService.fromRequest(req),
+      req.params.productId,
+      checked.value,
+    );
+  const product = await adminProductService.getAdminProduct(
+    req.params.productId,
+  );
+  if (after > before && !replayed) stockAlertService.kick();
   res.json({
     message: `${product.name}: ${value.add} added, ${after} in stock now.`,
     product,

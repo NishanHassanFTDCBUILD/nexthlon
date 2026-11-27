@@ -388,7 +388,6 @@ function checkEnv(env = process.env) {
   const STORE_SETTINGS = {
     STORE_LEGAL_NAME: 'registered business name',
     STORE_ADDRESS: 'business address',
-    STORE_GSTIN: 'GSTIN',
     STORE_SUPPORT_EMAIL: 'support email',
     STORE_SUPPORT_PHONE: 'support phone number',
     STORE_GRIEVANCE_OFFICER: "grievance officer's name",

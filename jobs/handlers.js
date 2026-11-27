@@ -1,11 +1,19 @@
 // Everything the job worker (and the event system) knows how to do, registered in one place. Required once at
 // start-up, by the app and by the stand-alone worker, so a job saved by one can be run by the other.
 const registry = require('./registry');
+registry.register('audit.write', async (entry) => {
+  const {_id, ...fields} = entry;
+  await require('../models/AuditLog').updateOne(
+    {_id},
+    {$setOnInsert: fields},
+    {upsert: true},
+  );
+});
 
 // Event listeners (each becomes a job type "event:<event>:<name>").
 require('../events/listeners/orderEmails');
+require('../events/listeners/orderPush');
 require('../events/listeners/questionEmails');
-require('../events/listeners/giftCards');
 
 // Back-in-stock alerts (E3): one email per alert, and the sweep that finds alerts whose product is back.
 const stockAlertService = require('../services/stockAlertService');

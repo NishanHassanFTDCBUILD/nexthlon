@@ -52,7 +52,6 @@ test('a live shop is warned about placeholder business details, and a wrong supp
   const {errors, warnings} = checkEnv(withoutTwo);
   assert.deepEqual(errors, []);
   assert.deepEqual(warnings.map((line) => line.split(':')[0]).sort(), [
-    'STORE_GSTIN',
     'STORE_SUPPORT_PHONE',
   ]);
   assert.match(

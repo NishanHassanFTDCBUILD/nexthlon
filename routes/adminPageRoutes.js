@@ -33,6 +33,24 @@ router.get('/login', adminLocals, adminGuestOnly, pages.adminLogin);
 // Everything below needs a signed-in admin (anyone else: 404). The console is a calm work area
 // that switches sections without a reload (adminShell: no store motion, X-Partial support).
 router.use(adminPage, adminLocals, adminShell);
+// Enforce narrow read permissions on HTML as well as JSON endpoints.
+router.use((req, res, next) => {
+  const {roleOf, can, permissionFor} = require('../utils/permissions');
+  let permission = permissionFor('GET', req.path);
+  if (req.path === '/settings') permission = 'settings.write';
+  const editor =
+    /^\/(products|categories|coupons|deals)\/(?:new|[^/]+\/edit)$/.exec(
+      req.path,
+    );
+  if (editor) permission = `${editor[1]}.write`;
+  if (can(roleOf(req.user), permission)) return next();
+  return next(
+    new (require('../utils/http').HttpError)(
+      403,
+      'Your role does not allow this page.',
+    ),
+  );
+});
 router.get('/', (req, res) => res.redirect(`${config.adminPath}/dashboard`));
 
 // ---------- Overview ----------
@@ -45,12 +63,22 @@ router.get('/orders', sales.orders);
 router.get('/orders/pick-list', sales.pickList);
 // Batch print: the chosen orders, one page each (the browser prints it or saves it as a PDF).
 router.get('/orders/print', sales.printOrders);
-router.get('/orders/:orderId', sales.order);
+router.get(
+  '/orders/:orderId',
+  require('../utils/http').asyncHandler(async (req, res, next) => {
+    res.locals.packingAssignment = await require('../models/Order')
+      .findOne({orderId: req.params.orderId})
+      .select('packingOwner packingOwnerName packingClaimedAt')
+      .lean();
+    res.locals.packingActor = String(req.user._id);
+    next();
+  }),
+  sales.order,
+);
 router.get('/returns', sales.returns);
 router.get('/transactions', sales.transactions);
 router.get('/transactions/reconciliation', sales.reconciliation);
 router.get('/transactions/:id', sales.transaction);
-router.get('/refunds', sales.refunds);
 // Coupons: the fixed paths come before /:couponId so "new" is never read as an id.
 router.get('/coupons', sales.coupons);
 router.get('/coupons/new', sales.couponNew);
@@ -65,6 +93,21 @@ router.get('/products', pages.adminProducts);
 router.get('/products/new', pages.adminProductNew);
 router.get('/products/:productId/edit', pages.adminProductEdit);
 router.get('/inventory', catalog.inventory);
+router.get(
+  '/inventory/imports',
+  (req, res, next) => {
+    const {can, roleOf} = require('../utils/permissions');
+    return can(roleOf(req.user), 'inventory.write')
+      ? next()
+      : next(
+          new (require('../utils/http').HttpError)(
+            403,
+            'Your role does not allow this page.',
+          ),
+        );
+  },
+  require('../controllers/adminRecoveryController').importsPage,
+);
 router.get('/categories', catalog.categories);
 router.get('/categories/new', catalog.categoryNew);
 router.get('/categories/:categoryId/edit', catalog.categoryEdit);
@@ -95,7 +138,7 @@ router.get('/users', (req, res) => {
 router.get('/settings', pages.adminSettings);
 router.get('/system', catalog.system);
 
-// Staff and the audit log: only the roles that may see them (utils/permissions.js).
+// Staff: only the roles that may see it (utils/permissions.js).
 const staffPages = require('../controllers/adminStaffController');
 const {roleOf, can} = require('../utils/permissions');
 const needsPage = (permission) => (req, res, next) =>
@@ -112,15 +155,7 @@ router.get(
   '/reviews',
   require('../controllers/adminReviewController').reviewsPage,
 );
-// Operations pages: the GST report (reports.read).
-const opsPages = require('../controllers/adminOpsController');
-router.get('/gst', needsPage('reports.read'), opsPages.gstPage);
 router.get('/security', require('../controllers/adminSecurityController').page);
-router.get(
-  '/gift-cards',
-  needsPage('settings.write'),
-  require('../controllers/giftCardController').listPage,
-);
 router.get(
   '/returns-report',
   needsPage('reports.read'),

@@ -93,9 +93,9 @@ function pointerTracker(canvas) {
 // piled up into a white glare behind the motto, so the strip gets fewer, smaller, softer dots,
 // placed on the right where the motto is not.
 const STRIP_COUNT = 2600;
-const STRIP_GLOW = 0.6; // brightness compared with the full-height scene
-const STRIP_DOT = 0.8; // dot size compared with the full-height scene
-const FULL_GLOW = 0.85;
+const STRIP_GLOW = 1.15; // brightness compared with the full-height scene (same look on every device)
+const STRIP_DOT = 1; // dot size compared with the full-height scene
+const FULL_GLOW = 1.3;
 const COLOR_A = [0.83, 1.0, 0.23]; // volt
 const COLOR_B = [0.9, 1.0, 0.6]; // light volt (was almost white, which read as glare)
 const SHAPE = [4.4, (4.4 * 320) / 400];

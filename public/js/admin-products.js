@@ -5,6 +5,7 @@
   const MAX_IMAGES = 4;
   const MAX_BYTES = 2 * 1024 * 1024;
   const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+  const pendingActions = new WeakSet();
   const STATUS = {
     active: {label: 'Active', pill: 'pill-green'},
     unlisted: {label: 'Unlisted', pill: 'pill-grey'},
@@ -33,46 +34,51 @@
       'click',
       async (event) => {
         const button = event.target.closest('[data-toggle-listing]');
-        if (!button) return;
-        const listed = button.dataset.listed === 'true';
-        const name = button.dataset.name;
-        const confirmed = await Nx.confirm({
-          title: listed ? `Unlist ${name}?` : `List ${name} again?`,
-          message: listed
-            ? 'Shoppers will no longer see it, and it shows as unavailable in carts. It stays here, so you can list it again any time.'
-            : 'It will be visible in the store again straight away.',
-          confirmLabel: listed ? 'Unlist product' : 'List product',
-          tone: listed ? 'danger' : 'primary',
-        });
-        if (!confirmed) return;
-
-        Nx.busy(button, true, listed ? 'Unlisting…' : 'Listing…');
+        if (!button || pendingActions.has(button)) return;
+        pendingActions.add(button);
         try {
-          const result = await Nx.api(
-            `/api/admin/products/${encodeURIComponent(button.dataset.toggleListing)}/listing`,
-            {
-              method: 'PATCH',
-              body: {isListed: !listed},
-            },
-          );
-          Nx.busy(button, false);
-          const product = result.product;
-          const row = button.closest('tr');
-          const status = row.querySelector('[data-status]');
-          status.textContent = STATUS[product.status].label;
-          status.className = `pill ${STATUS[product.status].pill}`;
-          row.classList.toggle('is-unlisted', !product.isListed);
-          button.dataset.listed = String(product.isListed);
-          button.textContent = product.isListed ? 'Unlist' : 'List';
-          button.setAttribute(
-            'aria-label',
-            `${product.isListed ? 'Unlist' : 'List'} ${name}`,
-          );
-          button.className = `btn btn-sm ${product.isListed ? 'btn-danger-soft' : 'btn-secondary'}`;
-          Nx.toast(result.message);
-        } catch (error) {
-          Nx.busy(button, false);
-          Nx.toast(error.message, 'error');
+          const listed = button.dataset.listed === 'true';
+          const name = button.dataset.name;
+          const confirmed = await Nx.confirm({
+            title: listed ? `Unlist ${name}?` : `List ${name} again?`,
+            message: listed
+              ? 'Shoppers will no longer see it, and it shows as unavailable in carts. It stays here, so you can list it again any time.'
+              : 'It will be visible in the store again straight away.',
+            confirmLabel: listed ? 'Unlist product' : 'List product',
+            tone: listed ? 'danger' : 'primary',
+          });
+          if (!confirmed) return;
+
+          Nx.busy(button, true, listed ? 'Unlisting…' : 'Listing…');
+          try {
+            const result = await Nx.api(
+              `/api/admin/products/${encodeURIComponent(button.dataset.toggleListing)}/listing`,
+              {
+                method: 'PATCH',
+                body: {isListed: !listed},
+              },
+            );
+            Nx.busy(button, false);
+            const product = result.product;
+            const row = button.closest('tr');
+            const status = row.querySelector('[data-status]');
+            status.textContent = STATUS[product.status].label;
+            status.className = `pill ${STATUS[product.status].pill}`;
+            row.classList.toggle('is-unlisted', !product.isListed);
+            button.dataset.listed = String(product.isListed);
+            button.textContent = product.isListed ? 'Unlist' : 'List';
+            button.setAttribute(
+              'aria-label',
+              `${product.isListed ? 'Unlist' : 'List'} ${name}`,
+            );
+            button.className = `btn btn-sm ${product.isListed ? 'btn-danger-soft' : 'btn-secondary'}`;
+            Nx.toast(result.message);
+          } catch (error) {
+            Nx.busy(button, false);
+            Nx.toast(error.message, 'error');
+          }
+        } finally {
+          pendingActions.delete(button);
         }
       },
       {signal},
@@ -81,9 +87,27 @@
 
   // ---------- Add / edit form ----------
   // Its elements live inside the section, so their listeners go away with it.
-  window.NxPages.define('admin-product-form', (root) => {
+  window.NxPages.define('admin-product-form', (root, signal) => {
     const form = root.querySelector('[data-product-form]');
     if (!form) return;
+    if (window.NxProductMedia) window.NxProductMedia(root, signal);
+    let saving = false;
+    const markDirty = () => {
+      form.dataset.unsaved = 'true';
+    };
+    form.addEventListener('input', markDirty, {signal});
+    form.addEventListener('change', markDirty, {signal});
+    form.addEventListener(
+      'click',
+      (event) => {
+        if (
+          event.target.closest('button') &&
+          event.target.closest('[data-product-form]')
+        )
+          markDirty();
+      },
+      {signal},
+    );
 
     // Live discount preview. The server works out the real value when saving.
     const priceInput = form.querySelector('[data-price]');
@@ -459,8 +483,13 @@
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (saving || signal.aborted) return;
+      if (!form.reportValidity()) return;
+      saving = true;
       // Everything is checked on the server, which reports every problem at once (photos included).
       const data = new FormData();
+      if (form.elements.stockSnapshot)
+        data.append('stockSnapshot', form.elements.stockSnapshot.value);
       for (const name of [
         'name',
         'description',
@@ -470,15 +499,12 @@
         'mrp',
         'offerPercent',
         'stock',
-        'hsn',
-        'gstRate',
-        'gstRateAbove',
-        'gstAbove',
         'countryOfOrigin',
         'manufacturer',
         'netQuantity',
         'shipWeight',
         'sku',
+        'videoUrl',
       ]) {
         data.append(name, form.elements[name].value);
       }
@@ -507,13 +533,71 @@
           main.kind === 'kept' ? main.url : `new:${fresh.indexOf(main)}`,
         );
 
-      const result = await Nx.submitForm(form, {
-        url: form.dataset.endpoint,
-        method: form.dataset.method,
-        body: data,
-        busyLabel: 'Saving…',
+      const controls = [
+        ...form.querySelectorAll('input, select, textarea, button'),
+      ].map((control) => ({control, disabled: control.disabled}));
+      controls.forEach(({control}) => {
+        control.disabled = true;
       });
+      form.dataset.pending = 'true';
+      let result;
+      try {
+        result = await Nx.submitForm(form, {
+          url: form.dataset.endpoint,
+          method: form.dataset.method,
+          body: data,
+          busyLabel: 'Saving…',
+        });
+      } finally {
+        saving = false;
+        delete form.dataset.pending;
+        controls.forEach(({control, disabled}) => {
+          control.disabled = disabled;
+        });
+      }
+      if (result && result.product) {
+        saving = true;
+        form.dataset.pending = 'true';
+        controls.forEach(({control}) => {
+          control.disabled = true;
+        });
+        const id = result.product.id;
+        try {
+          for (const [selector, field, endpoint] of [
+            ['[data-video-file]', 'video', 'video'],
+          ]) {
+            const input = form.querySelector(selector);
+            const files = Array.from(input?.files || []).sort((a, b) =>
+              a.name.localeCompare(b.name, undefined, {numeric: true}),
+            );
+            if (!files.length) continue;
+            const media = new FormData();
+            files.forEach((file) => media.append(field, file));
+            const reply = await Nx.api(
+              '/api/admin/products/' + encodeURIComponent(id) + '/' + endpoint,
+              {method: 'POST', body: media, credentials: 'same-origin'},
+            );
+            if (reply.videoUrl) form.elements.videoUrl.value = reply.videoUrl;
+          }
+        } catch (error) {
+          delete form.dataset.unsaved;
+          Nx.flash(
+            'Product saved, but media needs attention: ' + error.message,
+          );
+          window.location.assign(
+            document.body.dataset.adminPath + '/products/' + id + '/edit',
+          );
+          return;
+        } finally {
+          delete form.dataset.pending;
+          controls.forEach(({control, disabled}) => {
+            control.disabled = disabled;
+          });
+        }
+      }
       if (result) {
+        saving = true;
+        delete form.dataset.unsaved;
         const list = `${document.body.dataset.adminPath}/products`;
         if (window.NxNav)
           window.NxNav.go(list).then(() => Nx.toast(result.message));
@@ -596,26 +680,36 @@
 
   document.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-import-apply]');
-    if (!button) return;
-    const ok = await Nx.confirm({
-      title: 'Save these product changes?',
-      message:
-        'Every change in the file is saved now and recorded in the audit log.',
-      confirmLabel: 'Save changes',
-      tone: 'primary',
-    });
-    if (!ok) return;
-    Nx.busy(button, true, 'Saving…');
+    if (
+      !button ||
+      !button.closest('[data-product-import]') ||
+      pendingActions.has(button)
+    )
+      return;
+    pendingActions.add(button);
     try {
-      const reply = await Nx.api('/api/admin/products/import/apply', {
-        method: 'POST',
-        body: {csv: importedCsv},
+      const ok = await Nx.confirm({
+        title: 'Save these product changes?',
+        message:
+          'Every change in the file is saved now and recorded in the audit log.',
+        confirmLabel: 'Save changes',
+        tone: 'primary',
       });
-      Nx.flash(reply.message);
-      window.location.reload();
-    } catch (error) {
-      Nx.busy(button, false);
-      Nx.toast(error.message, 'error');
+      if (!ok) return;
+      Nx.busy(button, true, 'Saving…');
+      try {
+        const reply = await Nx.api('/api/admin/products/import/apply', {
+          method: 'POST',
+          body: {csv: importedCsv},
+        });
+        Nx.flash(reply.message);
+        window.location.reload();
+      } catch (error) {
+        Nx.busy(button, false);
+        Nx.toast(error.message, 'error');
+      }
+    } finally {
+      pendingActions.delete(button);
     }
   });
 })();

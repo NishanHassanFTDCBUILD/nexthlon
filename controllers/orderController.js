@@ -23,6 +23,7 @@ function checked(validate, body) {
 // What the API returns for an order. Money is in paise.
 function toPublicOrder(order) {
   return {
+    experience: require('../utils/orderExperience').orderExperience(order),
     orderId: order.orderId,
     status: order.orderStatus,
     statusLabel: STATUS_LABELS[order.orderStatus] || order.orderStatus,
@@ -156,7 +157,7 @@ const requestReturn = asyncHandler(async (req, res) => {
   const approved = await adminOrderService.tryAutoApprove(order);
   res.json({
     message: approved
-      ? 'Return approved. Your refund is on its way.'
+      ? 'Return approved. The eligible paid amount is credited to your Nexthlon wallet.'
       : 'Return requested. We will arrange a pickup and keep you posted.',
     order: toPublicOrder(approved || order),
   });

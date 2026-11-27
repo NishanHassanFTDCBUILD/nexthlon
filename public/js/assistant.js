@@ -78,12 +78,17 @@
   async function ask(text) {
     busy = true;
     form.querySelector('button').disabled = true;
+    log.setAttribute('aria-busy', 'true');
+    const pending = bubble('Checking Nexthlon information…', 'bot');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const response = await fetch('/api/assistant/message', {
         method: 'POST',
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({message: text}),
+        signal: controller.signal,
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok)
@@ -92,21 +97,59 @@
         );
       showReply(data);
     } catch (error) {
-      bubble(error.message, 'bot');
+      bubble(
+        error.name === 'AbortError'
+          ? 'That took too long. Please try again, or use Contact us for support.'
+          : error.message,
+        'bot',
+      );
     } finally {
+      clearTimeout(timeout);
+      pending.remove();
+      log.setAttribute('aria-busy', 'false');
       busy = false;
       form.querySelector('button').disabled = false;
       log.scrollTop = log.scrollHeight;
     }
   }
 
+  // Mobile keyboards can shrink the visible screen without changing the layout viewport.
+  function fitViewport() {
+    const viewport = window.visualViewport;
+    const keyboardOffset = viewport
+      ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+      : 0;
+    panel.style.setProperty(
+      '--assistant-viewport-height',
+      `${window.innerHeight}px`,
+    );
+    panel.style.setProperty(
+      '--assistant-keyboard-offset',
+      `${keyboardOffset}px`,
+    );
+  }
+  window.addEventListener('resize', fitViewport);
+  window.visualViewport?.addEventListener('resize', fitViewport);
+  window.visualViewport?.addEventListener('scroll', fitViewport);
+
   function setOpen(open) {
     panel.hidden = !open;
     openButton.setAttribute('aria-expanded', String(open));
-    if (open) input.focus();
+    if (open) {
+      fitViewport();
+      input.focus({preventScroll: true});
+    }
   }
 
   openButton.addEventListener('click', () => setOpen(panel.hidden));
+  panel.querySelectorAll('[data-assistant-question]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (busy) return;
+      const text = button.dataset.assistantQuestion;
+      bubble(text, 'you');
+      ask(text);
+    });
+  });
   closeButton.addEventListener('click', () => {
     setOpen(false);
     openButton.focus();

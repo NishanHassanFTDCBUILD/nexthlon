@@ -6,11 +6,12 @@
   const pill = { active: 'pill-green', scheduled: 'pill-blue', expired: 'pill-red', disabled: 'pill-grey', used_up: 'pill-amber' };
 %>
 <%- include('../partials/admin-start', { section: 'coupons', page: 'coupon-detail' }) %>
+<div class="sales-workspace">
 <nav class="breadcrumb breadcrumb-admin" aria-label="Breadcrumb">
   <a href="<%= adminPath %>/coupons">Coupons</a> <%- icon('chevron-right', 'i-xs') %>
   <span aria-current="page"><%= coupon.code %></span>
 </nav>
-<header class="admin-top">
+<header class="admin-top sales-heading">
   <div>
     <span class="section-kicker">Coupon</span>
     <h1><code class="admin-code"><%= coupon.code %></code></h1>
@@ -86,4 +87,5 @@
     <div class="empty-state empty-state-flat"><%- include('../partials/empty-art', { art: 'ticket' }) %><h2>Nobody has used it yet</h2><p>Uses appear here as soon as an order is placed with this code.</p></div>
   <% } %>
 </section>
+</div>
 <%- include('../partials/admin-end') %>

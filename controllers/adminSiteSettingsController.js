@@ -12,6 +12,7 @@ const MESSAGES = {
   catalog: 'Catalogue limits saved.',
   shopper: 'Shopper features saved. The store shows the change now.',
   home: 'Home page sections saved. The home page shows the change within a minute.',
+  countdown: 'Countdown saved. Refresh the home page to see the new timer.',
 };
 
 // GET /api/admin/settings/site
@@ -38,7 +39,7 @@ const updateSite = asyncHandler(async (req, res) => {
       after: Object.fromEntries(changed.map((key) => [key, after[key]])),
     });
     // Home page sections and the announcement live in the cached home page.
-    if (group === 'home' || group === 'shopper')
+    if (group === 'home' || group === 'shopper' || group === 'countdown')
       require('../utils/memo').forget('catalog:');
   }
   res.json({

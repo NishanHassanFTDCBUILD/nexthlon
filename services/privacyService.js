@@ -46,7 +46,7 @@ function clean(value) {
 async function exportData(userId, context = {}) {
   const user = await User.findById(userId)
     .select(
-      'name email phone role referralCode notifyPrefs recentlyViewed emailVerifiedAt lastLoginAt createdAt',
+      'name email phone role referralCode notifyPrefs recentlyViewed emailVerifiedAt lastLoginAt createdAt fitProfile',
     )
     .lean();
   if (!user) throw new HttpError(404, 'Account not found.');
@@ -142,7 +142,7 @@ async function anonymise(userId, context = {}) {
         recentlyViewed: [],
         emailVerifiedAt: null,
       },
-      $unset: {verifiedPhones: 1},
+      $unset: {verifiedPhones: 1, fitProfile: 1},
     },
   );
   await auditService.record({

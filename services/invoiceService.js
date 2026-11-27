@@ -55,6 +55,14 @@ function writeInvoice(order, stream) {
 
 // An order with GST but no invoice number yet (an online payment still to arrive) has no invoice.
 function assertInvoiceReady(order) {
+  if (
+    order.paymentMethod === 'razorpay' &&
+    !['paid', 'refunded', 'partially_refunded'].includes(order.paymentStatus)
+  )
+    throw new HttpError(
+      409,
+      'The order receipt is available after payment is confirmed.',
+    );
   if (order.gst && !hasGstInvoice(order))
     throw new HttpError(
       409,
@@ -111,7 +119,7 @@ function writeSimpleInvoice(order, stream) {
   font('bold')
     .fontSize(16)
     .fillColor('#ffffff')
-    .text('Tax invoice', left, 32, {width, align: 'right'});
+    .text('Order receipt', left, 32, {width, align: 'right'});
   font('body')
     .fontSize(9)
     .fillColor('#d4d4cd')
@@ -128,12 +136,9 @@ function writeSimpleInvoice(order, stream) {
     .text('ORDER', left + (2 * width) / 3, y);
   y += 14;
   font('body').fontSize(9.5).fillColor(INK);
-  doc.text(
-    `${STORE.legalName}\n${STORE.address}\nGSTIN: ${STORE.gstin}`,
-    left,
-    y,
-    {width: width / 3 - 12},
-  );
+  doc.text(`${STORE.legalName}\n${STORE.address}`, left, y, {
+    width: width / 3 - 12,
+  });
   const a = order.address;
   doc.text(
     [
@@ -267,7 +272,7 @@ function writeSimpleInvoice(order, stream) {
     .fontSize(8.5)
     .fillColor(MUTED)
     .text(
-      `Prices include GST. This is a computer-generated invoice and needs no signature. Questions? ${STORE.supportEmail} · ${STORE.supportPhone}`,
+      `This is a computer-generated order receipt and needs no signature. Questions? ${STORE.supportEmail} · ${STORE.supportPhone}`,
       left,
       doc.page.height - 80,
       {width, align: 'center'},

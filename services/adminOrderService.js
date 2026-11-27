@@ -6,7 +6,6 @@ const events = require('../events');
 const Order = require('../models/Order');
 const User = require('../models/User');
 const orderService = require('./orderService');
-const refundService = require('./refundService');
 const rules = require('../utils/orderRules');
 const {codRisk} = require('../utils/codRisk');
 const {HttpError} = require('../utils/http');
@@ -45,7 +44,10 @@ function istDay(text) {
   const date = new Date(
     Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) - IST_MS,
   );
-  return Number.isNaN(date.getTime()) ? null : date;
+  return Number.isNaN(date.getTime()) ||
+    new Date(date.getTime() + IST_MS).toISOString().slice(0, 10) !== text
+    ? null
+    : date;
 }
 const rupeesToPaise = (value) =>
   /^\d{1,7}$/.test(String(value ?? '').trim()) ? Number(value) * 100 : null;
@@ -63,6 +65,13 @@ function readOrderList(query = {}) {
     searchMax: 60,
     cleanSearch: (value) => cleanText(value, 60),
     fields: {
+      queue: {
+        values: require('../config/orderWorkQueues').ORDER_WORK_QUEUES.map(
+          (queue) => queue.key,
+        ),
+        default: 'all',
+        label: 'Work queue',
+      },
       status: {values: rules.ORDER_STATUSES, default: 'all', label: 'Status'},
       method: {values: METHODS, default: 'all', label: 'Method'},
       payment: {
@@ -112,6 +121,10 @@ async function matchingUserIds(q) {
 
 async function buildOrderFilter(filters) {
   const filter = {};
+  const queue = require('../config/orderWorkQueues').ORDER_WORK_QUEUES.find(
+    (entry) => entry.key === filters.queue,
+  );
+  if (queue) filter.$and = [queue.filter()];
   if (filters.status !== 'all') filter.orderStatus = filters.status;
   if (filters.method !== 'all') filter.paymentMethod = filters.method;
   if (filters.payment !== 'all') filter.paymentStatus = filters.payment;
@@ -144,7 +157,7 @@ async function buildOrderFilter(filters) {
 }
 
 const LIST_FIELDS =
-  'orderId user items.name items.quantity items.status total walletUsed refundedAmount paymentMethod paymentStatus orderStatus createdAt address.fullName address.city address.state address.phone shipments rto.stage tags';
+  'orderId user items.name items.quantity items.status total walletUsed refundedAmount paymentMethod paymentStatus orderStatus createdAt address.fullName address.city address.state address.phone shipments rto.stage tags packingOwnerName';
 
 // What we know about each customer's past orders, for the cash-on-delivery risk (utils/codRisk.js).
 // One query for the whole page, not one per order.
@@ -226,6 +239,7 @@ function toListRow(order) {
   return {
     orderId: order.orderId,
     customer: order.address ? order.address.fullName : '',
+    packingOwnerName: order.packingOwnerName || '',
     city: order.address ? order.address.city : '',
     state: order.address ? order.address.state : '',
     phone: order.address ? order.address.phone : '',
@@ -341,7 +355,10 @@ async function getOrder(orderId) {
     order,
     risk,
     customer,
-    next: rules.nextStatuses(rules.deriveOrderStatus(order.items)),
+    next: require('../utils/orderExperience').orderExperience(order).actions
+      .advanceFulfillment
+      ? rules.nextStatuses(rules.deriveOrderStatus(order.items))
+      : [],
     cancellable: order.items
       .filter(rules.canCancelItem)
       .map((item) => String(item._id)),
@@ -394,7 +411,7 @@ async function bulkStatus(orderIds, status) {
 }
 
 // Cancel some items (or every cancellable one): stock goes back, money is refunded as for customers.
-async function cancelItems(orderId, {itemIds, reason, refundMethod}) {
+async function cancelItems(orderId, {itemIds, reason}) {
   const order = await findOrder(orderId);
   if (
     order.settlements.some(
@@ -415,7 +432,6 @@ async function cancelItems(orderId, {itemIds, reason, refundMethod}) {
           ),
         ),
         reason,
-        refundMethod,
       });
     return {
       order: resumed,
@@ -441,7 +457,7 @@ async function cancelItems(orderId, {itemIds, reason, refundMethod}) {
   const updated = await orderService.cancelItems(order, items, {
     reason: reason || 'Cancelled by Nexthlon',
     by: 'admin',
-    refundMethod,
+    refundMethod: 'wallet',
   });
   return {
     order: updated,
@@ -499,17 +515,6 @@ async function addNote(orderId, body, actor) {
 
 // A refund outside a cancellation or return (goodwill, a price adjustment...). Never more than
 // what was actually paid and not yet refunded.
-async function manualRefund(orderId, {amount, method, reason, key}) {
-  const order = await findOrder(orderId);
-  const before = snapshot(order);
-  const refunds = await refundService.issueRefund(order, amount, {
-    method,
-    key,
-    reason: reason || `Refund for ${order.orderId}`,
-  });
-  return {order, before, after: snapshot(order), refunds};
-}
-
 // ---------- Returns ----------
 const RETURN_SORTS = {
   updated: {label: 'Recently changed', order: {updatedAt: -1}},
@@ -552,15 +557,7 @@ async function listReturns(query = {}) {
     const pattern = new RegExp(escapeRegex(filters.q), 'i');
     filter.$and = [{$or: [{orderId: pattern}, {'address.fullName': pattern}]}];
   }
-  const [orders, total, counts] = await Promise.all([
-    Order.find(filter)
-      .sort(list.order)
-      .skip(list.skip)
-      .limit(size)
-      .select(
-        'orderId items total walletUsed paymentMethod paymentStatus orderStatus returnReason returnNote returnPhotos returnDecision updatedAt deliveredAt address.fullName address.city',
-      )
-      .lean(),
+  const [total, counts] = await Promise.all([
     Order.countDocuments(filter),
     Promise.all([
       Order.countDocuments(byStatus.requested),
@@ -568,24 +565,48 @@ async function listReturns(query = {}) {
       Order.countDocuments(byStatus.rejected),
     ]),
   ]);
+  // A page past the last one shows the last page, not an empty table.
+  const pages = Math.max(1, Math.ceil(total / size));
+  const page = Math.min(filters.page, pages);
+  const orders = await Order.find(filter)
+    .sort(list.order)
+    .skip((page - 1) * size)
+    .limit(size)
+    .select(
+      'orderId items subtotal couponDiscount prepaidDiscount deliveryFee total walletUsed paymentMethod paymentStatus orderStatus returnReason returnNote returnPhotos returnDecision updatedAt deliveredAt address.fullName address.city',
+    )
+    .lean();
   return {
     returns: orders.map((order) => {
       const requested = order.items.filter(
         (item) => item.status === 'return_requested',
       );
       const returned = order.items.filter((item) => item.status === 'returned');
+      const savedIds = new Set(
+        (order.returnDecision?.itemIds || []).map(String),
+      );
+      const decided = savedIds.size
+        ? order.items.filter((item) => savedIds.has(String(item._id)))
+        : returned;
+      const relevant = requested.length ? requested : decided;
+      const requestedValue =
+        !requested.length && order.returnDecision?.requestedValue != null
+          ? order.returnDecision.requestedValue
+          : relevant.length
+            ? rules.itemsValue(
+                order,
+                relevant.map((item) => item._id),
+              )
+            : null;
       return {
         orderId: order.orderId,
         customer: order.address ? order.address.fullName : '',
         city: order.address ? order.address.city : '',
-        items: (requested.length ? requested : returned).map(
+        items: relevant.map(
           (item) =>
             `${item.name}${item.option ? ` (${item.option})` : ''} × ${item.quantity}`,
         ),
-        value: rules.itemsValue(
-          order,
-          (requested.length ? requested : returned).map((item) => item._id),
-        ),
+        value: requestedValue,
         reason: order.returnReason,
         note: order.returnNote,
         photos: order.returnPhotos || [],
@@ -604,7 +625,7 @@ async function listReturns(query = {}) {
     counts: {requested: counts[0], approved: counts[1], rejected: counts[2]},
     chips: list.chips,
     sorts: list.sorts,
-    pagination: list.pagination(total),
+    pagination: {page, pages, total, limit: size},
   };
 }
 
@@ -619,7 +640,7 @@ function settle(order, note) {
 // Approve: the items count as returned, their stock goes back on the shelf, and their value is
 // refunded (to the wallet, or to the card/UPI for online payments). Reject: the items go back to
 // "delivered" and the customer sees the note.
-async function decideReturn(orderId, {decision, note, refundMethod}, actor) {
+async function decideReturn(orderId, {decision, note}, actor) {
   const order = await findOrder(orderId);
   if (
     order.settlements.some(
@@ -652,6 +673,9 @@ async function decideReturn(orderId, {decision, note, refundMethod}, actor) {
   const before = snapshot(order);
   let refund = 0;
 
+  const requestedItemIds = items.map((item) => item._id);
+  const requestedValue = rules.itemsValue(order, requestedItemIds);
+
   if (decision === 'approve') {
     refund = rules.refundFor(
       order,
@@ -669,9 +693,11 @@ async function decideReturn(orderId, {decision, note, refundMethod}, actor) {
     items.forEach((item) => {
       item.status = 'returned';
     });
-    const method = refundMethod || 'wallet';
+    const method = 'wallet';
     order.returnDecision = {
       status: 'approved',
+      itemIds: requestedItemIds,
+      requestedValue,
       note,
       refundMethod: refund > 0 ? method : '',
       refunded: refund,
@@ -710,6 +736,8 @@ async function decideReturn(orderId, {decision, note, refundMethod}, actor) {
     });
     order.returnDecision = {
       status: 'rejected',
+      itemIds: requestedItemIds,
+      requestedValue,
       note,
       refundMethod: '',
       refunded: 0,
@@ -795,7 +823,6 @@ module.exports = {
   cancelItems,
   addShipment,
   addNote,
-  manualRefund,
   readReturnFilters,
   listReturns,
   decideReturn,

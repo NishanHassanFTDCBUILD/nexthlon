@@ -58,7 +58,7 @@
         <li><a href="/track">Track an order</a></li>
         <li><a href="/find-my-size">Find my shoe size</a></li>
         <li><a href="/shipping-policy">Shipping and delivery</a></li>
-        <li><a href="/refund-policy">Cancellation and refunds</a></li>
+        <li><a href="/refund-policy">Cancellation and wallet credit</a></li>
         <li><a href="/contact#faq">FAQs</a></li>
       </ul>
       </details>
@@ -113,7 +113,7 @@
       <nav class="footer-legal" aria-label="Policies">
         <a href="/privacy">Privacy</a>
         <a href="/terms">Terms</a>
-        <a href="/refund-policy">Refunds</a>
+        <a href="/refund-policy">Wallet credit policy</a>
         <a href="/shipping-policy">Shipping</a>
         <a href="/guides">Guides</a>
         <a href="/contact">Contact</a>
@@ -122,5 +122,4 @@
   </div>
 </footer>
 <%- include('assistant') %>
-<%- include('mini-cart') %>
 <%- include('scripts', { razorpay: typeof razorpay !== 'undefined' && razorpay, modules: typeof modules !== 'undefined' ? modules : [] }) %>

@@ -169,7 +169,7 @@ function setUpShowroom(root) {
   const cards = [...root.querySelectorAll('[data-zg-card]')];
 
   // ---------- Add to cart (every mode) ----------
-  // The shared Nx.addToCart (store.js): the photo flies the moment the button is pressed, guests go to
+  // The shared Nx.addToCart (store.js): the photo flies once the add is confirmed, guests go to
   // sign in and come back, a product with sizes opens its page, and "the most you can buy" is a calm note.
   function addToCart(card, quantity, image, button) {
     const href = card.querySelector('[data-zg-link]').getAttribute('href');
@@ -181,16 +181,12 @@ function setUpShowroom(root) {
       productId: card.dataset.id,
       quantity,
       source: image,
+      src: image ? image.currentSrc || image.src : '',
       button,
       href,
     });
   }
-  root.addEventListener('click', (event) => {
-    const add = event.target.closest('[data-zg-add]');
-    if (!add) return;
-    const card = add.closest('[data-zg-card]');
-    addToCart(card, 1, card.querySelector('.zg-media img'), add);
-  });
+  // Card quick-add is delegated by store.js, even before this lazy-loaded scene is ready.
 
   if (reduced) {
     root.classList.add('is-grid');

@@ -9,7 +9,7 @@ const {
   CARD_SIZES,
 } = require('../utils/images');
 const config = require('../config/env');
-const {assetUrl, styleBundleUrl} = require('../utils/assets');
+const {assetUrl, styleBundleUrl, moduleImportMap} = require('../utils/assets');
 
 const shortDate = new Intl.DateTimeFormat('en-IN', {
   day: 'numeric',
@@ -19,6 +19,15 @@ const shortDate = new Intl.DateTimeFormat('en-IN', {
 
 // Values and helper functions every EJS view can use. Set first, so even error pages have them.
 function viewLocals(req, res, next) {
+  res.locals.accountSections = require('../config/accountNav').ACCOUNT_NAV;
+  res.locals.orderWorkQueues =
+    require('../config/orderWorkQueues').ORDER_WORK_QUEUES;
+  res.locals.orderExperience =
+    require('../utils/orderExperience').orderExperience;
+  res.locals.adminCan = (permission) => {
+    const {can, roleOf} = require('../utils/permissions');
+    return can(roleOf(req.user || res.locals.currentUser), permission);
+  };
   //Initially sets the current user to null.
   res.locals.currentUser = null;
   //Stores the current URL path.
@@ -66,6 +75,7 @@ function viewLocals(req, res, next) {
   res.locals.asset = assetUrl;
   // One stylesheet request for a page: styleBundle(["tokens", "components", ...]).
   res.locals.styleBundle = styleBundleUrl;
+  res.locals.moduleImportMap = moduleImportMap;
   // Draws an icon from public/img/icons.svg. Only called with fixed names from the templates.
   res.locals.icon = (name, extraClass = '') =>
     `<svg class="i ${extraClass}" aria-hidden="true" focusable="false"><use href="/img/icons.svg#${name}"></use></svg>`;

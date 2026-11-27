@@ -1,30 +1,50 @@
-// Operations: run a payment webhook event again. The server checks each request
-// (services/webhookLogService.js) and audit-logs it.
+// Admin operations: packing assignment, recovery retries, return rules and the revenue goal.
 (function () {
   'use strict';
-
+  const packingPending = new WeakSet();
   document.addEventListener('click', async (event) => {
-    const rerun = event.target.closest('[data-webhook-rerun]');
-    if (!rerun) return;
-    const ok = await Nx.confirm({
-      title: 'Run this payment event again?',
-      message:
-        'It is handled exactly as when it first arrived. It is safe to repeat: a payment already recorded is not counted twice.',
-      confirmLabel: 'Run it again',
-      tone: 'primary',
-    });
-    if (!ok) return;
-    Nx.busy(rerun, true, 'Running…');
+    const button = event.target.closest('[data-packing-order]');
+    if (!button || packingPending.has(button)) return;
+    packingPending.add(button);
+    Nx.busy(button, true, 'Saving…');
     try {
       const reply = await Nx.api(
-        `/api/admin/webhooks/${encodeURIComponent(rerun.dataset.webhookRerun)}/rerun`,
-        {method: 'POST'},
+        `/api/admin/orders/${encodeURIComponent(button.dataset.packingOrder)}/assignment`,
+        {method: 'POST', body: {action: button.dataset.packingAction}},
       );
-      Nx.flash(reply.message);
-      window.location.reload();
+      Nx.toast(reply.message);
+      await window.NxNav.reload();
     } catch (error) {
-      Nx.busy(rerun, false);
       Nx.toast(error.message, 'error');
+    } finally {
+      packingPending.delete(button);
+      Nx.busy(button, false);
+    }
+  });
+  const pendingRecovery = new WeakSet();
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-recovery-url]');
+    if (!button || pendingRecovery.has(button)) return;
+    pendingRecovery.add(button);
+    try {
+      if (
+        !(await Nx.confirm({
+          title: 'Retry this work?',
+          message:
+            'Confirmed inventory rows are skipped. Background tasks run when a worker is available.',
+          confirmLabel: 'Retry work',
+        }))
+      )
+        return;
+      Nx.busy(button, true, 'Queuing…');
+      const reply = await Nx.api(button.dataset.recoveryUrl, {method: 'POST'});
+      Nx.toast(reply.message || 'Recovery finished. Review the row outcomes.');
+      await window.NxNav.reload();
+    } catch (error) {
+      Nx.toast(error.message, 'error');
+    } finally {
+      pendingRecovery.delete(button);
+      Nx.busy(button, false);
     }
   });
 

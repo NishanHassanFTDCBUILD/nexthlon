@@ -1,0 +1,11 @@
+<% const state = orderExperience(record); %>
+<section class="commerce-order-overview commerce-tone-<%= state.tone %>" aria-label="Order summary">
+  <div class="commerce-order-message"><span class="commerce-symbol"><%- icon(state.tone === 'success' ? 'check' : 'package-check') %></span><div><h2><%= state.title %></h2><p><%= state.message %></p></div></div>
+  <% if (typeof compact === 'undefined' || !compact) { %><dl class="commerce-state-grid">
+    <div><dt>Payment</dt><dd><%= state.payment.label %></dd><small><%= formatPrice(state.payment.received) %> received</small></div>
+    <div><dt>Delivery</dt><dd><%= state.fulfillment.label %></dd><small><%= (record.shipments || []).length %> <%= (record.shipments || []).length === 1 ? 'shipment recorded' : 'shipments recorded' %></small></div>
+    <div><dt>Money returned</dt><dd><%= formatPrice(state.refund.processed) %> completed</dd><small><%= formatPrice(state.refund.pending) %> processing<% if (state.refund.failed) { %> · <%= formatPrice(state.refund.failed) %> needs review<% } %></small></div>
+  </dl><% } %>
+  <% if (state.returnDeadline && record.orderStatus === 'delivered') { %><p class="commerce-deadline">Return window ends <%= formatDate(state.returnDeadline) %>. Eligibility is checked when you submit a request.</p><% } %>
+  <% if (record.returnDecision && !['return_requested'].includes(record.orderStatus)) { %><p class="commerce-deadline">Return <%= record.returnDecision.status === 'approved' ? 'approved' : 'declined' %><%= record.returnDecision.note ? ': ' + record.returnDecision.note : '.' %></p><% } %>
+</section>

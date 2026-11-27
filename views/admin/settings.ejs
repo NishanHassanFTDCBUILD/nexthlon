@@ -28,7 +28,6 @@
   const business = [
     field('legalName', 'Registered business name', 'Shown on invoices and policy pages.', { max: 120, wide: true }),
     field('address', 'Registered address', 'Building, street, city, state and PIN code.', { max: 240, wide: true }),
-    field('gstin', 'GSTIN', '15 characters. Printed on every tax invoice.', { max: 15 }),
     field('grievanceOfficer', 'Grievance officer', 'Required by India\'s e-commerce rules.', { max: 80 }),
     field('supportEmail', 'Support email', 'Where customers write to you.', { type: 'email', max: 120 }),
     field('supportPhone', 'Support phone', 'With the country code, like +91 98765 43210.', { max: 20 }),
@@ -40,7 +39,6 @@
     field('dispatchDays', 'Dispatch time', 'Shown on product and policy pages.', { max: 40 }),
     field('deliveryDays', 'Delivery time', 'Shown on product and policy pages.', { max: 40 }),
     field('returnDays', 'Return window (days)', '0 turns returns off. Policy pages, product pages and My orders follow at once.', { type: 'int', min: 0, max: 30 }),
-    field('refundDays', 'Refunds reach the bank in', 'Shown on the refund policy.', { max: 40 }),
   ];
   const catalog = [
     field('lowStockLimit', 'Low-stock warning at (units)', 'Products at or below this show as low stock in the admin.', { type: 'int', min: 0, max: 100 }),
@@ -165,7 +163,8 @@
           <legend>Announcement bar</legend>
           <label class="switch-row">
             <span><strong>Show the bar</strong><small class="muted">A volt strip above the header on every store page.</small></span>
-            <input class="switch-input" type="checkbox" name="announceOn" role="switch" <%= v.announceOn ? 'checked' : '' %><span class="switch" aria-hidden="true"></span>>
+            <input class="switch-input" type="checkbox" name="announceOn" role="switch" <%= v.announceOn ? 'checked' : '' %>>
+            <span class="switch" aria-hidden="true"></span>
           </label>
           <div class="form-grid form-grid-2">
             <div class="field field-wide">
@@ -190,7 +189,8 @@
           ].forEach(function ([key, label, hint]) { %>
             <label class="switch-row">
               <span><strong><%= label %></strong><small class="muted"><%= hint %></small></span>
-              <input class="switch-input" type="checkbox" name="<%= key %><span class="switch" aria-hidden="true"></span>" role="switch" <%= v[key] ? 'checked' : '' %>>
+              <input class="switch-input" type="checkbox" name="<%= key %>" role="switch" <%= v[key] ? 'checked' : '' %>>
+              <span class="switch" aria-hidden="true"></span>
             </label>
           <% }) %>
         </fieldset>
@@ -210,7 +210,8 @@
           <% site.homeSections.forEach(function ([key, label], n) { %>
             <label class="switch-row">
               <span><strong><span class="settings-step"><%= n + 1 %></span> <%= label %></strong></span>
-              <input class="switch-input" type="checkbox" name="<%= key %><span class="switch" aria-hidden="true"></span>" role="switch" <%= v[key] ? 'checked' : '' %>>
+              <input class="switch-input" type="checkbox" name="<%= key %>" role="switch" <%= v[key] ? 'checked' : '' %>>
+              <span class="switch" aria-hidden="true"></span>
             </label>
           <% }) %>
         </div>

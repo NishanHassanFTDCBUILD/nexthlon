@@ -90,11 +90,7 @@ function settleStatus(order, by, note) {
 
 // Cancels these items: stock goes back, what is left to pay goes down, and money already paid
 // (online or from the wallet) is refunded. A fully cancelled order gives its coupon use back.
-async function cancelItems(
-  order,
-  items,
-  {reason = '', by = 'customer', refundMethod = 'wallet'} = {},
-) {
+async function cancelItems(order, items, {reason = '', by = 'customer'} = {}) {
   if (by !== 'system') settlementService.assertSettled(order);
   if ((order.settlements || []).some((entry) => !entry.done))
     throw new HttpError(
@@ -138,7 +134,7 @@ async function cancelItems(
     itemIds,
     restoreStock: order.stockReserved,
     refund,
-    method: refundMethod,
+    method: 'wallet',
     reason: `Cancelled: ${reason || 'by request'}`,
     event: 'order.cancelled',
     payload: {orderId: order.orderId, itemIds, reason, by},
@@ -149,7 +145,7 @@ async function cancelItems(
   return settlementService.resume(order._id);
 }
 
-async function cancelOrder(userId, orderId, {reason, refundMethod} = {}) {
+async function cancelOrder(userId, orderId, {reason} = {}) {
   let order = await getOwnedOrder(userId, orderId);
   const recovering = order.settlements.some(
     (entry) => !entry.done && entry.event === 'order.cancelled',
@@ -159,15 +155,14 @@ async function cancelOrder(userId, orderId, {reason, refundMethod} = {}) {
   if (recovering && !items.length) return order;
   if (!items.length)
     throw new HttpError(400, 'This order can no longer be cancelled.');
-  return cancelItems(order, items, {reason, by: 'customer', refundMethod});
+  return cancelItems(order, items, {
+    reason,
+    by: 'customer',
+    refundMethod: 'wallet',
+  });
 }
 
-async function cancelItem(
-  userId,
-  orderId,
-  itemId,
-  {reason, refundMethod} = {},
-) {
+async function cancelItem(userId, orderId, itemId, {reason} = {}) {
   const order = await getOwnedOrder(userId, orderId);
   const item = mongoose.isValidObjectId(itemId) ? order.items.id(itemId) : null;
   if (!item) throw new HttpError(404, 'That item is not in this order.');
@@ -193,7 +188,11 @@ async function cancelItem(
       400,
       'This order is not paid yet. Pay for it, or cancel the whole order.',
     );
-  return cancelItems(order, [item], {reason, by: 'customer', refundMethod});
+  return cancelItems(order, [item], {
+    reason,
+    by: 'customer',
+    refundMethod: 'wallet',
+  });
 }
 
 // savePhotos (optional) stores the customer's photos; it runs only once the return is allowed.
@@ -205,6 +204,17 @@ async function requestReturn(
   {savePhotos = null} = {},
 ) {
   const order = await getOwnedOrder(userId, orderId);
+  settlementService.assertSettled(order);
+  if (
+    order.items.some((item) =>
+      ['requested', 'approved'].includes(item.exchange?.status),
+    )
+  ) {
+    throw new HttpError(
+      409,
+      'A size exchange is already in progress. Contact support before requesting a return.',
+    );
+  }
   if (!rules.canRequestReturn(order, STORE.returnDays, now)) {
     throw new HttpError(
       400,
@@ -220,6 +230,7 @@ async function requestReturn(
   });
   order.returnReason = reason;
   order.returnNote = note;
+  order.returnDecision = null;
   settleStatus(order, 'customer', reason);
   await order.save();
   const seq = order.statusHistory.length;
@@ -240,6 +251,15 @@ async function advanceStatus(
   now = new Date(),
 ) {
   settlementService.assertSettled(order);
+  if (
+    order.paymentMethod === 'razorpay' &&
+    !rules.PAID_STATUSES.includes(order.paymentStatus)
+  ) {
+    throw new HttpError(
+      409,
+      'Payment must be completed before this order can be fulfilled.',
+    );
+  }
   const current = rules.deriveOrderStatus(order.items);
   if (!rules.nextStatuses(current).includes(nextStatus)) {
     throw new HttpError(
@@ -276,17 +296,34 @@ async function advanceStatus(
   return order;
 }
 
-// The tracking timeline: each step of the journey, with the time it happened (if it has).
+// A later milestone completes the earlier steps, even when admin or courier updates
+// skip them. Keep missing timestamps empty instead of inventing history entries.
 function timelineFor(order) {
   const reached = new Map();
-  order.statusHistory.forEach((entry) => {
+  (order.statusHistory || []).forEach((entry) => {
     if (!reached.has(entry.status)) reached.set(entry.status, entry.at);
   });
-  const steps = rules.FLOW.map((status) => ({
+  const returning = ['return_requested', 'returned'].includes(
+    order.orderStatus,
+  );
+  const progress = Math.max(
+    rules.FLOW.indexOf(order.orderStatus),
+    returning ? rules.FLOW.indexOf('delivered') : -1,
+    ...[...reached.keys()].map((status) =>
+      ['return_requested', 'returned'].includes(status)
+        ? rules.FLOW.indexOf('delivered')
+        : rules.FLOW.indexOf(status),
+    ),
+  );
+  if (!reached.get('placed') && order.createdAt)
+    reached.set('placed', order.createdAt);
+  if (!reached.get('delivered') && order.deliveredAt)
+    reached.set('delivered', order.deliveredAt);
+  const steps = rules.FLOW.map((status, index) => ({
     status,
     label: rules.STATUS_LABELS[status],
     at: reached.get(status) || null,
-    done: reached.has(status),
+    done: index <= progress || reached.has(status),
   }));
   if (order.orderStatus === 'cancelled') {
     const kept = steps.filter((step) => step.done);
@@ -298,7 +335,7 @@ function timelineFor(order) {
     });
     return kept;
   }
-  if (['return_requested', 'returned'].includes(order.orderStatus)) {
+  if (returning) {
     steps.push({
       status: 'return_requested',
       label: 'Return requested',
@@ -309,7 +346,7 @@ function timelineFor(order) {
       status: 'returned',
       label: 'Returned',
       at: reached.get('returned') || null,
-      done: reached.has('returned'),
+      done: order.orderStatus === 'returned' || reached.has('returned'),
     });
   }
   return steps;

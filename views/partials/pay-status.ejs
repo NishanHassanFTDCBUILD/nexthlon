@@ -2,6 +2,6 @@
     Pass { status, method }. %>
 <%
   const payTone = { paid: 'paid', pending: 'pending', failed: 'failed', refunded: 'refunded', partially_refunded: 'refunded' };
-  const payText = { pending: method === 'cod' ? 'Pay on delivery' : 'Awaiting payment', paid: 'Paid', failed: 'Payment failed', refunded: 'Refunded', partially_refunded: 'Partly refunded' };
+  const payText = { pending: method === 'cod' ? 'Pay on delivery' : 'Awaiting payment', paid: 'Paid', failed: 'Payment failed', refunded: 'Payment returned', partially_refunded: 'Partly returned' };
 %>
 <span class="pay-status pay-status-<%= payTone[status] || 'pending' %>"><span class="pay-status-dot" aria-hidden="true"></span><%= payText[status] || status %></span>

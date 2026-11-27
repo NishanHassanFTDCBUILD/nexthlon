@@ -128,8 +128,16 @@
         method: 'POST',
         body: {scope: isAdminPage() ? 'admin' : 'customer'},
       })
-        .then(({response}) => response.ok)
-        .catch(() => false)
+        .then(({response, data}) => {
+          if (response.ok) return true;
+          if (response.status === 401 || response.status === 403) return false;
+          const error = new Error(
+            data.message ||
+              'Session renewal is temporarily unavailable. Your changes are still here; try saving again.',
+          );
+          error.status = response.status;
+          throw error;
+        })
         .finally(() => {
           renewal = null;
         });
@@ -169,6 +177,100 @@
       throw error;
     }
     return data;
+  };
+
+  // Raw action buttons need the same navigation protection as submitForm. Share
+  // identical JSON writes only while they are in flight; a later intentional
+  // action is always a new request. Server receipts still protect uncertain retries.
+  const requestApi = Nx.api;
+  const adminWrites = new Map();
+  let pendingAdminWrites = 0;
+  Nx.hasPendingAdminWrites = () => pendingAdminWrites > 0;
+  Nx.api = async function guardedApi(url, options = {}) {
+    const target = new URL(url, window.location.href);
+    const method = (options.method || 'GET').toUpperCase();
+    if (
+      !isAdminPage() ||
+      target.origin !== new URL(window.location.href).origin ||
+      !target.pathname.startsWith('/api/admin/') ||
+      LOGIN_CALLS.includes(target.pathname) ||
+      ['GET', 'HEAD'].includes(method)
+    )
+      return requestApi(url, options);
+    const key =
+      options.body instanceof FormData
+        ? null
+        : JSON.stringify([method, target.href, options.body]);
+    if (key && adminWrites.has(key)) return adminWrites.get(key);
+    pendingAdminWrites++;
+    const request = requestApi(url, options).finally(() => {
+      pendingAdminWrites--;
+      if (key) adminWrites.delete(key);
+    });
+    if (key) adminWrites.set(key, request);
+    return request;
+  };
+
+  // Binary admin exports need the same renewal as JSON requests, without saving an error as a CSV.
+  Nx.download = async function download(url) {
+    const target = new URL(url, window.location.href);
+    if (target.origin !== new URL(window.location.href).origin)
+      throw new Error('Downloads must come from Nexthlon.');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const options = {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: controller.signal,
+      };
+      let response = await fetch(target.href, options);
+      if (response.status === 401 && (await renewSession()))
+        response = await fetch(target.href, options);
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (response.status === 401) sendToLogin('expired');
+        throw new Error(
+          data.message ||
+            'The export could not be downloaded. Please try again.',
+        );
+      }
+      if (
+        /text\/html|application\/(?:problem\+)?json/i.test(
+          response.headers.get('Content-Type') || '',
+        )
+      )
+        throw new Error(
+          'The export returned a page instead of a file. Please reload and try again.',
+        );
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+      const plain = /filename\s*=\s*"?([^";]+)/i.exec(disposition);
+      let filename =
+        plain?.[1] || target.pathname.split('/').pop() || 'nexthlon-export';
+      if (encoded) {
+        try {
+          filename = decodeURIComponent(encoded[1]);
+        } catch {
+          /* use the plain filename */
+        }
+      }
+      return {
+        blob: await response.blob(),
+        filename: [...filename]
+          .map((char) => (char.charCodeAt(0) < 32 ? '_' : char))
+          .join('')
+          .replace(/[\\/:*?"<>|]/g, '_'),
+      };
+    } catch (error) {
+      if (error.name === 'AbortError')
+        throw new Error('The export took too long. Please try again.', {
+          cause: error,
+        });
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
   };
 
   // ---------- Toasts ----------
@@ -360,23 +462,51 @@
   };
 
   // Submits a form to the API, showing field errors and a busy button. Returns the reply or null.
+  const submittingForms = new WeakSet();
   Nx.submitForm = async function submitForm(
     form,
     {url, method = 'POST', body, busyLabel},
   ) {
+    if (submittingForms.has(form)) return null;
+    submittingForms.add(form);
+    const wasPending = form.dataset.pending;
+    form.dataset.pending = 'true';
     const button = form.querySelector('[type="submit"]');
+    const controls = [
+      ...(form.querySelectorAll?.('input, select, textarea, button') || []),
+    ].map((control) => ({control, disabled: control.disabled}));
     Nx.clearErrors(form);
     Nx.busy(button, true, busyLabel);
     try {
-      return await Nx.api(url, {method, body: body || Nx.formValues(form)});
+      const payload = body || Nx.formValues(form);
+      controls.forEach(({control}) => {
+        control.disabled = true;
+      });
+      const result = await Nx.api(url, {
+        method,
+        body: payload,
+      });
+      delete form.dataset.unsaved;
+      if (document.body.dataset.adminPath) form.dataset.saved = 'true';
+      form.dispatchEvent(new CustomEvent('nx:form-saved', {bubbles: true}));
+      return result;
     } catch (error) {
+      controls.forEach(({control, disabled}) => {
+        control.disabled = disabled;
+      });
       Nx.showErrors(form, error.fieldErrors);
       // Forms with a message box show the error there; others fall back to a toast.
       if (!Nx.formAlert(form, error.message, 'error'))
         Nx.toast(error.message, 'error');
       return null;
     } finally {
+      submittingForms.delete(form);
+      if (wasPending === undefined) delete form.dataset.pending;
+      else form.dataset.pending = wasPending;
       Nx.busy(button, false);
+      controls.forEach(({control, disabled}) => {
+        control.disabled = disabled;
+      });
     }
   };
 
@@ -691,6 +821,7 @@
       // header is being held on screen.
       const busy =
         document.body.classList.contains('drawer-open') ||
+        header.querySelector('#account-menu:not([hidden])') ||
         header.contains(document.activeElement) ||
         performance.now() < heldUntil;
       if (!phone.matches || busy || y < header.offsetHeight) setTucked(false);
@@ -806,9 +937,14 @@
     // Only a path on this site, never another website.
     const next = params.get('next') || '/';
     const target = next.startsWith('/') && !next.startsWith('//') ? next : '/';
-    renewSession().then((ok) => {
-      if (ok) window.location.replace(target);
-    });
+    renewSession()
+      .then((ok) => {
+        if (ok) window.location.replace(target);
+      })
+      .catch(() => {
+        // A network or server error does not prove this session has expired.
+        // Keep the sign-in form available and allow a later attempt.
+      });
   }
 
   // ---------- Footer link groups ----------

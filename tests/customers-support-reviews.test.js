@@ -260,7 +260,7 @@ test('support: the inbox lists requests; a reply uses a ready-made text, sets th
   });
   assert.equal(page.status, 200);
   assert.match(page.data, /Ready-made reply/);
-  assert.match(page.data, /Refund timing/);
+  assert.match(page.data, /Wallet credit/);
 
   const reply = await call(
     'POST',

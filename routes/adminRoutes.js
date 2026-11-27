@@ -41,6 +41,31 @@ router.use(requireAuth, requireRole('admin'), requireAdminPermission);
 router.get('/dashboard', dashboard);
 router.get('/search', search);
 router.get('/notifications', notifications);
+router.post(
+  '/orders/:orderId/assignment',
+  adminWriteLimiter,
+  require('../utils/http').asyncHandler(async (req, res) => {
+    const action = req.body && req.body.action;
+    const assignment =
+      await require('../services/packingAssignmentService').change(
+        req.params.orderId,
+        req.user,
+        action,
+      );
+    await auditService.record({
+      ...auditService.fromRequest(req),
+      action: `order.packing_${action}`,
+      target: `order:${req.params.orderId}`,
+      after: {packingOwner: assignment.packingOwner},
+    });
+    res.json({
+      message:
+        action === 'claim'
+          ? 'Assigned to you for packing.'
+          : 'Released to the packing queue.',
+    });
+  }),
+);
 router.get('/reports/sales.csv', reports.salesCsv);
 // Analytics: the JSON behind the section, and the same figures as a CSV.
 router.get('/analytics', analytics);
@@ -105,14 +130,6 @@ router.post(
   adminWriteLimiter,
   productVideo.videoUpload,
   productVideo.upload,
-);
-// 360 view from uploaded photos, in turning order (see services/spinFrameService.js).
-const productSpin = require('../controllers/productSpinController');
-router.post(
-  '/products/:productId/spin',
-  adminWriteLimiter,
-  productSpin.framesUpload,
-  productSpin.upload,
 );
 router.patch('/products/:productId/listing', products.setListed);
 router.patch('/products/:productId/stock', products.restock);
@@ -211,7 +228,6 @@ router.get('/marketplace/feed.json', async (req, res, next) => {
 router.post('/orders/:orderId/rto', adminMoneyLimiter, orders.markRto);
 router.post('/orders/:orderId/notes', adminWriteLimiter, orders.addNote);
 router.patch('/orders/:orderId/tags', adminWriteLimiter, orders.setTags);
-router.post('/orders/:orderId/refunds', adminMoneyLimiter, orders.refund);
 router.get('/orders/:orderId/invoice.pdf', orders.invoicePdf);
 router.get('/orders/:orderId/credit-notes/:index.pdf', orders.creditNotePdf);
 router.get('/orders/:orderId/packing-slip.pdf', orders.packingSlipPdf);
@@ -229,7 +245,6 @@ router.get('/transactions', orders.listTransactions);
 router.get('/transactions/export.:format(csv|xlsx)', orders.exportTransactions);
 router.get('/transactions/reconciliation', orders.reconciliation);
 router.get('/transactions/:id', orders.getTransaction);
-router.get('/refunds', orders.listRefunds);
 
 // Inventory: stock corrections are one atomic update each, and all of them are audit-logged.
 router.get('/inventory', catalog.listInventory);
@@ -247,6 +262,11 @@ router.post(
 );
 router.get('/inventory/:productId/history', catalog.stockHistory);
 router.patch('/inventory/:productId', adminWriteLimiter, catalog.adjustStock);
+router.post(
+  '/inventory/:productId/combinations',
+  adminWriteLimiter,
+  catalog.restockCombination,
+);
 router.patch(
   '/inventory/:productId/reorder',
   adminWriteLimiter,
@@ -299,6 +319,10 @@ router.delete(
 
 // Deals of the Day. A deal changes what shoppers pay, so changes use the money limiter.
 router.get('/deals', deals.listDeals);
+router.patch('/deals/countdown', adminMoneyLimiter, (req, res, next) => {
+  req.params.group = 'countdown';
+  return siteSettings.updateSite(req, res, next);
+});
 router.post('/deals', adminMoneyLimiter, deals.createDeal);
 router.get('/deals/products', deals.searchProducts);
 router.get('/deals/:dealId', deals.getDeal);
@@ -320,28 +344,11 @@ router.patch(
 // Reviews moderation (reviews.write; see utils/permissions.js).
 const reviewApi = require('../controllers/adminReviewController');
 router.get('/reviews', reviewApi.listReviews);
-// Operations: webhooks, job queue and the GST report (see utils/permissions.js).
-const opsApi = require('../controllers/adminOpsController');
-router.get('/webhooks', opsApi.listWebhooks);
-router.post(
-  '/webhooks/:webhookId/rerun',
-  adminMoneyLimiter,
-  opsApi.rerunWebhook,
-);
-router.get('/reports/gst.csv', opsApi.gstCsv);
 // Account security: two-step sign-in for the signed-in admin (services/adminTwoFactorService.js).
 const security = require('../controllers/adminSecurityController');
 router.post('/security/2fa/setup', adminWriteLimiter, security.setup);
 router.post('/security/2fa/enable', adminWriteLimiter, security.enable);
 router.post('/security/2fa/disable', adminWriteLimiter, security.disable);
-// Gift cards: the list and switching one off (settings.write; see utils/permissions.js).
-const giftAdmin = require('../controllers/giftCardController');
-router.get('/gift-cards', giftAdmin.listApi);
-router.post(
-  '/gift-cards/:cardId/disable',
-  adminWriteLimiter,
-  giftAdmin.disableApi,
-);
 // Size exchange: approve, decline or complete a customer's swap (orders.write; see utils/permissions.js).
 const exchangeAdmin = require('../controllers/exchangeController');
 router.post(
