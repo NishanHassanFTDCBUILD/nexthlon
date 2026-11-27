@@ -46,6 +46,12 @@ const analyticsHosts = {
   connect: [...analyticsHostsBase.connect, ...metaHosts.connect],
   img: [...analyticsHostsBase.img, ...metaHosts.img],
 };
+// A fresh random nonce per page: the one inline script the pages carry (the module import map in
+// head.ejs) is allowed by it, while every other inline script stays blocked.
+app.use((req, res, next) => {
+  res.locals.cspNonce = require('crypto').randomBytes(16).toString('base64');
+  next();
+});
 app.use(
   helmet({
     //enables CSP configuration
@@ -57,6 +63,7 @@ app.use(
         // (razorpay-risk-detection) from cdn.razorpay.com. Blocking that script breaks payments.
         'script-src': [
           "'self'",
+          (req, res) => `'nonce-${res.locals.cspNonce}'`,
           'https://checkout.razorpay.com',
           'https://cdn.razorpay.com',
           ...analyticsHosts.script,

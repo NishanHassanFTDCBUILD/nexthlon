@@ -9,7 +9,7 @@ const {
   CARD_SIZES,
 } = require('../utils/images');
 const config = require('../config/env');
-const {assetUrl, styleBundleUrl} = require('../utils/assets');
+const {assetUrl, styleBundleUrl, moduleImportMap} = require('../utils/assets');
 
 const shortDate = new Intl.DateTimeFormat('en-IN', {
   day: 'numeric',
@@ -75,6 +75,7 @@ function viewLocals(req, res, next) {
   res.locals.asset = assetUrl;
   // One stylesheet request for a page: styleBundle(["tokens", "components", ...]).
   res.locals.styleBundle = styleBundleUrl;
+  res.locals.moduleImportMap = moduleImportMap;
   // Draws an icon from public/img/icons.svg. Only called with fixed names from the templates.
   res.locals.icon = (name, extraClass = '') =>
     `<svg class="i ${extraClass}" aria-hidden="true" focusable="false"><use href="/img/icons.svg#${name}"></use></svg>`;

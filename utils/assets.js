@@ -117,4 +117,28 @@ function serveStyleBundle(req, res, next) {
   res.send(bundle.css);
 }
 
-module.exports = {assetUrl, styleBundleUrl, serveStyleBundle};
+// ---------- Import map for ES modules ----------
+// Modules import each other by plain path ("./3d/scene.js"), so without help those files have no
+// version and are re-checked with the server on every visit. The import map in head.ejs points each
+// plain path at its versioned URL, so a returning visitor's browser uses its cached copy with no
+// request at all, and a changed file still arrives at once under its new hash.
+const IMPORTED_MODULES = ['/js/showroom3d.js'];
+function moduleImportMap() {
+  let files = [];
+  try {
+    files = fs
+      .readdirSync(path.join(PUBLIC_DIR, 'js', '3d'))
+      .filter((name) => name.endsWith('.js'))
+      .map((name) => '/js/3d/' + name);
+  } catch {
+    // No 3d folder: the map only covers showroom3d.js.
+  }
+  const imports = {};
+  IMPORTED_MODULES.concat(files).forEach((url) => {
+    const versioned = assetUrl(url);
+    if (versioned !== url) imports[url] = versioned;
+  });
+  return JSON.stringify({imports});
+}
+
+module.exports = {assetUrl, styleBundleUrl, serveStyleBundle, moduleImportMap};
