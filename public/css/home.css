@@ -92,7 +92,70 @@
   width: min(44vw, 680px);
   height: auto;
   transform: translate(-50%, -50%);
-  opacity: 0.85;
+}
+
+/* The still dumbbell floats and sways slowly, like the live scene. Only transform and opacity
+   animate, so it runs on the compositor and costs almost nothing on low-end phones. */
+.hf-dumbbell-img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: hf-float var(--loop-long) var(--ease-in-out) infinite;
+}
+
+.hf-shadow {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -14%;
+  height: 16%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--black-rgb), 0.55),
+    transparent
+  );
+  animation: hf-shadow var(--loop-long) var(--ease-in-out) infinite;
+}
+
+@keyframes hf-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+
+  50% {
+    transform: translateY(-4%) rotate(1deg);
+  }
+}
+
+@keyframes hf-shadow {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scaleX(0.86);
+    opacity: 0.65;
+  }
+}
+
+/* Paused once the live scene has taken over (the fallback is then invisible). */
+.hero3d.is-live .hf-dumbbell-img,
+.hero3d.is-live .hf-shadow,
+.hero3d.is-static .hf-dumbbell-img,
+.hero3d.is-static .hf-shadow {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hf-dumbbell-img,
+  .hf-shadow {
+    animation: none;
+  }
 }
 
 .hero3d-content {
